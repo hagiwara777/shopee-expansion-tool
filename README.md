@@ -98,7 +98,7 @@ term,action,risk_category,match_field,match_type,source_type,note,enabled
 PowerShellでこのフォルダを開き、以下を実行してください。
 
 ```powershell
-cd "C:\Users\user\Documents\Codex\2026-07-08\plan-python-shopee-expansion-tool-ver1"
+cd shopee-expansion-tool
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install --disable-pip-version-check -r requirements.txt
 ```
@@ -118,7 +118,7 @@ KEEPA_API_KEY=your_actual_keepa_api_key
 ## 起動方法
 
 ```powershell
-cd "C:\Users\user\Documents\Codex\2026-07-08\plan-python-shopee-expansion-tool-ver1"
+cd shopee-expansion-tool
 .\.venv\Scripts\python.exe -m streamlit run app.py
 ```
 
@@ -160,7 +160,7 @@ cd "C:\Users\user\Documents\Codex\2026-07-08\plan-python-shopee-expansion-tool-v
 Keepa APIを実際には呼ばず、モックでテストします。
 
 ```powershell
-cd "C:\Users\user\Documents\Codex\2026-07-08\plan-python-shopee-expansion-tool-ver1"
+cd shopee-expansion-tool
 .\.venv\Scripts\python.exe -m pytest
 ```
 
