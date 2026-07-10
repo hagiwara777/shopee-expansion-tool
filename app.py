@@ -208,14 +208,14 @@ with resolver_tab:
             if not product_names_text.strip():
                 st.warning("商品名リストを入力してください。")
             else:
-                st.session_state["asin_resolver_prompt"] = build_ai_prompt(product_names_text)
+                generated_prompt = build_ai_prompt(product_names_text)
+                st.session_state["asin_resolver_prompt"] = generated_prompt
+                st.session_state["asin_resolver_prompt_display"] = generated_prompt
 
-        generated_prompt = st.session_state.get("asin_resolver_prompt", "")
         st.text_area(
             "生成されたプロンプト",
-            value=generated_prompt,
             height=300,
-            key="asin_resolver_generated_prompt_display",
+            key="asin_resolver_prompt_display",
         )
 
     with verify_tab:
