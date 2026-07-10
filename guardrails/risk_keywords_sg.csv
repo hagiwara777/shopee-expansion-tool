@@ -1,0 +1,45 @@
+﻿term,action,risk_category,match_field,match_type,source_type,note,enabled
+大麻,BLOCK,drug_or_hemp,all,contains,community_report,Cannabis risk term,TRUE
+cannabis,BLOCK,drug_or_hemp,all,contains,community_report,Cannabis risk term,TRUE
+hemp,BLOCK,drug_or_hemp,all,contains,community_report,Hemp risk term,TRUE
+麻,REVIEW,drug_or_hemp,all,exact,community_report,Short Japanese term; disabled to avoid false positives,FALSE
+銃,BLOCK,weapon,all,contains,community_report,Weapon-related term,TRUE
+武器,BLOCK,weapon,all,contains,community_report,Weapon-related term,TRUE
+剣,REVIEW,weapon,all,exact,community_report,Short Japanese term; disabled to avoid false positives,FALSE
+刀,REVIEW,weapon,all,exact,community_report,Short Japanese term; disabled to avoid false positives,FALSE
+殺虫剤,BLOCK,pesticide_or_hazardous,all,contains,community_report,Pesticide or insecticide risk,TRUE
+蚊取り線香,BLOCK,pesticide_or_hazardous,all,contains,community_report,Insecticide or repellent risk,TRUE
+ベープ,BLOCK,pesticide_or_hazardous,all,contains,community_report,Insecticide or repellent risk,TRUE
+ホウ酸団子,BLOCK,pesticide_or_hazardous,all,contains,community_report,Pesticide or poison bait risk,TRUE
+チューインガム,BLOCK,food_restricted,all,contains,community_report,Chewing gum restriction risk,TRUE
+アゼライン酸,BLOCK,regulated_ingredient,all,contains,community_report,Regulated ingredient risk,TRUE
+ハイドロキノン,BLOCK,regulated_ingredient,all,contains,community_report,Regulated ingredient risk,TRUE
+水鉄砲,REVIEW,weapon_related_toy,all,contains,community_report,Weapon-like toy risk,TRUE
+戦車,REVIEW,weapon_related_toy,all,contains,community_report,Weapon or military model context,TRUE
+刀剣乱舞,REVIEW,community_report,all,contains,community_report,Weapon-related character or IP context,TRUE
+くまのがっこう,REVIEW,community_report,all,contains,community_report,Character or IP context review,TRUE
+スプレー,REVIEW,pesticide_or_hazardous,all,contains,community_report,Too broad; disabled until context rules are defined,FALSE
+酒,REVIEW,alcohol,all,exact,community_report,Short general alcohol term; disabled to avoid false positives,FALSE
+alcohol,REVIEW,alcohol,all,contains,shopee_policy,Alcohol-related review term,TRUE
+tobacco,BLOCK,tobacco_or_vape,all,contains,shopee_policy,Tobacco-related term,TRUE
+vape,BLOCK,tobacco_or_vape,all,contains,shopee_policy,Vape-related term,TRUE
+電子タバコ,BLOCK,tobacco_or_vape,all,contains,shopee_policy,Vape or e-cigarette term,TRUE
+命のすっぽん黒酢,REVIEW,food_restricted,all,contains,community_report,Supplement or health food risk,TRUE
+スベルティ おなかの脂肪ぱっくん 黒しょうが,REVIEW,food_restricted,all,contains,community_report,Slimming or health claim risk,TRUE
+オリヒロ イチョウ葉エキス,REVIEW,food_restricted,all,contains,community_report,Supplement risk,TRUE
+ビオスリーHi錠,BLOCK,medical_or_therapeutic,all,contains,community_report,Tablet or medicine-like product risk,TRUE
+ヘパリーゼZ,REVIEW,food_restricted,all,contains,community_report,Health supplement risk,TRUE
+ベジエ ベジバリア,REVIEW,food_restricted,all,contains,community_report,Health supplement risk,TRUE
+井藤漢方製薬 DHA1000,REVIEW,food_restricted,all,contains,community_report,Supplement risk,TRUE
+コンドロサポート,REVIEW,food_restricted,all,contains,community_report,Health claim or supplement risk,TRUE
+コレステライフ,REVIEW,medical_or_therapeutic,all,contains,community_report,Health claim context review,TRUE
+ビフィーナS,REVIEW,food_restricted,all,contains,community_report,Supplement risk,TRUE
+キューサイ ひざサポートコラーゲン,REVIEW,food_restricted,all,contains,community_report,Supplement or health claim risk,TRUE
+ファイン L-シトルリン,REVIEW,food_restricted,all,contains,community_report,Supplement ingredient risk,TRUE
+龍角散,REVIEW,medical_or_therapeutic,all,contains,community_report,Medicine or therapeutic product risk,TRUE
+ケアリーヴ,REVIEW,medical_or_therapeutic,all,contains,community_report,Medical or therapeutic product context,TRUE
+メンソレータム,REVIEW,medical_or_therapeutic,all,contains,community_report,Medical or therapeutic product context,TRUE
+メラノCC,REVIEW,regulated_ingredient,all,contains,community_report,Skincare ingredient or claim review,TRUE
+浄水器,REVIEW,food_restricted,all,contains,community_report,Water filter or regulated household goods review,TRUE
+モバイルバッテリー,REVIEW,pesticide_or_hazardous,all,contains,internal_rule,Battery-related item review,TRUE
+PowerCore,REVIEW,pesticide_or_hazardous,all,contains,internal_rule,Battery-related brand or product line review,TRUE

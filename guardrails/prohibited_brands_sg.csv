@@ -1,0 +1,59 @@
+﻿term,action,risk_category,match_field,match_type,source_type,note,enabled
+Adidas,BLOCK,brand_ip,brand,exact,shopee_brand_list,Shopee restricted brand sample,TRUE
+Anessa,BLOCK,brand_ip,brand,exact,shopee_brand_list,Shopee restricted brand sample,TRUE
+Biore,BLOCK,brand_ip,brand,exact,shopee_brand_list,Shopee restricted brand sample,TRUE
+LEGO,BLOCK,brand_ip,brand,exact,shopee_brand_list,Shopee restricted brand sample,TRUE
+Shu Uemura,BLOCK,brand_ip,brand,exact,shopee_brand_list,Shopee restricted brand sample,TRUE
+Maybelline,BLOCK,brand_ip,brand,exact,shopee_brand_list,Shopee restricted brand sample,TRUE
+Nivea,BLOCK,brand_ip,brand,exact,shopee_brand_list,Shopee restricted brand sample,TRUE
+Puma,BLOCK,brand_ip,brand,exact,shopee_brand_list,Shopee restricted brand sample,TRUE
+Shiseido,BLOCK,brand_ip,brand,exact,shopee_brand_list,Shopee restricted brand sample,TRUE
+SK-II,BLOCK,brand_ip,brand,exact,shopee_brand_list,Shopee restricted brand sample,TRUE
+Xiaomi,BLOCK,brand_ip,brand,exact,shopee_brand_list,Shopee restricted brand sample,TRUE
+資生堂,BLOCK,brand_ip,brand,exact,community_report,Alias for Shiseido,TRUE
+プーマ,BLOCK,brand_ip,brand,exact,community_report,Alias for Puma,TRUE
+L'OREAL,BLOCK,brand_ip,brand,exact,community_report,Alias for Loreal brand family,TRUE
+L'Oréal Paris,BLOCK,brand_ip,brand,exact,community_report,Alias for Loreal brand family,TRUE
+L'Oréal Professionnel,BLOCK,brand_ip,brand,exact,community_report,Alias for Loreal brand family,TRUE
+Biore UV,BLOCK,brand_ip,brand,exact,community_report,Alias or product line for Biore,TRUE
+Bioderma,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+Transino,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+アシックス,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+CASIO,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+VGEBY,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+FINO,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+STANLEY,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+スタンレー STANLEY,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+SUNTORY,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+サントリー,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+Schleich,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+＆honey,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+PHITEN,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+Bose,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+DHC,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+G-SHOCK,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+シチズン,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+シチズン 腕時計,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+Olaplex,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+ミノン,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+rom&,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+パナソニック,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+ピジョン,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+ブリタ,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+BARBIE,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+Amazon,REVIEW,brand_ip,brand,exact,community_report,Brand exact only because title contains is too broad,TRUE
+エルゴベビー,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+ロクシタン,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+トゥヴェール,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+オニツカタイガー,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+VERSA GRIP,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+FOSSIL,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+Apple,REVIEW,brand_ip,brand,exact,community_report,Community brand or IP risk review,TRUE
+NULL,REVIEW,brand_ip,brand,exact,community_report,Literal NULL brand string only; blank values do not match,TRUE
+HP,REVIEW,brand_ip,brand,exact,community_report,Short brand; brand exact only,TRUE
+KY,REVIEW,brand_ip,brand,exact,community_report,Short brand; brand exact only,TRUE
+Joy,REVIEW,brand_ip,brand,exact,community_report,Short brand; brand exact only,TRUE
+Loop,REVIEW,brand_ip,brand,exact,community_report,Short brand; brand exact only,TRUE
+Fusion,REVIEW,brand_ip,brand,exact,community_report,Short or general brand; brand exact only,TRUE
+Venus,REVIEW,brand_ip,brand,exact,community_report,Short or general brand; brand exact only,TRUE
+Finish,REVIEW,brand_ip,brand,exact,community_report,Short or general brand; brand exact only,TRUE
