@@ -17,6 +17,16 @@ KeepaのWeb画面操作、Amazonページ操作、Amazon/Keepaスクレイピン
 - 入力欄、検索モード、検索ページ数、検索ボタン、CSVダウンロードボタンを縦並びで表示
 - 同じ検索条件の結果はSQLiteに7日間キャッシュ
 
+## ASIN Resolver Tool Ver0.1
+
+ASIN Resolver Tool Ver0.1は、Expansion Tool内に追加した独立補助機能です。
+
+商品名リストから外部AIへ貼り付けるためのプロンプトを生成し、ChatGPTやGeminiなどの外部AIが返したCSVを手動で貼り付けて解析します。
+
+Amazon.co.jp URLからASINを抽出し、Keepa APIでASINの実在確認を行います。確認結果は画面表示とCSVダウンロードに使えます。
+
+ASIN Resolver Tool Ver0.1は、Expansion Toolへの自動投入は行いません。Shopee API連携、自動出品、Amazonページ操作、ブラウザ自動操作も行いません。AI APIやGemini APIをアプリ内部から自動呼び出しする機能ではありません。
+
 ## Guardrail Filter Ver1.1
 
 Guardrail Filter Ver1.1は、Shopeeアカウント保護のための一次フィルターです。
@@ -73,9 +83,9 @@ term,action,risk_category,match_field,match_type,source_type,note,enabled
 
 ## Ver1で実装しないこと
 
-- AI、Gemini
-- 英字商品名からASIN取得
-- Amazon URLからASIN抽出
+- アプリ内部からのAI API / Gemini APIの自動呼び出し
+- AI返答の自動取得
+- ASIN Resolverの結果をExpansion Toolへ自動投入
 - Shopee API連携
 - 自動出品
 - 自動削除
@@ -85,11 +95,12 @@ term,action,risk_category,match_field,match_type,source_type,note,enabled
 - Web検索、Shopee規約の自動取得
 - Keepa APIの追加取得
 - Keepa Web画面操作、Amazonページ操作、スクレイピング
+- ブラウザ自動操作
 - 画像解析、成分表解析、HSA DB連携
 - fuzzy match
 - 本格的な重複除去
 - 優先順位スコアリング
-- 価格分析、利益計算、分析、グラフ
+- 価格分析、利益計算、在庫管理、分析、グラフ
 - ログイン、DB管理画面、外部DB連携
 - Chrome Remote DesktopやTailscaleなどのリモートアクセス機能
 
@@ -173,6 +184,14 @@ seed_asin,candidate_asin,brand,category,product_title,source,token_estimate,fetc
 ```
 
 取得できない項目は空欄になります。
+
+Guardrail列の意味は以下です。
+
+- `guardrail_status`: `SAFE / REVIEW / BLOCK` の判定結果
+- `guardrail_risk_category`: 一致したリスク分類
+- `guardrail_matched_terms`: 一致した辞書語
+- `guardrail_source`: 一致した辞書ルールの情報源
+- `guardrail_note`: 判定理由の補足
 
 出力CSVは2種類です。
 
