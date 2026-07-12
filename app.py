@@ -3,9 +3,12 @@ import streamlit as st
 
 from modules.asin_resolver import (
     build_ai_prompt,
-    resolve_candidates,
+    clean_ai_response,
+    preview_candidates,
     rows_to_resolver_csv,
+    summarize_preview,
     summarize_statuses,
+    verify_preview_rows,
 )
 from modules.config import load_settings
 from modules.export_csv import rows_to_csv
@@ -185,10 +188,14 @@ with expansion_tab:
         st.dataframe(pd.DataFrame(guarded_rows), width="stretch", hide_index=True)
 
 with resolver_tab:
-    st.subheader("ASIN Resolver Tool Ver0.1")
+    st.subheader("ASIN Resolver Tool Ver0.2")
     prompt_tab, verify_tab = st.tabs(["商品名 → AI用プロンプト", "AI返答 → ASIN確認"])
 
     with prompt_tab:
+        st.info(
+            "商品名は1行1商品で貼り付けてください。"
+            "このタブではAmazon検索を行わず、外部AIへ貼るためのプロンプトを生成します。"
+        )
         with st.form("asin_resolver_prompt_form", clear_on_submit=False):
             product_names_text = st.text_area(
                 "商品名リスト",
@@ -214,33 +221,78 @@ with resolver_tab:
 
         st.text_area(
             "生成されたプロンプト",
-            height=300,
+            height=320,
             key="asin_resolver_prompt_display",
         )
 
     with verify_tab:
+        st.info(
+            "商品名だけではAmazon検索は行いません。"
+            "Amazon.co.jp URLまたはASINを含むAI返答を貼り付けてください。"
+        )
         with st.form("asin_resolver_verify_form", clear_on_submit=False):
             ai_response_text = st.text_area(
                 "ChatGPT / Geminiの返答",
                 placeholder=(
-                    "input_title,amazon_url\n"
-                    "Anua Heartleaf 77 Toner 250ml,https://www.amazon.co.jp/dp/B08C4Z1XF4\n"
-                    "Unknown Product,不明"
+                    "input_title\tamazon_url\n"
+                    "Anua Heartleaf 77 Toner 250ml\thttps://www.amazon.co.jp/dp/B08C4Z1XF4\n"
+                    "Unknown Product\t不明"
                 ),
                 height=220,
             )
-            verify_clicked = st.form_submit_button(
-                "ASIN抽出・Keepa実在確認",
+            parse_clicked = st.form_submit_button(
+                "AI返答を解析",
                 type="primary",
                 width="stretch",
             )
 
-        if verify_clicked:
+        if parse_clicked:
+            st.session_state["asin_resolver_preview_rows"] = []
             st.session_state["asin_resolver_rows"] = []
+            st.session_state["asin_resolver_input_line_count"] = 0
 
             if not ai_response_text.strip():
                 st.warning("ChatGPT / Geminiの返答を入力してください。")
             else:
+                preview_rows = preview_candidates(ai_response_text)
+                st.session_state["asin_resolver_preview_rows"] = preview_rows
+                st.session_state["asin_resolver_input_line_count"] = len(
+                    clean_ai_response(ai_response_text).splitlines()
+                )
+                if preview_rows:
+                    st.success(f"{len(preview_rows)}件の候補行を解析しました。")
+                else:
+                    st.warning("確認対象または候補として残す行はありませんでした。")
+
+        preview_rows = st.session_state.get("asin_resolver_preview_rows", [])
+        if preview_rows:
+            preview_summary = summarize_preview(preview_rows)
+            input_line_count = st.session_state.get("asin_resolver_input_line_count", 0)
+            st.caption(
+                f"解析対象入力行数: {input_line_count}件（空行・コードブロックを除く）。"
+                f"Keepa API確認対象ASIN数: {preview_summary['unique_asins']}件"
+                "（重複を除いたKeepa確認対象ASIN数）。"
+                "プレビューではKeepa APIを呼びません。"
+                "AI返答を変更した場合は、もう一度解析してください。"
+            )
+            preview_cols = st.columns(3)
+            preview_cols[0].metric("抽出ASIN行数", preview_summary["extracted_asin_rows"])
+            preview_cols[1].metric("Keepa確認対象数", preview_summary["unique_asins"])
+            preview_cols[2].metric("NOT_CHECKED件数", preview_summary["not_checked"])
+            preview_detail_cols = st.columns(2)
+            preview_detail_cols[0].metric("対象外URL件数", preview_summary["non_jp_url"])
+            preview_detail_cols[1].metric("抽出不可行数", preview_summary["unresolved"])
+            st.dataframe(pd.DataFrame(preview_rows), width="stretch", hide_index=True)
+
+            verify_clicked = st.button(
+                "抽出ASINをKeepaで確認",
+                type="primary",
+                width="stretch",
+                disabled=preview_summary["unique_asins"] == 0,
+            )
+
+            if verify_clicked:
+                st.session_state["asin_resolver_rows"] = []
                 settings = load_settings()
                 if not settings.keepa_api_key:
                     st.error(
@@ -253,8 +305,8 @@ with resolver_tab:
                             domain="JP",
                         )
                         with st.spinner("Keepa APIでASINの実在確認をしています..."):
-                            st.session_state["asin_resolver_rows"] = resolve_candidates(
-                                ai_response_text,
+                            st.session_state["asin_resolver_rows"] = verify_preview_rows(
+                                preview_rows,
                                 client,
                             )
                     except (KeepaConfigurationError, KeepaDataError, KeepaClientError) as exc:
@@ -267,7 +319,7 @@ with resolver_tab:
         resolver_rows = st.session_state.get("asin_resolver_rows", [])
         if resolver_rows:
             summary = summarize_statuses(resolver_rows)
-            st.success(f"{len(resolver_rows)}件のAI返答を処理しました。")
+            st.success(f"{len(resolver_rows)}件のKeepa確認を完了しました。")
             st.write(f"FOUND: {summary['FOUND']}件")
             st.write(f"UNKNOWN: {summary['UNKNOWN']}件")
             st.write(f"ERROR: {summary['ERROR']}件")

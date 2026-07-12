@@ -9,8 +9,11 @@ from modules.asin_resolver import (
     build_ai_prompt,
     clean_ai_response,
     parse_ai_response,
+    preview_candidates,
     resolve_candidates,
     rows_to_resolver_csv,
+    summarize_preview,
+    verify_preview_rows,
 )
 from modules.cache import KeepaCache
 from modules.keepa_client import KeepaClientError, KeepaExpansionClient
@@ -46,45 +49,84 @@ class FakeKeepaApi:
         return []
 
 
-def test_build_ai_prompt_numbers_non_empty_product_names():
+def test_build_ai_prompt_prefers_tsv_and_numbers_non_empty_product_names():
     prompt = build_ai_prompt("First\n\nSecond")
 
-    assert "Amazon.co.jp" in prompt
+    assert "TSV形式" in prompt
+    assert "input_title\tamazon_url" in prompt
+    assert "Markdown表にはしない" in prompt
     assert "1. First" in prompt
     assert "2. Second" in prompt
 
 
-def test_clean_ai_response_removes_markdown_code_fences_and_blank_lines():
+def test_clean_ai_response_removes_csv_tsv_code_fences_and_blank_lines():
     cleaned = clean_ai_response(
         """
-        ```csv
+        ```tsv
 
-        input_title,amazon_url
-        Item,https://www.amazon.co.jp/dp/B07TSC47PH
+        input_title\tamazon_url
+        Item\thttps://www.amazon.co.jp/dp/B07TSC47PH
         ```
         """
     )
 
-    assert cleaned == "input_title,amazon_url\nItem,https://www.amazon.co.jp/dp/B07TSC47PH"
+    assert cleaned == "input_title\tamazon_url\nItem\thttps://www.amazon.co.jp/dp/B07TSC47PH"
 
 
-def test_parse_csv_with_comma_inside_title_uses_csv_module():
+def test_parses_standard_csv_with_quoted_comma_for_backward_compatibility():
     rows = parse_ai_response(
         'input_title,amazon_url\n"KATE Lip Monster, 03",https://www.amazon.co.jp/dp/B07TSC47PH'
     )
 
     assert rows[0].input_title == "KATE Lip Monster, 03"
-    assert rows[0].amazon_url == "https://www.amazon.co.jp/dp/B07TSC47PH"
     assert rows[0].asin == "B07TSC47PH"
 
 
-def test_extracts_supported_amazon_jp_url_patterns():
+def test_parses_tsv_with_comma_inside_title():
+    rows = parse_ai_response(
+        "input_title\tamazon_url\nKATE Lip Monster, 03\thttps://www.amazon.co.jp/dp/B07TSC47PH"
+    )
+
+    assert rows[0].input_title == "KATE Lip Monster, 03"
+    assert rows[0].asin == "B07TSC47PH"
+
+
+def test_parses_markdown_table_and_skips_header_and_separator():
+    rows = parse_ai_response(
+        "\n".join(
+            [
+                "| input_title | amazon_url |",
+                "|---|---|",
+                "| Keepa smoke test | https://www.amazon.co.jp/dp/B07TSC47PH |",
+            ]
+        )
+    )
+
+    assert len(rows) == 1
+    assert rows[0].input_title == "Keepa smoke test"
+    assert rows[0].asin == "B07TSC47PH"
+
+
+def test_searches_all_csv_cells_for_amazon_url():
+    rows = parse_ai_response(
+        "input_title,amazon_title,amazon_url\n"
+        "商品名,Amazon商品名,https://www.amazon.co.jp/dp/B07TSC47PH"
+    )
+
+    assert len(rows) == 1
+    assert rows[0].input_title == "商品名"
+    assert rows[0].asin == "B07TSC47PH"
+
+
+def test_extracts_supported_amazon_jp_url_patterns_including_no_scheme():
     response = "\n".join(
         [
             "A,https://www.amazon.co.jp/dp/B07TSC47PH",
             "B,https://www.amazon.co.jp/gp/product/B08C4Z1XF4",
             "C,https://www.amazon.co.jp/xxxxx/dp/B000000001?th=1",
             "D,https://amazon.co.jp/dp/B000000002",
+            "E,www.amazon.co.jp/dp/B000000003",
+            "F,amazon.co.jp/dp/B000000004",
         ]
     )
 
@@ -95,7 +137,58 @@ def test_extracts_supported_amazon_jp_url_patterns():
         "B08C4Z1XF4",
         "B000000001",
         "B000000002",
+        "B000000003",
+        "B000000004",
     ]
+    assert rows[4].amazon_url == "https://www.amazon.co.jp/dp/B000000003"
+    assert rows[5].amazon_url == "https://amazon.co.jp/dp/B000000004"
+
+
+def test_parses_numbered_list_with_url():
+    rows = parse_ai_response("1. Keepa smoke test - https://www.amazon.co.jp/dp/B07TSC47PH")
+
+    assert rows[0].input_title.startswith("Keepa smoke test")
+    assert rows[0].asin == "B07TSC47PH"
+
+
+def test_extracts_contextual_embedded_asin_but_not_arbitrary_product_code():
+    rows = parse_ai_response(
+        "\n".join(
+            [
+                "Keepa smoke test ASIN: B07TSC47PH",
+                "候補ASIN=B08C4Z1XF4",
+                "This sentence contains B000000001 but has no ASIN label",
+            ]
+        )
+    )
+
+    assert rows[0].asin == "B07TSC47PH"
+    assert rows[0].note == "Extracted ASIN from embedded text"
+    assert rows[1].asin == "B08C4Z1XF4"
+    assert rows[2].asin == ""
+    assert rows[2].note == "No Amazon.co.jp URL or ASIN"
+
+
+def test_direct_asin_must_fill_a_cell_after_list_prefix_removal():
+    rows = parse_ai_response("\n".join(["B07TSC47PH", "Title,B08C4Z1XF4", "1. B000000001"]))
+
+    assert [row.asin for row in rows] == ["B07TSC47PH", "B08C4Z1XF4", "B000000001"]
+    assert all(row.note == "Extracted ASIN from direct ASIN" for row in rows)
+
+
+def test_explanation_lines_are_skipped_only_after_candidate_extraction():
+    rows = parse_ai_response(
+        "\n".join(
+            [
+                "以下に結果を示します。",
+                "こちらが調査結果です。",
+                "以下が結果です: https://www.amazon.co.jp/dp/B07TSC47PH",
+            ]
+        )
+    )
+
+    assert len(rows) == 1
+    assert rows[0].asin == "B07TSC47PH"
 
 
 def test_non_amazon_jp_urls_are_not_checked():
@@ -130,24 +223,9 @@ def test_unknown_url_less_text_and_invalid_asin_are_not_checked():
         ("UNKNOWN", NOT_CHECKED),
         ("UNKNOWN", NOT_CHECKED),
     ]
+    assert rows[0].note == "AI returned unknown"
+    assert rows[1].note == "No Amazon.co.jp URL or ASIN"
     assert rows[2].note == "Invalid ASIN format"
-
-
-def test_direct_asin_must_be_whole_cell_or_whole_line():
-    rows = parse_ai_response(
-        "\n".join(
-            [
-                "B07TSC47PH",
-                "Title,B08C4Z1XF4",
-                "This sentence contains B000000001 but should not be picked",
-            ]
-        )
-    )
-
-    assert rows[0].asin == "B07TSC47PH"
-    assert rows[1].asin == "B08C4Z1XF4"
-    assert rows[2].asin == ""
-    assert rows[2].verification == NOT_CHECKED
 
 
 def test_url_mixed_text_uses_whole_line_as_input_title():
@@ -160,43 +238,78 @@ def test_url_mixed_text_uses_whole_line_as_input_title():
     assert rows[0].asin == "B07TSC47PH"
 
 
-def test_resolve_candidates_deduplicates_keepa_checks_but_keeps_rows():
-    client = FakeResolverClient(found_asins={"B07TSC47PH"})
-
-    rows = resolve_candidates(
+def test_preview_summary_uses_documented_definitions_without_keepa_calls():
+    rows = preview_candidates(
         "\n".join(
             [
                 "A,https://www.amazon.co.jp/dp/B07TSC47PH",
-                "B,https://www.amazon.co.jp/dp/B07TSC47PH",
+                "B,ASIN: B07TSC47PH",
+                "C,不明",
+                "D,https://www.amazon.com/dp/B07TSC47PH",
+                "Product without candidate",
             ]
-        ),
-        client,
+        )
     )
+
+    summary = summarize_preview(rows)
+
+    assert summary == {
+        "extracted_asin_rows": 2,
+        "unique_asins": 1,
+        "not_checked": 5,
+        "non_jp_url": 1,
+        "unresolved": 1,
+    }
+    assert all(row["verification"] == NOT_CHECKED for row in rows)
+
+
+def test_verify_preview_rows_deduplicates_keepa_checks_but_keeps_rows():
+    client = FakeResolverClient(found_asins={"B07TSC47PH"})
+    preview_rows = preview_candidates(
+        "\n".join(
+            [
+                "A,https://www.amazon.co.jp/dp/B07TSC47PH",
+                "B,ASIN: B07TSC47PH",
+            ]
+        )
+    )
+
+    rows = verify_preview_rows(preview_rows, client)
 
     assert client.calls == [["B07TSC47PH"]]
     assert [row["status"] for row in rows] == ["FOUND", "FOUND"]
     assert [row["verification"] for row in rows] == [KEEPA_VERIFIED, KEEPA_VERIFIED]
 
 
-def test_resolve_candidates_marks_keepa_not_found():
-    rows = resolve_candidates(
-        "A,https://www.amazon.co.jp/dp/B07TSC47PH",
+def test_resolve_candidates_remains_backward_compatible():
+    client = FakeResolverClient(found_asins={"B07TSC47PH"})
+
+    rows = resolve_candidates("A,https://www.amazon.co.jp/dp/B07TSC47PH", client)
+
+    assert client.calls == [["B07TSC47PH"]]
+    assert rows[0]["status"] == "FOUND"
+
+
+def test_verify_preview_rows_marks_keepa_not_found():
+    rows = verify_preview_rows(
+        preview_candidates("A,https://www.amazon.co.jp/dp/B07TSC47PH"),
         FakeResolverClient(found_asins=set()),
     )
 
     assert rows[0]["status"] == "UNKNOWN"
     assert rows[0]["verification"] == KEEPA_NOT_FOUND
+    assert "Keepa did not return product data" in rows[0]["note"]
 
 
-def test_resolve_candidates_marks_keepa_errors():
-    rows = resolve_candidates(
-        "A,https://www.amazon.co.jp/dp/B07TSC47PH",
+def test_verify_preview_rows_marks_keepa_errors():
+    rows = verify_preview_rows(
+        preview_candidates("A,https://www.amazon.co.jp/dp/B07TSC47PH"),
         FakeResolverClient(error=KeepaClientError("Keepa failed")),
     )
 
     assert rows[0]["status"] == "ERROR"
     assert rows[0]["verification"] == "ERROR"
-    assert rows[0]["note"] == "Keepa failed"
+    assert rows[0]["note"].endswith("Keepa failed")
 
 
 def test_resolver_csv_uses_expected_columns_and_utf8_sig():
