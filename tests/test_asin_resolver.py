@@ -7,12 +7,15 @@ from modules.asin_resolver import (
     NOT_CHECKED,
     RESOLVER_CSV_COLUMNS,
     build_ai_prompt,
+    build_search_title,
+    build_source_map,
     clean_ai_response,
     parse_ai_response,
     preview_candidates,
     resolve_candidates,
     rows_to_resolver_csv,
     summarize_preview,
+    verify_selected_rows,
     verify_preview_rows,
 )
 from modules.cache import KeepaCache
@@ -49,14 +52,60 @@ class FakeKeepaApi:
         return []
 
 
-def test_build_ai_prompt_prefers_tsv_and_numbers_non_empty_product_names():
+def test_build_ai_prompt_prefers_tsv_and_includes_source_ids():
     prompt = build_ai_prompt("First\n\nSecond")
 
     assert "TSV形式" in prompt
-    assert "input_title\tamazon_url" in prompt
+    assert "source_id\tinput_title\tamazon_url" in prompt
     assert "Markdown表にはしない" in prompt
-    assert "1. First" in prompt
-    assert "2. Second" in prompt
+    assert "R0001\tFirst" in prompt
+    assert "R0002\tSecond" in prompt
+
+
+def test_build_source_map_assigns_stable_ids_to_non_empty_product_names():
+    assert build_source_map("First\n\nSecond") == {
+        "R0001": "First",
+        "R0002": "Second",
+    }
+
+
+def test_build_search_title_removes_known_bracketed_promos_with_nfkc_and_casefolding():
+    assert build_search_title("【100% Authentic】Anua Toner 250ml") == "Anua Toner 250ml"
+    assert build_search_title("［ＤＩＲＥＣＴ　ＦＲＯＭ　ＪＡＰＡＮ］ HAKUBA Case M Black") == (
+        "HAKUBA Case M Black"
+    )
+    assert build_search_title("[made in JAPAN] Product") == "Product"
+
+
+def test_build_search_title_only_removes_bracketed_exact_phrase_matches():
+    assert build_search_title("[In Stock 3 Pack] Product") == "[In Stock 3 Pack] Product"
+    assert build_search_title("【Limited Edition】Refill 200ml") == "【Limited Edition】Refill 200ml"
+
+
+def test_build_search_title_removes_unbracketed_promos_and_edge_separators():
+    assert build_search_title("Anua Toner - Direct from Japan") == "Anua Toner"
+    assert build_search_title("New! | KATE Lip Monster") == "KATE Lip Monster"
+    assert build_search_title("New!! KATE Lip Monster") == "KATE Lip Monster"
+
+
+def test_build_search_title_preserves_identifying_information_and_internal_symbols():
+    assert build_search_title("Original Refill 200ml") == "Original Refill 200ml"
+    assert build_search_title("Model-A/B Direct from Japan") == "Model-A/B"
+    assert build_search_title("BrandNew!Product") == "BrandNew!Product"
+
+
+def test_build_search_title_falls_back_to_original_title_when_everything_is_removed():
+    assert build_search_title("New!") == "New!"
+
+
+def test_source_map_keeps_original_title_while_prompt_uses_search_title():
+    original_title = "【100% Authentic】Anua Toner 250ml"
+
+    assert build_source_map(original_title) == {"R0001": original_title}
+    prompt = build_ai_prompt(original_title)
+
+    assert "R0001\tAnua Toner 250ml" in prompt
+    assert original_title not in prompt
 
 
 def test_clean_ai_response_removes_csv_tsv_code_fences_and_blank_lines():
@@ -259,6 +308,9 @@ def test_preview_summary_uses_documented_definitions_without_keepa_calls():
         "not_checked": 5,
         "non_jp_url": 1,
         "unresolved": 1,
+        "selected_rows": 2,
+        "selected_unique_asins": 1,
+        "deselected_rows": 3,
     }
     assert all(row["verification"] == NOT_CHECKED for row in rows)
 
@@ -279,6 +331,94 @@ def test_verify_preview_rows_deduplicates_keepa_checks_but_keeps_rows():
     assert client.calls == [["B07TSC47PH"]]
     assert [row["status"] for row in rows] == ["FOUND", "FOUND"]
     assert [row["verification"] for row in rows] == [KEEPA_VERIFIED, KEEPA_VERIFIED]
+
+
+def test_source_id_uses_source_map_title_and_allows_multiple_candidates():
+    rows = preview_candidates(
+        "\n".join(
+            [
+                "source_id\tinput_title\tamazon_url",
+                "R0001\tAI title\thttps://www.amazon.co.jp/dp/B07TSC47PH",
+                "R0001\tAI title\thttps://www.amazon.co.jp/dp/B08C4Z1XF4",
+            ]
+        ),
+        {"R0001": "Original title"},
+    )
+
+    assert [row["source_id"] for row in rows] == ["R0001", "R0001"]
+    assert [row["input_title"] for row in rows] == ["Original title", "Original title"]
+    assert [row["selected"] for row in rows] == [True, True]
+
+
+def test_source_id_less_v02_input_remains_selected_when_asin_is_valid():
+    rows = preview_candidates("Title,https://www.amazon.co.jp/dp/B07TSC47PH")
+
+    assert rows[0]["source_id"] == ""
+    assert rows[0]["input_title"] == "Title"
+    assert rows[0]["selected"] is True
+
+
+def test_unknown_or_lost_source_map_warns_but_allows_manual_selection():
+    rows = preview_candidates(
+        "source_id\tinput_title\tamazon_url\n"
+        "R0001\tAI title\thttps://www.amazon.co.jp/dp/B07TSC47PH"
+    )
+
+    assert rows[0]["source_id"] == "R0001"
+    assert rows[0]["input_title"] == "AI title"
+    assert rows[0]["selected"] is False
+    assert "Unknown source_id" in rows[0]["note"]
+
+    rows[0]["selected"] = True
+    client = FakeResolverClient(found_asins={"B07TSC47PH"})
+    verified = verify_selected_rows(rows, client)
+
+    assert client.calls == [["B07TSC47PH"]]
+    assert verified[0]["status"] == "FOUND"
+
+
+def test_verify_selected_rows_only_checks_selected_rows_and_deduplicates_asins():
+    preview_rows = preview_candidates(
+        "\n".join(
+            [
+                "A,https://www.amazon.co.jp/dp/B07TSC47PH",
+                "B,ASIN: B07TSC47PH",
+                "C,https://www.amazon.co.jp/dp/B08C4Z1XF4",
+            ]
+        )
+    )
+    preview_rows[1]["selected"] = False
+    preview_rows[2]["selected"] = False
+    client = FakeResolverClient(found_asins={"B07TSC47PH"})
+
+    rows = verify_selected_rows(preview_rows, client)
+
+    assert client.calls == [["B07TSC47PH"]]
+    assert len(rows) == 1
+    assert rows[0]["input_title"] == "A"
+    assert rows[0]["verification"] == KEEPA_VERIFIED
+
+
+def test_selected_csv_includes_not_found_rows_but_excludes_deselected_rows():
+    preview_rows = preview_candidates(
+        "\n".join(
+            [
+                "source_id\tinput_title\tamazon_url",
+                "R0001\tA\thttps://www.amazon.co.jp/dp/B07TSC47PH",
+                "R0002\tB\thttps://www.amazon.co.jp/dp/B08C4Z1XF4",
+            ]
+        ),
+        {"R0001": "A", "R0002": "B"},
+    )
+    preview_rows[1]["selected"] = False
+
+    verified = verify_selected_rows(preview_rows, FakeResolverClient(found_asins=set()))
+    csv_rows = list(csv.DictReader(StringIO(rows_to_resolver_csv(verified).decode("utf-8-sig"))))
+
+    assert len(csv_rows) == 1
+    assert csv_rows[0]["source_id"] == "R0001"
+    assert csv_rows[0]["status"] == "UNKNOWN"
+    assert csv_rows[0]["verification"] == KEEPA_NOT_FOUND
 
 
 def test_resolve_candidates_remains_backward_compatible():
@@ -316,6 +456,7 @@ def test_resolver_csv_uses_expected_columns_and_utf8_sig():
     data = rows_to_resolver_csv(
         [
             {
+                "source_id": "R0001",
                 "input_title": "A",
                 "amazon_url": "https://www.amazon.co.jp/dp/B07TSC47PH",
                 "asin": "B07TSC47PH",
@@ -332,6 +473,7 @@ def test_resolver_csv_uses_expected_columns_and_utf8_sig():
     header = decoded.splitlines()[0].split(",")
     assert header == RESOLVER_CSV_COLUMNS
     rows = list(csv.DictReader(StringIO(decoded)))
+    assert rows[0]["source_id"] == "R0001"
     assert rows[0]["asin"] == "B07TSC47PH"
 
 

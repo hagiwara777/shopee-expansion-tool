@@ -6,11 +6,13 @@ from io import StringIO
 import re
 from typing import Any, Iterable
 from urllib.parse import urlparse
+import unicodedata
 
 from modules.keepa_client import KeepaClientError, KeepaExpansionClient, normalize_asin
 
 
 RESOLVER_CSV_COLUMNS = [
+    "source_id",
     "input_title",
     "amazon_url",
     "asin",
@@ -28,6 +30,7 @@ NOT_CHECKED = "NOT_CHECKED"
 
 UNKNOWN_VALUES = {"", "不明", "unknown", "n/a", "na", "none", "null", "-"}
 DIRECT_ASIN_PATTERN = re.compile(r"^[A-Z0-9]{10}$", re.IGNORECASE)
+SOURCE_ID_PATTERN = re.compile(r"^R\d{4}$", re.IGNORECASE)
 EMBEDDED_ASIN_PATTERN = re.compile(
     r"(?i)(?:amazon\s+asin|候補\s*asin|asin)\s*[:=]?\s*"
     r"(?<![A-Z0-9])([A-Z0-9]{10})(?![A-Z0-9])"
@@ -48,6 +51,17 @@ EXPLANATION_PATTERNS = [
     re.compile(r"^商品が見つからない場合", re.IGNORECASE),
     re.compile(r"^(?:here are|here is|the following).*(?:result|finding)", re.IGNORECASE),
 ]
+SEARCH_TITLE_REMOVAL_PHRASES = (
+    "100% authentic",
+    "direct from japan",
+    "made in japan",
+    "ship from japan",
+    "in stock",
+    "new!!",
+    "new!",
+)
+SEARCH_TITLE_BRACKET_PATTERN = re.compile(r"\[(?P<square>[^\]]*)\]|【(?P<corner>[^】]*)】")
+SEARCH_TITLE_EDGE_SEPARATOR_PATTERN = re.compile(r"^[\s\-|/・,:]+|[\s\-|/・,:]+$")
 
 
 @dataclass(frozen=True)
@@ -58,43 +72,86 @@ class ResolverInput:
     status: str
     verification: str
     note: str
+    source_id: str = ""
+    source_id_known: bool | None = None
 
 
 def build_ai_prompt(product_names_text: str) -> str:
-    names = _non_empty_lines(product_names_text)
-    numbered_names = "\n".join(f"{index}. {name}" for index, name in enumerate(names, 1))
+    source_map = build_source_map(product_names_text)
+    source_lines = "\n".join(
+        f"{source_id}\t{build_search_title(name)}" for source_id, name in source_map.items()
+    )
     return (
         "以下の商品について、Amazon.co.jpの商品URLをTSV形式で返してください。\n"
         "説明文は付けず、Markdown表にはしないでください。\n"
-        "1行目は input_title<TAB>amazon_url としてください。\n"
+        "1行目は source_id<TAB>input_title<TAB>amazon_url としてください。\n"
+        "各行のsource_idは入力どおりに保持してください。1つの商品に複数候補がある場合は、同じsource_idで複数行を返してください。\n"
         "見つからなければ「不明」としてください。\n"
         "Amazon.co.jpの商品URLだけを返し、amazon.comやamazon.sgなど海外Amazonは返さないでください。\n"
         "URLが不明な場合は推測URLを作らず、商品の順番を維持してください。\n\n"
         "出力形式:\n"
-        "input_title\tamazon_url\n\n"
+        "source_id\tinput_title\tamazon_url\n\n"
         "商品名:\n\n"
-        f"{numbered_names}"
+        f"{source_lines}"
     )
 
 
-def parse_ai_response(response_text: str) -> list[ResolverInput]:
+def build_source_map(product_names_text: str) -> dict[str, str]:
+    return {
+        f"R{index:04d}": name
+        for index, name in enumerate(_non_empty_lines(product_names_text), 1)
+    }
+
+
+def build_search_title(input_title: str) -> str:
+    normalized = unicodedata.normalize("NFKC", input_title or "")
+    without_bracketed_promos = SEARCH_TITLE_BRACKET_PATTERN.sub(
+        _remove_bracketed_search_title_promo,
+        normalized,
+    )
+    cleaned = _remove_unbracketed_search_title_promos(without_bracketed_promos)
+    cleaned = SEARCH_TITLE_EDGE_SEPARATOR_PATTERN.sub("", cleaned).strip()
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    return cleaned or input_title
+
+
+def parse_ai_response(
+    response_text: str,
+    source_map: dict[str, str] | None = None,
+) -> list[ResolverInput]:
     cleaned = clean_ai_response(response_text)
     if not cleaned:
         return []
 
     parsed_rows: list[ResolverInput] = []
+    header_indexes: dict[str, int] | None = None
     for line in cleaned.splitlines():
-        parsed = _parse_line(line)
+        cells = _parse_cells(line)
+        detected_headers = _header_indexes(cells)
+        if detected_headers is not None:
+            header_indexes = detected_headers
+            continue
+        parsed = _parse_line(line, cells, header_indexes)
         if parsed is not None:
-            parsed_rows.append(parsed)
+            parsed_rows.append(_apply_source_context(parsed, source_map))
     return parsed_rows
 
 
-def preview_candidates(response_text: str) -> list[dict[str, str]]:
-    return [_row_to_dict(row) for row in parse_ai_response(response_text)]
+def preview_candidates(
+    response_text: str,
+    source_map: dict[str, str] | None = None,
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for index, row in enumerate(parse_ai_response(response_text, source_map), 1):
+        preview_row = _row_to_dict(row)
+        preview_row["row_id"] = f"candidate-{index:04d}"
+        preview_row["selected"] = bool(row.asin) and row.source_id_known is not False
+        preview_row["parse_status"] = "CANDIDATE" if row.asin else "UNKNOWN"
+        rows.append(preview_row)
+    return rows
 
 
-def summarize_preview(rows: Iterable[dict[str, str]]) -> dict[str, int]:
+def summarize_preview(rows: Iterable[dict[str, Any]]) -> dict[str, int]:
     materialized = list(rows)
     extracted_asin_rows = sum(1 for row in materialized if row.get("asin"))
     unique_asins = {str(row.get("asin") or "") for row in materialized if row.get("asin")}
@@ -112,11 +169,20 @@ def summarize_preview(rows: Iterable[dict[str, str]]) -> dict[str, int]:
             for row in materialized
             if row.get("note") == "No Amazon.co.jp URL or ASIN"
         ),
+        "selected_rows": sum(1 for row in materialized if row.get("selected")),
+        "selected_unique_asins": len(
+            {
+                str(row.get("asin") or "")
+                for row in materialized
+                if row.get("selected") and row.get("asin")
+            }
+        ),
+        "deselected_rows": sum(1 for row in materialized if not row.get("selected")),
     }
 
 
 def verify_preview_rows(
-    rows: Iterable[dict[str, str]],
+    rows: Iterable[dict[str, Any]],
     client: KeepaExpansionClient,
 ) -> list[dict[str, str]]:
     materialized = [dict(row) for row in rows]
@@ -156,6 +222,13 @@ def verify_preview_rows(
     return output_rows
 
 
+def verify_selected_rows(
+    rows: Iterable[dict[str, Any]],
+    client: KeepaExpansionClient,
+) -> list[dict[str, Any]]:
+    return verify_preview_rows((row for row in rows if row.get("selected")), client)
+
+
 def resolve_candidates(
     response_text: str,
     client: KeepaExpansionClient,
@@ -163,7 +236,7 @@ def resolve_candidates(
     return verify_preview_rows(preview_candidates(response_text), client)
 
 
-def rows_to_resolver_csv(rows: Iterable[dict[str, str]]) -> bytes:
+def rows_to_resolver_csv(rows: Iterable[dict[str, Any]]) -> bytes:
     buffer = StringIO()
     writer = csv.DictWriter(buffer, fieldnames=RESOLVER_CSV_COLUMNS, extrasaction="ignore")
     writer.writeheader()
@@ -191,9 +264,13 @@ def clean_ai_response(response_text: str) -> str:
     return "\n".join(lines).strip()
 
 
-def _parse_line(line: str) -> ResolverInput | None:
-    cells = _parse_cells(line)
-    input_title = _input_title(line, cells)
+def _parse_line(
+    line: str,
+    cells: list[str],
+    header_indexes: dict[str, int] | None,
+) -> ResolverInput | None:
+    source_id = _source_id(cells, header_indexes)
+    input_title = _input_title(line, cells, header_indexes)
     search_values = [*cells, line]
 
     invalid_amazon_url = ""
@@ -217,6 +294,7 @@ def _parse_line(line: str) -> ResolverInput | None:
             UNKNOWN,
             NOT_CHECKED,
             "Extracted ASIN from Amazon.co.jp URL",
+            source_id,
         )
 
     for value in search_values:
@@ -230,6 +308,7 @@ def _parse_line(line: str) -> ResolverInput | None:
                 UNKNOWN,
                 NOT_CHECKED,
                 "Extracted ASIN from embedded text",
+                source_id,
             )
 
     for value in cells:
@@ -243,6 +322,7 @@ def _parse_line(line: str) -> ResolverInput | None:
                 UNKNOWN,
                 NOT_CHECKED,
                 "Extracted ASIN from direct ASIN",
+                source_id,
             )
 
     unknown_value = _find_unknown_value(cells)
@@ -254,6 +334,7 @@ def _parse_line(line: str) -> ResolverInput | None:
             UNKNOWN,
             NOT_CHECKED,
             "AI returned unknown",
+            source_id,
         )
 
     external_url = _find_non_jp_url(search_values)
@@ -265,6 +346,7 @@ def _parse_line(line: str) -> ResolverInput | None:
             UNKNOWN,
             NOT_CHECKED,
             "Not Amazon.co.jp URL",
+            source_id,
         )
 
     if invalid_amazon_url:
@@ -275,6 +357,7 @@ def _parse_line(line: str) -> ResolverInput | None:
             UNKNOWN,
             NOT_CHECKED,
             "Invalid ASIN format",
+            source_id,
         )
 
     if amazon_url_without_asin:
@@ -285,6 +368,7 @@ def _parse_line(line: str) -> ResolverInput | None:
             UNKNOWN,
             NOT_CHECKED,
             "No Amazon.co.jp URL or ASIN",
+            source_id,
         )
 
     if _is_skippable_line(line, cells):
@@ -297,6 +381,7 @@ def _parse_line(line: str) -> ResolverInput | None:
         UNKNOWN,
         NOT_CHECKED,
         "No Amazon.co.jp URL or ASIN",
+        source_id,
     )
 
 
@@ -322,10 +407,67 @@ def _looks_like_markdown_row(line: str) -> bool:
     return stripped.startswith("|") or stripped.endswith("|") or stripped.count("|") >= 2
 
 
-def _input_title(line: str, cells: list[str]) -> str:
+def _input_title(
+    line: str,
+    cells: list[str],
+    header_indexes: dict[str, int] | None,
+) -> str:
+    if header_indexes is not None:
+        title_index = header_indexes.get("input_title")
+        if title_index is not None and title_index < len(cells) and cells[title_index]:
+            return _strip_list_prefix(cells[title_index])
+    if len(cells) >= 3 and SOURCE_ID_PATTERN.fullmatch(cells[0]):
+        return _strip_list_prefix(cells[1])
     if len(cells) >= 2 and cells[0]:
         return _strip_list_prefix(cells[0])
     return _strip_list_prefix(line.strip())
+
+
+def _source_id(cells: list[str], header_indexes: dict[str, int] | None) -> str:
+    if header_indexes is not None:
+        source_index = header_indexes.get("source_id")
+        if source_index is not None and source_index < len(cells):
+            return cells[source_index].strip().upper()
+    if cells and SOURCE_ID_PATTERN.fullmatch(cells[0].strip()):
+        return cells[0].strip().upper()
+    return ""
+
+
+def _header_indexes(cells: list[str]) -> dict[str, int] | None:
+    normalized = [re.sub(r"[\s-]+", "_", cell.strip().casefold()) for cell in cells]
+    indexes = {value: index for index, value in enumerate(normalized)}
+    if "input_title" in indexes and ({"amazon_url", "url", "asin", "amazon_asin"} & set(indexes)):
+        return indexes
+    return None
+
+
+def _apply_source_context(
+    row: ResolverInput,
+    source_map: dict[str, str] | None,
+) -> ResolverInput:
+    if not row.source_id:
+        return row
+    if source_map and row.source_id in source_map:
+        return ResolverInput(
+            source_map[row.source_id],
+            row.amazon_url,
+            row.asin,
+            row.status,
+            row.verification,
+            row.note,
+            row.source_id,
+            True,
+        )
+    return ResolverInput(
+        row.input_title,
+        row.amazon_url,
+        row.asin,
+        row.status,
+        row.verification,
+        _join_notes(row.note, "Unknown source_id"),
+        row.source_id,
+        False,
+    )
 
 
 def _extract_amazon_jp_url_and_asin(value: str) -> tuple[str, str]:
@@ -392,7 +534,7 @@ def _strip_list_prefix(value: str) -> str:
     return re.sub(r"^\s*(?:[-*+]\s+|\d+[.)]\s+)", "", value).strip()
 
 
-def _unique_asins_from_rows(rows: Iterable[dict[str, str]]) -> list[str]:
+def _unique_asins_from_rows(rows: Iterable[dict[str, Any]]) -> list[str]:
     seen: set[str] = set()
     unique_asins: list[str] = []
     for row in rows:
@@ -404,8 +546,9 @@ def _unique_asins_from_rows(rows: Iterable[dict[str, str]]) -> list[str]:
     return unique_asins
 
 
-def _row_to_dict(row: ResolverInput) -> dict[str, str]:
+def _row_to_dict(row: ResolverInput) -> dict[str, Any]:
     return {
+        "source_id": row.source_id,
         "input_title": row.input_title,
         "amazon_url": row.amazon_url,
         "asin": row.asin,
@@ -416,11 +559,11 @@ def _row_to_dict(row: ResolverInput) -> dict[str, str]:
 
 
 def _verified_row(
-    row: dict[str, str],
+    row: dict[str, Any],
     status: str,
     verification: str,
     note: str,
-) -> dict[str, str]:
+) -> dict[str, Any]:
     verified = dict(row)
     verified.update({"status": status, "verification": verification, "note": note})
     return verified
@@ -428,6 +571,35 @@ def _verified_row(
 
 def _join_notes(*notes: str) -> str:
     return " ".join(note.strip() for note in notes if note and note.strip())
+
+
+def _remove_bracketed_search_title_promo(match: re.Match[str]) -> str:
+    content = match.group("square") or match.group("corner") or ""
+    if content.strip().casefold() in SEARCH_TITLE_REMOVAL_PHRASES:
+        return " "
+    return match.group(0)
+
+
+def _remove_unbracketed_search_title_promos(title: str) -> str:
+    chunks: list[str] = []
+    start = 0
+    for bracket_match in SEARCH_TITLE_BRACKET_PATTERN.finditer(title):
+        chunks.append(_remove_search_title_phrases(title[start : bracket_match.start()]))
+        chunks.append(bracket_match.group(0))
+        start = bracket_match.end()
+    chunks.append(_remove_search_title_phrases(title[start:]))
+    return "".join(chunks)
+
+
+def _remove_search_title_phrases(value: str) -> str:
+    result = value
+    for phrase in sorted(SEARCH_TITLE_REMOVAL_PHRASES, key=len, reverse=True):
+        pattern = re.compile(
+            rf"(?<![0-9A-Z]){re.escape(phrase)}(?![0-9A-Z])",
+            re.IGNORECASE,
+        )
+        result = pattern.sub(" ", result)
+    return result
 
 
 def _non_empty_lines(text: str) -> list[str]:

@@ -17,15 +17,15 @@ KeepaのWeb画面操作、Amazonページ操作、Amazon/Keepaスクレイピン
 - 入力欄、検索モード、検索ページ数、検索ボタン、CSVダウンロードボタンを縦並びで表示
 - 同じ検索条件の結果はSQLiteに7日間キャッシュ
 
-## ASIN Resolver Tool Ver0.2
+## ASIN Resolver Tool Ver0.3.1
 
-ASIN Resolver Tool Ver0.2は、Expansion Tool内に追加した独立補助機能です。
+ASIN Resolver Tool Ver0.3.1は、Expansion Tool内に追加した独立補助機能です。
 
-商品名リストから外部AIへ貼り付けるためのプロンプトを生成し、ChatGPTやGeminiなどの外部AIが返した結果を手動で貼り付けて解析します。推奨形式はTSVで、標準的なCSV、Markdown表、箇条書き、Amazon.co.jp URLを含む通常テキストにも対応します。
+商品名リストから`R0001`形式のsource_id付きプロンプトを生成し、ChatGPTやGeminiなどの外部AIが返した結果を手動で貼り付けて解析します。元の商品名はそのまま保持し、AI用プロンプトに渡す検索用タイトルだけからShopeeの既知販売定型文を除去します。推奨形式はTSVで、標準的なCSV、Markdown表、箇条書き、Amazon.co.jp URLを含む通常テキストにも対応します。source_idがないVer0.2形式も扱えます。
 
-Amazon.co.jp URLまたは明示されたASIN候補を抽出し、Keepa確認前に解析結果と件数をプレビューします。その後、ユーザーが確認ボタンを押した場合だけKeepa APIでAmazon.co.jp商品の実在確認を行い、確認後の結果をCSVでダウンロードできます。プレビュー段階ではCSVを出力しません。
+Amazon.co.jp URLまたは明示されたASIN候補を抽出し、Keepa確認前に解析結果と件数をプレビューします。確認対象は表で手動選択でき、選択済みASINだけを重複排除してKeepa APIでAmazon.co.jp商品の実在確認を行います。確認後は、確認実行時に選択した行をsource_id付きCSVでダウンロードできます。プレビュー段階ではCSVを出力しません。
 
-ASIN Resolver Tool Ver0.2は商品名からAmazon商品をアプリ内部で検索する機能ではなく、外部AIの返答から候補を抽出する補助ツールです。CSVファイルのアップロード、Expansion Toolへの自動投入、Shopee API連携、自動出品、Amazonページ操作、ブラウザ自動操作、AI API・Gemini API・Web検索APIの自動呼び出しは行いません。Guardrail FilterもResolverからは呼び出しません。CSVアップロード対応はVer0.3以降の候補です。
+ASIN Resolver Tool Ver0.3は商品名からAmazon商品をアプリ内部で検索する機能ではなく、外部AIの返答から候補を抽出する補助ツールです。CSVファイルのアップロード、Expansion Toolへの自動投入、Shopee API連携、自動出品、Amazonページ操作、ブラウザ自動操作、AI API・Gemini API・Web検索APIの自動呼び出しは行いません。Guardrail FilterもResolverからは呼び出しません。source_idの永続保存も行いません。
 
 ## Guardrail Filter Ver1.1
 
