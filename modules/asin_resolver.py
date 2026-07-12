@@ -131,8 +131,27 @@ def parse_ai_response(
     parsed_rows: list[ResolverInput] = []
     header_indexes: dict[str, int] | None = None
     fallback_context: tuple[str, str] | None = None
+    markdown_header_indexes: dict[str, int] | None = None
+    markdown_table_active = False
     for line in cleaned.splitlines():
-        cells = _parse_cells(line)
+        if _looks_like_markdown_row(line):
+            markdown_cells = _markdown_cells(line)
+            if MARKDOWN_SEPARATOR_PATTERN.fullmatch(line.strip()):
+                if markdown_header_indexes is not None:
+                    header_indexes = markdown_header_indexes
+                    markdown_table_active = True
+                continue
+            detected_markdown_headers = _header_indexes(markdown_cells)
+            if not markdown_table_active and detected_markdown_headers is not None:
+                markdown_header_indexes = detected_markdown_headers
+                continue
+            cells = markdown_cells if markdown_table_active else [line.strip()]
+        else:
+            markdown_header_indexes = None
+            if markdown_table_active:
+                markdown_table_active = False
+                header_indexes = None
+            cells = _parse_cells(line)
         if _is_space_separated_header(line):
             header_indexes = None
             fallback_context = None
@@ -150,6 +169,20 @@ def parse_ai_response(
             inline_candidate = _parse_fallback_source_line(source_id, ai_title)
             if inline_candidate is not None:
                 parsed_rows.append(_finalize_candidate_source_id(inline_candidate, source_map))
+            else:
+                unknown_title = _trailing_unknown_title(ai_title)
+                if unknown_title is not None:
+                    unknown_row = ResolverInput(
+                        unknown_title,
+                        "",
+                        "",
+                        UNKNOWN,
+                        NOT_CHECKED,
+                        "AI returned unknown",
+                        source_id,
+                    )
+                    parsed_rows.append(_finalize_candidate_source_id(unknown_row, source_map))
+                    fallback_context = None
             continue
 
         if fallback_context is not None:
@@ -309,6 +342,18 @@ def _leading_source_id_context(
     if match is None:
         return None
     return match.group(1).upper(), match.group(2).strip()
+
+
+def _trailing_unknown_title(value: str) -> str | None:
+    for unknown_value in sorted(UNKNOWN_VALUES - {""}, key=len, reverse=True):
+        match = re.search(
+            rf"(?:^|\s){re.escape(unknown_value)}$",
+            value.strip(),
+            re.IGNORECASE,
+        )
+        if match is not None:
+            return value[: match.start()].strip()
+    return None
 
 
 def _parse_fallback_source_line(source_id: str, ai_title: str) -> ResolverInput | None:
@@ -498,7 +543,11 @@ def _read_delimited_line(line: str, delimiter: str) -> list[str]:
 
 def _looks_like_markdown_row(line: str) -> bool:
     stripped = line.strip()
-    return stripped.startswith("|") or stripped.endswith("|") or stripped.count("|") >= 2
+    return stripped.startswith("|") and stripped.endswith("|")
+
+
+def _markdown_cells(line: str) -> list[str]:
+    return [cell.strip() for cell in line.strip().strip("|").split("|") if cell.strip()]
 
 
 def _input_title(

@@ -449,6 +449,62 @@ def test_fallback_carries_source_context_to_url_on_next_line():
     assert rows[0]["asin"] == "AAAAAAAAAA"
 
 
+def test_fallback_keeps_source_id_unknown_row_and_restores_source_map_title():
+    rows = preview_candidates(
+        "R0001 Product title 不明",
+        {"R0001": "Original Shopee title"},
+    )
+
+    assert len(rows) == 1
+    assert rows[0]["source_id"] == "R0001"
+    assert rows[0]["input_title"] == "Original Shopee title"
+    assert rows[0]["asin"] == ""
+    assert rows[0]["amazon_url"] == ""
+    assert rows[0]["status"] == "UNKNOWN"
+    assert rows[0]["verification"] == NOT_CHECKED
+    assert rows[0]["note"] == "AI returned unknown"
+    assert rows[0]["selected"] is False
+
+
+def test_fallback_preserves_pipes_inside_source_id_unknown_title():
+    original_title = (
+        "Nino Nana MegaCase Diaper Pants [Bundle of 4] M(6-11kg) | L(9-14kg) | "
+        "XL(12-18kg) | XXL(15-23kg)"
+    )
+    rows = preview_candidates(
+        f"R0002 {original_title} 不明",
+        {"R0002": original_title},
+    )
+
+    assert len(rows) == 1
+    assert rows[0]["source_id"] == "R0002"
+    assert rows[0]["input_title"] == original_title
+    assert rows[0]["status"] == "UNKNOWN"
+    assert rows[0]["verification"] == NOT_CHECKED
+    assert rows[0]["note"] == "AI returned unknown"
+
+
+def test_nine_source_id_lines_keep_unknown_rows_and_select_only_url_candidate():
+    source_map = {f"R{index:04d}": f"Original title {index}" for index in range(1, 10)}
+    lines = ["source_id input_title amazon_url"]
+    for index in range(1, 10):
+        if index == 8:
+            lines.append(
+                "R0008 Tetris Puzzle Wooden Building Blocks "
+                "https://www.amazon.co.jp/dp/B0GQ9ZD41R"
+            )
+        else:
+            lines.append(f"R{index:04d} Product {index} 不明")
+
+    rows = preview_candidates("\n".join(lines), source_map)
+
+    assert len(rows) == 9
+    assert [row["source_id"] for row in rows] == [f"R{index:04d}" for index in range(1, 10)]
+    assert [row["selected"] for row in rows] == [False, False, False, False, False, False, False, True, False]
+    assert rows[7]["asin"] == "B0GQ9ZD41R"
+    assert all(row["verification"] == NOT_CHECKED for row in rows)
+
+
 def test_fallback_carries_source_context_to_multiple_url_lines():
     rows = preview_candidates(
         "\n".join(
