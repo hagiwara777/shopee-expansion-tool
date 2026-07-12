@@ -350,6 +350,169 @@ def test_source_id_uses_source_map_title_and_allows_multiple_candidates():
     assert [row["selected"] for row in rows] == [True, True]
 
 
+def test_fallback_parses_same_line_source_id_without_mixing_it_into_title():
+    original_title = "【Direct from JAPAN】Anua Toner 250ml"
+    rows = preview_candidates(
+        "R0001 Anua Toner 250ml https://www.amazon.co.jp/dp/AAAAAAAAAA",
+        {"R0001": original_title},
+    )
+
+    assert len(rows) == 1
+    assert rows[0]["source_id"] == "R0001"
+    assert rows[0]["input_title"] == original_title
+    assert rows[0]["amazon_url"] == "https://www.amazon.co.jp/dp/AAAAAAAAAA"
+    assert rows[0]["asin"] == "AAAAAAAAAA"
+    assert "R0001" not in rows[0]["input_title"]
+
+
+def test_final_source_id_normalization_recovers_id_from_structured_title_cell():
+    original_title = "【Direct from JAPAN】Kao Biore Kids Stamp UV Sunscreen SPF50 PA+++"
+    rows = preview_candidates(
+        "input_title,amazon_url\n"
+        "R0001 Kao Biore Kids Stamp UV Sunscreen SPF50 PA+++,https://www.amazon.co.jp/dp/AAAAAAAAAA",
+        {"R0001": original_title},
+    )
+
+    assert rows[0]["source_id"] == "R0001"
+    assert rows[0]["input_title"] == original_title
+    assert rows[0]["asin"] == "AAAAAAAAAA"
+
+
+def test_final_source_id_normalization_applies_to_multiple_candidates_for_one_title():
+    rows = preview_candidates(
+        "input_title,amazon_url\n"
+        "R0010 Poled airluv 4+ (Donut),https://www.amazon.co.jp/dp/AAAAAAAAAA\n"
+        "R0010 Poled airluv 4+ (Donut),https://www.amazon.co.jp/dp/BBBBBBBBBB",
+        {"R0010": "Original Poled airluv 4+ (Donut)"},
+    )
+
+    assert [row["source_id"] for row in rows] == ["R0010", "R0010"]
+    assert [row["input_title"] for row in rows] == [
+        "Original Poled airluv 4+ (Donut)",
+        "Original Poled airluv 4+ (Donut)",
+    ]
+
+
+def test_final_source_id_normalization_preserves_long_title_after_id_removal():
+    title = (
+        "R0024 Whipple Character [Sylvanian Families Whipple Keychain Kit "
+        "(Chocolate Mint)] W-170 Ages 8+ Toy Decoration Patissier Making Toy "
+        "Whipple Epoch Co."
+    )
+    rows = preview_candidates(
+        f"input_title,amazon_url\n{title},https://www.amazon.co.jp/dp/AAAAAAAAAA"
+    )
+
+    assert rows[0]["source_id"] == "R0024"
+    assert rows[0]["input_title"] == title.removeprefix("R0024 ")
+
+
+def test_final_source_id_normalization_leaves_existing_source_id_and_normal_title_unchanged():
+    structured_rows = preview_candidates(
+        "source_id\tinput_title\tamazon_url\n"
+        "R0001\tOriginal title\thttps://www.amazon.co.jp/dp/AAAAAAAAAA",
+        {"R0001": "Mapped title"},
+    )
+    plain_rows = preview_candidates(
+        "input_title,amazon_url\n"
+        "Ordinary Product,https://www.amazon.co.jp/dp/BBBBBBBBBB"
+    )
+
+    assert structured_rows[0]["source_id"] == "R0001"
+    assert structured_rows[0]["input_title"] == "Mapped title"
+    assert plain_rows[0]["source_id"] == ""
+    assert plain_rows[0]["input_title"] == "Ordinary Product"
+
+
+def test_final_source_id_normalization_marks_unknown_source_id_without_losing_title():
+    rows = preview_candidates(
+        "input_title,amazon_url\n"
+        "R9999 Unknown Product,https://www.amazon.co.jp/dp/AAAAAAAAAA",
+        {"R0001": "Known title"},
+    )
+
+    assert rows[0]["source_id"] == "R9999"
+    assert rows[0]["input_title"] == "Unknown Product"
+    assert "Unknown source_id" in rows[0]["note"]
+    assert rows[0]["selected"] is False
+
+
+def test_fallback_carries_source_context_to_url_on_next_line():
+    rows = preview_candidates(
+        "R0001 Anua Toner 250ml\nhttps://www.amazon.co.jp/dp/AAAAAAAAAA",
+        {"R0001": "Original Anua Toner"},
+    )
+
+    assert len(rows) == 1
+    assert rows[0]["source_id"] == "R0001"
+    assert rows[0]["input_title"] == "Original Anua Toner"
+    assert rows[0]["asin"] == "AAAAAAAAAA"
+
+
+def test_fallback_carries_source_context_to_multiple_url_lines():
+    rows = preview_candidates(
+        "\n".join(
+            [
+                "R0001 Anua Toner 250ml",
+                "https://www.amazon.co.jp/dp/AAAAAAAAAA",
+                "https://www.amazon.co.jp/dp/BBBBBBBBBB",
+            ]
+        ),
+        {"R0001": "Original Anua Toner"},
+    )
+
+    assert [row["source_id"] for row in rows] == ["R0001", "R0001"]
+    assert [row["input_title"] for row in rows] == [
+        "Original Anua Toner",
+        "Original Anua Toner",
+    ]
+    assert [row["asin"] for row in rows] == ["AAAAAAAAAA", "BBBBBBBBBB"]
+
+
+def test_fallback_switches_context_when_another_source_id_appears():
+    rows = preview_candidates(
+        "\n".join(
+            [
+                "R0001 Anua Toner 250ml",
+                "https://www.amazon.co.jp/dp/AAAAAAAAAA",
+                "R0002 HAKUBA Case Black",
+                "https://www.amazon.co.jp/dp/BBBBBBBBBB",
+            ]
+        ),
+        {"R0001": "Original Anua", "R0002": "Original HAKUBA"},
+    )
+
+    assert [(row["source_id"], row["input_title"], row["asin"]) for row in rows] == [
+        ("R0001", "Original Anua", "AAAAAAAAAA"),
+        ("R0002", "Original HAKUBA", "BBBBBBBBBB"),
+    ]
+
+
+def test_fallback_unknown_source_id_keeps_ai_title_and_starts_deselected():
+    rows = preview_candidates(
+        "R9999 Unknown Product https://www.amazon.co.jp/dp/AAAAAAAAAA",
+        {"R0001": "Known title"},
+    )
+
+    assert rows[0]["source_id"] == "R9999"
+    assert rows[0]["input_title"] == "Unknown Product"
+    assert "Unknown source_id" in rows[0]["note"]
+    assert rows[0]["selected"] is False
+
+
+def test_space_separated_header_is_skipped_without_creating_unknown_row():
+    rows = preview_candidates(
+        "source_id    input_title    amazon_url\n"
+        "R0001 Anua Toner\n"
+        "https://www.amazon.co.jp/dp/AAAAAAAAAA",
+        {"R0001": "Original Anua"},
+    )
+
+    assert len(rows) == 1
+    assert rows[0]["source_id"] == "R0001"
+    assert rows[0]["asin"] == "AAAAAAAAAA"
+
+
 def test_source_id_less_v02_input_remains_selected_when_asin_is_valid():
     rows = preview_candidates("Title,https://www.amazon.co.jp/dp/B07TSC47PH")
 

@@ -17,11 +17,11 @@ KeepaのWeb画面操作、Amazonページ操作、Amazon/Keepaスクレイピン
 - 入力欄、検索モード、検索ページ数、検索ボタン、CSVダウンロードボタンを縦並びで表示
 - 同じ検索条件の結果はSQLiteに7日間キャッシュ
 
-## ASIN Resolver Tool Ver0.3.1
+## ASIN Resolver Tool Ver0.3.2
 
-ASIN Resolver Tool Ver0.3.1は、Expansion Tool内に追加した独立補助機能です。
+ASIN Resolver Tool Ver0.3.2は、Expansion Tool内に追加した独立補助機能です。
 
-商品名リストから`R0001`形式のsource_id付きプロンプトを生成し、ChatGPTやGeminiなどの外部AIが返した結果を手動で貼り付けて解析します。元の商品名はそのまま保持し、AI用プロンプトに渡す検索用タイトルだけからShopeeの既知販売定型文を除去します。推奨形式はTSVで、標準的なCSV、Markdown表、箇条書き、Amazon.co.jp URLを含む通常テキストにも対応します。source_idがないVer0.2形式も扱えます。
+商品名リストから`R0001`形式のsource_id付きプロンプトを生成し、ChatGPTやGeminiなどの外部AIが返した結果を手動で貼り付けて解析します。元の商品名はそのまま保持し、AI用プロンプトに渡す検索用タイトルだけからShopeeの既知販売定型文を除去します。推奨形式はTSVで、標準的なCSV、Markdown表、箇条書き、Amazon.co.jp URLを含む通常テキストにも対応します。source_idがないVer0.2形式も扱えます。崩れたAI返答では、行頭source_idと次行以降のAmazon.co.jp URLを対応付ける最小フォールバックも行います。
 
 Amazon.co.jp URLまたは明示されたASIN候補を抽出し、Keepa確認前に解析結果と件数をプレビューします。確認対象は表で手動選択でき、選択済みASINだけを重複排除してKeepa APIでAmazon.co.jp商品の実在確認を行います。確認後は、確認実行時に選択した行をsource_id付きCSVでダウンロードできます。プレビュー段階ではCSVを出力しません。
 

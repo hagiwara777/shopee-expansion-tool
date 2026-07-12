@@ -31,6 +31,11 @@ NOT_CHECKED = "NOT_CHECKED"
 UNKNOWN_VALUES = {"", "不明", "unknown", "n/a", "na", "none", "null", "-"}
 DIRECT_ASIN_PATTERN = re.compile(r"^[A-Z0-9]{10}$", re.IGNORECASE)
 SOURCE_ID_PATTERN = re.compile(r"^R\d{4}$", re.IGNORECASE)
+LEADING_SOURCE_ID_PATTERN = re.compile(r"^(R\d{4})\b\s*(.*)$", re.IGNORECASE)
+SPACE_HEADER_PATTERN = re.compile(
+    r"^source_id\s+input_title\s+(?:amazon_url|url|asin|amazon_asin)$",
+    re.IGNORECASE,
+)
 EMBEDDED_ASIN_PATTERN = re.compile(
     r"(?i)(?:amazon\s+asin|候補\s*asin|asin)\s*[:=]?\s*"
     r"(?<![A-Z0-9])([A-Z0-9]{10})(?![A-Z0-9])"
@@ -125,15 +130,41 @@ def parse_ai_response(
 
     parsed_rows: list[ResolverInput] = []
     header_indexes: dict[str, int] | None = None
+    fallback_context: tuple[str, str] | None = None
     for line in cleaned.splitlines():
         cells = _parse_cells(line)
+        if _is_space_separated_header(line):
+            header_indexes = None
+            fallback_context = None
+            continue
         detected_headers = _header_indexes(cells)
         if detected_headers is not None:
             header_indexes = detected_headers
+            fallback_context = None
             continue
+
+        fallback_source = _leading_source_id_context(line, cells)
+        if fallback_source is not None:
+            source_id, ai_title = fallback_source
+            fallback_context = (source_id, ai_title)
+            inline_candidate = _parse_fallback_source_line(source_id, ai_title)
+            if inline_candidate is not None:
+                parsed_rows.append(_finalize_candidate_source_id(inline_candidate, source_map))
+            continue
+
+        if fallback_context is not None:
+            context_candidate = _parse_context_url_line(line, fallback_context)
+            if context_candidate is not None:
+                parsed_rows.append(_finalize_candidate_source_id(context_candidate, source_map))
+                continue
+            if _find_unknown_value(cells) is not None:
+                fallback_context = None
+
         parsed = _parse_line(line, cells, header_indexes)
         if parsed is not None:
-            parsed_rows.append(_apply_source_context(parsed, source_map))
+            parsed_rows.append(_finalize_candidate_source_id(parsed, source_map))
+            if len(cells) > 1 or _looks_like_markdown_row(line):
+                fallback_context = None
     return parsed_rows
 
 
@@ -262,6 +293,69 @@ def clean_ai_response(response_text: str) -> str:
             continue
         lines.append(stripped)
     return "\n".join(lines).strip()
+
+
+def _is_space_separated_header(line: str) -> bool:
+    return bool(SPACE_HEADER_PATTERN.fullmatch(line.strip()))
+
+
+def _leading_source_id_context(
+    line: str,
+    cells: list[str],
+) -> tuple[str, str] | None:
+    if len(cells) != 1:
+        return None
+    match = LEADING_SOURCE_ID_PATTERN.match(line.strip())
+    if match is None:
+        return None
+    return match.group(1).upper(), match.group(2).strip()
+
+
+def _parse_fallback_source_line(source_id: str, ai_title: str) -> ResolverInput | None:
+    amazon_url, asin = _extract_amazon_jp_url_and_asin(ai_title)
+    if not asin:
+        return None
+    try:
+        normalized_asin = normalize_asin(asin)
+    except ValueError:
+        return None
+    url_match = AMAZON_JP_URL_PATTERN.search(ai_title)
+    title_without_url = ai_title[: url_match.start()].strip() if url_match else ai_title
+    return ResolverInput(
+        title_without_url,
+        amazon_url,
+        normalized_asin,
+        UNKNOWN,
+        NOT_CHECKED,
+        "Extracted ASIN from Amazon.co.jp URL",
+        source_id,
+    )
+
+
+def _parse_context_url_line(
+    line: str,
+    context: tuple[str, str],
+) -> ResolverInput | None:
+    stripped = _strip_list_prefix(line).strip()
+    if AMAZON_JP_URL_PATTERN.fullmatch(stripped) is None:
+        return None
+    amazon_url, asin = _extract_amazon_jp_url_and_asin(stripped)
+    if not asin:
+        return None
+    try:
+        normalized_asin = normalize_asin(asin)
+    except ValueError:
+        return None
+    source_id, ai_title = context
+    return ResolverInput(
+        ai_title,
+        amazon_url,
+        normalized_asin,
+        UNKNOWN,
+        NOT_CHECKED,
+        "Extracted ASIN from Amazon.co.jp URL",
+        source_id,
+    )
 
 
 def _parse_line(
@@ -468,6 +562,30 @@ def _apply_source_context(
         row.source_id,
         False,
     )
+
+
+def _finalize_candidate_source_id(
+    row: ResolverInput,
+    source_map: dict[str, str] | None,
+) -> ResolverInput:
+    normalized = _apply_source_context(row, source_map)
+    if normalized.source_id or not normalized.asin:
+        return normalized
+
+    match = LEADING_SOURCE_ID_PATTERN.match(normalized.input_title.strip())
+    if match is None:
+        return normalized
+
+    recovered = ResolverInput(
+        match.group(2).strip(),
+        normalized.amazon_url,
+        normalized.asin,
+        normalized.status,
+        normalized.verification,
+        normalized.note,
+        match.group(1).upper(),
+    )
+    return _apply_source_context(recovered, source_map)
 
 
 def _extract_amazon_jp_url_and_asin(value: str) -> tuple[str, str]:
