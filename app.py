@@ -3,11 +3,15 @@ import streamlit as st
 
 from modules.asin_resolver import (
     build_ai_prompt,
+    build_retry_prompt,
+    build_retry_rows,
     build_source_map,
     clean_ai_response,
     preview_candidates,
+    retry_rows_fingerprint,
     rows_to_resolver_csv,
     summarize_preview,
+    summarize_retry_rows,
     summarize_statuses,
     verify_selected_rows,
 )
@@ -34,6 +38,18 @@ from modules.keepa_client import (
 
 PAGE_OPTIONS = [1, 3, 5]
 SEARCH_MODE_OPTIONS = ["strict", "standard", "broad", "category_research"]
+RETRY_SESSION_KEYS = (
+    "asin_resolver_retry_rows",
+    "asin_resolver_retry_editor",
+    "asin_resolver_retry_prompt",
+    "asin_resolver_retry_prompt_display",
+    "asin_resolver_retry_prompt_fingerprint",
+)
+
+
+def _clear_retry_state() -> None:
+    for key in RETRY_SESSION_KEYS:
+        st.session_state.pop(key, None)
 
 
 st.set_page_config(page_title="Shopee Expansion Tool Ver1", layout="centered")
@@ -189,8 +205,10 @@ with expansion_tab:
         st.dataframe(pd.DataFrame(guarded_rows), width="stretch", hide_index=True)
 
 with resolver_tab:
-    st.subheader("ASIN Resolver Tool Ver0.3")
-    prompt_tab, verify_tab = st.tabs(["商品名 → AI用プロンプト", "AI返答 → ASIN確認"])
+    st.subheader("ASIN Resolver Tool Ver0.4")
+    prompt_tab, verify_tab, retry_tab = st.tabs(
+        ["商品名 → AI用プロンプト", "AI返答 → ASIN確認", "不明商品 → 再検索プロンプト"]
+    )
 
     with prompt_tab:
         st.info(
@@ -221,6 +239,11 @@ with resolver_tab:
                 st.session_state["asin_resolver_prompt"] = generated_prompt
                 st.session_state["asin_resolver_prompt_display"] = generated_prompt
                 st.session_state["asin_resolver_source_map"] = source_map
+                st.session_state["asin_resolver_preview_rows"] = []
+                st.session_state["asin_resolver_rows"] = []
+                st.session_state["asin_resolver_input_line_count"] = 0
+                st.session_state.pop("asin_resolver_selection_editor", None)
+                _clear_retry_state()
 
         st.text_area(
             "生成されたプロンプト",
@@ -254,6 +277,7 @@ with resolver_tab:
             st.session_state["asin_resolver_rows"] = []
             st.session_state["asin_resolver_input_line_count"] = 0
             st.session_state.pop("asin_resolver_selection_editor", None)
+            _clear_retry_state()
 
             if not ai_response_text.strip():
                 st.warning("ChatGPT / Geminiの返答を入力してください。")
@@ -368,3 +392,84 @@ with resolver_tab:
                 width="stretch",
             )
             st.dataframe(pd.DataFrame(resolver_rows), width="stretch", hide_index=True)
+
+    with retry_tab:
+        st.info(
+            "初回AI返答で「不明」になった既知source_idの商品だけを、手動修正したタイトルで再検索できます。"
+            "このタブではKeepa APIを呼びません。"
+        )
+        preview_rows = st.session_state.get("asin_resolver_preview_rows", [])
+        if not preview_rows:
+            st.info("先に「AI返答 → ASIN確認」で初回AI返答を解析してください。")
+        else:
+            if st.button("再検索対象を生成", width="stretch"):
+                _clear_retry_state()
+                st.session_state["asin_resolver_retry_rows"] = build_retry_rows(
+                    preview_rows,
+                    st.session_state.get("asin_resolver_source_map"),
+                )
+
+            retry_rows = st.session_state.get("asin_resolver_retry_rows", [])
+            if not retry_rows:
+                if "asin_resolver_retry_rows" in st.session_state:
+                    st.info("再検索対象の初回不明商品はありません。")
+                else:
+                    st.caption("初回不明商品を確認するには、再検索対象を生成してください。")
+            else:
+                editable_retry_rows = st.data_editor(
+                    pd.DataFrame(retry_rows),
+                    column_config={
+                        "selected": st.column_config.CheckboxColumn("再検索対象"),
+                        "row_id": None,
+                    },
+                    disabled=["source_id", "input_title", "initial_search_title", "row_id"],
+                    hide_index=True,
+                    key="asin_resolver_retry_editor",
+                    width="stretch",
+                )
+                selected_retry_rows = editable_retry_rows.to_dict("records")
+                retry_summary = summarize_retry_rows(selected_retry_rows)
+                retry_columns = st.columns(3)
+                retry_columns[0].metric("初回不明商品数", retry_summary["initial_unknown_products"])
+                retry_columns[1].metric("再検索対象として選択", retry_summary["selected_products"])
+                retry_columns[2].metric("再検索対象から外した商品", retry_summary["deselected_products"])
+                retry_detail_columns = st.columns(2)
+                retry_detail_columns[0].metric(
+                    "再検索用タイトル未入力", retry_summary["missing_retry_search_titles"]
+                )
+                retry_detail_columns[1].metric(
+                    "再検索プロンプトへ出力するsource_id数", retry_summary["prompt_source_ids"]
+                )
+
+                current_fingerprint = retry_rows_fingerprint(selected_retry_rows)
+                saved_fingerprint = st.session_state.get("asin_resolver_retry_prompt_fingerprint")
+                if saved_fingerprint is not None and saved_fingerprint != current_fingerprint:
+                    st.session_state["asin_resolver_retry_prompt"] = ""
+                    st.session_state["asin_resolver_retry_prompt_display"] = ""
+                    st.session_state.pop("asin_resolver_retry_prompt_fingerprint", None)
+                    st.info("編集内容が変更されています。再検索プロンプトを再生成してください。")
+
+                retry_prompt_clicked = st.button(
+                    "再検索用プロンプト生成",
+                    type="primary",
+                    width="stretch",
+                    disabled=retry_summary["prompt_source_ids"] == 0,
+                )
+                if retry_prompt_clicked:
+                    retry_prompt = build_retry_prompt(selected_retry_rows)
+                    if not retry_prompt:
+                        st.warning("再検索対象と再検索用タイトルを確認してください。")
+                    else:
+                        st.session_state["asin_resolver_retry_prompt"] = retry_prompt
+                        st.session_state["asin_resolver_retry_prompt_display"] = retry_prompt
+                        st.session_state["asin_resolver_retry_prompt_fingerprint"] = current_fingerprint
+
+                if st.session_state.get("asin_resolver_retry_prompt"):
+                    st.text_area(
+                        "生成された再検索用プロンプト",
+                        height=320,
+                        key="asin_resolver_retry_prompt_display",
+                    )
+                    st.caption(
+                        "ChatGPT / Geminiの返答は「AI返答 → ASIN確認」へ貼り付けてください。"
+                    )

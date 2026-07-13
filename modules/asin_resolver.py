@@ -120,6 +120,122 @@ def build_search_title(input_title: str) -> str:
     return cleaned or input_title
 
 
+def build_retry_rows(
+    preview_rows: Iterable[dict[str, Any]],
+    source_map: dict[str, str] | None = None,
+) -> list[dict[str, Any]]:
+    """Build one retry row for each known source_id with only AI-unknown results."""
+    rows_by_source_id: dict[str, list[dict[str, Any]]] = {}
+    for row in preview_rows:
+        source_id = str(row.get("source_id") or "").strip().upper()
+        if not SOURCE_ID_PATTERN.fullmatch(source_id):
+            continue
+        rows_by_source_id.setdefault(source_id, []).append(dict(row))
+
+    retry_rows: list[dict[str, Any]] = []
+    for source_id, rows in rows_by_source_id.items():
+        if source_map and source_id not in source_map:
+            continue
+        if any(row.get("source_id_known") is False for row in rows):
+            continue
+        if any("Unknown source_id" in str(row.get("note") or "") for row in rows):
+            continue
+        if any(
+            not _is_retry_blank(row.get("amazon_url"))
+            or not _is_retry_blank(row.get("asin"))
+            for row in rows
+        ):
+            continue
+        if not all(_is_ai_unknown_row(row) for row in rows):
+            continue
+
+        input_title = (
+            source_map[source_id]
+            if source_map and source_id in source_map
+            else str(rows[0].get("input_title") or "")
+        )
+        initial_search_title = build_search_title(input_title)
+        retry_rows.append(
+            {
+                "row_id": f"retry-{source_id}",
+                "source_id": source_id,
+                "input_title": input_title,
+                "initial_search_title": initial_search_title,
+                "retry_search_title": initial_search_title,
+                "selected": True,
+            }
+        )
+    return retry_rows
+
+
+def build_retry_prompt(rows: Iterable[dict[str, Any]]) -> str:
+    source_lines: list[str] = []
+    included_source_ids: set[str] = set()
+    for row in rows:
+        source_id = str(row.get("source_id") or "").strip().upper()
+        retry_search_title = str(row.get("retry_search_title") or "").strip()
+        if (
+            not row.get("selected")
+            or not SOURCE_ID_PATTERN.fullmatch(source_id)
+            or not retry_search_title
+            or source_id in included_source_ids
+        ):
+            continue
+        included_source_ids.add(source_id)
+        source_lines.append(f"{source_id}\t{retry_search_title}")
+
+    if not source_lines:
+        return ""
+
+    return (
+        "以下の商品について、Amazon.co.jpの商品URLをTSV形式で返してください。\n"
+        "商品名には誤記やShopee独自の販売文言が含まれる可能性があります。"
+        "ブランド名、型番、シリーズ名を優先して検索してください。\n"
+        "完全一致がない場合は、同じシリーズ・容量違い・色違い・サイズ違い・セット違い・関連商品でも構いません。\n"
+        "推測URLは作らず、見つからなければ「不明」としてください。\n"
+        "Amazon.co.jp以外のURLは返さないでください。\n"
+        "入力されたすべてのsource_idについて、必ず1行以上返してください。\n"
+        "説明文やMarkdown表は付けないでください。1候補を必ず1行にし、各列はタブ文字で区切ってください。\n\n"
+        "出力形式:\n"
+        "source_id\tinput_title\tamazon_url\n\n"
+        "商品名:\n"
+        f"{'\n'.join(source_lines)}"
+    )
+
+
+def retry_rows_fingerprint(rows: Iterable[dict[str, Any]]) -> tuple[tuple[str, bool, str], ...]:
+    return tuple(
+        (
+            str(row.get("source_id") or "").strip().upper(),
+            bool(row.get("selected")),
+            str(row.get("retry_search_title") or "").strip(),
+        )
+        for row in rows
+    )
+
+
+def summarize_retry_rows(rows: Iterable[dict[str, Any]]) -> dict[str, int]:
+    materialized = list(rows)
+    selected_rows = [row for row in materialized if row.get("selected")]
+    return {
+        "initial_unknown_products": len(materialized),
+        "selected_products": len(selected_rows),
+        "deselected_products": len(materialized) - len(selected_rows),
+        "missing_retry_search_titles": sum(
+            1
+            for row in materialized
+            if not str(row.get("retry_search_title") or "").strip()
+        ),
+        "prompt_source_ids": len(
+            {
+                str(row.get("source_id") or "").strip().upper()
+                for row in selected_rows
+                if str(row.get("retry_search_title") or "").strip()
+            }
+        ),
+    }
+
+
 def parse_ai_response(
     response_text: str,
     source_map: dict[str, str] | None = None,
@@ -711,6 +827,18 @@ def _unique_asins_from_rows(rows: Iterable[dict[str, Any]]) -> list[str]:
         seen.add(asin)
         unique_asins.append(asin)
     return unique_asins
+
+
+def _is_ai_unknown_row(row: dict[str, Any]) -> bool:
+    return (
+        str(row.get("status") or "").strip().upper() == UNKNOWN
+        and str(row.get("verification") or "").strip().upper() == NOT_CHECKED
+        and str(row.get("note") or "").strip() == "AI returned unknown"
+    )
+
+
+def _is_retry_blank(value: Any) -> bool:
+    return str(value or "").strip().casefold() in UNKNOWN_VALUES
 
 
 def _row_to_dict(row: ResolverInput) -> dict[str, Any]:

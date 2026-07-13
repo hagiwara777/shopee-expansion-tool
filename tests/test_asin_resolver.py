@@ -7,14 +7,18 @@ from modules.asin_resolver import (
     NOT_CHECKED,
     RESOLVER_CSV_COLUMNS,
     build_ai_prompt,
+    build_retry_prompt,
+    build_retry_rows,
     build_search_title,
     build_source_map,
     clean_ai_response,
     parse_ai_response,
     preview_candidates,
+    retry_rows_fingerprint,
     resolve_candidates,
     rows_to_resolver_csv,
     summarize_preview,
+    summarize_retry_rows,
     verify_selected_rows,
     verify_preview_rows,
 )
@@ -106,6 +110,173 @@ def test_source_map_keeps_original_title_while_prompt_uses_search_title():
 
     assert "R0001\tAnua Toner 250ml" in prompt
     assert original_title not in prompt
+
+
+def test_retry_rows_group_by_source_id_and_exclude_sources_with_a_candidate():
+    rows = [
+        {
+            "source_id": "R0012",
+            "input_title": "AI title",
+            "amazon_url": "https://www.amazon.co.jp/dp/B07TSC47PH",
+            "asin": "B07TSC47PH",
+            "status": "UNKNOWN",
+            "verification": NOT_CHECKED,
+            "note": "Extracted ASIN from Amazon.co.jp URL",
+        },
+        {
+            "source_id": "R0012",
+            "input_title": "AI title",
+            "amazon_url": "",
+            "asin": "",
+            "status": "UNKNOWN",
+            "verification": NOT_CHECKED,
+            "note": "AI returned unknown",
+        },
+    ]
+
+    assert build_retry_rows(rows, {"R0012": "Original title"}) == []
+
+
+def test_retry_rows_collapse_multiple_unknown_rows_and_keep_original_source_map_title():
+    rows = [
+        {
+            "source_id": "R0014",
+            "input_title": "AI title one",
+            "amazon_url": "不明",
+            "asin": "",
+            "status": "UNKNOWN",
+            "verification": NOT_CHECKED,
+            "note": "AI returned unknown",
+        },
+        {
+            "source_id": "R0014",
+            "input_title": "AI title two",
+            "amazon_url": "",
+            "asin": "",
+            "status": "UNKNOWN",
+            "verification": NOT_CHECKED,
+            "note": "AI returned unknown",
+        },
+    ]
+
+    source_map = {"R0014": "Original Bugaboo title"}
+    retry_rows = build_retry_rows(rows, source_map)
+
+    assert retry_rows == [
+        {
+            "row_id": "retry-R0014",
+            "source_id": "R0014",
+            "input_title": "Original Bugaboo title",
+            "initial_search_title": "Original Bugaboo title",
+            "retry_search_title": "Original Bugaboo title",
+            "selected": True,
+        }
+    ]
+    assert source_map == {"R0014": "Original Bugaboo title"}
+
+
+def test_retry_prompt_uses_two_column_product_input_and_three_column_output_format():
+    prompt = build_retry_prompt(
+        [
+            {
+                "source_id": "R0012",
+                "retry_search_title": "Pampers Premium Care diapers",
+                "selected": True,
+            },
+            {
+                "source_id": "R0014",
+                "retry_search_title": "Excluded title",
+                "selected": False,
+            },
+        ]
+    )
+
+    assert "source_id\tinput_title\tamazon_url" in prompt
+    assert "商品名:\nR0012\tPampers Premium Care diapers" in prompt
+    assert "R0012\tPampers Premium Care diapers\t" not in prompt
+    assert "R0014\tExcluded title" not in prompt
+
+
+def test_retry_prompt_fingerprint_changes_after_selection_or_title_edit():
+    rows = [
+        {"source_id": "R0001", "selected": True, "retry_search_title": "Original title"}
+    ]
+    original = retry_rows_fingerprint(rows)
+
+    rows[0]["selected"] = False
+    assert retry_rows_fingerprint(rows) != original
+
+    rows[0]["selected"] = True
+    rows[0]["retry_search_title"] = "Corrected title"
+    assert retry_rows_fingerprint(rows) != original
+
+
+def test_retry_rows_exclude_invalid_unknown_reasons_and_unknown_source_ids_without_keepa_calls():
+    rows = [
+        {
+            "source_id": "R0001",
+            "input_title": "Invalid ASIN",
+            "amazon_url": "https://www.amazon.co.jp/dp/INVALID",
+            "asin": "",
+            "status": "UNKNOWN",
+            "verification": NOT_CHECKED,
+            "note": "Invalid ASIN format",
+        },
+        {
+            "source_id": "R9999",
+            "input_title": "Unknown source",
+            "amazon_url": "",
+            "asin": "",
+            "status": "UNKNOWN",
+            "verification": NOT_CHECKED,
+            "note": "AI returned unknown Unknown source_id",
+        },
+    ]
+
+    assert build_retry_rows(rows, {"R0001": "Original"}) == []
+
+
+def test_retry_rows_exclude_keepa_not_found_and_error_rows():
+    rows = [
+        {
+            "source_id": "R0001",
+            "input_title": "Missing product",
+            "amazon_url": "",
+            "asin": "",
+            "status": "UNKNOWN",
+            "verification": KEEPA_NOT_FOUND,
+            "note": "Keepa did not return product data",
+        },
+        {
+            "source_id": "R0002",
+            "input_title": "Error product",
+            "amazon_url": "",
+            "asin": "",
+            "status": "ERROR",
+            "verification": "ERROR",
+            "note": "Keepa failed",
+        },
+    ]
+
+    assert build_retry_rows(rows, {"R0001": "Missing", "R0002": "Error"}) == []
+
+
+def test_retry_summary_counts_selected_titles_and_empty_titles():
+    summary = summarize_retry_rows(
+        [
+            {"source_id": "R0001", "selected": True, "retry_search_title": "Title"},
+            {"source_id": "R0002", "selected": True, "retry_search_title": ""},
+            {"source_id": "R0003", "selected": False, "retry_search_title": "Title"},
+        ]
+    )
+
+    assert summary == {
+        "initial_unknown_products": 3,
+        "selected_products": 2,
+        "deselected_products": 1,
+        "missing_retry_search_titles": 1,
+        "prompt_source_ids": 1,
+    }
 
 
 def test_clean_ai_response_removes_csv_tsv_code_fences_and_blank_lines():
