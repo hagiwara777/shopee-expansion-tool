@@ -16,6 +16,7 @@ from modules.asin_resolver import (
     verify_selected_rows,
 )
 from modules.config import load_settings
+from modules.direct_chat_assist import build_copy_button_html, is_valid_chatgpt_project_url
 from modules.export_csv import rows_to_csv
 from modules.guardrails import (
     GuardrailDictionaryError,
@@ -50,6 +51,43 @@ RETRY_SESSION_KEYS = (
 def _clear_retry_state() -> None:
     for key in RETRY_SESSION_KEYS:
         st.session_state.pop(key, None)
+
+
+def _render_direct_chat_assist(prompt_state_key: str, dom_id: str) -> None:
+    prompt = st.session_state.get(prompt_state_key)
+    if not isinstance(prompt, str) or not prompt:
+        return
+
+    settings = load_settings()
+    project_url = settings.amazon_search_project_url
+    project_url_is_valid = is_valid_chatgpt_project_url(project_url)
+
+    st.caption(
+        "1. プロンプトをコピー  2. 検索プロジェクトで新しいチャットへ貼り付けて送信  "
+        "3. 回答を「AI返答 → ASIN確認」へ貼り付け"
+    )
+    copy_column, project_column = st.columns(2)
+    with copy_column:
+        st.html(build_copy_button_html(prompt, dom_id), unsafe_allow_javascript=True)
+    with project_column:
+        if project_url_is_valid:
+            st.link_button(
+                "Amazon URL検索プロジェクトを開く",
+                project_url,
+                key=f"{dom_id}-project-link",
+                icon=":material/open_in_new:",
+                on_click="ignore",
+                width="content",
+            )
+        else:
+            st.button(
+                "Amazon URL検索プロジェクトを開く",
+                key=f"{dom_id}-project-link-disabled",
+                icon=":material/open_in_new:",
+                disabled=True,
+                width="content",
+            )
+            st.caption("AMAZON_SEARCH_PROJECT_URLを正式フォルダの.envに設定してください。")
 
 
 st.set_page_config(page_title="Shopee Expansion Tool Ver1", layout="centered")
@@ -205,7 +243,7 @@ with expansion_tab:
         st.dataframe(pd.DataFrame(guarded_rows), width="stretch", hide_index=True)
 
 with resolver_tab:
-    st.subheader("ASIN Resolver Tool Ver0.4")
+    st.subheader("ASIN Resolver Tool Ver0.4.1")
     prompt_tab, verify_tab, retry_tab = st.tabs(
         ["商品名 → AI用プロンプト", "AI返答 → ASIN確認", "不明商品 → 再検索プロンプト"]
     )
@@ -249,6 +287,10 @@ with resolver_tab:
             "生成されたプロンプト",
             height=320,
             key="asin_resolver_prompt_display",
+        )
+        _render_direct_chat_assist(
+            "asin_resolver_prompt_display",
+            "asin-resolver-initial-prompt-copy",
         )
 
     with verify_tab:
@@ -469,6 +511,10 @@ with resolver_tab:
                         "生成された再検索用プロンプト",
                         height=320,
                         key="asin_resolver_retry_prompt_display",
+                    )
+                    _render_direct_chat_assist(
+                        "asin_resolver_retry_prompt_display",
+                        "asin-resolver-retry-prompt-copy",
                     )
                     st.caption(
                         "ChatGPT / Geminiの返答は「AI返答 → ASIN確認」へ貼り付けてください。"
