@@ -40,6 +40,7 @@ ALLOWED_RISK_CATEGORIES = {
     "alcohol",
     "food_restricted",
     "community_report",
+    "own_penalty_product",
     "brand_medical_risk",
     "other",
 }
@@ -152,6 +153,16 @@ def normalize_text(value: Any) -> str:
     return re.sub(r"\s+", " ", text)
 
 
+def normalize_asin(value: Any) -> str:
+    """Normalize an ASIN without repairing malformed values."""
+    if value is None:
+        return ""
+    if isinstance(value, float) and math.isnan(value):
+        return ""
+
+    return unicodedata.normalize("NFKC", str(value)).strip().upper()
+
+
 def _default_dictionary_dir() -> Path:
     return Path(__file__).resolve().parent.parent / "guardrails"
 
@@ -253,7 +264,7 @@ def _parse_rule(
     )
     term = str(row.get("term") or "").strip()
     normalized_term = normalize_text(term)
-    if not normalized_term:
+    if match_field != "asin" and not normalized_term:
         raise GuardrailDictionaryError(f"{file_name} {row_number}行目: term が空です。")
 
     if dictionary_type == "brand":
@@ -264,6 +275,17 @@ def _parse_rule(
         if match_type != "exact":
             raise GuardrailDictionaryError(
                 f"{file_name} {row_number}行目: ブランド辞書の match_type は exact のみ許可します。"
+            )
+
+    if match_field == "asin":
+        if match_type != "exact":
+            raise GuardrailDictionaryError(
+                f"{file_name} {row_number}行目: ASINルールの match_type は exact のみ許可します。"
+            )
+        normalized_term = normalize_asin(term)
+        if re.fullmatch(r"[A-Z0-9]{10}", normalized_term) is None:
+            raise GuardrailDictionaryError(
+                f"{file_name} {row_number}行目: ASINルールの term は正規化後に10文字の英数字にしてください。"
             )
 
     return GuardrailRule(
@@ -305,7 +327,7 @@ def _find_matches(
     dictionaries: GuardrailDictionaries,
 ) -> list[GuardrailMatch]:
     target_values = {
-        "asin": normalize_text(row.get("candidate_asin") or row.get("asin")),
+        "asin": normalize_asin(row.get("candidate_asin")),
         "brand": normalize_text(row.get("brand")),
         "title": normalize_text(row.get("product_title")),
         "category": normalize_text(row.get("category")),

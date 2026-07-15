@@ -16,10 +16,16 @@ CACHE_DB_PATH = PROJECT_ROOT / "cache" / "keepa_cache.sqlite3"
 class Settings:
     keepa_api_key: str
     keepa_domain: str = DEFAULT_KEEPA_DOMAIN
+    openai_api_key: str = ""
 
 
 def load_settings() -> Settings:
     load_dotenv(ENV_PATH)
     api_key = os.getenv("KEEPA_API_KEY", "").strip()
     domain = os.getenv("KEEPA_DOMAIN", DEFAULT_KEEPA_DOMAIN).strip() or DEFAULT_KEEPA_DOMAIN
-    return Settings(keepa_api_key=api_key, keepa_domain=domain)
+    openai_api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    return Settings(
+        keepa_api_key=api_key,
+        keepa_domain=domain,
+        openai_api_key=openai_api_key,
+    )
