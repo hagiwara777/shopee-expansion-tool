@@ -1,6 +1,8 @@
 import csv
 from io import StringIO
 
+import pytest
+
 from modules.asin_resolver import (
     KEEPA_NOT_FOUND,
     KEEPA_VERIFIED,
@@ -90,6 +92,94 @@ def test_build_search_title_removes_unbracketed_promos_and_edge_separators():
     assert build_search_title("Anua Toner - Direct from Japan") == "Anua Toner"
     assert build_search_title("New! | KATE Lip Monster") == "KATE Lip Monster"
     assert build_search_title("New!! KATE Lip Monster") == "KATE Lip Monster"
+
+
+def test_build_search_title_removes_added_unbracketed_shopee_promos():
+    assert build_search_title("petit main Official Store kids T-Shirt") == "petit main kids T-Shirt"
+    assert build_search_title("Takara Tomy Room Set Shipped from Japan") == "Takara Tomy Room Set"
+    assert build_search_title("petit main ＯＦＦＩＣＩＡＬ　ＳＴＯＲＥ kids T-Shirt") == (
+        "petit main kids T-Shirt"
+    )
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "[Official Store] Product",
+        "［ＯＦＦＩＣＩＡＬ ＳＴＯＲＥ］ Product",
+        "【Official Store】 Product",
+        "[Shipped from Japan] Product",
+        "［ＳＨＩＰＰＥＤ ＦＲＯＭ ＪＡＰＡＮ］ Product",
+        "【Shipped from Japan】 Product",
+    ],
+)
+def test_build_search_title_removes_added_exact_bracketed_shopee_promos(title):
+    assert build_search_title(title) == "Product"
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "[Official Store Exclusive Edition]",
+        "【Shipped from Japan 3 Pack】",
+        "[Official Store Limited Color]",
+        "【Officially Licensed Product】",
+        "Officially Licensed Product",
+        "Official Product",
+        "Official License",
+        "Store Display Model",
+        "Limited Edition",
+        "Original",
+        "Model X-100 250ml Blue 3 Pack",
+    ],
+)
+def test_build_search_title_preserves_non_matching_identifying_information(title):
+    assert build_search_title(title) == title
+
+
+def test_added_search_title_promos_preserve_source_titles_and_feed_initial_and_retry_prompts():
+    original_title = (
+        "petit main Official Store kids【Disney】【Pixar】【Cool Touch】Cars Appliqué T-Shirt "
+        "(Officially Licensed Product) 【Shipped from Japan】"
+    )
+    expected_search_title = (
+        "petit main kids【Disney】【Pixar】【Cool Touch】Cars Appliqué T-Shirt "
+        "(Officially Licensed Product)"
+    )
+    source_map = build_source_map(original_title)
+
+    assert build_search_title(original_title) == expected_search_title
+    assert original_title == (
+        "petit main Official Store kids【Disney】【Pixar】【Cool Touch】Cars Appliqué T-Shirt "
+        "(Officially Licensed Product) 【Shipped from Japan】"
+    )
+    assert source_map == {"R0001": original_title}
+
+    initial_prompt = build_ai_prompt(original_title)
+    assert f"R0001\t{expected_search_title}" in initial_prompt
+    assert original_title not in initial_prompt
+
+    retry_rows = build_retry_rows(
+        [
+            {
+                "source_id": "R0001",
+                "input_title": original_title,
+                "amazon_url": "",
+                "asin": "",
+                "status": "UNKNOWN",
+                "verification": "NOT_CHECKED",
+                "note": "AI returned unknown",
+            }
+        ],
+        source_map,
+    )
+    assert retry_rows[0]["input_title"] == original_title
+    assert retry_rows[0]["initial_search_title"] == expected_search_title
+    assert retry_rows[0]["retry_search_title"] == expected_search_title
+
+    retry_rows[0]["retry_search_title"] = "Official Store Custom Title"
+    retry_prompt = build_retry_prompt(retry_rows)
+    assert "R0001\tOfficial Store Custom Title" in retry_prompt
 
 
 def test_build_search_title_preserves_identifying_information_and_internal_symbols():

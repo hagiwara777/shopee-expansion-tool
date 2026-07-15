@@ -59,8 +59,10 @@ EXPLANATION_PATTERNS = [
 SEARCH_TITLE_REMOVAL_PHRASES = (
     "100% authentic",
     "direct from japan",
+    "official store",
     "made in japan",
     "ship from japan",
+    "shipped from japan",
     "in stock",
     "new!!",
     "new!",
