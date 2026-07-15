@@ -195,3 +195,123 @@ Biore,BLOCK,brand_ip,brand,contains,shopee_brand_list,Bad type,TRUE
 def test_prohibited_brand_dictionary_rejects_non_brand_exact_rules(tmp_path, brand_csv, error_match):
     with pytest.raises(GuardrailDictionaryError, match=error_match):
         apply_guardrails([candidate(brand="Biore")], write_dictionaries(tmp_path, brand_csv=brand_csv))
+
+
+OWN_PENALTY_ASIN_CSV = """B000FQTRS0,BLOCK,own_penalty_product,asin,exact,own_penalty_case,Own delist ASIN case,TRUE
+"""
+
+
+def test_own_penalty_asin_exact_match_uses_candidate_asin_only(tmp_path):
+    dictionary_dir = write_dictionaries(tmp_path, risk_csv=RISK_CSV + OWN_PENALTY_ASIN_CSV)
+    rows = apply_guardrails(
+        [
+            candidate(asin="B000FQTRS0"),
+            candidate(asin="  b000fqtrs0  "),
+            candidate(asin="B000FQTRS00"),
+            candidate(asin="XB000FQTRS0"),
+            candidate(asin=""),
+            candidate(asin=None),
+        ],
+        dictionary_dir,
+    )
+
+    assert [row["guardrail_status"] for row in rows] == ["BLOCK", "BLOCK", "SAFE", "SAFE", "SAFE", "SAFE"]
+    assert rows[0]["guardrail_matched_terms"] == "B000FQTRS0"
+    assert rows[0]["guardrail_source"] == "own_penalty_case"
+    assert rows[0]["guardrail_risk_category"] == "own_penalty_product"
+
+
+def test_asin_rule_does_not_search_title_seed_asin_or_legacy_asin_column(tmp_path):
+    dictionary_dir = write_dictionaries(tmp_path, risk_csv=RISK_CSV + OWN_PENALTY_ASIN_CSV)
+    rows = apply_guardrails(
+        [
+            candidate(title="B000FQTRS0", asin="B000000001"),
+            {
+                "seed_asin": "B000FQTRS0",
+                "candidate_asin": "B000000002",
+                "asin": "B000FQTRS0",
+                "brand": "Other",
+                "category": "Beauty",
+                "product_title": "Normal item",
+            },
+        ],
+        dictionary_dir,
+    )
+
+    assert [row["guardrail_status"] for row in rows] == ["SAFE", "SAFE"]
+
+
+def test_all_contains_rule_does_not_search_candidate_asin(tmp_path):
+    risk_csv = RISK_CSV + """B000FQTRS0,BLOCK,other,all,contains,internal_rule,Text-only rule,TRUE
+"""
+
+    rows = apply_guardrails([candidate(asin="B000FQTRS0")], write_dictionaries(tmp_path, risk_csv=risk_csv))
+
+    assert rows[0]["guardrail_status"] == "SAFE"
+
+
+def test_lowercase_asin_rule_is_normalized_and_accepted(tmp_path):
+    risk_csv = RISK_CSV + """b000fqtrs0,BLOCK,own_penalty_product,asin,exact,own_penalty_case,Lowercase ASIN rule,TRUE
+"""
+
+    rows = apply_guardrails([candidate(asin="B000FQTRS0")], write_dictionaries(tmp_path, risk_csv=risk_csv))
+
+    assert rows[0]["guardrail_status"] == "BLOCK"
+
+
+@pytest.mark.parametrize("term", ["B000FQTRS", "B000FQTRS00", "B000-FQTRS0", "B000FQTRS!", ""])
+def test_invalid_asin_rule_term_is_dictionary_error(tmp_path, term):
+    risk_csv = RISK_CSV + f"{term},BLOCK,own_penalty_product,asin,exact,own_penalty_case,Invalid ASIN rule,TRUE\n"
+
+    with pytest.raises(GuardrailDictionaryError, match="ASINルール"):
+        apply_guardrails([candidate()], write_dictionaries(tmp_path, risk_csv=risk_csv))
+
+
+def test_asin_contains_rule_is_dictionary_error(tmp_path):
+    risk_csv = RISK_CSV + """B000FQTRS0,BLOCK,own_penalty_product,asin,contains,own_penalty_case,Invalid ASIN rule,TRUE
+"""
+
+    with pytest.raises(GuardrailDictionaryError, match="ASINルールの match_type は exact"):
+        apply_guardrails([candidate()], write_dictionaries(tmp_path, risk_csv=risk_csv))
+
+
+def test_own_penalty_brand_rules_are_exact_and_keep_metadata(tmp_path):
+    brand_csv = BRAND_CSV + """加美乃素,BLOCK,brand_medical_risk,brand,exact,own_penalty_case,Own penalty brand case,TRUE
+Kaminomoto,BLOCK,brand_medical_risk,brand,exact,own_penalty_case,Own penalty brand case,TRUE
+"""
+    dictionary_dir = write_dictionaries(tmp_path, brand_csv=brand_csv)
+    rows = apply_guardrails(
+        [
+            candidate(brand="加美乃素"),
+            candidate(brand="Kaminomoto"),
+            candidate(brand="ＫＡＭＩＮＯＭＯＴＯ"),
+            candidate(brand="Other", title="加美乃素 育毛剤"),
+        ],
+        dictionary_dir,
+    )
+
+    assert [row["guardrail_status"] for row in rows] == ["BLOCK", "BLOCK", "BLOCK", "SAFE"]
+    assert rows[0]["guardrail_source"] == "own_penalty_case"
+    assert rows[0]["guardrail_risk_category"] == "brand_medical_risk"
+
+
+@pytest.mark.parametrize(
+    "term",
+    [
+        "薬用加美乃素S-II",
+        "薬用加美乃素S-2",
+        "加美乃素S-II",
+        "加美乃素S-2",
+        "Kaminomoto S-II",
+        "Kaminomoto S-2",
+    ],
+)
+def test_own_penalty_product_title_variants_are_blocked(tmp_path, term):
+    risk_csv = RISK_CSV + f"{term},BLOCK,own_penalty_product,title,contains,own_penalty_case,Own delist product case,TRUE\n"
+
+    rows = apply_guardrails([candidate(title=f"限定品 {term} 内容量")], write_dictionaries(tmp_path, risk_csv=risk_csv))
+
+    assert rows[0]["guardrail_status"] == "BLOCK"
+    assert rows[0]["guardrail_matched_terms"] == term
+    assert rows[0]["guardrail_source"] == "own_penalty_case"
+    assert rows[0]["guardrail_risk_category"] == "own_penalty_product"
