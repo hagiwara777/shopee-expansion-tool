@@ -57,3 +57,5 @@ Loop,REVIEW,brand_ip,brand,exact,community_report,Short brand; brand exact only,
 Fusion,REVIEW,brand_ip,brand,exact,community_report,Short or general brand; brand exact only,TRUE
 Venus,REVIEW,brand_ip,brand,exact,community_report,Short or general brand; brand exact only,TRUE
 Finish,REVIEW,brand_ip,brand,exact,community_report,Short or general brand; brand exact only,TRUE
+加美乃素,BLOCK,brand_medical_risk,brand,exact,own_penalty_case,Own Shopee SG penalty case involving Kaminomoto S-II / S-2; brand blocked conservatively due to medical and hair-growth product-line risk,TRUE
+Kaminomoto,BLOCK,brand_medical_risk,brand,exact,own_penalty_case,Own Shopee SG penalty case involving Kaminomoto S-II / S-2; brand blocked conservatively due to medical and hair-growth product-line risk,TRUE

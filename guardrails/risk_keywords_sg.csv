@@ -43,3 +43,21 @@ vape,BLOCK,tobacco_or_vape,all,contains,shopee_policy,Vape-related term,TRUE
 浄水器,REVIEW,food_restricted,all,contains,community_report,Water filter or regulated household goods review,TRUE
 モバイルバッテリー,REVIEW,pesticide_or_hazardous,all,contains,internal_rule,Battery-related item review,TRUE
 PowerCore,REVIEW,pesticide_or_hazardous,all,contains,internal_rule,Battery-related brand or product line review,TRUE
+B000FQTRS0,BLOCK,own_penalty_product,asin,exact,own_penalty_case,Own Shopee SG penalty and delist case for Kaminomoto S-II / S-2,TRUE
+薬用加美乃素S-II,BLOCK,own_penalty_product,title,contains,own_penalty_case,Own Shopee SG penalty and delist case for Kaminomoto S-II / S-2,TRUE
+薬用加美乃素S-2,BLOCK,own_penalty_product,title,contains,own_penalty_case,Own Shopee SG penalty and delist case for Kaminomoto S-II / S-2,TRUE
+加美乃素S-II,BLOCK,own_penalty_product,title,contains,own_penalty_case,Own Shopee SG penalty and delist case for Kaminomoto S-II / S-2,TRUE
+加美乃素S-2,BLOCK,own_penalty_product,title,contains,own_penalty_case,Own Shopee SG penalty and delist case for Kaminomoto S-II / S-2,TRUE
+Kaminomoto S-II,BLOCK,own_penalty_product,title,contains,own_penalty_case,Own Shopee SG penalty and delist case for Kaminomoto S-II / S-2,TRUE
+Kaminomoto S-2,BLOCK,own_penalty_product,title,contains,own_penalty_case,Own Shopee SG penalty and delist case for Kaminomoto S-II / S-2,TRUE
+塩酸ジフェンヒドラミン,BLOCK,regulated_ingredient,title,contains,internal_rule,Conservative regulated-ingredient rule; this ingredient was not specifically identified in the Shopee penalty notice,TRUE
+diphenhydramine,BLOCK,regulated_ingredient,title,contains,internal_rule,Conservative regulated-ingredient rule; this ingredient was not specifically identified in the Shopee penalty notice,TRUE
+diphenhydramine hydrochloride,BLOCK,regulated_ingredient,title,contains,internal_rule,Conservative regulated-ingredient rule; this ingredient was not specifically identified in the Shopee penalty notice,TRUE
+医薬部外品,BLOCK,medical_or_therapeutic,all,contains,internal_rule,Japanese quasi-drug category is blocked for SG mass-listing safety,TRUE
+quasi-drug,BLOCK,medical_or_therapeutic,all,contains,internal_rule,Japanese quasi-drug category risk,TRUE
+薬用,BLOCK,medical_or_therapeutic,title,contains,internal_rule,Medicated or quasi-drug expression risk in product title,TRUE
+有効成分,REVIEW,medical_or_therapeutic,title,contains,internal_rule,Active ingredient expression risk; review product context,TRUE
+発毛促進,BLOCK,medical_or_therapeutic,title,contains,internal_rule,Hair-growth therapeutic claim risk in product title,TRUE
+育毛,BLOCK,medical_or_therapeutic,title,contains,internal_rule,Hair-growth or scalp-treatment claim risk in product title,TRUE
+hair growth,BLOCK,medical_or_therapeutic,title,contains,internal_rule,Hair-growth therapeutic claim risk in product title,TRUE
+hair loss,BLOCK,medical_or_therapeutic,title,contains,internal_rule,Hair-loss treatment claim risk in product title,TRUE
