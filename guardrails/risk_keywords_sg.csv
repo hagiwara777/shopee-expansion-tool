@@ -43,3 +43,19 @@ vape,BLOCK,tobacco_or_vape,all,contains,shopee_policy,Vape-related term,TRUE
 浄水器,REVIEW,food_restricted,all,contains,community_report,Water filter or regulated household goods review,TRUE
 モバイルバッテリー,REVIEW,pesticide_or_hazardous,all,contains,internal_rule,Battery-related item review,TRUE
 PowerCore,REVIEW,pesticide_or_hazardous,all,contains,internal_rule,Battery-related brand or product line review,TRUE
+B000FQTRS0,BLOCK,medical_or_therapeutic,asin,exact,own_penalty_case,Own Shopee SG penalty/delist case for Kaminomoto S-II / S-2,TRUE
+薬用加美乃素S-II,BLOCK,medical_or_therapeutic,all,contains,own_penalty_case,Own Shopee SG penalty/delist case for Kaminomoto S-II / S-2,TRUE
+薬用加美乃素S-2,BLOCK,medical_or_therapeutic,all,contains,own_penalty_case,Own Shopee SG penalty/delist case for Kaminomoto S-II / S-2,TRUE
+加美乃素S-II,BLOCK,medical_or_therapeutic,all,contains,own_penalty_case,Own Shopee SG penalty/delist case for Kaminomoto S-II / S-2,TRUE
+加美乃素S-2,BLOCK,medical_or_therapeutic,all,contains,own_penalty_case,Own Shopee SG penalty/delist case for Kaminomoto S-II / S-2,TRUE
+塩酸ジフェンヒドラミン,BLOCK,regulated_ingredient,all,contains,own_penalty_case,Diphenhydramine hydrochloride prohibited ingredient risk from own penalty case,TRUE
+diphenhydramine,BLOCK,regulated_ingredient,all,contains,own_penalty_case,Diphenhydramine prohibited ingredient risk from own penalty case,TRUE
+diphenhydramine hydrochloride,BLOCK,regulated_ingredient,all,contains,own_penalty_case,Diphenhydramine hydrochloride prohibited ingredient risk from own penalty case,TRUE
+医薬部外品,BLOCK,medical_or_therapeutic,all,contains,internal_rule,Japanese quasi-drug category is blocked for SG mass listing safety,TRUE
+薬用,BLOCK,medical_or_therapeutic,all,contains,internal_rule,Medicated/quasi-drug expression risk,TRUE
+quasi-drug,BLOCK,medical_or_therapeutic,all,contains,internal_rule,Japanese quasi-drug category risk,TRUE
+有効成分,REVIEW,medical_or_therapeutic,all,contains,internal_rule,Active ingredient expression risk; review context,TRUE
+発毛促進,BLOCK,medical_or_therapeutic,all,contains,internal_rule,Hair growth therapeutic claim risk,TRUE
+育毛,BLOCK,medical_or_therapeutic,all,contains,internal_rule,Hair growth/scalp treatment claim risk,TRUE
+hair growth,BLOCK,medical_or_therapeutic,all,contains,internal_rule,Hair growth therapeutic claim risk,TRUE
+hair loss,BLOCK,medical_or_therapeutic,all,contains,internal_rule,Hair loss reversal or treatment claim risk,TRUE

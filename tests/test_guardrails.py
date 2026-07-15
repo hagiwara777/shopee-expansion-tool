@@ -195,3 +195,79 @@ Biore,BLOCK,brand_ip,brand,contains,shopee_brand_list,Bad type,TRUE
 def test_prohibited_brand_dictionary_rejects_non_brand_exact_rules(tmp_path, brand_csv, error_match):
     with pytest.raises(GuardrailDictionaryError, match=error_match):
         apply_guardrails([candidate(brand="Biore")], write_dictionaries(tmp_path, brand_csv=brand_csv))
+
+
+def test_own_penalty_case_blocks_kaminomoto_asin_brand_title_and_ingredient(tmp_path):
+    brand_csv = BRAND_CSV + """加美乃素,BLOCK,brand_medical_risk,brand,exact,own_penalty_case,Own penalty brand case,TRUE
+Kaminomoto,BLOCK,brand_medical_risk,brand,exact,own_penalty_case,Own penalty brand case,TRUE
+"""
+    risk_csv = RISK_CSV + """B000FQTRS0,BLOCK,medical_or_therapeutic,asin,exact,own_penalty_case,Own delist ASIN case,TRUE
+薬用加美乃素S-II,BLOCK,medical_or_therapeutic,all,contains,own_penalty_case,Own delist product case,TRUE
+塩酸ジフェンヒドラミン,BLOCK,regulated_ingredient,all,contains,own_penalty_case,Own prohibited ingredient case,TRUE
+"""
+    dictionary_dir = write_dictionaries(tmp_path, brand_csv=brand_csv, risk_csv=risk_csv)
+
+    rows = apply_guardrails(
+        [
+            candidate(asin="B000FQTRS0"),
+            candidate(brand="Kaminomoto"),
+            candidate(title="薬用加美乃素S-II 育毛剤"),
+            candidate(title="塩酸ジフェンヒドラミン 配合"),
+        ],
+        dictionary_dir,
+    )
+
+    assert [row["guardrail_status"] for row in rows] == ["BLOCK", "BLOCK", "BLOCK", "BLOCK"]
+    assert rows[0]["guardrail_matched_terms"] == "B000FQTRS0"
+    assert rows[1]["guardrail_risk_category"] == "brand_medical_risk"
+    assert rows[1]["guardrail_source"] == "own_penalty_case"
+    assert rows[2]["guardrail_matched_terms"] == "薬用加美乃素S-II"
+    assert rows[3]["guardrail_matched_terms"] == "塩酸ジフェンヒドラミン"
+
+def test_asin_match_field_checks_candidate_asin_and_asin_columns(tmp_path):
+    risk_csv = RISK_CSV + """B000FQTRS0,BLOCK,medical_or_therapeutic,asin,exact,own_penalty_case,Own delist ASIN case,TRUE
+"""
+    dictionary_dir = write_dictionaries(tmp_path, risk_csv=risk_csv)
+
+    rows = apply_guardrails(
+        [
+            candidate(asin="B000FQTRS0"),
+            {
+                "seed_asin": "B07TSC47PH",
+                "asin": "B000FQTRS0",
+                "brand": "Other",
+                "category": "Beauty",
+                "product_title": "Normal item",
+            },
+        ],
+        dictionary_dir,
+    )
+
+    assert [row["guardrail_status"] for row in rows] == ["BLOCK", "BLOCK"]
+    assert [row["guardrail_matched_terms"] for row in rows] == ["B000FQTRS0", "B000FQTRS0"]
+
+
+def test_medicated_and_hair_growth_terms_are_block_or_review(tmp_path):
+    risk_csv = RISK_CSV + """医薬部外品,BLOCK,medical_or_therapeutic,all,contains,internal_rule,Japanese quasi-drug category is blocked for SG mass listing safety,TRUE
+薬用,BLOCK,medical_or_therapeutic,all,contains,internal_rule,Medicated/quasi-drug expression risk,TRUE
+quasi-drug,BLOCK,medical_or_therapeutic,all,contains,internal_rule,Japanese quasi-drug category risk,TRUE
+有効成分,REVIEW,medical_or_therapeutic,all,contains,internal_rule,Active ingredient expression risk; review context,TRUE
+発毛促進,BLOCK,medical_or_therapeutic,all,contains,internal_rule,Hair growth therapeutic claim risk,TRUE
+育毛,BLOCK,medical_or_therapeutic,all,contains,internal_rule,Hair growth/scalp treatment claim risk,TRUE
+hair growth,BLOCK,medical_or_therapeutic,all,contains,internal_rule,Hair growth therapeutic claim risk,TRUE
+hair loss,BLOCK,medical_or_therapeutic,all,contains,internal_rule,Hair loss reversal or treatment claim risk,TRUE
+"""
+    dictionary_dir = write_dictionaries(tmp_path, risk_csv=risk_csv)
+
+    rows = apply_guardrails(
+        [
+            candidate(title="医薬部外品 スキンケア"),
+            candidate(title="薬用 ヘアトニック"),
+            candidate(title="発毛促進 ローション"),
+            candidate(title="育毛 トニック"),
+            candidate(title="Active ingredient 有効成分"),
+        ],
+        dictionary_dir,
+    )
+
+    assert [row["guardrail_status"] for row in rows] == ["BLOCK", "BLOCK", "BLOCK", "BLOCK", "REVIEW"]

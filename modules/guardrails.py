@@ -40,15 +40,17 @@ ALLOWED_RISK_CATEGORIES = {
     "alcohol",
     "food_restricted",
     "community_report",
+    "brand_medical_risk",
     "other",
 }
-ALLOWED_MATCH_FIELDS = {"brand", "title", "category", "all"}
+ALLOWED_MATCH_FIELDS = {"asin", "brand", "title", "category", "all"}
 ALLOWED_MATCH_TYPES = {"exact", "contains"}
 ALLOWED_SOURCE_TYPES = {
     "shopee_brand_list",
     "shopee_policy",
     "community_report",
     "internal_rule",
+    "own_penalty_case",
 }
 STATUS_PRIORITY = {"SAFE": 0, "REVIEW": 1, "BLOCK": 2}
 
@@ -303,6 +305,7 @@ def _find_matches(
     dictionaries: GuardrailDictionaries,
 ) -> list[GuardrailMatch]:
     target_values = {
+        "asin": normalize_text(row.get("candidate_asin") or row.get("asin")),
         "brand": normalize_text(row.get("brand")),
         "title": normalize_text(row.get("product_title")),
         "category": normalize_text(row.get("category")),

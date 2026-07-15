@@ -57,3 +57,10 @@ Loop,REVIEW,brand_ip,brand,exact,community_report,Short brand; brand exact only,
 Fusion,REVIEW,brand_ip,brand,exact,community_report,Short or general brand; brand exact only,TRUE
 Venus,REVIEW,brand_ip,brand,exact,community_report,Short or general brand; brand exact only,TRUE
 Finish,REVIEW,brand_ip,brand,exact,community_report,Short or general brand; brand exact only,TRUE
+加美乃素,BLOCK,brand_medical_risk,brand,exact,own_penalty_case,Own Shopee SG penalty case: Kaminomoto medical/hair-growth/prohibited ingredient risk,TRUE
+Kaminomoto,BLOCK,brand_medical_risk,brand,exact,own_penalty_case,Own Shopee SG penalty case: Kaminomoto medical/hair-growth/prohibited ingredient risk,TRUE
+KAMINOMOTO,BLOCK,brand_medical_risk,brand,exact,own_penalty_case,Own Shopee SG penalty case: Kaminomoto medical/hair-growth/prohibited ingredient risk,TRUE
+Curel,BLOCK,brand_ip,brand,exact,shopee_brand_list,Shopee restricted brand restored/confirmed,TRUE
+Nike,BLOCK,brand_ip,brand,exact,shopee_brand_list,Shopee restricted brand restored/confirmed,TRUE
+Pampers,BLOCK,brand_ip,brand,exact,shopee_brand_list,Shopee restricted brand restored/confirmed,TRUE
+Yves Saint Laurent,BLOCK,brand_ip,brand,exact,shopee_brand_list,Shopee restricted brand restored/confirmed,TRUE
