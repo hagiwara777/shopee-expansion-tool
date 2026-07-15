@@ -5,6 +5,7 @@ from modules.asin_resolver import (
     build_ai_prompt,
     build_retry_prompt,
     build_retry_rows,
+    build_search_title,
     build_source_map,
     clean_ai_response,
     preview_candidates,
@@ -34,6 +35,14 @@ from modules.keepa_client import (
     normalize_asin,
     planned_candidate_count,
 )
+from modules.openai_search_client import (
+    OpenAISearchError,
+    build_openai_search_inputs,
+    execute_openai_web_search,
+    openai_search_fingerprint,
+    summarize_openai_results,
+    summarize_openai_sources,
+)
 
 
 PAGE_OPTIONS = [1, 3, 5]
@@ -45,10 +54,23 @@ RETRY_SESSION_KEYS = (
     "asin_resolver_retry_prompt_display",
     "asin_resolver_retry_prompt_fingerprint",
 )
+OPENAI_TEST_SESSION_KEYS = (
+    "asin_resolver_openai_test_results",
+    "asin_resolver_openai_test_usage",
+    "asin_resolver_openai_test_error",
+    "asin_resolver_openai_test_diagnostics",
+    "asin_resolver_openai_test_sources",
+    "asin_resolver_openai_test_fingerprint",
+)
 
 
 def _clear_retry_state() -> None:
     for key in RETRY_SESSION_KEYS:
+        st.session_state.pop(key, None)
+
+
+def _clear_openai_test_state() -> None:
+    for key in OPENAI_TEST_SESSION_KEYS:
         st.session_state.pop(key, None)
 
 
@@ -206,8 +228,13 @@ with expansion_tab:
 
 with resolver_tab:
     st.subheader("ASIN Resolver Tool Ver0.4")
-    prompt_tab, verify_tab, retry_tab = st.tabs(
-        ["商品名 → AI用プロンプト", "AI返答 → ASIN確認", "不明商品 → 再検索プロンプト"]
+    prompt_tab, verify_tab, retry_tab, openai_test_tab = st.tabs(
+        [
+            "商品名 → AI用プロンプト",
+            "AI返答 → ASIN確認",
+            "不明商品 → 再検索プロンプト",
+            "OpenAI検索テスト",
+        ]
     )
 
     with prompt_tab:
@@ -473,3 +500,186 @@ with resolver_tab:
                     st.caption(
                         "ChatGPT / Geminiの返答は「AI返答 → ASIN確認」へ貼り付けてください。"
                     )
+
+    with openai_test_tab:
+        st.info(
+            "ASIN Resolver Tool Ver0.5a: OpenAI APIとWeb検索によるAmazon.co.jp候補検索の独立検証です。"
+            "既存Resolver、Keepa、CSV、Expansion Tool、Guardrailへは自動反映しません。"
+        )
+        openai_input_text = st.text_area(
+            "検証する商品名（1行1商品、最大5件）",
+            placeholder="Sekiguchi Key Chain Big Head Monchhichi SS Size Girl",
+            height=180,
+            key="asin_resolver_openai_test_input",
+        )
+
+        openai_inputs = []
+        input_error = None
+        try:
+            openai_inputs = build_openai_search_inputs(
+                openai_input_text,
+                build_search_title,
+            )
+        except OpenAISearchError as exc:
+            input_error = exc
+
+        current_openai_fingerprint = openai_search_fingerprint(openai_inputs)
+        saved_openai_fingerprint = st.session_state.get(
+            "asin_resolver_openai_test_fingerprint"
+        )
+        if saved_openai_fingerprint is not None and saved_openai_fingerprint != current_openai_fingerprint:
+            _clear_openai_test_state()
+            st.info("入力が変更されています。前回のOpenAI検索結果を無効化しました。")
+
+        if input_error:
+            st.warning(input_error.user_message)
+        else:
+            st.caption(
+                f"対象商品数: {len(openai_inputs)}件 / 1回最大5件。"
+                "プレビュー表示、入力編集、タブ切替ではOpenAI APIもKeepa APIも呼びません。"
+            )
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "source_id": item.source_id,
+                            "input_title": item.input_title,
+                            "search_title": item.search_title,
+                        }
+                        for item in openai_inputs
+                    ]
+                ),
+                width="stretch",
+                hide_index=True,
+            )
+            st.warning(
+                "OpenAI API料金が別途発生する可能性があります。結果は候補であり、"
+                "Keepa未確認・実在未確認です。"
+            )
+
+        is_openai_running = st.session_state.get("asin_resolver_openai_test_running", False)
+        search_clicked = st.button(
+            "OpenAI Web検索を実行",
+            type="primary",
+            width="stretch",
+            key="asin_resolver_openai_test_run",
+            disabled=bool(input_error) or is_openai_running,
+        )
+
+        if search_clicked:
+            settings = load_settings()
+            if not settings.openai_api_key:
+                _clear_openai_test_state()
+                st.session_state["asin_resolver_openai_test_fingerprint"] = (
+                    current_openai_fingerprint
+                )
+                st.session_state["asin_resolver_openai_test_error"] = {
+                    "code": "OPENAI_API_KEY_MISSING",
+                    "message": (
+                        "OpenAI APIキーが未設定です。プロジェクト直下の .env の "
+                        "OPENAI_API_KEY を確認してください。"
+                    ),
+                }
+            else:
+                st.session_state["asin_resolver_openai_test_running"] = True
+                _clear_openai_test_state()
+                try:
+                    with st.spinner("OpenAI Web検索でAmazon.co.jp候補を取得しています..."):
+                        run = execute_openai_web_search(
+                            openai_inputs,
+                            settings.openai_api_key,
+                        )
+                except OpenAISearchError as exc:
+                    st.session_state["asin_resolver_openai_test_error"] = {
+                        "code": exc.code,
+                        "message": exc.user_message,
+                    }
+                    st.session_state["asin_resolver_openai_test_fingerprint"] = (
+                        current_openai_fingerprint
+                    )
+                except Exception:
+                    st.session_state["asin_resolver_openai_test_error"] = {
+                        "code": "UNEXPECTED_ERROR",
+                        "message": "OpenAI検索テスト中に想定外のエラーが発生しました。",
+                    }
+                    st.session_state["asin_resolver_openai_test_fingerprint"] = (
+                        current_openai_fingerprint
+                    )
+                else:
+                    st.session_state["asin_resolver_openai_test_results"] = run.rows
+                    st.session_state["asin_resolver_openai_test_usage"] = run.usage
+                    st.session_state["asin_resolver_openai_test_sources"] = run.sources
+                    st.session_state["asin_resolver_openai_test_diagnostics"] = run.diagnostics
+                    st.session_state["asin_resolver_openai_test_fingerprint"] = (
+                        current_openai_fingerprint
+                    )
+                finally:
+                    st.session_state["asin_resolver_openai_test_running"] = False
+
+        if st.session_state.get("asin_resolver_openai_test_fingerprint") == current_openai_fingerprint:
+            openai_error = st.session_state.get("asin_resolver_openai_test_error")
+            if openai_error:
+                st.error(f"{openai_error['code']}: {openai_error['message']}")
+
+            openai_rows = st.session_state.get("asin_resolver_openai_test_results", [])
+            if openai_rows:
+                summary = summarize_openai_results(openai_rows)
+                result_metrics = st.columns(4)
+                result_metrics[0].metric("候補取得商品数", summary["candidate_products"])
+                result_metrics[1].metric("有効URL候補数", summary["valid_url_candidates"])
+                result_metrics[2].metric("UNKNOWN商品数", summary["unknown_products"])
+                result_metrics[3].metric("ERROR商品数", summary["error_products"])
+                st.caption(
+                    "OPENAI_CANDIDATEはOpenAI返却候補、URL_FORMAT_VALIDATEDはURL形式検証済みです。"
+                    "KEEPA_NOT_CHECKED / EXISTENCE_NOT_VERIFIEDは、Keepa・実在確認をしていない状態を示します。"
+                )
+                st.dataframe(pd.DataFrame(openai_rows), width="stretch", hide_index=True)
+
+                usage = st.session_state.get("asin_resolver_openai_test_usage", {})
+                st.subheader("OpenAI利用量・応答情報")
+                usage_metrics = st.columns(4)
+                usage_metrics[0].metric("APIリクエスト数", usage.get("api_request_count", 0))
+                usage_metrics[1].metric("入力トークン", usage.get("input_tokens") or "-")
+                usage_metrics[2].metric("出力トークン", usage.get("output_tokens") or "-")
+                usage_metrics[3].metric("合計トークン", usage.get("total_tokens") or "-")
+                usage_detail = st.columns(4)
+                usage_detail[0].metric("Web search call数", usage.get("web_search_call_count", 0))
+                usage_detail[1].metric("取得ソース数", usage.get("source_count", 0))
+                usage_detail[2].metric("処理時間", f"{usage.get('elapsed_ms', 0)} ms")
+                usage_detail[3].metric("使用モデル", usage.get("model") or "-")
+                st.caption(
+                    "Web search call数はレスポンス内で確認できた呼び出し数であり、"
+                    "検索商品数や課金回数を表すものではありません。"
+                )
+                st.write(f"request ID: {usage.get('request_id') or '-'}")
+
+                openai_sources = st.session_state.get(
+                    "asin_resolver_openai_test_sources",
+                    [],
+                )
+                source_summary = summarize_openai_sources(openai_sources)
+                st.subheader("Web search source一覧")
+                source_metrics = st.columns(3)
+                source_metrics[0].metric("取得source総数", usage.get("source_count", 0))
+                source_metrics[1].metric(
+                    "重複排除後source数",
+                    source_summary["deduplicated_sources"],
+                )
+                source_metrics[2].metric(
+                    "amazon.co.jp source数",
+                    source_summary["amazon_jp_sources"],
+                )
+                if openai_sources:
+                    st.dataframe(
+                        pd.DataFrame(openai_sources)[["domain", "title", "url"]],
+                        width="stretch",
+                        hide_index=True,
+                    )
+                else:
+                    st.info("Web search sourceの詳細はレスポンスから取得できませんでした。")
+
+                diagnostics = st.session_state.get("asin_resolver_openai_test_diagnostics", [])
+                if diagnostics:
+                    with st.expander("OpenAI応答診断"):
+                        for diagnostic in diagnostics:
+                            st.write(diagnostic)
