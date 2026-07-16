@@ -35,6 +35,12 @@ from modules.keepa_client import (
     normalize_asin,
     planned_candidate_count,
 )
+from modules.prelisting_candidate_csv import (
+    PrelistingCandidateCsvError,
+    expansion_rows_to_prelisting_candidates,
+    resolver_rows_to_prelisting_candidates,
+    rows_to_prelisting_candidate_csv,
+)
 
 
 PAGE_OPTIONS = [1, 3, 5]
@@ -240,6 +246,25 @@ with expansion_tab:
             mime="text/csv",
             width="stretch",
         )
+        try:
+            expansion_prelisting_rows = expansion_rows_to_prelisting_candidates(result.rows)
+            expansion_prelisting_csv = rows_to_prelisting_candidate_csv(expansion_prelisting_rows)
+        except PrelistingCandidateCsvError:
+            st.error(
+                "出品前保安ゲート用CSVを生成できませんでした。候補データを確認してください。"
+            )
+        else:
+            st.caption(
+                "このCSVは外部出品ツールへ直接渡さず、出品前保安ゲートの候補CSVとして使用してください。"
+            )
+            st.download_button(
+                label="出品前保安ゲート用CSVダウンロード",
+                data=expansion_prelisting_csv,
+                file_name=f"prelisting_candidates_expansion_{result.source_asin}.csv",
+                mime="text/csv",
+                key="prelisting-expansion-download",
+                width="stretch",
+            )
         st.dataframe(pd.DataFrame(guarded_rows), width="stretch", hide_index=True)
 
 with resolver_tab:
@@ -433,6 +458,44 @@ with resolver_tab:
                 mime="text/csv",
                 width="stretch",
             )
+            try:
+                resolver_prelisting = resolver_rows_to_prelisting_candidates(resolver_rows)
+                st.write(f"保安ゲートCSV対象件数: {resolver_prelisting.eligible_row_count}件")
+                st.write(
+                    "未確認・不明・エラー等による除外件数: "
+                    f"{resolver_prelisting.excluded_row_count}件"
+                )
+                if resolver_prelisting.eligible_row_count > 0:
+                    resolver_prelisting_csv = rows_to_prelisting_candidate_csv(
+                        resolver_prelisting.output_rows
+                    )
+            except PrelistingCandidateCsvError:
+                st.error(
+                    "出品前保安ゲート用CSVを生成できませんでした。確認結果を確認してください。"
+                )
+            else:
+                if resolver_prelisting.eligible_row_count == 0:
+                    st.info(
+                        "Amazon実在確認が完了した候補がないため、"
+                        "出品前保安ゲート用CSVは生成しません。"
+                    )
+                else:
+                    st.caption(
+                        "ここでの除外は、Amazon実在確認が完了していないため、"
+                        "保安ゲート用CSVへ含めない件数です。"
+                    )
+                    st.caption(
+                        "このCSVは外部出品ツールへ直接渡さず、"
+                        "出品前保安ゲートの候補CSVとして使用してください。"
+                    )
+                    st.download_button(
+                        label="出品前保安ゲート用CSVダウンロード",
+                        data=resolver_prelisting_csv,
+                        file_name="prelisting_candidates_resolver.csv",
+                        mime="text/csv",
+                        key="prelisting-resolver-download",
+                        width="stretch",
+                    )
             comparison_columns = [
                 "source_id",
                 "input_title",
