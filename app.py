@@ -243,7 +243,7 @@ with expansion_tab:
         st.dataframe(pd.DataFrame(guarded_rows), width="stretch", hide_index=True)
 
 with resolver_tab:
-    st.subheader("ASIN Resolver Tool Ver0.4.1")
+    st.subheader("ASIN Resolver Tool Ver0.4.3")
     prompt_tab, verify_tab, retry_tab = st.tabs(
         ["商品名 → AI用プロンプト", "AI返答 → ASIN確認", "不明商品 → 再検索プロンプト"]
     )
@@ -433,7 +433,38 @@ with resolver_tab:
                 mime="text/csv",
                 width="stretch",
             )
-            st.dataframe(pd.DataFrame(resolver_rows), width="stretch", hide_index=True)
+            comparison_columns = [
+                "source_id",
+                "input_title",
+                "keepa_title",
+                "keepa_brand",
+                "amazon_url",
+                "asin",
+                "status",
+                "verification",
+                "note",
+            ]
+            comparison_rows = [
+                {column: row.get(column, "") or "" for column in comparison_columns}
+                for row in resolver_rows
+            ]
+            st.subheader("Keepa候補比較")
+            st.dataframe(
+                pd.DataFrame(comparison_rows),
+                column_config={
+                    "source_id": st.column_config.TextColumn("source_id", width="small", pinned=True),
+                    "input_title": st.column_config.TextColumn("input_title", width="large"),
+                    "keepa_title": st.column_config.TextColumn("keepa_title", width="large"),
+                    "keepa_brand": st.column_config.TextColumn("keepa_brand", width="medium"),
+                    "amazon_url": st.column_config.TextColumn("amazon_url", width="large"),
+                    "asin": st.column_config.TextColumn("asin", width="small"),
+                    "status": st.column_config.TextColumn("status", width="small"),
+                    "verification": st.column_config.TextColumn("verification", width="medium"),
+                    "note": st.column_config.TextColumn("note", width="large"),
+                },
+                width="stretch",
+                hide_index=True,
+            )
 
     with retry_tab:
         st.info(

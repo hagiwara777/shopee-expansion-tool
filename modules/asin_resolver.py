@@ -388,7 +388,13 @@ def verify_preview_rows(
         asin = str(row.get("asin") or "")
         if asin and asin in verified_asins:
             output_rows.append(
-                _verified_row(row, FOUND, KEEPA_VERIFIED, row.get("note", ""))
+                _verified_row(
+                    row,
+                    FOUND,
+                    KEEPA_VERIFIED,
+                    row.get("note", ""),
+                    products_by_asin.get(asin),
+                )
             )
         elif asin:
             output_rows.append(
@@ -860,10 +866,26 @@ def _verified_row(
     status: str,
     verification: str,
     note: str,
+    keepa_product: Any | None = None,
 ) -> dict[str, Any]:
     verified = dict(row)
-    verified.update({"status": status, "verification": verification, "note": note})
+    verified.update(
+        {
+            "status": status,
+            "verification": verification,
+            "note": note,
+            "keepa_title": _keepa_display_text(keepa_product, "title"),
+            "keepa_brand": _keepa_display_text(keepa_product, "brand"),
+        }
+    )
     return verified
+
+
+def _keepa_display_text(product: Any, field: str) -> str:
+    if not isinstance(product, dict):
+        return ""
+    value = product.get(field)
+    return "" if value is None else str(value).strip()
 
 
 def _join_notes(*notes: str) -> str:

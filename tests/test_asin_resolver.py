@@ -29,15 +29,22 @@ from modules.keepa_client import KeepaClientError, KeepaExpansionClient
 
 
 class FakeResolverClient:
-    def __init__(self, found_asins=None, error=None):
+    def __init__(self, found_asins=None, error=None, products_by_asin=None):
         self.found_asins = set(found_asins or [])
         self.error = error
+        self.products_by_asin = products_by_asin
         self.calls = []
 
     def verify_products_by_asin(self, asins):
         self.calls.append(list(asins))
         if self.error:
             raise self.error
+        if self.products_by_asin is not None:
+            return {
+                asin: self.products_by_asin[asin]
+                for asin in asins
+                if asin in self.products_by_asin
+            }
         return {asin: {"asin": asin, "title": "Found"} for asin in asins if asin in self.found_asins}
 
 
@@ -594,6 +601,64 @@ def test_verify_preview_rows_deduplicates_keepa_checks_but_keeps_rows():
     assert [row["verification"] for row in rows] == [KEEPA_VERIFIED, KEEPA_VERIFIED]
 
 
+def test_verify_preview_rows_copies_keepa_comparison_fields_to_duplicate_asin_rows():
+    client = FakeResolverClient(
+        products_by_asin={
+            "B07TSC47PH": {
+                "asin": "B07TSC47PH",
+                "title": "Keepa Product Title",
+                "brand": "Keepa Brand",
+            }
+        }
+    )
+    preview_rows = preview_candidates(
+        "\n".join(
+            [
+                "source_id\tinput_title\tamazon_url",
+                "R0001\tAI title\thttps://www.amazon.co.jp/dp/B07TSC47PH",
+                "R0001\tAI title\thttps://www.amazon.co.jp/dp/B07TSC47PH?th=1",
+            ]
+        ),
+        {"R0001": "Original Shopee Title"},
+    )
+
+    rows = verify_preview_rows(preview_rows, client)
+
+    assert client.calls == [["B07TSC47PH"]]
+    assert [row["source_id"] for row in rows] == ["R0001", "R0001"]
+    assert [row["input_title"] for row in rows] == [
+        "Original Shopee Title",
+        "Original Shopee Title",
+    ]
+    assert [row["keepa_title"] for row in rows] == ["Keepa Product Title", "Keepa Product Title"]
+    assert [row["keepa_brand"] for row in rows] == ["Keepa Brand", "Keepa Brand"]
+    assert [row["asin"] for row in rows] == ["B07TSC47PH", "B07TSC47PH"]
+
+
+@pytest.mark.parametrize(
+    ("product", "expected_title", "expected_brand"),
+    [
+        ({"asin": "B07TSC47PH", "brand": "Keepa Brand"}, "", "Keepa Brand"),
+        ({"asin": "B07TSC47PH", "title": "Keepa Product Title"}, "Keepa Product Title", ""),
+        (None, "", ""),
+    ],
+)
+def test_verify_preview_rows_allows_missing_keepa_comparison_data(
+    product,
+    expected_title,
+    expected_brand,
+):
+    rows = verify_preview_rows(
+        preview_candidates("A,https://www.amazon.co.jp/dp/B07TSC47PH"),
+        FakeResolverClient(products_by_asin={"B07TSC47PH": product}),
+    )
+
+    assert rows[0]["status"] == "FOUND"
+    assert rows[0]["verification"] == KEEPA_VERIFIED
+    assert rows[0]["keepa_title"] == expected_title
+    assert rows[0]["keepa_brand"] == expected_brand
+
+
 def test_source_id_uses_source_map_title_and_allows_multiple_candidates():
     rows = preview_candidates(
         "\n".join(
@@ -919,6 +984,8 @@ def test_verify_preview_rows_marks_keepa_not_found():
     assert rows[0]["status"] == "UNKNOWN"
     assert rows[0]["verification"] == KEEPA_NOT_FOUND
     assert "Keepa did not return product data" in rows[0]["note"]
+    assert rows[0]["keepa_title"] == ""
+    assert rows[0]["keepa_brand"] == ""
 
 
 def test_verify_preview_rows_marks_keepa_errors():
@@ -930,19 +997,26 @@ def test_verify_preview_rows_marks_keepa_errors():
     assert rows[0]["status"] == "ERROR"
     assert rows[0]["verification"] == "ERROR"
     assert rows[0]["note"].endswith("Keepa failed")
+    assert rows[0]["keepa_title"] == ""
+    assert rows[0]["keepa_brand"] == ""
 
 
 def test_resolver_csv_uses_expected_columns_and_utf8_sig():
     data = rows_to_resolver_csv(
         [
             {
-                "source_id": "R0001",
-                "input_title": "A",
-                "amazon_url": "https://www.amazon.co.jp/dp/B07TSC47PH",
-                "asin": "B07TSC47PH",
+                "source_id": "R0002",
+                "input_title": "元Shopeeタイトル",
+                "amazon_url": "https://www.amazon.co.jp/dp/B0B1P81W6W",
+                "asin": "B0B1P81W6W",
                 "status": "FOUND",
                 "verification": KEEPA_VERIFIED,
                 "note": "",
+                "keepa_title": "Keepa Product Title",
+                "keepa_brand": "EPOCH",
+                "row_id": "candidate-0002",
+                "selected": True,
+                "parse_status": "CANDIDATE",
                 "ignored": "value",
             }
         ]
@@ -953,8 +1027,69 @@ def test_resolver_csv_uses_expected_columns_and_utf8_sig():
     header = decoded.splitlines()[0].split(",")
     assert header == RESOLVER_CSV_COLUMNS
     rows = list(csv.DictReader(StringIO(decoded)))
-    assert rows[0]["source_id"] == "R0001"
-    assert rows[0]["asin"] == "B07TSC47PH"
+    assert rows == [
+        {
+            "source_id": "R0002",
+            "input_title": "元Shopeeタイトル",
+            "amazon_url": "https://www.amazon.co.jp/dp/B0B1P81W6W",
+            "asin": "B0B1P81W6W",
+            "status": "FOUND",
+            "verification": KEEPA_VERIFIED,
+            "note": "",
+        }
+    ]
+    assert "keepa_title" not in rows[0]
+    assert "keepa_brand" not in rows[0]
+    assert "row_id" not in rows[0]
+    assert "selected" not in rows[0]
+    assert "parse_status" not in rows[0]
+
+
+@pytest.mark.parametrize(
+    ("status", "verification", "note"),
+    [
+        ("UNKNOWN", KEEPA_NOT_FOUND, "Keepa did not return product data"),
+        ("ERROR", "ERROR", "Keepa failed"),
+    ],
+)
+def test_resolver_csv_keeps_fixed_columns_for_not_found_and_error_rows(
+    status,
+    verification,
+    note,
+):
+    data = rows_to_resolver_csv(
+        [
+            {
+                "source_id": "R0002",
+                "input_title": "元Shopeeタイトル",
+                "amazon_url": "https://www.amazon.co.jp/dp/B0B1P81W6W",
+                "asin": "B0B1P81W6W",
+                "status": status,
+                "verification": verification,
+                "note": note,
+                "keepa_title": "",
+                "keepa_brand": "",
+                "row_id": "candidate-0002",
+                "selected": True,
+                "parse_status": "CANDIDATE",
+            }
+        ]
+    )
+
+    decoded = data.decode("utf-8-sig")
+    assert decoded.splitlines()[0].split(",") == RESOLVER_CSV_COLUMNS
+    rows = list(csv.DictReader(StringIO(decoded)))
+    assert rows == [
+        {
+            "source_id": "R0002",
+            "input_title": "元Shopeeタイトル",
+            "amazon_url": "https://www.amazon.co.jp/dp/B0B1P81W6W",
+            "asin": "B0B1P81W6W",
+            "status": status,
+            "verification": verification,
+            "note": note,
+        }
+    ]
 
 
 def test_keepa_existence_check_uses_query_batches_without_product_finder(tmp_path):
