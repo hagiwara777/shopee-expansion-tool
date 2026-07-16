@@ -35,11 +35,25 @@ from modules.keepa_client import (
     normalize_asin,
     planned_candidate_count,
 )
+from modules.listing_inventory_parser import (
+    ListingInventoryParseError,
+    parse_listing_inventory_csv,
+)
 from modules.prelisting_candidate_csv import (
     PrelistingCandidateCsvError,
     expansion_rows_to_prelisting_candidates,
+    parse_prelisting_candidate_csv,
     resolver_rows_to_prelisting_candidates,
     rows_to_prelisting_candidate_csv,
+)
+from modules.prelisting_gate_ui import (
+    build_prelisting_gate_fingerprint,
+    clear_prelisting_gate_result,
+    safe_prelisting_gate_error_summary,
+    shop_label_widget_key,
+    summarize_prelisting_inventory,
+    validate_inventory_file_duplicates,
+    validate_shop_labels,
 )
 
 
@@ -52,6 +66,7 @@ RETRY_SESSION_KEYS = (
     "asin_resolver_retry_prompt_display",
     "asin_resolver_retry_prompt_fingerprint",
 )
+PRELISTING_GATE_MARKETPLACE = "SG"
 
 
 def _clear_retry_state() -> None:
@@ -96,11 +111,180 @@ def _render_direct_chat_assist(prompt_state_key: str, dom_id: str) -> None:
             st.caption("AMAZON_SEARCH_PROJECT_URLを正式フォルダの.envに設定してください。")
 
 
+def _render_prelisting_gate_input_tab() -> None:
+    """Render Phase 4A-1 input parsing and readiness confirmation only."""
+
+    st.subheader("出品前保安ゲート")
+    st.write("対象国: SG")
+    st.caption("SG以外の国はこの画面では選択できません。")
+
+    expected_shop_count = st.number_input(
+        "SGで現在運用している全ショップ数",
+        min_value=1,
+        value=1,
+        step=1,
+        key="prelisting_gate_expected_shop_count",
+    )
+    st.caption(
+        "SGで現在運用している全ショップの既出品CSVを入力してください。"
+        "不足すると既出品重複を見逃す可能性があります。"
+    )
+
+    candidate_file = st.file_uploader(
+        "出品前保安ゲート用の候補CSV",
+        type=["csv"],
+        accept_multiple_files=False,
+        key="prelisting_gate_candidate_file",
+    )
+    candidate_bytes = candidate_file.getvalue() if candidate_file is not None else None
+
+    uploaded_inventory_files = st.file_uploader(
+        "SG全ショップの既出品CSV",
+        type=["csv"],
+        accept_multiple_files=True,
+        key="prelisting_gate_inventory_files",
+    )
+    inventory_uploads = tuple(uploaded_inventory_files or ())
+    inventory_files = tuple(
+        (uploaded_file.name, uploaded_file.getvalue())
+        for uploaded_file in inventory_uploads
+    )
+
+    configuration_errors: list[str] = []
+    expected_shop_count_is_valid = (
+        type(expected_shop_count) is int and expected_shop_count >= 1
+    )
+    if not expected_shop_count_is_valid:
+        configuration_errors.append("全ショップ数は1以上の整数で入力してください。")
+
+    file_validation = validate_inventory_file_duplicates(inventory_files)
+    configuration_errors.extend(file_validation.errors)
+    labels = ["" for _ in inventory_files]
+    if inventory_files and file_validation.is_valid:
+        st.markdown("#### ショップラベル")
+        for index, (filename, file_bytes) in enumerate(inventory_files, start=1):
+            labels[index - 1] = st.text_input(
+                f"shop_label: {filename}",
+                value=f"SG_SHOP_{index}",
+                key=shop_label_widget_key(filename, file_bytes),
+            )
+
+    label_validation = validate_shop_labels(labels)
+    if inventory_files and not label_validation.is_valid:
+        configuration_errors.extend(label_validation.errors)
+
+    fingerprint_shop_count = expected_shop_count if expected_shop_count_is_valid else 0
+    current_fingerprint = build_prelisting_gate_fingerprint(
+        marketplace=PRELISTING_GATE_MARKETPLACE,
+        expected_shop_count=fingerprint_shop_count,
+        candidate_filename=candidate_file.name if candidate_file is not None else None,
+        candidate_content=candidate_bytes,
+        inventory_files=(
+            (filename, content, label)
+            for (filename, content), label in zip(inventory_files, labels, strict=True)
+        ),
+    )
+    saved_fingerprint = st.session_state.get("prelisting_gate_fingerprint")
+    if saved_fingerprint is not None and saved_fingerprint != current_fingerprint:
+        clear_prelisting_gate_result(st.session_state)
+
+    if len(inventory_files) != expected_shop_count:
+        configuration_errors.append(
+            "既出品CSVの数が全ショップ数と一致していません。"
+        )
+
+    candidate_result = None
+    candidate_parse_error = False
+    if candidate_file is None:
+        configuration_errors.append("候補CSVをアップロードしてください。")
+    else:
+        try:
+            candidate_result = parse_prelisting_candidate_csv(
+                candidate_bytes,
+                filename=candidate_file.name,
+            )
+        except PrelistingCandidateCsvError:
+            candidate_parse_error = True
+
+    inventory_results = []
+    inventory_parse_error = False
+    if inventory_files and file_validation.is_valid and label_validation.is_valid:
+        for (filename, content), shop_label in zip(
+            inventory_files,
+            label_validation.display_labels,
+            strict=True,
+        ):
+            try:
+                inventory_results.append(
+                    parse_listing_inventory_csv(
+                        content,
+                        filename=filename,
+                        marketplace=PRELISTING_GATE_MARKETPLACE,
+                        shop_label=shop_label,
+                    )
+                )
+            except ListingInventoryParseError:
+                inventory_parse_error = True
+                break
+
+    preflight_ready = (
+        not configuration_errors
+        and not candidate_parse_error
+        and not inventory_parse_error
+        and candidate_result is not None
+        and len(inventory_results) == len(inventory_files)
+        and len(inventory_files) == expected_shop_count
+    )
+    if not preflight_ready:
+        clear_prelisting_gate_result(st.session_state)
+
+    if configuration_errors:
+        st.warning(safe_prelisting_gate_error_summary("configuration"))
+        for error in dict.fromkeys(configuration_errors):
+            st.caption(error)
+    if candidate_parse_error:
+        st.error(safe_prelisting_gate_error_summary("candidate"))
+    if inventory_parse_error:
+        st.error(safe_prelisting_gate_error_summary("inventory"))
+
+    if not preflight_ready:
+        return
+
+    preflight_summary = summarize_prelisting_inventory(
+        inventory_results,
+        expected_shop_count=expected_shop_count,
+        uploaded_file_count=len(inventory_files),
+    )
+    candidate_summary = st.columns(3)
+    candidate_summary[0].metric("候補CSV行数", candidate_result.data_row_count)
+    candidate_summary[1].metric("候補CSV schema version", candidate_result.schema_version)
+    candidate_summary[2].metric("候補CSV source type", candidate_result.source_type)
+
+    inventory_summary = st.columns(3)
+    inventory_summary[0].metric("対象ショップ数", preflight_summary.expected_shop_count)
+    inventory_summary[1].metric("解析済み既出品CSV数", preflight_summary.parsed_file_count)
+    inventory_summary[2].metric(
+        "既出品ユニークASIN数",
+        preflight_summary.unique_existing_asin_count,
+    )
+    st.caption(
+        "既出品行数: "
+        f"{preflight_summary.existing_listing_row_count} / "
+        f"根拠レコード数: {preflight_summary.evidence_count}"
+    )
+    st.success(
+        "入力準備が完了しました。\n"
+        "次の段階で出品前チェックを実行できます。"
+    )
+
+
 st.set_page_config(page_title="Shopee Expansion Tool Ver1", layout="centered")
 
 st.title("Shopee Expansion Tool Ver1")
 
-expansion_tab, resolver_tab = st.tabs(["派生ASIN取得", "起点ASIN取得"])
+expansion_tab, resolver_tab, prelisting_gate_tab = st.tabs(
+    ["派生ASIN取得", "起点ASIN取得", "出品前保安ゲート"]
+)
 
 with expansion_tab:
     with st.form("search_form", clear_on_submit=False):
@@ -613,3 +797,7 @@ with resolver_tab:
                     st.caption(
                         "ChatGPT / Geminiの返答は「AI返答 → ASIN確認」へ貼り付けてください。"
                     )
+
+
+with prelisting_gate_tab:
+    _render_prelisting_gate_input_tab()

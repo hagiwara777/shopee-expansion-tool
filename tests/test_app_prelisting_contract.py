@@ -44,7 +44,7 @@ def _keyword_value(call: ast.Call, name: str) -> ast.expr:
     raise AssertionError(f"keyword not found: {name}")
 
 
-def test_app_imports_only_the_phase2a_public_adapter_functions():
+def test_app_imports_only_the_phase2a_and_phase4a1_public_adapter_functions():
     imports = next(
         node
         for node in ast.walk(APP_TREE)
@@ -55,6 +55,7 @@ def test_app_imports_only_the_phase2a_public_adapter_functions():
     assert imported_names == {
         "PrelistingCandidateCsvError",
         "expansion_rows_to_prelisting_candidates",
+        "parse_prelisting_candidate_csv",
         "resolver_rows_to_prelisting_candidates",
         "rows_to_prelisting_candidate_csv",
     }
@@ -124,7 +125,7 @@ def test_prelisting_errors_hide_new_downloads_and_existing_state_clear_contracts
         if isinstance(handler.type, ast.Name) and handler.type.id == "PrelistingCandidateCsvError"
     ]
 
-    assert len(error_handlers) == 2
+    assert len(error_handlers) == 3
     assert all(
         not any(
             isinstance(node, ast.Call)
@@ -136,9 +137,6 @@ def test_prelisting_errors_hide_new_downloads_and_existing_state_clear_contracts
     )
     assert 'st.session_state["result"] = None' in APP_SOURCE
     assert APP_SOURCE.count('st.session_state["asin_resolver_rows"] = []') >= 3
-    assert not any(
-        "prelisting" in line and "session_state" in line for line in APP_SOURCE.splitlines()
-    )
 
 
 def test_ui_adapter_equivalent_csvs_use_the_phase2a_fixed_contract_without_api_calls():
