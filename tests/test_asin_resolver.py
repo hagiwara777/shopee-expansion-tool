@@ -608,6 +608,8 @@ def test_verify_preview_rows_copies_keepa_comparison_fields_to_duplicate_asin_ro
                 "asin": "B07TSC47PH",
                 "title": "Keepa Product Title",
                 "brand": "Keepa Brand",
+                "category": "Keepa Category",
+                "fetched_at": "2026-07-16T00:00:00+00:00",
             }
         }
     )
@@ -632,6 +634,11 @@ def test_verify_preview_rows_copies_keepa_comparison_fields_to_duplicate_asin_ro
     ]
     assert [row["keepa_title"] for row in rows] == ["Keepa Product Title", "Keepa Product Title"]
     assert [row["keepa_brand"] for row in rows] == ["Keepa Brand", "Keepa Brand"]
+    assert [row["keepa_category"] for row in rows] == ["Keepa Category", "Keepa Category"]
+    assert [row["keepa_fetched_at"] for row in rows] == [
+        "2026-07-16T00:00:00+00:00",
+        "2026-07-16T00:00:00+00:00",
+    ]
     assert [row["asin"] for row in rows] == ["B07TSC47PH", "B07TSC47PH"]
 
 
@@ -657,6 +664,8 @@ def test_verify_preview_rows_allows_missing_keepa_comparison_data(
     assert rows[0]["verification"] == KEEPA_VERIFIED
     assert rows[0]["keepa_title"] == expected_title
     assert rows[0]["keepa_brand"] == expected_brand
+    assert rows[0]["keepa_category"] == ""
+    assert rows[0]["keepa_fetched_at"] == ""
 
 
 def test_source_id_uses_source_map_title_and_allows_multiple_candidates():
@@ -1014,6 +1023,8 @@ def test_resolver_csv_uses_expected_columns_and_utf8_sig():
                 "note": "",
                 "keepa_title": "Keepa Product Title",
                 "keepa_brand": "EPOCH",
+                "keepa_category": "Keepa Category",
+                "keepa_fetched_at": "2026-07-16T00:00:00+00:00",
                 "row_id": "candidate-0002",
                 "selected": True,
                 "parse_status": "CANDIDATE",
@@ -1040,6 +1051,8 @@ def test_resolver_csv_uses_expected_columns_and_utf8_sig():
     ]
     assert "keepa_title" not in rows[0]
     assert "keepa_brand" not in rows[0]
+    assert "keepa_category" not in rows[0]
+    assert "keepa_fetched_at" not in rows[0]
     assert "row_id" not in rows[0]
     assert "selected" not in rows[0]
     assert "parse_status" not in rows[0]
@@ -1069,6 +1082,8 @@ def test_resolver_csv_keeps_fixed_columns_for_not_found_and_error_rows(
                 "note": note,
                 "keepa_title": "",
                 "keepa_brand": "",
+                "keepa_category": "",
+                "keepa_fetched_at": "",
                 "row_id": "candidate-0002",
                 "selected": True,
                 "parse_status": "CANDIDATE",

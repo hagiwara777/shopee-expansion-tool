@@ -876,6 +876,8 @@ def _verified_row(
             "note": note,
             "keepa_title": _keepa_display_text(keepa_product, "title"),
             "keepa_brand": _keepa_display_text(keepa_product, "brand"),
+            "keepa_category": _keepa_display_text(keepa_product, "category"),
+            "keepa_fetched_at": _keepa_display_text(keepa_product, "fetched_at"),
         }
     )
     return verified
