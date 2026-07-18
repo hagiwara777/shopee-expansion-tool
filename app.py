@@ -46,9 +46,16 @@ from modules.prelisting_candidate_csv import (
     resolver_rows_to_prelisting_candidates,
     rows_to_prelisting_candidate_csv,
 )
+from modules.prelisting_gate import PrelistingGateError, evaluate_prelisting_gate
+from modules.prelisting_gate_csv import (
+    PrelistingGateCsvError,
+    build_prelisting_gate_exports,
+)
 from modules.prelisting_gate_ui import (
+    build_prelisting_gate_preview_rows,
     build_prelisting_gate_fingerprint,
     clear_prelisting_gate_result,
+    prelisting_gate_download_source_type,
     safe_prelisting_gate_error_summary,
     shop_label_widget_key,
     summarize_prelisting_inventory,
@@ -111,8 +118,86 @@ def _render_direct_chat_assist(prompt_state_key: str, dom_id: str) -> None:
             st.caption("AMAZON_SEARCH_PROJECT_URLを正式フォルダの.envに設定してください。")
 
 
+def _render_prelisting_gate_result(result, exports, *, source_type: str) -> None:
+    """Render one current gate result without exposing audit-only evidence."""
+
+    source_type_part = prelisting_gate_download_source_type(source_type)
+
+    summary_columns = st.columns(4)
+    summary_columns[0].metric("候補総数", result.candidate_count)
+    summary_columns[1].metric("ELIGIBLE", result.eligible_count)
+    summary_columns[2].metric("REVIEW", result.review_count)
+    summary_columns[3].metric("EXCLUDE", result.exclude_count)
+    st.caption("ELIGIBLE: 現時点のルールで出品候補にできる商品")
+    st.caption("REVIEW: 人間による確認が必要な商品")
+    st.caption("EXCLUDE: 出品候補から除外する商品")
+    st.warning(
+        "ELIGIBLEは出品安全を保証するものではありません。"
+        "現在のGuardrail辞書、既出品CSV、商品情報に基づく判定です。"
+    )
+
+    result_tabs = st.tabs(["ELIGIBLE", "REVIEW", "EXCLUDE"])
+    result_counts = (
+        ("ELIGIBLE", result.eligible_count),
+        ("REVIEW", result.review_count),
+        ("EXCLUDE", result.exclude_count),
+    )
+    for result_tab, (final_eligibility, count) in zip(result_tabs, result_counts):
+        with result_tab:
+            st.caption(f"{count}件")
+            preview_rows = build_prelisting_gate_preview_rows(
+                result,
+                final_eligibility=final_eligibility,
+            )
+            if not preview_rows:
+                st.info("該当商品はありません")
+            else:
+                st.dataframe(preview_rows, hide_index=True, width="stretch")
+                if count > len(preview_rows):
+                    st.caption("先頭100件のみ表示。全件はCSVで確認してください")
+
+    st.subheader("判定結果CSV")
+    st.caption(
+        "この出品可能CSVは保安ゲート判定結果です。\n"
+        "外部出品ツールへの直接投入形式は未確認です。"
+    )
+    st.caption(
+        "ELIGIBLEは出品安全を保証するものではありません。\n"
+        "現在のGuardrail辞書、既出品CSV、商品情報に基づく判定です。"
+    )
+    if exports.eligible_csv is not None:
+        st.download_button(
+            label="出品可能CSVをダウンロード",
+            data=exports.eligible_csv,
+            file_name=f"prelisting_gate_eligible_sg_{source_type_part}.csv",
+            mime="text/csv",
+            key="prelisting-gate-eligible-download",
+            on_click="ignore",
+            width="stretch",
+        )
+    if exports.review_csv is not None:
+        st.download_button(
+            label="REVIEW CSVをダウンロード",
+            data=exports.review_csv,
+            file_name=f"prelisting_gate_review_sg_{source_type_part}.csv",
+            mime="text/csv",
+            key="prelisting-gate-review-download",
+            on_click="ignore",
+            width="stretch",
+        )
+    st.download_button(
+        label="全件監査CSVをダウンロード",
+        data=exports.audit_csv,
+        file_name=f"prelisting_gate_audit_sg_{source_type_part}.csv",
+        mime="text/csv",
+        key="prelisting-gate-audit-download",
+        on_click="ignore",
+        width="stretch",
+    )
+
+
 def _render_prelisting_gate_input_tab() -> None:
-    """Render Phase 4A-1 input parsing and readiness confirmation only."""
+    """Render input parsing, gate execution, and current result presentation."""
 
     st.subheader("出品前保安ゲート")
     st.write("対象国: SG")
@@ -247,35 +332,85 @@ def _render_prelisting_gate_input_tab() -> None:
     if inventory_parse_error:
         st.error(safe_prelisting_gate_error_summary("inventory"))
 
-    if not preflight_ready:
-        return
+    input_ready = preflight_ready
+    if input_ready:
+        preflight_summary = summarize_prelisting_inventory(
+            inventory_results,
+            expected_shop_count=expected_shop_count,
+            uploaded_file_count=len(inventory_files),
+        )
+        candidate_summary = st.columns(3)
+        candidate_summary[0].metric("候補CSV行数", candidate_result.data_row_count)
+        candidate_summary[1].metric("候補CSV schema version", candidate_result.schema_version)
+        candidate_summary[2].metric("候補CSV source type", candidate_result.source_type)
 
-    preflight_summary = summarize_prelisting_inventory(
-        inventory_results,
-        expected_shop_count=expected_shop_count,
-        uploaded_file_count=len(inventory_files),
-    )
-    candidate_summary = st.columns(3)
-    candidate_summary[0].metric("候補CSV行数", candidate_result.data_row_count)
-    candidate_summary[1].metric("候補CSV schema version", candidate_result.schema_version)
-    candidate_summary[2].metric("候補CSV source type", candidate_result.source_type)
+        inventory_summary = st.columns(3)
+        inventory_summary[0].metric("対象ショップ数", preflight_summary.expected_shop_count)
+        inventory_summary[1].metric("解析済み既出品CSV数", preflight_summary.parsed_file_count)
+        inventory_summary[2].metric(
+            "既出品ユニークASIN数",
+            preflight_summary.unique_existing_asin_count,
+        )
+        st.caption(
+            "既出品行数: "
+            f"{preflight_summary.existing_listing_row_count} / "
+            f"根拠レコード数: {preflight_summary.evidence_count}"
+        )
+        st.success(
+            "入力準備が完了しました。\n"
+            "出品前チェックを実行できます。"
+        )
 
-    inventory_summary = st.columns(3)
-    inventory_summary[0].metric("対象ショップ数", preflight_summary.expected_shop_count)
-    inventory_summary[1].metric("解析済み既出品CSV数", preflight_summary.parsed_file_count)
-    inventory_summary[2].metric(
-        "既出品ユニークASIN数",
-        preflight_summary.unique_existing_asin_count,
+    run_gate_clicked = st.button(
+        "出品前チェックを実行",
+        disabled=not input_ready,
+        type="primary",
+        width="stretch",
     )
-    st.caption(
-        "既出品行数: "
-        f"{preflight_summary.existing_listing_row_count} / "
-        f"根拠レコード数: {preflight_summary.evidence_count}"
+    if run_gate_clicked:
+        clear_prelisting_gate_result(st.session_state)
+        try:
+            with st.spinner("出品前保安ゲートを判定しています..."):
+                gate_result = evaluate_prelisting_gate(
+                    candidate_result,
+                    inventory_results,
+                    marketplace=PRELISTING_GATE_MARKETPLACE,
+                    expected_shop_count=expected_shop_count,
+                )
+                exports = build_prelisting_gate_exports(gate_result)
+        except PrelistingGateError:
+            clear_prelisting_gate_result(st.session_state)
+            st.error(safe_prelisting_gate_error_summary("gate"))
+        except PrelistingGateCsvError:
+            clear_prelisting_gate_result(st.session_state)
+            st.error(safe_prelisting_gate_error_summary("export"))
+        except Exception:
+            clear_prelisting_gate_result(st.session_state)
+            st.error(safe_prelisting_gate_error_summary("unexpected"))
+        else:
+            st.session_state["prelisting_gate_result"] = gate_result
+            st.session_state["prelisting_gate_exports"] = exports
+            st.session_state["prelisting_gate_fingerprint"] = current_fingerprint
+
+    saved_result = st.session_state.get("prelisting_gate_result")
+    saved_exports = st.session_state.get("prelisting_gate_exports")
+    saved_fingerprint = st.session_state.get("prelisting_gate_fingerprint")
+    result_is_current = (
+        input_ready
+        and saved_result is not None
+        and saved_exports is not None
+        and saved_fingerprint == current_fingerprint
     )
-    st.success(
-        "入力準備が完了しました。\n"
-        "次の段階で出品前チェックを実行できます。"
-    )
+    if result_is_current:
+        try:
+            _render_prelisting_gate_result(
+                saved_result,
+                saved_exports,
+                source_type=candidate_result.source_type,
+            )
+        except Exception:
+            clear_prelisting_gate_result(st.session_state)
+            st.error(safe_prelisting_gate_error_summary("unexpected"))
 
 
 st.set_page_config(page_title="Shopee Expansion Tool Ver1", layout="centered")

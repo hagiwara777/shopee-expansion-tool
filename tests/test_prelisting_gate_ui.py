@@ -1,8 +1,15 @@
+import pytest
+
 from modules.listing_inventory_parser import ListingEvidence, ListingInventoryFileResult
+from modules.prelisting_candidate_csv import PrelistingCandidateRow
+from modules.prelisting_gate import PrelistingGateResult, PrelistingGateRow
 from modules.prelisting_gate_ui import (
     PRELISTING_GATE_RESULT_STATE_KEYS,
+    PRELISTING_GATE_PREVIEW_COLUMNS,
+    build_prelisting_gate_preview_rows,
     build_prelisting_gate_fingerprint,
     clear_prelisting_gate_result,
+    prelisting_gate_download_source_type,
     safe_prelisting_gate_error_summary,
     shop_label_widget_key,
     summarize_prelisting_inventory,
@@ -63,6 +70,70 @@ def _inventory_result(
         data_row_count=data_row_count,
         unique_asin_count=len(set(asins)),
         evidence_records=evidence_records,
+    )
+
+
+def _gate_result(
+    rows: tuple[tuple[str, str], ...],
+) -> PrelistingGateResult:
+    gate_rows = []
+    for index, (final_eligibility, candidate_asin) in enumerate(rows, start=1):
+        candidate = PrelistingCandidateRow(
+            schema_version="PRELISTING_CANDIDATE_V1",
+            source_type="EXPANSION",
+            source_id=f"S{index:04d}",
+            source_asin="B000000999",
+            candidate_asin=candidate_asin,
+            input_title=f"Synthetic input {index}",
+            product_title=f"Synthetic title {index}",
+            brand=f"Synthetic brand {index}",
+            category=f"Synthetic category {index}",
+            amazon_url=f"https://example.invalid/{index}",
+            source_status="FOUND",
+            source_verification="KEEPA_VERIFIED",
+            source="synthetic",
+            fetched_at="2026-07-17T00:00:00+00:00",
+            source_note="",
+        )
+        guardrail_status = {
+            "ELIGIBLE": "SAFE",
+            "REVIEW": "REVIEW",
+            "EXCLUDE": "BLOCK",
+        }[final_eligibility]
+        reason_codes = {
+            "ELIGIBLE": (),
+            "REVIEW": ("GUARDRAIL_REVIEW",),
+            "EXCLUDE": ("GUARDRAIL_BLOCK",),
+        }[final_eligibility]
+        evidence = (_evidence(candidate_asin, "SG_SHOP_1"),) if index == 2 else ()
+        gate_rows.append(
+            PrelistingGateRow(
+                candidate=candidate,
+                marketplace="SG",
+                guardrail_status=guardrail_status,
+                guardrail_risk_category="",
+                guardrail_matched_terms="",
+                guardrail_source="synthetic",
+                guardrail_note="",
+                existing_listing_status="EXISTING" if evidence else "CLEAR",
+                existing_evidence=evidence,
+                input_duplicate_status="UNIQUE",
+                source_asin_status="CLEAR",
+                metadata_status="COMPLETE",
+                metadata_missing_fields=(),
+                final_eligibility=final_eligibility,
+                reason_codes=reason_codes,
+            )
+        )
+
+    result_rows = tuple(gate_rows)
+    return PrelistingGateResult(
+        marketplace="SG",
+        candidate_count=len(result_rows),
+        eligible_count=sum(row.final_eligibility == "ELIGIBLE" for row in result_rows),
+        review_count=sum(row.final_eligibility == "REVIEW" for row in result_rows),
+        exclude_count=sum(row.final_eligibility == "EXCLUDE" for row in result_rows),
+        rows=result_rows,
     )
 
 
@@ -139,6 +210,9 @@ def test_safe_error_summaries_never_include_source_values():
     candidate = safe_prelisting_gate_error_summary("candidate")
     inventory = safe_prelisting_gate_error_summary("inventory")
     configuration = safe_prelisting_gate_error_summary("configuration")
+    gate = safe_prelisting_gate_error_summary("gate")
+    export = safe_prelisting_gate_error_summary("export")
+    unexpected = safe_prelisting_gate_error_summary("unexpected")
 
     assert candidate == (
         "候補CSVを解析できません。\n"
@@ -152,9 +226,17 @@ def test_safe_error_summaries_never_include_source_values():
         "入力条件が揃っていません。\n"
         "全ショップ数、アップロード数、ファイル名、shop_labelを確認してください。"
     )
+    assert gate == (
+        "出品前チェックを完了できませんでした。\n"
+        "対象国、全ショップ数、ファイル名、shop_label、Guardrail辞書を確認してください。"
+    )
+    assert export == (
+        "判定結果CSVを作成できませんでした。\n"
+        "判定結果の整合性を確認してください。"
+    )
     assert all(
         raw_source_value not in summary
-        for summary in (candidate, inventory, configuration)
+        for summary in (candidate, inventory, configuration, gate, export, unexpected)
     )
 
 
@@ -193,3 +275,80 @@ def test_clear_prelisting_gate_result_removes_only_its_own_state_keys():
     clear_prelisting_gate_result(state)
 
     assert state == {"unrelated": "keep"}
+
+
+def test_preview_rows_filter_each_eligibility_in_input_order_and_keep_duplicates():
+    result = _gate_result(
+        (
+            ("ELIGIBLE", "B000000001"),
+            ("REVIEW", "B000000002"),
+            ("EXCLUDE", "B000000003"),
+            ("ELIGIBLE", "B000000001"),
+        )
+    )
+
+    eligible = build_prelisting_gate_preview_rows(result, final_eligibility="ELIGIBLE")
+    review = build_prelisting_gate_preview_rows(result, final_eligibility="REVIEW")
+    exclude = build_prelisting_gate_preview_rows(result, final_eligibility="EXCLUDE")
+
+    assert [row["candidate_asin"] for row in eligible] == ["B000000001", "B000000001"]
+    assert [row["candidate_asin"] for row in review] == ["B000000002"]
+    assert [row["candidate_asin"] for row in exclude] == ["B000000003"]
+
+
+def test_preview_rows_are_fixed_to_ten_safe_columns_without_mutating_result():
+    result = _gate_result((("REVIEW", "B000000002"),))
+    original_rows = result.rows
+
+    preview = build_prelisting_gate_preview_rows(result, final_eligibility="REVIEW")
+
+    assert tuple(preview[0]) == PRELISTING_GATE_PREVIEW_COLUMNS
+    assert len(preview[0]) == 10
+    assert preview[0]["reason_codes"] == "GUARDRAIL_REVIEW"
+    assert preview[0]["existing_evidence_count"] == 0
+    assert not {"existing_evidence_json", "product_id", "model_id", "source_file"} & set(
+        preview[0]
+    )
+    assert result.rows == original_rows
+
+
+def test_preview_rows_limit_to_first_hundred_records():
+    result = _gate_result(
+        tuple(("ELIGIBLE", f"B{index:09d}") for index in range(1, 102))
+    )
+
+    preview = build_prelisting_gate_preview_rows(result, final_eligibility="ELIGIBLE")
+
+    assert len(preview) == 100
+    assert preview[0]["candidate_asin"] == "B000000001"
+    assert preview[-1]["candidate_asin"] == "B000000100"
+
+
+@pytest.mark.parametrize("final_eligibility", ["SAFE", "", None])
+def test_preview_rows_reject_invalid_final_eligibility(final_eligibility):
+    result = _gate_result((("ELIGIBLE", "B000000001"),))
+
+    with pytest.raises(ValueError):
+        build_prelisting_gate_preview_rows(
+            result,
+            final_eligibility=final_eligibility,
+        )
+
+
+@pytest.mark.parametrize("limit", [0, -1, 101, True, "100"])
+def test_preview_rows_reject_invalid_limit(limit):
+    result = _gate_result((("ELIGIBLE", "B000000001"),))
+
+    with pytest.raises(ValueError):
+        build_prelisting_gate_preview_rows(
+            result,
+            final_eligibility="ELIGIBLE",
+            limit=limit,
+        )
+
+
+def test_download_source_type_uses_only_the_formal_source_types():
+    assert prelisting_gate_download_source_type("EXPANSION") == "expansion"
+    assert prelisting_gate_download_source_type("RESOLVER") == "resolver"
+    with pytest.raises(ValueError):
+        prelisting_gate_download_source_type("UNKNOWN")

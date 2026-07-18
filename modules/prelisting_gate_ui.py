@@ -14,6 +14,7 @@ from collections.abc import Iterable, MutableMapping
 import unicodedata
 
 from modules.listing_inventory_parser import ListingInventoryFileResult
+from modules.prelisting_gate import PrelistingGateResult
 
 
 PRELISTING_GATE_RESULT_STATE_KEYS = (
@@ -21,6 +22,23 @@ PRELISTING_GATE_RESULT_STATE_KEYS = (
     "prelisting_gate_exports",
     "prelisting_gate_fingerprint",
 )
+PRELISTING_GATE_PREVIEW_COLUMNS = (
+    "candidate_asin",
+    "product_title",
+    "brand",
+    "category",
+    "guardrail_status",
+    "existing_listing_status",
+    "metadata_status",
+    "final_eligibility",
+    "reason_codes",
+    "existing_evidence_count",
+)
+_PRELISTING_GATE_FINAL_ELIGIBILITIES = {"ELIGIBLE", "REVIEW", "EXCLUDE"}
+_PRELISTING_GATE_DOWNLOAD_SOURCE_TYPES = {
+    "EXPANSION": "expansion",
+    "RESOLVER": "resolver",
+}
 
 _SAFE_ERROR_SUMMARIES = {
     "candidate": (
@@ -34,6 +52,18 @@ _SAFE_ERROR_SUMMARIES = {
     "configuration": (
         "入力条件が揃っていません。\n"
         "全ショップ数、アップロード数、ファイル名、shop_labelを確認してください。"
+    ),
+    "gate": (
+        "出品前チェックを完了できませんでした。\n"
+        "対象国、全ショップ数、ファイル名、shop_label、Guardrail辞書を確認してください。"
+    ),
+    "export": (
+        "判定結果CSVを作成できませんでした。\n"
+        "判定結果の整合性を確認してください。"
+    ),
+    "unexpected": (
+        "出品前チェックを完了できませんでした。\n"
+        "アプリを再起動し、入力内容を確認してから再実行してください。"
     ),
 }
 
@@ -205,6 +235,53 @@ def safe_prelisting_gate_error_summary(stage: str) -> str:
         return _SAFE_ERROR_SUMMARIES[stage]
     except KeyError as exc:
         raise ValueError(f"unknown pre-listing gate error stage: {stage}") from exc
+
+
+def prelisting_gate_download_source_type(source_type: str) -> str:
+    """Return the fixed filename component for a formal candidate source type."""
+
+    try:
+        return _PRELISTING_GATE_DOWNLOAD_SOURCE_TYPES[source_type]
+    except KeyError as exc:
+        raise ValueError("unsupported pre-listing gate source_type") from exc
+
+
+def build_prelisting_gate_preview_rows(
+    result: PrelistingGateResult,
+    *,
+    final_eligibility: str,
+    limit: int = 100,
+) -> tuple[dict[str, str | int], ...]:
+    """Return at most 100 ordered, display-safe rows for one eligibility tab."""
+
+    if not isinstance(result, PrelistingGateResult):
+        raise TypeError("result must be a PrelistingGateResult")
+    if final_eligibility not in _PRELISTING_GATE_FINAL_ELIGIBILITIES:
+        raise ValueError("final_eligibility is not supported")
+    if type(limit) is not int or not 1 <= limit <= 100:
+        raise ValueError("limit must be an int from 1 through 100")
+
+    preview_rows: list[dict[str, str | int]] = []
+    for row in result.rows:
+        if row.final_eligibility != final_eligibility:
+            continue
+        preview_rows.append(
+            {
+                "candidate_asin": row.candidate.candidate_asin,
+                "product_title": row.candidate.product_title,
+                "brand": row.candidate.brand,
+                "category": row.candidate.category,
+                "guardrail_status": row.guardrail_status,
+                "existing_listing_status": row.existing_listing_status,
+                "metadata_status": row.metadata_status,
+                "final_eligibility": row.final_eligibility,
+                "reason_codes": "|".join(row.reason_codes),
+                "existing_evidence_count": len(row.existing_evidence),
+            }
+        )
+        if len(preview_rows) == limit:
+            break
+    return tuple(preview_rows)
 
 
 def summarize_prelisting_inventory(

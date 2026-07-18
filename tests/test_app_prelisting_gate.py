@@ -24,6 +24,19 @@ def _gate_source() -> str:
     return ast.get_source_segment(APP_SOURCE, _gate_function()) or ""
 
 
+def _result_function() -> ast.FunctionDef:
+    return next(
+        node
+        for node in APP_TREE.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "_render_prelisting_gate_result"
+    )
+
+
+def _result_source() -> str:
+    return ast.get_source_segment(APP_SOURCE, _result_function()) or ""
+
+
 def _attribute_calls(function: ast.FunctionDef, attribute: str) -> list[ast.Call]:
     return [
         node
@@ -109,7 +122,7 @@ def test_gate_tab_is_sg_only_and_has_the_required_input_controls():
     assert "uploaded_file.getvalue()" in source
 
 
-def test_gate_tab_uses_only_formal_parsers_and_has_no_gate_execution_or_exports():
+def test_gate_tab_uses_formal_parsers_and_gate_public_functions_only():
     function = _gate_function()
     source = _gate_source()
     calls = [
@@ -120,19 +133,87 @@ def test_gate_tab_uses_only_formal_parsers_and_has_no_gate_execution_or_exports(
 
     assert calls.count("parse_prelisting_candidate_csv") == 1
     assert calls.count("parse_listing_inventory_csv") == 1
+    assert calls.count("evaluate_prelisting_gate") == 1
+    assert calls.count("build_prelisting_gate_exports") == 1
     assert "csv.reader" not in source
     assert "pd.read_csv" not in source
-    assert "evaluate_prelisting_gate" not in source
     assert "apply_guardrails" not in source
     assert "rows_to_prelisting_gate_csv" not in source
     assert "build_prelisting_gate_csv" not in source
-    assert not _attribute_calls(function, "button")
+    assert "PRELISTING_GATE_RESULT_COLUMNS" not in source
+    assert len(_attribute_calls(function, "button")) == 1
     assert not _attribute_calls(function, "download_button")
-    assert "candidate_file" not in "\n".join(
+    session_state_lines = "\n".join(
         line
         for line in source.splitlines()
         if "st.session_state[" in line
     )
+    assert "candidate_file" not in session_state_lines
+    assert "candidate_bytes" not in session_state_lines
+    assert "inventory_files" not in session_state_lines
+
+
+def test_gate_execution_imports_and_button_follow_the_formal_contract():
+    function = _gate_function()
+    source = _gate_source()
+    gate_import = next(
+        node
+        for node in ast.walk(APP_TREE)
+        if isinstance(node, ast.ImportFrom) and node.module == "modules.prelisting_gate"
+    )
+    csv_import = next(
+        node
+        for node in ast.walk(APP_TREE)
+        if isinstance(node, ast.ImportFrom) and node.module == "modules.prelisting_gate_csv"
+    )
+    run_button = next(
+        call
+        for call in _attribute_calls(function, "button")
+        if _literal_string(call.args[0]) == "出品前チェックを実行"
+    )
+
+    assert {alias.name for alias in gate_import.names} == {
+        "PrelistingGateError",
+        "evaluate_prelisting_gate",
+    }
+    assert {alias.name for alias in csv_import.names} == {
+        "PrelistingGateCsvError",
+        "build_prelisting_gate_exports",
+    }
+    assert ast.unparse(_keyword(run_button, "disabled")) == "not input_ready"
+    assert ast.literal_eval(_keyword(run_button, "type")) == "primary"
+    assert "if run_gate_clicked:" in source
+    assert source.index("clear_prelisting_gate_result(st.session_state)") < source.index(
+        "evaluate_prelisting_gate("
+    )
+    assert "with st.spinner(" in source
+    assert 'st.session_state["prelisting_gate_result"] = gate_result' in source
+    assert 'st.session_state["prelisting_gate_exports"] = exports' in source
+    assert 'st.session_state["prelisting_gate_fingerprint"] = current_fingerprint' in source
+
+
+def test_gate_execution_errors_and_fingerprint_mismatch_clear_old_results():
+    source = _gate_source()
+    handlers = [
+        handler
+        for node in ast.walk(_gate_function())
+        if isinstance(node, ast.Try)
+        for handler in node.handlers
+    ]
+    handler_names = {
+        handler.type.id
+        for handler in handlers
+        if isinstance(handler.type, ast.Name)
+    }
+
+    assert {"PrelistingGateError", "PrelistingGateCsvError"} <= handler_names
+    assert source.count("clear_prelisting_gate_result(st.session_state)") >= 5
+    assert 'safe_prelisting_gate_error_summary("gate")' in source
+    assert 'safe_prelisting_gate_error_summary("export")' in source
+    assert 'safe_prelisting_gate_error_summary("unexpected")' in source
+    assert "saved_fingerprint == current_fingerprint" in source
+    assert "input_ready" in source
+    assert "str(exc)" not in source
 
 
 def test_gate_tab_invalidates_only_reserved_result_state_on_input_changes_and_errors():
@@ -147,7 +228,48 @@ def test_gate_tab_invalidates_only_reserved_result_state_on_input_changes_and_er
     assert "safe_prelisting_gate_error_summary(\"inventory\")" in source
     assert "str(exc)" not in source
     assert "入力準備が完了しました。" in source
-    assert "次の段階で出品前チェックを実行できます。" in source
+    assert "出品前チェックを実行できます。" in source
+
+
+def test_gate_result_view_uses_four_metrics_three_safe_tabs_and_download_contracts():
+    function = _result_function()
+    source = _result_source()
+    metric_labels = [
+        _literal_string(call.args[0])
+        for call in _attribute_calls(function, "metric")
+    ]
+    tab_call = next(iter(_attribute_calls(function, "tabs")))
+    download_by_label = {
+        _literal_string(_keyword(call, "label")): call
+        for call in _attribute_calls(function, "download_button")
+    }
+
+    assert metric_labels == ["候補総数", "ELIGIBLE", "REVIEW", "EXCLUDE"]
+    assert ast.literal_eval(tab_call.args[0]) == ["ELIGIBLE", "REVIEW", "EXCLUDE"]
+    assert source.count("build_prelisting_gate_preview_rows(") == 1
+    assert "st.dataframe(preview_rows, hide_index=True, width=\"stretch\")" in source
+    assert "先頭100件のみ表示。全件はCSVで確認してください" in source
+    assert "該当商品はありません" in source
+    assert "existing_evidence_json" not in source
+    assert "product_id" not in source
+    assert "model_id" not in source
+    assert "source_file" not in source
+
+    assert set(download_by_label) == {
+        "出品可能CSVをダウンロード",
+        "REVIEW CSVをダウンロード",
+        "全件監査CSVをダウンロード",
+    }
+    for call in download_by_label.values():
+        assert ast.literal_eval(_keyword(call, "mime")) == "text/csv"
+        assert ast.literal_eval(_keyword(call, "on_click")) == "ignore"
+        assert ast.literal_eval(_keyword(call, "width")) == "stretch"
+    assert "if exports.eligible_csv is not None:" in source
+    assert "if exports.review_csv is not None:" in source
+    assert 'f"prelisting_gate_eligible_sg_{source_type_part}.csv"' in source
+    assert 'f"prelisting_gate_review_sg_{source_type_part}.csv"' in source
+    assert 'f"prelisting_gate_audit_sg_{source_type_part}.csv"' in source
+    assert "外部出品ツールへの直接投入形式は未確認です。" in source
 
 
 def test_existing_candidate_download_controls_remain_in_the_application_contract():
@@ -181,5 +303,25 @@ def test_prelisting_gate_initial_ui_smoke(monkeypatch):
     )
     assert "候補CSVをアップロードしてください。" in rendered_messages
     assert "入力条件が揃っていません。" in rendered_messages
-    assert not any("出品前チェック" in button.label for button in app.button)
-    assert not any("出品前チェック" in button.label for button in app.download_button)
+    gate_buttons = [
+        button
+        for button in app.button
+        if button.label == "出品前チェックを実行"
+    ]
+    assert len(gate_buttons) == 1
+    assert gate_buttons[0].disabled is True
+    assert not any(
+        button.label
+        in {
+            "出品可能CSVをダウンロード",
+            "REVIEW CSVをダウンロード",
+            "全件監査CSVをダウンロード",
+        }
+        for button in app.download_button
+    )
+    assert not {
+        "候補総数",
+        "ELIGIBLE",
+        "REVIEW",
+        "EXCLUDE",
+    } & {metric.label for metric in app.metric}
