@@ -13,6 +13,8 @@ from modules.listing_inventory_parser import (
     ListingInventoryFileResult,
     ListingInventoryParseError,
     build_existing_asin_index,
+    normalize_marketplace,
+    validate_inventory_filename_marketplace,
 )
 from modules.prelisting_candidate_csv import (
     EXPANSION_SOURCE_TYPE,
@@ -23,6 +25,7 @@ from modules.prelisting_candidate_csv import (
 
 
 SG_MARKETPLACE = "SG"
+PH_MARKETPLACE = "PH"
 ALLOWED_SOURCE_TYPES = {EXPANSION_SOURCE_TYPE, RESOLVER_SOURCE_TYPE}
 GUARDRAIL_COLUMNS = (
     "guardrail_status",
@@ -71,7 +74,7 @@ class PrelistingGateRow:
 
 @dataclass(frozen=True)
 class PrelistingGateResult:
-    """The ordered decision result for one SG pre-listing candidate file."""
+    """The ordered decision result for one supported-market pre-listing file."""
 
     marketplace: str
     candidate_count: int
@@ -95,7 +98,7 @@ def evaluate_prelisting_gate(
     marketplace: str,
     expected_shop_count: int,
 ) -> PrelistingGateResult:
-    """Return final eligibility for validated SG candidates and inventory evidence.
+    """Return final eligibility for validated SG or PH candidates and inventory evidence.
 
     This function is intentionally fail-closed: an invalid input contract or a
     Guardrail contract error raises ``PrelistingGateError`` instead of returning
@@ -103,7 +106,7 @@ def evaluate_prelisting_gate(
     """
 
     try:
-        normalized_marketplace = _normalize_sg_marketplace(marketplace, "marketplace")
+        normalized_marketplace = _normalize_supported_marketplace(marketplace, "marketplace")
         _validate_expected_shop_count(expected_shop_count)
         candidate_rows = _validate_candidates(candidates)
         inventory_results = tuple(inventories)
@@ -113,7 +116,10 @@ def evaluate_prelisting_gate(
             expected_shop_count=expected_shop_count,
         )
         existing_index = _build_existing_index(inventory_results)
-        guarded_rows = _apply_and_validate_guardrails(candidate_rows)
+        guarded_rows = _apply_and_validate_guardrails(
+            candidate_rows,
+            marketplace=normalized_marketplace,
+        )
         result_rows = _evaluate_rows(
             candidate_rows,
             guarded_rows,
@@ -198,7 +204,10 @@ def _validate_inventories(
     for file_number, inventory in enumerate(inventories, 1):
         if not isinstance(inventory, ListingInventoryFileResult):
             raise PrelistingGateError(f"既出品ファイル {file_number}件目の型が不正です。")
-        if _normalize_sg_marketplace(inventory.marketplace, f"既出品ファイル {file_number}件目のmarketplace") != marketplace:
+        if _normalize_supported_marketplace(
+            inventory.marketplace,
+            f"既出品ファイル {file_number}件目のmarketplace",
+        ) != marketplace:
             raise PrelistingGateError("既出品ファイルのmarketplaceが判定対象と一致しません。")
 
         shop_label = _normalized_identity(inventory.shop_label)
@@ -207,12 +216,68 @@ def _validate_inventories(
             raise PrelistingGateError(f"既出品ファイル {file_number}件目のshop_labelが空です。")
         if not source_file:
             raise PrelistingGateError(f"既出品ファイル {file_number}件目のsource_fileが空です。")
+        try:
+            validate_inventory_filename_marketplace(inventory.source_file, marketplace)
+        except ListingInventoryParseError as exc:
+            raise PrelistingGateError(
+                f"既出品ファイル {file_number}件目のsource_fileの市場表記が不正です。"
+            ) from exc
         if shop_label in shop_labels:
             raise PrelistingGateError("既出品ファイルのshop_labelが重複しています。")
         if source_file in source_files:
             raise PrelistingGateError("既出品ファイルのsource_fileが重複しています。")
         shop_labels.add(shop_label)
         source_files.add(source_file)
+        _validate_inventory_contents(inventory, file_number, marketplace)
+
+
+def _validate_inventory_contents(
+    inventory: ListingInventoryFileResult,
+    file_number: int,
+    marketplace: str,
+) -> None:
+    if type(inventory.data_row_count) is not int or inventory.data_row_count < 0:
+        raise PrelistingGateError(f"既出品ファイル {file_number}件目のdata_row_countが不正です。")
+    if type(inventory.unique_asin_count) is not int or inventory.unique_asin_count < 0:
+        raise PrelistingGateError(f"既出品ファイル {file_number}件目のunique_asin_countが不正です。")
+    if not isinstance(inventory.evidence_records, tuple):
+        raise PrelistingGateError(f"既出品ファイル {file_number}件目のevidence_recordsが不正です。")
+
+    if inventory.data_row_count == 0:
+        if inventory.unique_asin_count or inventory.evidence_records:
+            raise PrelistingGateError(
+                f"既出品ファイル {file_number}件目の0件inventory契約が不正です。"
+            )
+        return
+
+    if not inventory.evidence_records:
+        raise PrelistingGateError(
+            f"既出品ファイル {file_number}件目は商品行があるのに有効なASIN根拠がありません。"
+        )
+
+    unique_asins: set[str] = set()
+    for evidence_number, evidence in enumerate(inventory.evidence_records, 1):
+        if not isinstance(evidence, ListingEvidence):
+            raise PrelistingGateError(
+                f"既出品ファイル {file_number}件目の証跡 {evidence_number}件目の型が不正です。"
+            )
+        if _normalize_supported_marketplace(
+            evidence.marketplace,
+            f"既出品ファイル {file_number}件目の証跡 {evidence_number}件目のmarketplace",
+        ) != marketplace:
+            raise PrelistingGateError("既出品証跡のmarketplaceが判定対象と一致しません。")
+        if _normalized_identity(evidence.shop_label) != _normalized_identity(inventory.shop_label):
+            raise PrelistingGateError("既出品証跡のshop_labelが既出品ファイルと一致しません。")
+        if _normalized_identity(evidence.source_file) != _normalized_identity(inventory.source_file):
+            raise PrelistingGateError("既出品証跡のsource_fileが既出品ファイルと一致しません。")
+        unique_asins.add(
+            _normalize_required_asin(
+                evidence.asin,
+                f"既出品ファイル {file_number}件目の証跡 {evidence_number}件目のASIN",
+            )
+        )
+    if not unique_asins or inventory.unique_asin_count != len(unique_asins):
+        raise PrelistingGateError(f"既出品ファイル {file_number}件目のASIN集計が不正です。")
 
 
 def _build_existing_index(
@@ -226,6 +291,8 @@ def _build_existing_index(
 
 def _apply_and_validate_guardrails(
     candidate_rows: tuple[_ValidatedCandidate, ...],
+    *,
+    marketplace: str,
 ) -> tuple[dict[str, str], ...]:
     guardrail_inputs = [
         {
@@ -238,7 +305,7 @@ def _apply_and_validate_guardrails(
         for row_number, row in enumerate(candidate_rows, 1)
     ]
     try:
-        guarded_rows = tuple(apply_guardrails(guardrail_inputs))
+        guarded_rows = tuple(apply_guardrails(guardrail_inputs, marketplace=marketplace))
     except GuardrailDictionaryError as exc:
         raise PrelistingGateError("Guardrail辞書を読み込めません。") from exc
 
@@ -411,13 +478,11 @@ def _build_result(
     )
 
 
-def _normalize_sg_marketplace(value: Any, context: str) -> str:
-    if not isinstance(value, str):
-        raise PrelistingGateError(f"{context}は文字列でSGを指定してください。")
-    marketplace = unicodedata.normalize("NFKC", value).strip().upper()
-    if marketplace != SG_MARKETPLACE:
-        raise PrelistingGateError(f"{context}はSGのみ対応しています。")
-    return marketplace
+def _normalize_supported_marketplace(value: Any, context: str) -> str:
+    try:
+        return normalize_marketplace(value, context=context)
+    except ListingInventoryParseError as exc:
+        raise PrelistingGateError(f"{context}が不正です。") from exc
 
 
 def _normalize_required_asin(value: Any, context: str) -> str:

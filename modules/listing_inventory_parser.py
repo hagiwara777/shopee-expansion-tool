@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 from dataclasses import dataclass
 from io import StringIO
-from typing import Iterable
+from typing import Any, Iterable
 import unicodedata
 
 from modules.keepa_client import normalize_asin
@@ -13,6 +13,7 @@ from modules.keepa_client import normalize_asin
 
 REQUIRED_HEADERS = ("Product ID", "Parent SKU", "Model ID", "SKU", "Stock")
 OPTIONAL_PRODUCT_NAME_HEADER = "Product Name"
+SUPPORTED_MARKETPLACES = frozenset({"SG", "PH"})
 
 
 class ListingInventoryParseError(RuntimeError):
@@ -59,6 +60,9 @@ def parse_listing_inventory_csv(
 ) -> ListingInventoryFileResult:
     """Parse one UTF-8 existing-listing CSV and retain every ASIN occurrence."""
 
+    normalized_marketplace = normalize_marketplace(marketplace, context="marketplace")
+    normalized_shop_label = _normalize_shop_label(shop_label)
+    _validate_filename_marketplace(filename, normalized_marketplace)
     text = _decode_utf8_content(content, filename)
     rows = _read_csv_rows(text, filename)
     header_index, header_row_number, header_positions = _find_header(rows, filename)
@@ -115,8 +119,8 @@ def parse_listing_inventory_csv(
         evidence_records.append(
             ListingEvidence(
                 asin=parent_sku,
-                marketplace=marketplace,
-                shop_label=shop_label,
+                marketplace=normalized_marketplace,
+                shop_label=normalized_shop_label,
                 source_file=filename,
                 source_row_number=source_row_number,
                 match_field="Parent SKU",
@@ -132,8 +136,8 @@ def parse_listing_inventory_csv(
             evidence_records.append(
                 ListingEvidence(
                     asin=sku,
-                    marketplace=marketplace,
-                    shop_label=shop_label,
+                    marketplace=normalized_marketplace,
+                    shop_label=normalized_shop_label,
                     source_file=filename,
                     source_row_number=source_row_number,
                     match_field="SKU",
@@ -146,20 +150,15 @@ def parse_listing_inventory_csv(
                 )
             )
 
-    if data_row_count == 0:
-        raise ListingInventoryParseError(
-            f"{filename}: ヘッダー行の後に既出品データ行がありません。"
-        )
-
     unique_asins = {evidence.asin for evidence in evidence_records}
-    if not unique_asins:
+    if data_row_count and not unique_asins:
         raise ListingInventoryParseError(
             f"{filename}: 有効な既出品ASINが0件です。CSV内容を確認してください。"
         )
 
     return ListingInventoryFileResult(
-        marketplace=marketplace,
-        shop_label=shop_label,
+        marketplace=normalized_marketplace,
+        shop_label=normalized_shop_label,
         source_file=filename,
         header_row_number=header_row_number,
         data_row_count=data_row_count,
@@ -174,18 +173,34 @@ def build_existing_asin_index(
     """Build an ordered ASIN-to-evidence index from validated CSV results."""
 
     file_results = tuple(results)
-    marketplaces = {
-        _normalize_marketplace(result.marketplace)
-        for result in file_results
-    }
+    marketplaces: set[str] = set()
+    result_marketplaces: list[str] = []
+    for result in file_results:
+        if not isinstance(result, ListingInventoryFileResult):
+            raise ListingInventoryParseError("既出品CSVの結果型が不正です。")
+        result_marketplace = normalize_marketplace(
+            result.marketplace,
+            context="既出品CSVのmarketplace",
+        )
+        marketplaces.add(result_marketplace)
+        result_marketplaces.append(result_marketplace)
     if len(marketplaces) > 1:
         raise ListingInventoryParseError(
             "既出品CSVに異なるマーケットプレイスが混在しています。"
         )
 
     index: dict[str, list[ListingEvidence]] = {}
-    for result in file_results:
-        for evidence in result.evidence_records:
+    for result, result_marketplace in zip(file_results, result_marketplaces):
+        for evidence_number, evidence in enumerate(result.evidence_records, 1):
+            if not isinstance(evidence, ListingEvidence):
+                raise ListingInventoryParseError("既出品CSVの証跡型が不正です。")
+            if normalize_marketplace(
+                evidence.marketplace,
+                context="既出品CSVの証跡marketplace",
+            ) != result_marketplace:
+                raise ListingInventoryParseError(
+                    f"{result.source_file}: 証跡 {evidence_number}件目のmarketplaceが不一致です。"
+                )
             asin = _normalize_row_asin(
                 evidence.asin,
                 filename=evidence.source_file,
@@ -195,10 +210,6 @@ def build_existing_asin_index(
             )
             index.setdefault(asin, []).append(evidence)
 
-    if not index:
-        raise ListingInventoryParseError(
-            "有効な既出品ASINが0件です。CSV内容を確認してください。"
-        )
     return index
 
 
@@ -274,8 +285,69 @@ def _normalize_header_name(value: str) -> str:
     return unicodedata.normalize("NFKC", value or "").strip().casefold()
 
 
-def _normalize_marketplace(value: str) -> str:
-    return unicodedata.normalize("NFKC", value or "").strip().casefold()
+def normalize_marketplace(value: Any, *, context: str = "marketplace") -> str:
+    """Return the canonical supported marketplace or raise fail-closed."""
+
+    if not isinstance(value, str):
+        raise ListingInventoryParseError(f"{context}は文字列でSGまたはPHを指定してください。")
+    marketplace = unicodedata.normalize("NFKC", value).strip().upper()
+    if marketplace not in SUPPORTED_MARKETPLACES:
+        supported = "、".join(sorted(SUPPORTED_MARKETPLACES))
+        raise ListingInventoryParseError(
+            f"{context}は{supported}のいずれかを指定してください。"
+        )
+    return marketplace
+
+
+def validate_inventory_filename_marketplace(filename: Any, marketplace: Any) -> None:
+    """Reject only explicit SG/PH filename tokens that conflict with marketplace."""
+
+    normalized_marketplace = normalize_marketplace(marketplace, context="marketplace")
+    _validate_filename_marketplace(filename, normalized_marketplace)
+
+
+def _normalize_shop_label(value: Any) -> str:
+    if not isinstance(value, str):
+        raise ListingInventoryParseError("shop_labelは空でない文字列で指定してください。")
+    shop_label = unicodedata.normalize("NFKC", value).strip()
+    if not shop_label:
+        raise ListingInventoryParseError("shop_labelが空です。")
+    return shop_label
+
+
+def _validate_filename_marketplace(filename: Any, marketplace: str) -> None:
+    if not isinstance(filename, str) or not filename.strip():
+        raise ListingInventoryParseError("filenameは空でない文字列で指定してください。")
+    tokens = _filename_marketplace_tokens(filename)
+    if len(tokens) > 1:
+        raise ListingInventoryParseError(
+            f"{filename}: ファイル名にSGとPHの両方の市場表記があります。"
+        )
+    if tokens and marketplace not in tokens:
+        stated_marketplace = next(iter(tokens))
+        raise ListingInventoryParseError(
+            f"{filename}: ファイル名の市場表記{stated_marketplace}が"
+            f"指定marketplace {marketplace}と一致しません。"
+        )
+
+
+def _filename_marketplace_tokens(filename: str) -> frozenset[str]:
+    """Find standalone market tokens without matching ordinary words or product names."""
+
+    leaf_name = filename.replace("\\", "/").rsplit("/", 1)[-1]
+    stem = leaf_name.rsplit(".", 1)[0] if "." in leaf_name else leaf_name
+    normalized = unicodedata.normalize("NFKC", stem).strip().upper()
+    tokens: list[str] = []
+    current: list[str] = []
+    for character in normalized:
+        if character.isalnum():
+            current.append(character)
+        elif current:
+            tokens.append("".join(current))
+            current = []
+    if current:
+        tokens.append("".join(current))
+    return frozenset(token for token in tokens if token in SUPPORTED_MARKETPLACES)
 
 
 def _normalize_row_asin(

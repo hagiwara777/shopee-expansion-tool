@@ -42,11 +42,17 @@ def _inventory_csv(
     return _csv_bytes(metadata_rows + [header or HEADER] + data_rows, bom=bom)
 
 
-def _parse(content: bytes, *, filename: str = FILENAME, shop_label: str = SHOP_LABEL):
+def _parse(
+    content: bytes,
+    *,
+    filename: str = FILENAME,
+    marketplace: str = MARKETPLACE,
+    shop_label: str = SHOP_LABEL,
+):
     return parse_listing_inventory_csv(
         content,
         filename=filename,
-        marketplace=MARKETPLACE,
+        marketplace=marketplace,
         shop_label=shop_label,
     )
 
@@ -186,9 +192,45 @@ def test_empty_non_utf8_and_malformed_csv_fail_closed():
         _parse(b'"unterminated')
 
 
-def test_no_data_rows_after_header_fails_closed():
-    with pytest.raises(ListingInventoryParseError, match="データ行がありません"):
-        _parse(_inventory_csv([]))
+@pytest.mark.parametrize(
+    ("marketplace", "filename", "expected_marketplace"),
+    [
+        ("SG", "Shopee 更新_SG.csv", "SG"),
+        (" ph ", "Shopee 更新_PH.csv", "PH"),
+        ("ｐｈ", "Shopee 更新_ｐｈ.csv", "PH"),
+    ],
+)
+def test_formal_zero_listing_csv_is_a_valid_empty_inventory(
+    marketplace: str,
+    filename: str,
+    expected_marketplace: str,
+):
+    result = _parse(_inventory_csv([[], ["", "  "]]), marketplace=marketplace, filename=filename)
+
+    assert result.marketplace == expected_marketplace
+    assert result.data_row_count == 0
+    assert result.unique_asin_count == 0
+    assert result.evidence_records == ()
+    assert build_existing_asin_index([result]) == {}
+
+
+@pytest.mark.parametrize(
+    ("marketplace", "filename"),
+    [
+        ("PH", "Shopee 更新_SG.csv"),
+        ("SG", "Shopee 更新_PH.csv"),
+        ("PH", "Shopee 更新_SG_PH.csv"),
+    ],
+)
+def test_explicit_filename_marketplace_mismatch_fails_closed(marketplace: str, filename: str):
+    with pytest.raises(ListingInventoryParseError, match="市場表記"):
+        _parse(_inventory_csv([]), marketplace=marketplace, filename=filename)
+
+
+def test_filename_without_marketplace_and_ordinary_words_are_accepted():
+    result = _parse(_inventory_csv([]), marketplace="PH", filename="pharmacy_sgproduct.csv")
+
+    assert result.marketplace == "PH"
 
 
 def test_parent_sku_blank_fails_with_filename_line_and_column():
@@ -224,18 +266,17 @@ def test_broken_product_id_row_fails_closed():
         _parse(_inventory_csv([_data_row("", "B07TSC47PH")]))
 
 
-def test_index_rejects_empty_or_mixed_marketplace_results():
+def test_index_accepts_empty_and_rejects_mixed_marketplace_results():
     empty_result = ListingInventoryFileResult(
         marketplace="SG",
         shop_label="Empty",
         source_file="empty.csv",
         header_row_number=5,
-        data_row_count=1,
+        data_row_count=0,
         unique_asin_count=0,
         evidence_records=(),
     )
-    with pytest.raises(ListingInventoryParseError, match="0件"):
-        build_existing_asin_index([empty_result])
+    assert build_existing_asin_index([empty_result]) == {}
 
     sg_result = _parse(_inventory_csv([_data_row("P-1", "B07TSC47PH")]))
     ph_result = ListingInventoryFileResult(

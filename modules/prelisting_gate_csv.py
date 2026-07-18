@@ -3,20 +3,24 @@
 from __future__ import annotations
 
 import csv
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from io import StringIO
 import json
 from typing import Any
 
-from modules.listing_inventory_parser import ListingEvidence
+from modules.listing_inventory_parser import (
+    ListingEvidence,
+    ListingInventoryParseError,
+    normalize_marketplace,
+)
 from modules.prelisting_candidate_csv import (
+    ALLOWED_SOURCE_TYPES,
     PRELISTING_CANDIDATE_COLUMNS,
     PrelistingCandidateRow,
 )
 from modules.prelisting_gate import (
     METADATA_FIELDS,
     REASON_CODE_ORDER,
-    SG_MARKETPLACE,
     PrelistingGateResult,
     PrelistingGateRow,
 )
@@ -139,7 +143,7 @@ def build_prelisting_gate_exports(
     """
 
     try:
-        rows = _validate_result(result)
+        marketplace, rows = _validate_result(result)
         rendered_rows = tuple(_export_row(row) for row in rows)
         eligible_rows = tuple(
             rendered
@@ -166,11 +170,10 @@ def build_prelisting_gate_exports(
         raise PrelistingGateCsvError("出品前保安ゲートCSVを安全に生成できません。") from exc
 
 
-def _validate_result(result: PrelistingGateResult) -> tuple[PrelistingGateRow, ...]:
+def _validate_result(result: PrelistingGateResult) -> tuple[str, tuple[PrelistingGateRow, ...]]:
     if not isinstance(result, PrelistingGateResult):
         raise PrelistingGateCsvError("resultはPrelistingGateResultである必要があります。")
-    if result.marketplace != SG_MARKETPLACE:
-        raise PrelistingGateCsvError("resultのmarketplaceはSGである必要があります。")
+    marketplace = _normalize_supported_marketplace(result.marketplace, "resultのmarketplace")
 
     _require_exact_int(result.candidate_count, "candidate_count", minimum=1)
     _require_exact_int(result.eligible_count, "eligible_count", minimum=0)
@@ -189,9 +192,9 @@ def _validate_result(result: PrelistingGateResult) -> tuple[PrelistingGateRow, .
     rows: list[PrelistingGateRow] = []
     actual_counts = {status: 0 for status in _FINAL_ELIGIBILITIES}
     for row_number, row in enumerate(result.rows, 1):
-        _validate_row(row, result.marketplace, row_number)
-        actual_counts[row.final_eligibility] += 1
-        rows.append(row)
+        normalized_row = _validate_row(row, marketplace, row_number)
+        actual_counts[normalized_row.final_eligibility] += 1
+        rows.append(normalized_row)
 
     if (
         actual_counts["ELIGIBLE"] != result.eligible_count
@@ -199,17 +202,17 @@ def _validate_result(result: PrelistingGateResult) -> tuple[PrelistingGateRow, .
         or actual_counts["EXCLUDE"] != result.exclude_count
     ):
         raise PrelistingGateCsvError("resultの集計値が実際の行判定と一致しません。")
-    return tuple(rows)
+    return marketplace, tuple(rows)
 
 
 def _validate_row(
     row: PrelistingGateRow,
     marketplace: str,
     row_number: int,
-) -> None:
+) -> PrelistingGateRow:
     if not isinstance(row, PrelistingGateRow):
         raise PrelistingGateCsvError(f"結果 {row_number}行目の型が不正です。")
-    if row.marketplace != marketplace:
+    if _normalize_supported_marketplace(row.marketplace, f"結果 {row_number}行目のmarketplace") != marketplace:
         raise PrelistingGateCsvError(f"結果 {row_number}行目のmarketplaceが不一致です。")
     _require_choice(row.final_eligibility, _FINAL_ELIGIBILITIES, "final_eligibility", row_number)
     _require_choice(row.guardrail_status, _GUARDRAIL_STATUSES, "guardrail_status", row_number)
@@ -261,7 +264,8 @@ def _validate_row(
         raise PrelistingGateCsvError("COMPLETE行のmetadata_missing_fieldsは空tupleである必要があります。")
     if row.metadata_status == "INCOMPLETE" and not row.metadata_missing_fields:
         raise PrelistingGateCsvError("INCOMPLETE行のmetadata_missing_fieldsは1件以上必要です。")
-    _validate_evidence(row, row_number)
+    evidence = _validate_evidence(row, marketplace, row_number)
+    return replace(row, marketplace=marketplace, existing_evidence=evidence)
 
 
 def _validate_candidate(candidate: PrelistingCandidateRow, row_number: int) -> None:
@@ -272,7 +276,11 @@ def _validate_candidate(candidate: PrelistingCandidateRow, row_number: int) -> N
         raise PrelistingGateCsvError(f"結果 {row_number}行目のcandidate_asinが空です。")
 
 
-def _validate_evidence(row: PrelistingGateRow, row_number: int) -> None:
+def _validate_evidence(
+    row: PrelistingGateRow,
+    marketplace: str,
+    row_number: int,
+) -> tuple[ListingEvidence, ...]:
     if not isinstance(row.existing_evidence, tuple):
         raise PrelistingGateCsvError(f"結果 {row_number}行目のexisting_evidenceはtupleである必要があります。")
     if row.existing_listing_status == "CLEAR" and row.existing_evidence:
@@ -280,6 +288,7 @@ def _validate_evidence(row: PrelistingGateRow, row_number: int) -> None:
     if row.existing_listing_status == "EXISTING" and not row.existing_evidence:
         raise PrelistingGateCsvError("EXISTING行には既出品証跡が1件以上必要です。")
 
+    normalized_evidence: list[ListingEvidence] = []
     for evidence_number, evidence in enumerate(row.existing_evidence, 1):
         if not isinstance(evidence, ListingEvidence):
             raise PrelistingGateCsvError(
@@ -293,8 +302,39 @@ def _validate_evidence(row: PrelistingGateRow, row_number: int) -> None:
         )
         if evidence.asin != row.candidate.candidate_asin:
             raise PrelistingGateCsvError("既出品証跡のASINがcandidate_asinと一致しません。")
-        if evidence.marketplace != row.marketplace:
+        if _normalize_supported_marketplace(
+            evidence.marketplace,
+            f"結果 {row_number}行目の既出品証跡 {evidence_number}件目のmarketplace",
+        ) != marketplace:
             raise PrelistingGateCsvError("既出品証跡のmarketplaceが行marketplaceと一致しません。")
+        normalized_evidence.append(replace(evidence, marketplace=marketplace))
+    return tuple(normalized_evidence)
+
+
+def build_prelisting_gate_export_filenames(
+    *,
+    marketplace: str,
+    source_type: str,
+) -> dict[str, str]:
+    """Return the formal SG/PH download names without changing UI behavior."""
+
+    normalized_marketplace = _normalize_supported_marketplace(marketplace, "marketplace")
+    if not isinstance(source_type, str) or source_type not in ALLOWED_SOURCE_TYPES:
+        raise PrelistingGateCsvError("source_typeが不正です。")
+    marketplace_part = normalized_marketplace.lower()
+    source_type_part = source_type.lower()
+    return {
+        "eligible": f"prelisting_gate_eligible_{marketplace_part}_{source_type_part}.csv",
+        "review": f"prelisting_gate_review_{marketplace_part}_{source_type_part}.csv",
+        "audit": f"prelisting_gate_audit_{marketplace_part}_{source_type_part}.csv",
+    }
+
+
+def _normalize_supported_marketplace(value: Any, context: str) -> str:
+    try:
+        return normalize_marketplace(value, context=context)
+    except ListingInventoryParseError as exc:
+        raise PrelistingGateCsvError(f"{context}が不正です。") from exc
 
 
 def _require_exact_int(value: Any, label: str, *, minimum: int) -> None:

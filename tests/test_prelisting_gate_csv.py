@@ -238,6 +238,43 @@ def test_builds_all_exports_with_fixed_header_order_and_duplicate_asins():
     assert [row["final_eligibility"] for row in csv_rows(bundle.review_csv)] == ["REVIEW"]
 
 
+def test_ph_exports_normalize_marketplace_and_preserve_the_csv_contract():
+    ph_row = gate_row(marketplace=" ｐｈ ")
+    ph_result = gate_result([ph_row], marketplace="ph")
+
+    bundle = gate_csv.build_prelisting_gate_exports(ph_result)
+
+    assert bundle.eligible_csv is not None
+    assert bundle.audit_csv.startswith(b"\xef\xbb\xbf")
+    assert csv_header(bundle.audit_csv) == list(EXPECTED_COLUMNS)
+    assert csv_rows(bundle.audit_csv)[0]["marketplace"] == "PH"
+    assert csv_rows(bundle.eligible_csv)[0]["marketplace"] == "PH"
+
+
+def test_formal_export_filenames_are_marketplace_specific():
+    assert gate_csv.build_prelisting_gate_export_filenames(
+        marketplace="SG",
+        source_type="EXPANSION",
+    ) == {
+        "eligible": "prelisting_gate_eligible_sg_expansion.csv",
+        "review": "prelisting_gate_review_sg_expansion.csv",
+        "audit": "prelisting_gate_audit_sg_expansion.csv",
+    }
+    assert gate_csv.build_prelisting_gate_export_filenames(
+        marketplace=" ｐｈ ",
+        source_type="RESOLVER",
+    ) == {
+        "eligible": "prelisting_gate_eligible_ph_resolver.csv",
+        "review": "prelisting_gate_review_ph_resolver.csv",
+        "audit": "prelisting_gate_audit_ph_resolver.csv",
+    }
+
+    with pytest.raises(gate_csv.PrelistingGateCsvError):
+        gate_csv.build_prelisting_gate_export_filenames(marketplace="MY", source_type="EXPANSION")
+    with pytest.raises(gate_csv.PrelistingGateCsvError):
+        gate_csv.build_prelisting_gate_export_filenames(marketplace="SG", source_type="OTHER")
+
+
 def test_empty_eligible_or_review_export_is_none_while_audit_is_generated():
     no_eligible = gate_result(
         [
