@@ -35,6 +35,12 @@ Ver0.4.2では、元の商品名を保持したまま検索用タイトルだけ
 
 Ver0.4.3では、Keepa確認後に元Shopeeタイトル、Keepa商品タイトル、Keepaブランドを画面上で比較できます。既存Keepa応答を再利用するため追加API問い合わせはなく、CSVは従来の7列のままです。
 
+## 出品前保安ゲート Phase 4A-2
+
+出品前保安ゲートは現在SGのみ対応です。Expansion ToolまたはASIN Resolver Toolで出力した候補CSVと、各ショップの既出品CSVを入力し、Guardrail、既出品ASIN、入力内重複、起点ASIN自身、メタデータ不足を判定します。最終判定は `ELIGIBLE / REVIEW / EXCLUDE` とし、ELIGIBLE CSV、REVIEW CSV、全件の監査用CSVを出力します。
+
+ELIGIBLEはShopee規約上の安全を保証するものではなく、出力CSVは外部出品ツールへ直接投入する形式ではありません。入力が変わった場合は古い判定結果を破棄し、判定時に外部APIを追加で呼び出しません。
+
 ## Guardrail Filter Ver1.1
 
 Guardrail Filter Ver1.1は、Shopeeアカウント保護のための一次フィルターです。
@@ -94,17 +100,20 @@ term,action,risk_category,match_field,match_type,source_type,note,enabled
 - アプリ内部からのAI API / Gemini APIの自動呼び出し
 - AI返答の自動取得
 - ASIN Resolverの結果をExpansion Toolへ自動投入
+- PH / MY / TH対応（出品前保安ゲートを含む、現在はSGのみ対応）
+- 外部出品ツール互換CSV
 - Shopee API連携
 - 自動出品
 - 自動削除
-- 既存ASIN照合
-- 削除済みASIN履歴
-- AI危険判定、LLMによる商品分類
+- Expansion Tool単体での既存ASIN照合（出品前保安ゲートではアップロードした既出品CSVと照合済み）
+- 履歴保存、SQLiteによる判定履歴（削除済みASIN履歴を含む）
+- AIによる安全判定、LLMによる商品分類
 - Web検索、Shopee規約の自動取得
 - Keepa APIの追加取得
 - Keepa Web画面操作、Amazonページ操作、スクレイピング
-- ブラウザ自動操作
+- 本番アプリのブラウザ自動操作（開発・回帰確認用のBrowser E2E Test Kitは別途あり）
 - 画像解析、成分表解析、HSA DB連携
+- 商品画像・説明文編集
 - fuzzy match
 - 本格的な重複除去
 - 優先順位スコアリング
@@ -183,6 +192,10 @@ cd shopee-expansion-tool
 .\.venv\Scripts\python.exe -m pytest
 ```
 
+## Browser E2E Test Kit
+
+合成fixtureを使い、外部APIを呼ばずにローカルで画面操作を検証する、開発・回帰確認用の手順です。Git管理する正本fixtureとChromeで選択する作業用コピーを分離し、起動、停止、入力準備、ダウンロード照合用のスクリプトを用意しています。詳細は [Browser E2E Test Kit手順](docs/testing/browser_e2e.md) を参照してください。
+
 ## 出力CSV
 
 CSV列は以下に固定しています。
@@ -209,7 +222,7 @@ Guardrail列の意味は以下です。
 ## 注意
 
 - 入力ASIN自身と候補内の重複ASINは除外します。
-- 既出品ASIN照合と削除済みASIN履歴はVer1では未連携です。画面では `未適用（Ver1では未連携）` と表示します。
+- Expansion Tool単体では既出品ASIN照合と削除済みASIN履歴は未連携です。出品前保安ゲートでは、アップロードした既出品CSVとのASIN照合を行います。
 - 価格や利益の良否判定はVer1では行いません。
 - Guardrailの `SAFE` は安全保証ではありません。現時点のSG辞書ルールに一致しなかったという意味です。
 - `REVIEW` は通常出品フローから分離し、出品前に人間が確認してください。
