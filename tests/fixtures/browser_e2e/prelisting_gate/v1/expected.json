@@ -1,0 +1,33 @@
+{
+  "suite": "prelisting_gate",
+  "fixture_version": "v1",
+  "marketplace": "SG",
+  "shop_count": 1,
+  "shop_label": "SG_E2E_SHOP_1",
+  "candidate_count": 4,
+  "ELIGIBLE": 1,
+  "REVIEW": 1,
+  "EXCLUDE": 2,
+  "asins": {
+    "B000000001": {
+      "guardrail": "SAFE",
+      "inventory": "CLEAR",
+      "final": "ELIGIBLE"
+    },
+    "B000000002": {
+      "guardrail": "REVIEW",
+      "inventory": "CLEAR",
+      "final": "REVIEW"
+    },
+    "B000000004": {
+      "guardrail": "SAFE",
+      "inventory": "EXISTING",
+      "final": "EXCLUDE"
+    },
+    "B000FQTRS0": {
+      "guardrail": "BLOCK",
+      "inventory": "CLEAR",
+      "final": "EXCLUDE"
+    }
+  }
+}

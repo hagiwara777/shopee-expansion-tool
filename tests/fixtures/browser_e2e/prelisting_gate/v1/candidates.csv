@@ -1,0 +1,5 @@
+﻿schema_version,source_type,source_id,source_asin,candidate_asin,input_title,product_title,brand,category,amazon_url,source_status,source_verification,source,fetched_at,source_note
+PRELISTING_CANDIDATE_V1,EXPANSION,,B000000009,B000000001,,E2E Synthetic Clear Item,E2E Synthetic Brand,Synthetic category,,,,keepa_product_finder_strict,2026-07-16T00:00:00+00:00,E2E synthetic eligible candidate
+PRELISTING_CANDIDATE_V1,EXPANSION,,B000000009,B000000002,,水鉄砲 E2E Synthetic Toy,E2E Synthetic Brand,Synthetic category,,,,keepa_product_finder_strict,2026-07-16T00:00:00+00:00,E2E synthetic review candidate
+PRELISTING_CANDIDATE_V1,EXPANSION,,B000000009,B000000004,,E2E Synthetic Existing Item,E2E Synthetic Brand,Synthetic category,,,,keepa_product_finder_strict,2026-07-16T00:00:00+00:00,E2E synthetic existing-listing duplicate candidate
+PRELISTING_CANDIDATE_V1,EXPANSION,,B000000009,B000FQTRS0,,薬用加美乃素S-II E2E Synthetic,加美乃素,Hair Care,,,,keepa_product_finder_strict,2026-07-16T00:00:00+00:00,E2E known own-penalty candidate

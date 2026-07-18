@@ -35,3 +35,11 @@
 
 - Keep Product Finder, Guardrail, and ASIN Resolver responsibilities separate.
 - Do not combine or extend their responsibilities without an approved scope change.
+
+## Browser E2E
+
+- Keep versioned source fixtures under `tests/fixtures/browser_e2e`.
+- Generate Chrome-operation files only under `Documents\ShopeeE2E`; do not hand-edit them as source fixtures.
+- Treat upload confirmation and decision execution as separate steps.
+- Run E2E suites that use external APIs only with explicit approval.
+- Never add downloaded E2E outputs to Git.
