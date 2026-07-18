@@ -68,13 +68,15 @@ try {
     $null = Get-FormalRepositoryRoot
     $WorkspaceRoot = [IO.Path]::GetFullPath($WorkspaceRoot)
     $expectedPath = Join-Path (Join-Path $WorkspaceRoot "current") "expected.json"
-    $inputCandidatePath = Join-Path (Join-Path (Join-Path $WorkspaceRoot "current") "input") "01_candidates_EXPECT_4.csv"
+    $inputRoot = Join-Path (Join-Path $WorkspaceRoot "current") "input"
     if (-not (Test-Path -LiteralPath $expectedPath)) {
         throw "expected.jsonが見つかりません。先にprepare_browser_e2e.ps1を実行してください: $expectedPath"
     }
-    if (-not (Test-Path -LiteralPath $inputCandidatePath)) {
-        throw "Chrome用候補CSVが見つかりません。先にprepare_browser_e2e.ps1を実行してください: $inputCandidatePath"
+    $inputCandidateFiles = @(Get-ChildItem -LiteralPath $inputRoot -File -Filter "01_candidates_EXPECT_*.csv")
+    if ($inputCandidateFiles.Count -ne 1) {
+        throw "Chrome用候補CSVを一意に特定できません。先にprepare_browser_e2e.ps1を実行してください。候補数=$($inputCandidateFiles.Count)"
     }
+    $inputCandidatePath = $inputCandidateFiles[0].FullName
     $expected = Get-Content -LiteralPath $expectedPath -Raw | ConvertFrom-Json
 
     $downloadItem = Get-Item -LiteralPath $DownloadPath
@@ -103,6 +105,9 @@ try {
     if ([IO.Path]::GetExtension($downloadFile).ToLowerInvariant() -ne ".csv") {
         throw "ダウンロード対象はCSVである必要があります: $downloadFile"
     }
+    if ([IO.Path]::GetFileName($downloadFile) -ne [string]$expected.download_filenames.audit) {
+        Add-Failure "監査CSVファイル名" $expected.download_filenames.audit ([IO.Path]::GetFileName($downloadFile))
+    }
 
     if (-not (Test-Utf8Bom $downloadFile)) {
         Add-Failure "UTF-8 BOM" "present" "missing"
@@ -119,8 +124,8 @@ try {
     $inputAsins = @($inputRows | ForEach-Object { $_.candidate_asin })
     $actualAsins = @($downloadRows | ForEach-Object { $_.candidate_asin })
 
-    if ($downloadRows.Count -ne [int]$expected.candidate_count) {
-        Add-Failure "監査用CSV全件数" $expected.candidate_count $downloadRows.Count
+    if ($downloadRows.Count -ne [int]$expected.audit_row_count) {
+        Add-Failure "監査用CSV全件数" $expected.audit_row_count $downloadRows.Count
     }
     foreach ($status in @("ELIGIBLE", "REVIEW", "EXCLUDE")) {
         $actualCount = @($downloadRows | Where-Object { $_.final_eligibility -eq $status }).Count
@@ -151,6 +156,14 @@ try {
     if ([string]::Join("|", $inputAsins) -ne [string]::Join("|", $actualAsins)) {
         Add-Failure "入力fixtureとのASIN順序対応" $inputAsins $actualAsins
     }
+    $marketplaceMismatchCount = @($downloadRows | Where-Object { $_.marketplace -ne [string]$expected.marketplace }).Count
+    if ($marketplaceMismatchCount -gt 0) {
+        Add-Failure "監査CSVのmarketplace" $expected.marketplace "mismatch rows=$marketplaceMismatchCount"
+    }
+    $actualEvidenceCount = @($downloadRows | ForEach-Object { [int]$_.existing_evidence_count } | Measure-Object -Sum).Sum
+    if ($actualEvidenceCount -ne [int]$expected.evidence_count) {
+        Add-Failure "既出品evidence数" $expected.evidence_count $actualEvidenceCount
+    }
 
     foreach ($expectedAsinProperty in $expectedAsinProperties) {
         $asin = $expectedAsinProperty.Name
@@ -169,6 +182,10 @@ try {
         }
         if ($actualRow.existing_listing_status -ne $expectedResult.inventory) {
             Add-Failure "$asin の既出品判定" $expectedResult.inventory $actualRow.existing_listing_status
+        }
+        $expectedReasonCodes = [string]::Join("|", @($expectedResult.reason_codes))
+        if ($actualRow.reason_codes -ne $expectedReasonCodes) {
+            Add-Failure "$asin のreason_codes" $expectedReasonCodes $actualRow.reason_codes
         }
     }
 }

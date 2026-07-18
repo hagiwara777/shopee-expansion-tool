@@ -2,32 +2,51 @@
   "suite": "prelisting_gate",
   "fixture_version": "v1",
   "marketplace": "SG",
+  "source_type": "EXPANSION",
   "shop_count": 1,
   "shop_label": "SG_E2E_SHOP_1",
   "candidate_count": 4,
+  "eligible_count": 1,
+  "review_count": 1,
+  "exclude_count": 2,
   "ELIGIBLE": 1,
   "REVIEW": 1,
   "EXCLUDE": 2,
+  "existing_listing_row_count": 1,
+  "existing_asin_count": 1,
+  "evidence_count": 1,
+  "inventory_column_count": 7,
+  "existing_asins": ["B000000004"],
+  "audit_row_count": 4,
+  "download_filenames": {
+    "eligible": "prelisting_gate_eligible_sg_expansion.csv",
+    "review": "prelisting_gate_review_sg_expansion.csv",
+    "audit": "prelisting_gate_audit_sg_expansion.csv"
+  },
   "asins": {
     "B000000001": {
       "guardrail": "SAFE",
       "inventory": "CLEAR",
-      "final": "ELIGIBLE"
+      "final": "ELIGIBLE",
+      "reason_codes": []
     },
     "B000000002": {
       "guardrail": "REVIEW",
       "inventory": "CLEAR",
-      "final": "REVIEW"
+      "final": "REVIEW",
+      "reason_codes": ["GUARDRAIL_REVIEW"]
     },
     "B000000004": {
       "guardrail": "SAFE",
       "inventory": "EXISTING",
-      "final": "EXCLUDE"
+      "final": "EXCLUDE",
+      "reason_codes": ["EXISTING_ASIN"]
     },
     "B000FQTRS0": {
       "guardrail": "BLOCK",
       "inventory": "CLEAR",
-      "final": "EXCLUDE"
+      "final": "EXCLUDE",
+      "reason_codes": ["GUARDRAIL_BLOCK"]
     }
   }
 }

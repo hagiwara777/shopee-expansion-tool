@@ -1,8 +1,17 @@
 import ast
+import csv
+from io import StringIO
 import logging
 from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
+
+from modules.prelisting_candidate_csv import (
+    EXPANSION_SOURCE_TYPE,
+    PRELISTING_CANDIDATE_SCHEMA_VERSION,
+    PrelistingCandidateRow,
+    rows_to_prelisting_candidate_csv,
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -90,36 +99,51 @@ def test_third_top_level_tab_preserves_the_existing_two_tabs():
     assert "with prelisting_gate_tab:" in APP_SOURCE
 
 
-def test_gate_tab_is_sg_only_and_has_the_required_input_controls():
+def test_gate_tab_has_sg_ph_marketplace_controls_and_dynamic_labels():
     function = _gate_function()
     source = _gate_source()
     number_input = _attribute_calls(function, "number_input")
     uploaders = _attribute_calls(function, "file_uploader")
+    selectors = _attribute_calls(function, "selectbox")
 
-    assert 'PRELISTING_GATE_MARKETPLACE = "SG"' in APP_SOURCE
-    assert 'st.write("対象国: SG")' in source
-    assert "st.selectbox" not in source
+    assert 'PRELISTING_GATE_MARKETPLACES = ("SG", "PH")' in APP_SOURCE
+    assert len(selectors) == 1
+    assert _literal_string(selectors[0].args[0]) == "対象市場"
+    assert ast.unparse(_keyword(selectors[0], "key")) == "'prelisting_gate_marketplace'"
+    assert "marketplace = st.selectbox(" in source
+    assert "PRELISTING_GATE_MARKETPLACE =" not in APP_SOURCE
     assert "st.radio" not in source
-    assert "PH" not in source
     assert "MY" not in source
+    assert "TH" not in source
     assert len(number_input) == 1
-    assert _literal_string(number_input[0].args[0]) == "SGで現在運用している全ショップ数"
+    assert "f\"{marketplace}で現在運用している全ショップ数\"" in source
     assert ast.literal_eval(_keyword(number_input[0], "min_value")) == 1
     assert ast.literal_eval(_keyword(number_input[0], "value")) == 1
     assert ast.literal_eval(_keyword(number_input[0], "step")) == 1
+    assert "f\"対象国: {marketplace}\"" in source
+    assert (
+        "f\"{marketplace}で現在運用している全ショップの既出品CSVを入力してください。\""
+        in source
+    )
 
-    uploader_by_label = {
-        _literal_string(call.args[0]): call
+    candidate_uploader = next(
+        call
         for call in uploaders
-    }
-    candidate_uploader = uploader_by_label["出品前保安ゲート用の候補CSV"]
-    inventory_uploader = uploader_by_label["SG全ショップの既出品CSV"]
+        if _literal_string(call.args[0]) == "出品前保安ゲート用の候補CSV"
+    )
+    inventory_uploader = next(
+        call
+        for call in uploaders
+        if "f\"{marketplace}全ショップの既出品CSV\"" in ast.get_source_segment(APP_SOURCE, call)
+    )
     assert ast.literal_eval(_keyword(candidate_uploader, "type")) == ["csv"]
     assert ast.literal_eval(_keyword(candidate_uploader, "accept_multiple_files")) is False
     assert ast.literal_eval(_keyword(inventory_uploader, "type")) == ["csv"]
     assert ast.literal_eval(_keyword(inventory_uploader, "accept_multiple_files")) is True
     assert "candidate_file.getvalue()" in source
     assert "uploaded_file.getvalue()" in source
+    assert "value=f\"{marketplace}_SHOP_{index}\"" in source
+    assert 'key=f"{marketplace}_{shop_label_widget_key(filename, file_bytes)}"' in source
 
 
 def test_gate_tab_uses_formal_parsers_and_gate_public_functions_only():
@@ -178,6 +202,7 @@ def test_gate_execution_imports_and_button_follow_the_formal_contract():
     }
     assert {alias.name for alias in csv_import.names} == {
         "PrelistingGateCsvError",
+        "build_prelisting_gate_export_filenames",
         "build_prelisting_gate_exports",
     }
     assert ast.unparse(_keyword(run_button, "disabled")) == "not input_ready"
@@ -212,6 +237,8 @@ def test_gate_execution_errors_and_fingerprint_mismatch_clear_old_results():
     assert 'safe_prelisting_gate_error_summary("export")' in source
     assert 'safe_prelisting_gate_error_summary("unexpected")' in source
     assert "saved_fingerprint == current_fingerprint" in source
+    assert "saved_result.marketplace != marketplace" in source
+    assert "saved_result.marketplace == marketplace" in source
     assert "input_ready" in source
     assert "str(exc)" not in source
 
@@ -266,9 +293,14 @@ def test_gate_result_view_uses_four_metrics_three_safe_tabs_and_download_contrac
         assert ast.literal_eval(_keyword(call, "width")) == "stretch"
     assert "if exports.eligible_csv is not None:" in source
     assert "if exports.review_csv is not None:" in source
-    assert 'f"prelisting_gate_eligible_sg_{source_type_part}.csv"' in source
-    assert 'f"prelisting_gate_review_sg_{source_type_part}.csv"' in source
-    assert 'f"prelisting_gate_audit_sg_{source_type_part}.csv"' in source
+    assert "build_prelisting_gate_export_filenames(" in source
+    assert "marketplace=result.marketplace" in source
+    assert "source_type=source_type" in source
+    assert "file_name=export_filenames[\"eligible\"]" in source
+    assert "file_name=export_filenames[\"review\"]" in source
+    assert "file_name=export_filenames[\"audit\"]" in source
+    assert 'st.caption(f"判定市場: {result.marketplace}")' in source
+    assert "prelisting_gate_download_source_type" not in APP_SOURCE
     assert "外部出品ツールへの直接投入形式は未確認です。" in source
 
 
@@ -279,10 +311,63 @@ def test_existing_candidate_download_controls_remain_in_the_application_contract
     assert "起点ASIN候補CSVダウンロード" in APP_SOURCE
 
 
-def test_prelisting_gate_initial_ui_smoke(monkeypatch):
+def _prelisting_candidate_csv() -> bytes:
+    rows = [
+        PrelistingCandidateRow(
+            schema_version=PRELISTING_CANDIDATE_SCHEMA_VERSION,
+            source_type=EXPANSION_SOURCE_TYPE,
+            source_id="",
+            source_asin="B000000009",
+            candidate_asin=asin,
+            input_title="Synthetic input title",
+            product_title=title,
+            brand="Synthetic brand",
+            category="Synthetic category",
+            amazon_url="",
+            source_status="",
+            source_verification="",
+            source="synthetic",
+            fetched_at="",
+            source_note="",
+        )
+        for asin, title in (
+            ("B000FQTRS0", "synthetic blocked product"),
+            ("B000000002", "medicated cleanser"),
+            ("B000000003", "ordinary storage box"),
+        )
+    ]
+    return rows_to_prelisting_candidate_csv(rows)
+
+
+def _empty_inventory_csv(marketplace: str) -> bytes:
+    output = StringIO(newline="")
+    writer = csv.writer(output, lineterminator="\n")
+    writer.writerows(
+        [
+            ["Report", "Existing listings"],
+            ["Generated", "Synthetic only"],
+            ["Marketplace", marketplace],
+            ["Shop", "Synthetic shop"],
+            ["", "Product ID", "Parent SKU", "Model ID", "SKU", "Stock", "Product Name"],
+        ]
+    )
+    return output.getvalue().encode("utf-8-sig")
+
+
+def _prelisting_gate_test_app(monkeypatch) -> AppTest:
     monkeypatch.setattr(logging.Logger, "warning", _standard_logger_warning)
     app = AppTest.from_file(str(APP_PATH), default_timeout=10)
-    app.run()
+    return app.run()
+
+
+def _run_gate_button(app: AppTest):
+    return next(
+        button for button in app.button if button.label == "出品前チェックを実行"
+    )
+
+
+def test_prelisting_gate_initial_ui_smoke(monkeypatch):
+    app = _prelisting_gate_test_app(monkeypatch)
 
     assert len(app.exception) == 0
     tab_labels = [tab.label for tab in app.tabs]
@@ -296,6 +381,13 @@ def test_prelisting_gate_initial_ui_smoke(monkeypatch):
     ]
     assert len(expected_shop_inputs) == 1
     assert expected_shop_inputs[0].value == 1
+    marketplace_selector = app.selectbox(key="prelisting_gate_marketplace")
+    assert marketplace_selector.label == "対象市場"
+    assert marketplace_selector.value == "SG"
+    assert any(
+        uploader.label == "SG全ショップの既出品CSV"
+        for uploader in app.file_uploader
+    )
 
     rendered_messages = "\n".join(
         str(element.value)
@@ -325,3 +417,77 @@ def test_prelisting_gate_initial_ui_smoke(monkeypatch):
         "REVIEW",
         "EXCLUDE",
     } & {metric.label for metric in app.metric}
+
+
+def test_prelisting_gate_marketplace_switches_run_ph_empty_inventory_and_clear_results(
+    monkeypatch,
+):
+    app = _prelisting_gate_test_app(monkeypatch)
+    candidate_csv = _prelisting_candidate_csv()
+
+    app.file_uploader(key="prelisting_gate_candidate_file").set_value(
+        ("candidates.csv", candidate_csv, "text/csv")
+    )
+    app.file_uploader(key="prelisting_gate_inventory_files").set_value(
+        [("Shopee 更新_SG.csv", _empty_inventory_csv("SG"), "text/csv")]
+    )
+    app.run()
+    assert len(app.exception) == 0
+    assert _run_gate_button(app).disabled is False
+
+    _run_gate_button(app).click().run()
+    assert len(app.exception) == 0
+    assert app.session_state["prelisting_gate_result"].marketplace == "SG"
+    assert [button.label for button in app.download_button] == [
+        "出品可能CSVをダウンロード",
+        "全件監査CSVをダウンロード",
+    ]
+
+    app.selectbox(key="prelisting_gate_marketplace").set_value("PH").run()
+    assert len(app.exception) == 0
+    assert "prelisting_gate_result" not in app.session_state
+    assert not app.download_button
+    assert any(control.label == "PHで現在運用している全ショップ数" for control in app.number_input)
+    assert any(uploader.label == "PH全ショップの既出品CSV" for uploader in app.file_uploader)
+    rendered_messages = "\n".join(
+        str(element.value)
+        for element in (*app.warning, *app.error, *app.success, *app.caption)
+    )
+    assert "既出品CSVを解析できません。" in rendered_messages
+    assert "Shopee 更新_SG.csv" not in rendered_messages
+
+    app.file_uploader(key="prelisting_gate_inventory_files").set_value(
+        [("Shopee 更新_PH.csv", _empty_inventory_csv("PH"), "text/csv")]
+    )
+    app.run()
+    assert len(app.exception) == 0
+    assert _run_gate_button(app).disabled is False
+    shop_label = next(
+        control
+        for control in app.text_input
+        if control.label == "shop_label: Shopee 更新_PH.csv"
+    )
+    assert shop_label.value == "PH_SHOP_1"
+
+    _run_gate_button(app).click().run()
+    assert len(app.exception) == 0
+    result = app.session_state["prelisting_gate_result"]
+    assert result.marketplace == "PH"
+    assert (result.eligible_count, result.review_count, result.exclude_count) == (1, 1, 1)
+    assert all(row.existing_listing_status == "CLEAR" for row in result.rows)
+    assert [button.label for button in app.download_button] == [
+        "出品可能CSVをダウンロード",
+        "REVIEW CSVをダウンロード",
+        "全件監査CSVをダウンロード",
+    ]
+
+    app.selectbox(key="prelisting_gate_marketplace").set_value("SG").run()
+    assert len(app.exception) == 0
+    assert "prelisting_gate_result" not in app.session_state
+    assert not app.download_button
+    rendered_messages = "\n".join(
+        str(element.value)
+        for element in (*app.warning, *app.error, *app.success, *app.caption)
+    )
+    assert "既出品CSVを解析できません。" in rendered_messages
+    assert "Shopee 更新_PH.csv" not in rendered_messages

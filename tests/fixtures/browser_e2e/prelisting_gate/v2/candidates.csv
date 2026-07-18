@@ -1,0 +1,4 @@
+﻿schema_version,source_type,source_id,source_asin,candidate_asin,input_title,product_title,brand,category,amazon_url,source_status,source_verification,source,fetched_at,source_note
+PRELISTING_CANDIDATE_V1,EXPANSION,,B000000009,B000FQTRS0,Synthetic acceptance input,synthetic blocked product,Synthetic brand,Synthetic category,,,,browser_e2e_synthetic,,Synthetic PH BLOCK candidate
+PRELISTING_CANDIDATE_V1,EXPANSION,,B000000009,B000000002,Synthetic acceptance input,medicated cleanser,Synthetic brand,Synthetic category,,,,browser_e2e_synthetic,,Synthetic PH REVIEW candidate
+PRELISTING_CANDIDATE_V1,EXPANSION,,B000000009,B000000003,Synthetic acceptance input,ordinary storage box,Synthetic brand,Synthetic category,,,,browser_e2e_synthetic,,Synthetic PH SAFE candidate

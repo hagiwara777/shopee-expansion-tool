@@ -2,6 +2,8 @@
 param(
     [ValidateSet("prelisting_gate")]
     [string]$Suite = "prelisting_gate",
+    [ValidateSet("v1", "v2")]
+    [string]$FixtureVersion = "v1",
     [string]$WorkspaceRoot = (Join-Path ([Environment]::GetFolderPath([Environment+SpecialFolder]::MyDocuments)) "ShopeeE2E")
 )
 
@@ -50,7 +52,7 @@ function Assert-OrderedHeader([string[]]$Actual, [string[]]$Expected, [string]$L
 
 $repositoryRoot = Get-FormalRepositoryRoot
 $WorkspaceRoot = [IO.Path]::GetFullPath($WorkspaceRoot)
-$fixtureRoot = Join-Path $repositoryRoot "tests\fixtures\browser_e2e\$Suite\v1"
+$fixtureRoot = Join-Path $repositoryRoot "tests\fixtures\browser_e2e\$Suite\$FixtureVersion"
 $python = Join-Path $repositoryRoot ".venv\Scripts\python.exe"
 $currentRoot = Join-Path $WorkspaceRoot "current"
 $inputRoot = Join-Path $currentRoot "input"
@@ -95,13 +97,19 @@ try {
     Clear-Directory $outputRoot
     New-Item -ItemType Directory -Path $logsRoot -Force | Out-Null
 
-    $candidatePath = Join-Path $inputRoot "01_candidates_EXPECT_4.csv"
-    $existingPath = Join-Path $inputRoot "02_existing_SG_SHOP_1_EXPECT_1.csv"
-    Copy-Item -LiteralPath (Join-Path $fixtureRoot "candidates.csv") -Destination $candidatePath
-    Copy-Item -LiteralPath (Join-Path $fixtureRoot "existing_sg_shop1.csv") -Destination $existingPath
-    Copy-Item -LiteralPath (Join-Path $fixtureRoot "expected.json") -Destination (Join-Path $currentRoot "expected.json")
+    $sourceExpectedPath = Join-Path $fixtureRoot "expected.json"
+    $expected = Get-Content -LiteralPath $sourceExpectedPath -Raw | ConvertFrom-Json
+    $fixtureExistingFiles = @(Get-ChildItem -LiteralPath $fixtureRoot -File -Filter "existing_*.csv")
+    if ($fixtureExistingFiles.Count -ne 1) {
+        throw "既出品fixtureは1件だけ必要です。実値=$($fixtureExistingFiles.Count)"
+    }
 
-    $expected = Get-Content -LiteralPath (Join-Path $currentRoot "expected.json") -Raw | ConvertFrom-Json
+    $candidatePath = Join-Path $inputRoot "01_candidates_EXPECT_$($expected.candidate_count).csv"
+    $existingPath = Join-Path $inputRoot "02_existing_$($expected.marketplace)_$($expected.shop_label)_EXPECT_$($expected.existing_listing_row_count).csv"
+    Copy-Item -LiteralPath (Join-Path $fixtureRoot "candidates.csv") -Destination $candidatePath
+    Copy-Item -LiteralPath $fixtureExistingFiles[0].FullName -Destination $existingPath
+    Copy-Item -LiteralPath $sourceExpectedPath -Destination (Join-Path $currentRoot "expected.json")
+
     Assert-Utf8Bom $candidatePath
     Assert-Utf8Bom $existingPath
 
@@ -119,8 +127,10 @@ try {
 
     $existingLines = @(Get-Content -LiteralPath $existingPath -Encoding UTF8)
     $existingHeaderIndex = -1
+    $requiredInventoryHeaders = @("Product ID", "Parent SKU", "Model ID", "SKU", "Stock")
     for ($index = 0; $index -lt $existingLines.Count; $index++) {
-        if ($existingLines[$index] -eq ",Product ID,Parent SKU,Model ID,SKU,Stock,Product Name") {
+        $possibleHeader = $existingLines[$index] -split ","
+        if (@($requiredInventoryHeaders | Where-Object { $_ -notin $possibleHeader }).Count -eq 0) {
             $existingHeaderIndex = $index
             break
         }
@@ -128,19 +138,26 @@ try {
     if ($existingHeaderIndex -lt 0) {
         throw "既出品CSVの正式ヘッダーが見つかりません。"
     }
-    Assert-OrderedHeader ($existingLines[$existingHeaderIndex] -split ",") @("", "Product ID", "Parent SKU", "Model ID", "SKU", "Stock", "Product Name") "既出品CSV"
-    if ($existingHeaderIndex -ge ($existingLines.Count - 1)) {
-        throw "既出品CSVのヘッダー後にデータ行がありません。"
+    $existingHeader = $existingLines[$existingHeaderIndex] -split ","
+    if ($existingHeader.Count -ne [int]$expected.inventory_column_count -or
+        @($requiredInventoryHeaders | Where-Object { $_ -notin $existingHeader }).Count -gt 0) {
+        throw "既出品CSVの固定列契約が期待値と一致しません。"
     }
-    $existingRows = @(
-        $existingLines[($existingHeaderIndex + 1)..($existingLines.Count - 1)] |
-            ConvertFrom-Csv -Header @("_unused", "Product ID", "Parent SKU", "Model ID", "SKU", "Stock", "Product Name")
+    $existingDataLines = @(
+        $existingLines |
+            Select-Object -Skip ($existingHeaderIndex + 1) |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
     )
-    if ($existingRows.Count -ne 1) {
-        throw "既出品CSVの行数が期待値と一致しません。期待値=1 実値=$($existingRows.Count)"
+    $existingRows = @(
+        $existingDataLines |
+            ConvertFrom-Csv -Header @("_unused", "Product ID", "Parent SKU", "Model ID", "SKU", "Product Name", "Product Weight/kg", "Length", "Width", "Height", "Price", "Stock", "Discount ID", "Discount Price", "DTS", "Listing Status")
+    )
+    if ($existingRows.Count -ne [int]$expected.existing_listing_row_count) {
+        throw "既出品CSVの行数が期待値と一致しません。期待値=$($expected.existing_listing_row_count) 実値=$($existingRows.Count)"
     }
-    if ($existingRows[0].'Parent SKU' -ne "B000000004") {
-        throw "既出品CSVのParent SKUが期待値と一致しません。期待値=B000000004 実値=$($existingRows[0].'Parent SKU')"
+    $actualExistingAsins = @($existingRows | ForEach-Object { $_.'Parent SKU' } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    if ([string]::Join("|", $actualExistingAsins) -ne [string]::Join("|", @($expected.existing_asins))) {
+        throw "既出品CSVのParent SKUが期待値と一致しません。"
     }
 
     $candidateHash = (Get-FileHash -LiteralPath $candidatePath -Algorithm SHA256).Hash
@@ -155,6 +172,8 @@ try {
         "expected_ELIGIBLE=$($expected.ELIGIBLE)",
         "expected_REVIEW=$($expected.REVIEW)",
         "expected_EXCLUDE=$($expected.EXCLUDE)",
+        "expected_existing_listing_row_count=$($expected.existing_listing_row_count)",
+        "expected_existing_asin_count=$($expected.existing_asin_count)",
         "",
         "input_file=$(Split-Path -Leaf $candidatePath)",
         "absolute_path=$candidatePath",

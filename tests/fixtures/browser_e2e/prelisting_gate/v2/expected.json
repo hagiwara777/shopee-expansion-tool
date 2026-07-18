@@ -1,0 +1,46 @@
+{
+  "suite": "prelisting_gate",
+  "fixture_version": "v2",
+  "marketplace": "PH",
+  "source_type": "EXPANSION",
+  "shop_count": 1,
+  "shop_label": "PH_SHOP_1",
+  "candidate_count": 3,
+  "eligible_count": 1,
+  "review_count": 1,
+  "exclude_count": 1,
+  "ELIGIBLE": 1,
+  "REVIEW": 1,
+  "EXCLUDE": 1,
+  "existing_listing_row_count": 0,
+  "existing_asin_count": 0,
+  "evidence_count": 0,
+  "inventory_column_count": 16,
+  "existing_asins": [],
+  "audit_row_count": 3,
+  "download_filenames": {
+    "eligible": "prelisting_gate_eligible_ph_expansion.csv",
+    "review": "prelisting_gate_review_ph_expansion.csv",
+    "audit": "prelisting_gate_audit_ph_expansion.csv"
+  },
+  "asins": {
+    "B000FQTRS0": {
+      "guardrail": "BLOCK",
+      "inventory": "CLEAR",
+      "final": "EXCLUDE",
+      "reason_codes": ["GUARDRAIL_BLOCK"]
+    },
+    "B000000002": {
+      "guardrail": "REVIEW",
+      "inventory": "CLEAR",
+      "final": "REVIEW",
+      "reason_codes": ["GUARDRAIL_REVIEW"]
+    },
+    "B000000003": {
+      "guardrail": "SAFE",
+      "inventory": "CLEAR",
+      "final": "ELIGIBLE",
+      "reason_codes": []
+    }
+  }
+}

@@ -49,13 +49,13 @@ from modules.prelisting_candidate_csv import (
 from modules.prelisting_gate import PrelistingGateError, evaluate_prelisting_gate
 from modules.prelisting_gate_csv import (
     PrelistingGateCsvError,
+    build_prelisting_gate_export_filenames,
     build_prelisting_gate_exports,
 )
 from modules.prelisting_gate_ui import (
     build_prelisting_gate_preview_rows,
     build_prelisting_gate_fingerprint,
     clear_prelisting_gate_result,
-    prelisting_gate_download_source_type,
     safe_prelisting_gate_error_summary,
     shop_label_widget_key,
     summarize_prelisting_inventory,
@@ -73,7 +73,7 @@ RETRY_SESSION_KEYS = (
     "asin_resolver_retry_prompt_display",
     "asin_resolver_retry_prompt_fingerprint",
 )
-PRELISTING_GATE_MARKETPLACE = "SG"
+PRELISTING_GATE_MARKETPLACES = ("SG", "PH")
 
 
 def _clear_retry_state() -> None:
@@ -121,8 +121,12 @@ def _render_direct_chat_assist(prompt_state_key: str, dom_id: str) -> None:
 def _render_prelisting_gate_result(result, exports, *, source_type: str) -> None:
     """Render one current gate result without exposing audit-only evidence."""
 
-    source_type_part = prelisting_gate_download_source_type(source_type)
+    export_filenames = build_prelisting_gate_export_filenames(
+        marketplace=result.marketplace,
+        source_type=source_type,
+    )
 
+    st.caption(f"判定市場: {result.marketplace}")
     summary_columns = st.columns(4)
     summary_columns[0].metric("候補総数", result.candidate_count)
     summary_columns[1].metric("ELIGIBLE", result.eligible_count)
@@ -169,7 +173,7 @@ def _render_prelisting_gate_result(result, exports, *, source_type: str) -> None
         st.download_button(
             label="出品可能CSVをダウンロード",
             data=exports.eligible_csv,
-            file_name=f"prelisting_gate_eligible_sg_{source_type_part}.csv",
+            file_name=export_filenames["eligible"],
             mime="text/csv",
             key="prelisting-gate-eligible-download",
             on_click="ignore",
@@ -179,7 +183,7 @@ def _render_prelisting_gate_result(result, exports, *, source_type: str) -> None
         st.download_button(
             label="REVIEW CSVをダウンロード",
             data=exports.review_csv,
-            file_name=f"prelisting_gate_review_sg_{source_type_part}.csv",
+            file_name=export_filenames["review"],
             mime="text/csv",
             key="prelisting-gate-review-download",
             on_click="ignore",
@@ -188,7 +192,7 @@ def _render_prelisting_gate_result(result, exports, *, source_type: str) -> None
     st.download_button(
         label="全件監査CSVをダウンロード",
         data=exports.audit_csv,
-        file_name=f"prelisting_gate_audit_sg_{source_type_part}.csv",
+        file_name=export_filenames["audit"],
         mime="text/csv",
         key="prelisting-gate-audit-download",
         on_click="ignore",
@@ -200,18 +204,22 @@ def _render_prelisting_gate_input_tab() -> None:
     """Render input parsing, gate execution, and current result presentation."""
 
     st.subheader("出品前保安ゲート")
-    st.write("対象国: SG")
-    st.caption("SG以外の国はこの画面では選択できません。")
+    marketplace = st.selectbox(
+        "対象市場",
+        PRELISTING_GATE_MARKETPLACES,
+        key="prelisting_gate_marketplace",
+    )
+    st.write(f"対象国: {marketplace}")
 
     expected_shop_count = st.number_input(
-        "SGで現在運用している全ショップ数",
+        f"{marketplace}で現在運用している全ショップ数",
         min_value=1,
         value=1,
         step=1,
         key="prelisting_gate_expected_shop_count",
     )
     st.caption(
-        "SGで現在運用している全ショップの既出品CSVを入力してください。"
+        f"{marketplace}で現在運用している全ショップの既出品CSVを入力してください。"
         "不足すると既出品重複を見逃す可能性があります。"
     )
 
@@ -224,7 +232,7 @@ def _render_prelisting_gate_input_tab() -> None:
     candidate_bytes = candidate_file.getvalue() if candidate_file is not None else None
 
     uploaded_inventory_files = st.file_uploader(
-        "SG全ショップの既出品CSV",
+        f"{marketplace}全ショップの既出品CSV",
         type=["csv"],
         accept_multiple_files=True,
         key="prelisting_gate_inventory_files",
@@ -250,8 +258,8 @@ def _render_prelisting_gate_input_tab() -> None:
         for index, (filename, file_bytes) in enumerate(inventory_files, start=1):
             labels[index - 1] = st.text_input(
                 f"shop_label: {filename}",
-                value=f"SG_SHOP_{index}",
-                key=shop_label_widget_key(filename, file_bytes),
+                value=f"{marketplace}_SHOP_{index}",
+                key=f"{marketplace}_{shop_label_widget_key(filename, file_bytes)}",
             )
 
     label_validation = validate_shop_labels(labels)
@@ -260,7 +268,7 @@ def _render_prelisting_gate_input_tab() -> None:
 
     fingerprint_shop_count = expected_shop_count if expected_shop_count_is_valid else 0
     current_fingerprint = build_prelisting_gate_fingerprint(
-        marketplace=PRELISTING_GATE_MARKETPLACE,
+        marketplace=marketplace,
         expected_shop_count=fingerprint_shop_count,
         candidate_filename=candidate_file.name if candidate_file is not None else None,
         candidate_content=candidate_bytes,
@@ -304,7 +312,7 @@ def _render_prelisting_gate_input_tab() -> None:
                     parse_listing_inventory_csv(
                         content,
                         filename=filename,
-                        marketplace=PRELISTING_GATE_MARKETPLACE,
+                        marketplace=marketplace,
                         shop_label=shop_label,
                     )
                 )
@@ -374,7 +382,7 @@ def _render_prelisting_gate_input_tab() -> None:
                 gate_result = evaluate_prelisting_gate(
                     candidate_result,
                     inventory_results,
-                    marketplace=PRELISTING_GATE_MARKETPLACE,
+                    marketplace=marketplace,
                     expected_shop_count=expected_shop_count,
                 )
                 exports = build_prelisting_gate_exports(gate_result)
@@ -395,11 +403,17 @@ def _render_prelisting_gate_input_tab() -> None:
     saved_result = st.session_state.get("prelisting_gate_result")
     saved_exports = st.session_state.get("prelisting_gate_exports")
     saved_fingerprint = st.session_state.get("prelisting_gate_fingerprint")
+    if saved_result is not None and saved_result.marketplace != marketplace:
+        clear_prelisting_gate_result(st.session_state)
+        saved_result = None
+        saved_exports = None
+        saved_fingerprint = None
     result_is_current = (
         input_ready
         and saved_result is not None
         and saved_exports is not None
         and saved_fingerprint == current_fingerprint
+        and saved_result.marketplace == marketplace
     )
     if result_is_current:
         try:
