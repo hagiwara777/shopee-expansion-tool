@@ -1,10 +1,12 @@
 import csv
 from io import StringIO
+from pathlib import Path
 
 import pytest
 
 from modules.export_csv import rows_to_csv
 from modules.guardrails import (
+    ALLOWED_RISK_CATEGORIES,
     GuardrailDictionaryError,
     apply_guardrails,
     filter_safe_rows,
@@ -315,3 +317,200 @@ def test_own_penalty_product_title_variants_are_blocked(tmp_path, term):
     assert rows[0]["guardrail_matched_terms"] == term
     assert rows[0]["guardrail_source"] == "own_penalty_case"
     assert rows[0]["guardrail_risk_category"] == "own_penalty_product"
+
+
+RISK_KEYWORDS_PATH = Path(__file__).resolve().parents[1] / "guardrails" / "risk_keywords_sg.csv"
+V12_CG_RULE_COUNTS = {
+    "CG-001": 3,
+    "CG-002": 3,
+    "CG-003": 3,
+    "CG-004": 4,
+    "CG-005": 3,
+    "CG-006": 2,
+    "CG-007": 3,
+    "CG-008": 3,
+    "CG-009": 5,
+    "CG-010": 3,
+    "CG-011": 4,
+    "CG-012": 3,
+    "CG-013": 3,
+    "CG-014": 2,
+    "CG-015": 3,
+    "CG-016": 3,
+    "CG-017": 2,
+    "CG-018": 2,
+    "CG-019": 1,
+    "CG-020": 3,
+    "CG-021": 3,
+    "CG-022": 2,
+    "CG-023": 3,
+    "CG-024": 3,
+    "CG-025": 3,
+    "CG-026": 3,
+    "CG-027": 1,
+    "CG-028": 3,
+    "CG-029": 3,
+    "CG-030": 4,
+    "CG-031": 3,
+    "CG-032": 1,
+    "CG-033": 3,
+}
+V12_LIC_RULE_COUNTS = {
+    "LIC-001": 3,
+    "LIC-002": 4,
+    "LIC-003": 5,
+    "LIC-004": 6,
+    "LIC-005": 2,
+    "LIC-006": 4,
+    "LIC-007": 3,
+}
+
+
+def v12_risk_rows():
+    with RISK_KEYWORDS_PATH.open("r", encoding="utf-8-sig", newline="") as csv_file:
+        return [
+            row
+            for row in csv.DictReader(csv_file)
+            if row["note"].startswith(("CG-", "LIC-"))
+        ]
+
+
+def v12_rule_counts(prefix):
+    counts = {}
+    for row in v12_risk_rows():
+        rule_id = row["note"].split(";", 1)[0]
+        if rule_id.startswith(prefix):
+            counts[rule_id] = counts.get(rule_id, 0) + 1
+    return counts
+
+
+def test_v12_risk_categories_are_allowed_and_unknown_categories_fail_closed(tmp_path):
+    assert {
+        "controlled_goods_unverified",
+        "license_or_certification_required",
+        "shipping_restricted",
+    } <= ALLOWED_RISK_CATEGORIES
+
+    risk_csv = RISK_CSV + """unknown category,REVIEW,not_an_allowed_category,title,contains,shopee_policy,Invalid category,TRUE
+"""
+    with pytest.raises(GuardrailDictionaryError, match="risk_category"):
+        apply_guardrails([candidate()], write_dictionaries(tmp_path, risk_csv=risk_csv))
+
+
+def test_v12_dictionary_rows_are_unique_complete_and_use_the_approved_contract():
+    with RISK_KEYWORDS_PATH.open("r", encoding="utf-8-sig", newline="") as csv_file:
+        rows = list(csv.DictReader(csv_file))
+
+    terms = [row["term"].casefold() for row in rows]
+    assert len(terms) == len(set(terms))
+    assert v12_rule_counts("CG-") == V12_CG_RULE_COUNTS
+    assert v12_rule_counts("LIC-") == V12_LIC_RULE_COUNTS
+
+    for row in v12_risk_rows():
+        rule_id = row["note"].split(";", 1)[0]
+        assert row["action"] == "REVIEW"
+        assert row["match_field"] == "title"
+        assert row["match_type"] == "contains"
+        assert row["source_type"] == "shopee_policy"
+        assert row["enabled"] == "TRUE"
+        assert "title alone cannot determine" in row["note"]
+        if rule_id.startswith("CG-"):
+            assert row["risk_category"] == "controlled_goods_unverified"
+            assert "Official category:" in row["note"]
+            assert "physical Controlled Goods main item is company-policy BLOCK" in row["note"]
+        else:
+            assert row["risk_category"] == "license_or_certification_required"
+            assert "Category:" in row["note"]
+            assert "normal cross-border operations" in row["note"]
+
+
+@pytest.mark.parametrize("term", [row["term"] for row in v12_risk_rows()])
+def test_every_v12_title_rule_routes_its_own_term_to_review(term):
+    row = apply_guardrails([candidate(title=f"Featured {term} product")])[0]
+
+    assert row["guardrail_status"] == "REVIEW"
+    assert term in row["guardrail_matched_terms"].split("|")
+
+
+def test_v12_title_rules_do_not_match_category_only():
+    row = apply_guardrails([candidate(title="ordinary household item", category="electric kettle")])[0]
+
+    assert row["guardrail_status"] == "SAFE"
+
+
+def test_v12_shipping_reclassifications_preserve_existing_match_contracts():
+    with RISK_KEYWORDS_PATH.open("r", encoding="utf-8-sig", newline="") as csv_file:
+        rows_by_term = {row["term"]: row for row in csv.DictReader(csv_file)}
+
+    assert rows_by_term["モバイルバッテリー"] == {
+        "term": "モバイルバッテリー",
+        "action": "REVIEW",
+        "risk_category": "shipping_restricted",
+        "match_field": "all",
+        "match_type": "contains",
+        "source_type": "internal_rule",
+        "note": "Battery-powered item requires shipping and logistics review",
+        "enabled": "TRUE",
+    }
+    assert rows_by_term["PowerCore"]["risk_category"] == "shipping_restricted"
+    assert rows_by_term["PowerCore"]["match_field"] == "all"
+    assert rows_by_term["PowerCore"]["match_type"] == "contains"
+    assert rows_by_term["浄水器"]["risk_category"] == "shipping_restricted"
+    assert rows_by_term["浄水器"]["match_field"] == "all"
+    assert rows_by_term["浄水器"]["match_type"] == "contains"
+
+
+@pytest.mark.parametrize(
+    "title,expected_status",
+    [
+        ("cooler lamp adapter audio video speaker player fan computer PC monitor", "SAFE"),
+        ("iron socket outlet cleaner plug hose regulator valve switch fuse cooker canister dryer", "SAFE"),
+        ("transformer kettle microwave range hob oven washer washing refrigerator water heater", "SAFE"),
+        ("AC adapter case", "REVIEW"),
+        ("hair dryer storage case", "REVIEW"),
+        ("dog food storage container", "REVIEW"),
+        ("cat food bowl", "REVIEW"),
+        ("Nintendo Switch carrying case", "SAFE"),
+        ("Iron Man collectible", "SAFE"),
+        ("PC replacement part", "SAFE"),
+        ("pet bowl", "SAFE"),
+        ("automatic pet feeder", "SAFE"),
+        ("pet storage container", "SAFE"),
+        ("pet accessory pouch", "SAFE"),
+    ],
+)
+def test_v12_false_positive_controls_never_create_a_block(title, expected_status):
+    row = apply_guardrails([candidate(title=title, category="Pet Supplies")])[0]
+
+    assert row["guardrail_status"] == expected_status
+    assert row["guardrail_status"] != "BLOCK"
+
+
+@pytest.mark.parametrize(
+    ("term", "false_positive_title"),
+    [
+        ("multi-way adaptor", "notmulti-way adaptor"),
+        ("3-pin mains plug", "13-pin mains plug"),
+        ("3ピン電源プラグ", "13ピン電源プラグ"),
+        ("pre-paid top-up card", "notpre-paid top-up card"),
+        ("e-scooter", "note-scooter"),
+        ("e-bicycle", "note-bicycle"),
+        ("self-defense stick", "notself-defense stick"),
+    ],
+)
+def test_v12_hyphenated_or_numeric_terms_are_excluded_due_to_current_contains_behavior(
+    tmp_path,
+    term,
+    false_positive_title,
+):
+    risk_csv = RISK_CSV + (
+        f"{term},REVIEW,controlled_goods_unverified,title,contains,shopee_policy,"
+        "Synthetic boundary check,TRUE\n"
+    )
+
+    row = apply_guardrails(
+        [candidate(title=false_positive_title)],
+        write_dictionaries(tmp_path, risk_csv=risk_csv),
+    )[0]
+
+    assert row["guardrail_status"] == "REVIEW"

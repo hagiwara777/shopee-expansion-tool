@@ -623,3 +623,29 @@ def test_formula_safety_applies_to_all_target_columns_without_mutating_json_or_m
 def test_invalid_result_contracts_fail_closed(mutate):
     with pytest.raises(gate_csv.PrelistingGateCsvError):
         gate_csv.build_prelisting_gate_exports(mutate(gate_result([gate_row()])))
+
+
+def test_v12_review_metadata_is_preserved_in_the_audit_csv():
+    bundle = gate_csv.build_prelisting_gate_exports(
+        gate_result(
+            [
+                gate_row(
+                    final_eligibility="REVIEW",
+                    guardrail_status="REVIEW",
+                    reason_codes=("GUARDRAIL_REVIEW",),
+                    guardrail_risk_category="controlled_goods_unverified",
+                    guardrail_matched_terms="electric kettle",
+                    guardrail_source="shopee_policy",
+                    guardrail_note="CG-017; review required",
+                )
+            ]
+        )
+    )
+
+    audit_row = csv_rows(bundle.audit_csv)[0]
+    assert audit_row["final_eligibility"] == "REVIEW"
+    assert audit_row["guardrail_status"] == "REVIEW"
+    assert audit_row["guardrail_risk_category"] == "controlled_goods_unverified"
+    assert audit_row["guardrail_matched_terms"] == "electric kettle"
+    assert audit_row["guardrail_source"] == "shopee_policy"
+    assert audit_row["guardrail_note"] == "CG-017; review required"

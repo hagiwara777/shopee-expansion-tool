@@ -467,3 +467,27 @@ def test_duplicate_guardrail_gate_row_id_fails_closed(monkeypatch):
             [candidate("B000000001"), candidate("B000000002")],
             [inventory([evidence("B000000099")])],
         )
+
+
+def test_v12_dictionary_review_and_existing_block_propagate_to_gate_results():
+    result = evaluate(
+        [
+            candidate(asin="B000000001", product_title="electric kettle"),
+            candidate(asin="B000FQTRS0", product_title="薬用加美乃素S-II"),
+        ],
+        [inventory([evidence("B000000099")])],
+    )
+
+    review_row, block_row = result.rows
+    assert review_row.guardrail_status == "REVIEW"
+    assert review_row.guardrail_risk_category == "controlled_goods_unverified"
+    assert review_row.guardrail_matched_terms == "electric kettle"
+    assert review_row.guardrail_source == "shopee_policy"
+    assert review_row.final_eligibility == "REVIEW"
+    assert review_row.reason_codes == ("GUARDRAIL_REVIEW",)
+
+    assert block_row.guardrail_status == "BLOCK"
+    assert "own_penalty_product" in block_row.guardrail_risk_category.split("|")
+    assert "medical_or_therapeutic" in block_row.guardrail_risk_category.split("|")
+    assert block_row.final_eligibility == "EXCLUDE"
+    assert block_row.reason_codes == ("GUARDRAIL_BLOCK",)

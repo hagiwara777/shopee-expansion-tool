@@ -42,6 +42,9 @@ ALLOWED_RISK_CATEGORIES = {
     "community_report",
     "own_penalty_product",
     "brand_medical_risk",
+    "controlled_goods_unverified",
+    "license_or_certification_required",
+    "shipping_restricted",
     "other",
 }
 ALLOWED_MATCH_FIELDS = {"asin", "brand", "title", "category", "all"}
