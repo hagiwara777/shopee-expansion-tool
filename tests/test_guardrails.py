@@ -10,6 +10,8 @@ from modules.guardrails import (
     GuardrailDictionaryError,
     apply_guardrails,
     filter_safe_rows,
+    load_guardrail_dictionaries,
+    normalize_text,
     summarize_guardrails,
 )
 
@@ -514,3 +516,234 @@ def test_v12_hyphenated_or_numeric_terms_are_excluded_due_to_current_contains_be
     )[0]
 
     assert row["guardrail_status"] == "REVIEW"
+
+
+PH_BRAND_CSV = """term,action,risk_category,match_field,match_type,source_type,note,enabled
+"""
+PH_RISK_CSV = """term,action,risk_category,match_field,match_type,source_type,note,enabled
+PH review,REVIEW,other,title,contains,internal_rule,PH review rule,TRUE
+"""
+PH_RISK_KEYWORDS_PATH = Path(__file__).resolve().parents[1] / "guardrails" / "risk_keywords_ph.csv"
+PH_PROHIBITED_BRANDS_PATH = Path(__file__).resolve().parents[1] / "guardrails" / "prohibited_brands_ph.csv"
+PH_BLOCK_RULE_IDS = {
+    *(f"PH-D{number:03d}" for number in range(1, 8)),
+    *(f"PH-D{number:03d}" for number in range(8, 15)),
+    *(f"PH-D{number:03d}" for number in range(19, 21)),
+    *(f"PH-D{number:03d}" for number in range(59, 64)),
+    *(f"PH-D{number:03d}" for number in range(66, 73)),
+    *(f"PH-D{number:03d}" for number in range(73, 76)),
+}
+
+
+def write_ph_dictionaries(tmp_path, brand_csv=PH_BRAND_CSV, risk_csv=PH_RISK_CSV):
+    dictionary_dir = tmp_path / "guardrails"
+    dictionary_dir.mkdir()
+    (dictionary_dir / "prohibited_brands_ph.csv").write_text(brand_csv, encoding="utf-8")
+    (dictionary_dir / "risk_keywords_ph.csv").write_text(risk_csv, encoding="utf-8")
+    return dictionary_dir
+
+
+def ph_keyword_rows():
+    with PH_RISK_KEYWORDS_PATH.open("r", encoding="utf-8-sig", newline="") as csv_file:
+        return list(csv.DictReader(csv_file))
+
+
+def ph_rule_id(row):
+    return row["note"].split(";", 1)[0]
+
+
+def ph_rules_with_action(action):
+    return [row for row in ph_keyword_rows() if row["action"] == action]
+
+
+def test_marketplace_defaults_to_existing_sg_dictionaries_and_normalizes_marketplace_names():
+    default_dictionaries = load_guardrail_dictionaries()
+    explicit_sg_dictionaries = load_guardrail_dictionaries(marketplace="SG")
+    normalized_sg_dictionaries = load_guardrail_dictionaries(marketplace="  ｓｇ  ")
+    with RISK_KEYWORDS_PATH.open("r", encoding="utf-8-sig", newline="") as csv_file:
+        sg_keyword_rows = list(csv.DictReader(csv_file))
+
+    assert len(default_dictionaries.brand_rules) == 60
+    assert len(sg_keyword_rows) == 182
+    assert len(default_dictionaries.keyword_rules) == 177
+    assert default_dictionaries == explicit_sg_dictionaries == normalized_sg_dictionaries
+    assert {rule.file_name for rule in default_dictionaries.brand_rules} == {"prohibited_brands_sg.csv"}
+    assert {rule.file_name for rule in default_dictionaries.keyword_rules} == {"risk_keywords_sg.csv"}
+
+
+def test_marketplace_ph_loads_only_ph_dictionaries_and_allows_zero_brand_rules():
+    dictionaries = load_guardrail_dictionaries(marketplace="  ｐｈ ")
+
+    assert dictionaries.brand_rules == []
+    assert len(dictionaries.keyword_rules) == 89
+    assert {rule.file_name for rule in dictionaries.keyword_rules} == {"risk_keywords_ph.csv"}
+
+
+@pytest.mark.parametrize("marketplace", ["", "MY", "TH", "JP", None])
+def test_unsupported_marketplace_fails_closed(marketplace):
+    with pytest.raises(GuardrailDictionaryError, match="未対応の marketplace"):
+        load_guardrail_dictionaries(marketplace=marketplace)
+
+
+def test_missing_ph_dictionary_fails_closed_without_sg_fallback(tmp_path):
+    dictionary_dir = write_dictionaries(tmp_path)
+
+    with pytest.raises(GuardrailDictionaryError, match="prohibited_brands_ph.csv"):
+        apply_guardrails([candidate(title="PH review")], dictionary_dir, marketplace="PH")
+
+
+def test_ph_dictionary_files_use_utf8_bom_and_the_existing_eight_column_contract():
+    assert PH_PROHIBITED_BRANDS_PATH.read_bytes().startswith(b"\xef\xbb\xbf")
+    assert PH_RISK_KEYWORDS_PATH.read_bytes().startswith(b"\xef\xbb\xbf")
+
+    expected_columns = {
+        "term",
+        "action",
+        "risk_category",
+        "match_field",
+        "match_type",
+        "source_type",
+        "note",
+        "enabled",
+    }
+    with PH_PROHIBITED_BRANDS_PATH.open("r", encoding="utf-8-sig", newline="") as brand_file:
+        brand_reader = csv.DictReader(brand_file)
+        brand_rows = list(brand_reader)
+    with PH_RISK_KEYWORDS_PATH.open("r", encoding="utf-8-sig", newline="") as keyword_file:
+        keyword_reader = csv.DictReader(keyword_file)
+        keyword_rows = list(keyword_reader)
+
+    assert brand_rows == []
+    assert set(brand_reader.fieldnames or []) == expected_columns
+    assert set(keyword_reader.fieldnames or []) == expected_columns
+    assert all(set(row) == expected_columns for row in keyword_rows)
+
+
+def test_ph_dictionary_contains_exactly_the_approved_rules_and_metadata():
+    rows = ph_keyword_rows()
+    terms = [normalize_text(row["term"]) for row in rows]
+    block_rows = ph_rules_with_action("BLOCK")
+    review_rows = ph_rules_with_action("REVIEW")
+
+    assert len(rows) == 89
+    assert len(block_rows) == 31
+    assert len(review_rows) == 58
+    assert len(terms) == len(set(terms))
+    assert {ph_rule_id(row) for row in block_rows} == PH_BLOCK_RULE_IDS
+    assert {ph_rule_id(row) for row in review_rows}.isdisjoint(PH_BLOCK_RULE_IDS)
+    for row in rows:
+        assert row["source_type"] in {"shopee_policy", "own_penalty_case", "internal_rule"}
+        assert row["risk_category"] in ALLOWED_RISK_CATEGORIES
+        assert row["match_field"] in {"asin", "brand", "title", "category", "all"}
+        assert row["match_type"] in {"exact", "contains"}
+        assert row["enabled"] == "TRUE"
+        assert all(label in row["note"] for label in ("PH-D", "source:", "source date:", "regulatory position:", "company operation:"))
+
+
+@pytest.mark.parametrize("rule", ph_rules_with_action("BLOCK"), ids=ph_rule_id)
+def test_every_ph_block_rule_routes_its_own_term_to_block(rule):
+    row = apply_guardrails(
+        [candidate(asin=rule["term"] if rule["match_field"] == "asin" else "B000000001", title=rule["term"])],
+        marketplace="PH",
+    )[0]
+
+    assert row["guardrail_status"] == "BLOCK"
+    assert rule["term"] in row["guardrail_matched_terms"].split("|")
+
+
+@pytest.mark.parametrize("rule", ph_rules_with_action("REVIEW"), ids=ph_rule_id)
+def test_every_ph_review_rule_routes_its_own_term_to_review(rule):
+    row = apply_guardrails([candidate(title=rule["term"])], marketplace="PH")[0]
+
+    assert row["guardrail_status"] == "REVIEW"
+    assert rule["term"] in row["guardrail_matched_terms"].split("|")
+
+
+def test_ph_d001_is_an_asin_exact_rule_only():
+    rows = apply_guardrails(
+        [
+            candidate(asin="B000FQTRS0"),
+            candidate(asin="b000fqtrs0"),
+            candidate(asin="B000FQTRS00"),
+            candidate(asin="B000000001", title="B000FQTRS0"),
+        ],
+        marketplace="PH",
+    )
+
+    assert [row["guardrail_status"] for row in rows] == ["BLOCK", "BLOCK", "SAFE", "SAFE"]
+
+
+def test_ph_normalization_boundary_contains_and_hyphen_behavior_match_the_existing_contract():
+    rows = apply_guardrails(
+        [
+            candidate(title="ＰＯＷＥＲ　ＢＡＮＫ"),
+            candidate(title="notpower bank"),
+            candidate(title="これはスタンガン本体です"),
+            candidate(title="notCOVID-19 test kit"),
+        ],
+        marketplace="PH",
+    )
+
+    assert [row["guardrail_status"] for row in rows] == ["BLOCK", "SAFE", "BLOCK", "BLOCK"]
+
+
+def test_ph_multiple_matches_keep_evidence_and_block_wins_over_review_and_safe():
+    rows = apply_guardrails(
+        [
+            candidate(title="処方薬 薬用"),
+            candidate(title="ordinary household product"),
+        ],
+        marketplace="PH",
+    )
+
+    assert rows[0]["guardrail_status"] == "BLOCK"
+    assert rows[0]["guardrail_matched_terms"] == "処方薬|薬用"
+    assert "PH-D008" in rows[0]["guardrail_note"]
+    assert "PH-D015" in rows[0]["guardrail_note"]
+    assert rows[1]["guardrail_status"] == "SAFE"
+
+
+def test_marketplace_isolation_uses_only_the_requested_dictionary():
+    ph_only_rows = apply_guardrails([candidate(title="COVID-19 test kit")], marketplace="PH")
+    sg_rows = apply_guardrails([candidate(title="COVID-19 test kit")], marketplace="SG")
+    sg_brand_rows = apply_guardrails([candidate(brand="Biore", title="ordinary product")], marketplace="SG")
+    ph_brand_rows = apply_guardrails([candidate(brand="Biore", title="ordinary product")], marketplace="PH")
+
+    assert ph_only_rows[0]["guardrail_status"] == "BLOCK"
+    assert sg_rows[0]["guardrail_status"] == "SAFE"
+    assert sg_brand_rows[0]["guardrail_status"] == "BLOCK"
+    assert ph_brand_rows[0]["guardrail_status"] == "SAFE"
+
+
+@pytest.mark.parametrize(
+    ("risk_csv", "error_match"),
+    [
+        ("""term,action,risk_category,match_field,match_type,source_type,note,enabled
+invalid action,SAFE,other,title,contains,internal_rule,Invalid action,TRUE
+""", "action"),
+        ("""term,action,risk_category,match_field,match_type,source_type,note,enabled
+invalid category,REVIEW,not_allowed,title,contains,internal_rule,Invalid category,TRUE
+""", "risk_category"),
+        ("""term,action,risk_category,match_field,match_type,source_type,note,enabled
+invalid field,REVIEW,other,invalid,contains,internal_rule,Invalid field,TRUE
+""", "match_field"),
+        ("""term,action,risk_category,match_field,match_type,source_type,note,enabled
+invalid type,REVIEW,other,title,regex,internal_rule,Invalid type,TRUE
+""", "match_type"),
+        ("""term,action,risk_category,match_field,match_type,source_type,note,enabled
+invalid source,REVIEW,other,title,contains,not_allowed,Invalid source,TRUE
+""", "source_type"),
+    ],
+)
+def test_ph_dictionary_rejects_unapproved_contract_values(risk_csv, error_match, tmp_path):
+    with pytest.raises(GuardrailDictionaryError, match=error_match):
+        apply_guardrails([candidate()], write_ph_dictionaries(tmp_path, risk_csv=risk_csv), marketplace="PH")
+
+
+def test_ph_dictionary_rejects_missing_required_column(tmp_path):
+    missing_column_csv = """term,action,risk_category,match_field,match_type,source_type,note
+PH rule,REVIEW,other,title,contains,internal_rule,Missing enabled
+"""
+
+    with pytest.raises(GuardrailDictionaryError, match="必須列"):
+        apply_guardrails([candidate()], write_ph_dictionaries(tmp_path, risk_csv=missing_column_csv), marketplace="PH")

@@ -57,6 +57,10 @@ ALLOWED_SOURCE_TYPES = {
     "own_penalty_case",
 }
 STATUS_PRIORITY = {"SAFE": 0, "REVIEW": 1, "BLOCK": 2}
+MARKETPLACE_DICTIONARY_FILES = {
+    "SG": ("prohibited_brands_sg.csv", "risk_keywords_sg.csv"),
+    "PH": ("prohibited_brands_ph.csv", "risk_keywords_ph.csv"),
+}
 
 
 class GuardrailDictionaryError(RuntimeError):
@@ -92,8 +96,10 @@ class GuardrailMatch:
 def apply_guardrails(
     rows: Iterable[dict[str, Any]],
     dictionary_dir: str | Path | None = None,
+    *,
+    marketplace: str = "SG",
 ) -> list[dict[str, str]]:
-    dictionaries = load_guardrail_dictionaries(dictionary_dir)
+    dictionaries = load_guardrail_dictionaries(dictionary_dir, marketplace=marketplace)
     guarded_rows: list[dict[str, str]] = []
 
     for row in rows:
@@ -135,14 +141,28 @@ def filter_safe_rows(rows: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def load_guardrail_dictionaries(
     dictionary_dir: str | Path | None = None,
+    *,
+    marketplace: str = "SG",
 ) -> GuardrailDictionaries:
     base_dir = Path(dictionary_dir) if dictionary_dir is not None else _default_dictionary_dir()
-    brand_path = base_dir / "prohibited_brands_sg.csv"
-    keyword_path = base_dir / "risk_keywords_sg.csv"
+    normalized_marketplace = _normalize_marketplace(marketplace)
+    brand_file, keyword_file = MARKETPLACE_DICTIONARY_FILES[normalized_marketplace]
+    brand_path = base_dir / brand_file
+    keyword_path = base_dir / keyword_file
     return GuardrailDictionaries(
         brand_rules=_load_rules(brand_path, dictionary_type="brand"),
         keyword_rules=_load_rules(keyword_path, dictionary_type="keyword"),
     )
+
+
+def _normalize_marketplace(marketplace: Any) -> str:
+    normalized = unicodedata.normalize("NFKC", str(marketplace)).strip().upper()
+    if normalized not in MARKETPLACE_DICTIONARY_FILES:
+        supported = ", ".join(sorted(MARKETPLACE_DICTIONARY_FILES))
+        raise GuardrailDictionaryError(
+            f"未対応の marketplace です: {normalized or '空欄'}。対応市場: {supported}"
+        )
+    return normalized
 
 
 def normalize_text(value: Any) -> str:
