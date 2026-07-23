@@ -63,6 +63,7 @@ from modules.prelisting_gate_ui import (
     validate_inventory_file_duplicates,
     validate_shop_labels,
 )
+from modules.research_csv_adapter_ui import render_research_csv_adapter_tab
 
 
 PAGE_OPTIONS = [1, 3, 5]
@@ -603,8 +604,13 @@ with expansion_tab:
 
 with resolver_tab:
     st.subheader("ASIN Resolver Tool Ver0.4.3")
-    prompt_tab, verify_tab, retry_tab = st.tabs(
-        ["商品名 → AI用プロンプト", "AI返答 → ASIN確認", "不明商品 → 再検索プロンプト"]
+    prompt_tab, verify_tab, retry_tab, research_csv_adapter_tab = st.tabs(
+        [
+            "商品名 → AI用プロンプト",
+            "AI返答 → ASIN確認",
+            "不明商品 → 再検索プロンプト",
+            "Shopee調査CSV取込",
+        ]
     )
 
     with prompt_tab:
@@ -948,10 +954,12 @@ with resolver_tab:
                         "ChatGPT / Geminiの返答は「AI返答 → ASIN確認」へ貼り付けてください。"
                     )
 
+    with research_csv_adapter_tab:
+        render_research_csv_adapter_tab()
+
 
 with prelisting_gate_tab:
     _render_prelisting_gate_input_tab()
-
 
 with category_mapper_tab:
     render_category_mapper_tab()
