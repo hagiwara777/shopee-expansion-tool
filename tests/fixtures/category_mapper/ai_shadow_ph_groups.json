@@ -1,0 +1,36 @@
+{
+  "marketplace": "PH",
+  "categories": [
+    {"id": 100869, "path": "Beauty > Hair Care > Shampoo"},
+    {"id": 100872, "path": "Beauty > Hair Care > Hair and Scalp Conditioner"},
+    {"id": 100871, "path": "Beauty > Hair Care > Hair Treatment"},
+    {"id": 101722, "path": "Mom & Baby > Toys > Dolls & Stuffed Toys > Stuffed Toys"},
+    {"id": 101720, "path": "Mom & Baby > Toys > Dolls & Stuffed Toys > Dolls & Accessories"},
+    {"id": 100490, "path": "Mobile & Gadgets > Accessories > Cases, Covers, & Skins > Phone Cases, Covers, & Skins"},
+    {"id": 100073, "path": "Mobile & Gadgets > Mobile Phones"},
+    {"id": 100244, "path": "Men Clothes > Tops > T-Shirts"},
+    {"id": 100859, "path": "Food & Beverages > Bakery > Others"},
+    {"id": 100004, "path": "Health > Food Supplement > Beauty Supplements"},
+    {"id": 101098, "path": "Cameras & Drones > Cameras > DSLRs"},
+    {"id": 101116, "path": "Cameras & Drones > Camera Accessories > Camera Cases & Bags"},
+    {"id": 101451, "path": "Automobiles > Automobile Spare Parts > Bearing & Seals"}
+  ],
+  "groups": [
+    {"name": "Shampoo", "title": "ASIENCE shampoo refill", "keepa_category": "シャンプー", "expected_category_id": 100869},
+    {"name": "Conditioner", "title": "ASIENCE conditioner refill", "keepa_category": "リンス・コンディショナー", "expected_category_id": 100872},
+    {"name": "Shampoo Conditioner Set", "title": "shampoo & conditioner set", "keepa_category": "シャンプー・コンディショナーセット", "expected_category_id": null},
+    {"name": "Hair Treatment", "title": "hair treatment mask", "keepa_category": "ヘアトリートメント", "expected_category_id": 100871},
+    {"name": "Plush Toy", "title": "soft stuffed toy", "keepa_category": "Plush Toy", "expected_category_id": 101722},
+    {"name": "Plush Toy Storage Case", "title": "stuffed toy storage case", "keepa_category": "Plush Toy Case", "expected_category_id": 101720},
+    {"name": "Smartphone Case", "title": "smartphone protective case", "keepa_category": "Smartphone Case", "expected_category_id": 100490},
+    {"name": "Smartphone", "title": "smartphone handset", "keepa_category": "Smartphone", "expected_category_id": 100073},
+    {"name": "T-shirt", "title": "men cotton t-shirt", "keepa_category": "T-shirt", "expected_category_id": 100244},
+    {"name": "Apparel Set", "title": "t-shirt set bundle", "keepa_category": "Apparel Set", "expected_category_id": null},
+    {"name": "Food", "title": "bakery food snack", "keepa_category": "Food", "expected_category_id": 100859},
+    {"name": "Supplement", "title": "beauty supplement", "keepa_category": "Supplement", "expected_category_id": 100004},
+    {"name": "Camera", "title": "digital DSLR camera", "keepa_category": "Camera", "expected_category_id": 101098},
+    {"name": "Camera Case", "title": "camera carrying case", "keepa_category": "Camera Case", "expected_category_id": 101116},
+    {"name": "Replacement Part", "title": "replacement bearing part", "keepa_category": "Replacement Part", "expected_category_id": 101451},
+    {"name": "Unknown", "title": "unclassified mystery item", "keepa_category": "Unknown", "expected_category_id": null}
+  ]
+}

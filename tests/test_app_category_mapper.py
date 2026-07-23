@@ -148,6 +148,41 @@ def test_category_mapper_builds_downloads_and_clears_stale_results(monkeypatch, 
     assert "category_mapper_recommendations" not in app.session_state
 
 
+def test_category_mapper_ai_shadow_ui_is_closed_and_cannot_change_exports(monkeypatch, tmp_path):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    app = _test_app(monkeypatch, tmp_path)
+    app.file_uploader(key="category_mapper_source_csv").set_value(
+        ("eligible.csv", _gate_csv(), "text/csv")
+    )
+    app.run()
+    app.button(key="category_mapper_build").click().run()
+
+    assert not app.exception
+    shadow_expander = next(
+        expander
+        for expander in app.expander
+        if expander.label == "AI Category推薦を試験する（出品結果には反映しません）"
+    )
+    assert shadow_expander.proto.expanded is False
+    assert app.button(key="category_mapper_ai_shadow_run_button").label == "AI試験を実行"
+    assert (
+        app.button(key="category_mapper_ai_shadow_rescore_button").label
+        == "保存済み予測を現在の確認結果で再評価"
+    )
+    assert any(
+        "Category確定、CSV、TXT、出品データには反映されません" in str(caption.value)
+        for caption in app.caption
+    )
+    before = app.session_state["category_mapper_recommendations"]
+    app.button(key="category_mapper_ai_shadow_rescore_button").click().run()
+    assert not app.exception
+    assert app.session_state["category_mapper_recommendations"] == before
+    app.button(key="category_mapper_ai_shadow_run_button").click().run()
+    assert not app.exception
+    assert app.session_state["category_mapper_recommendations"] == before
+    assert any("AI認証情報が未設定" in str(info.value) for info in app.info)
+
+
 def test_category_mapper_applies_no_brand_to_gate_group_and_enables_outputs(monkeypatch, tmp_path):
     app = _test_app(monkeypatch, tmp_path)
     app.file_uploader(key="category_mapper_source_csv").set_value(

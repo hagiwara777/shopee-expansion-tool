@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 from datetime import datetime, timezone
+import json
 import os
 from pathlib import Path
 import sqlite3
@@ -11,6 +12,7 @@ from typing import Any, Iterable, Mapping
 
 
 PH_MARKETPLACE = "PH"
+_AI_SHADOW_TRUTH_STATUSES = {"USER_CONFIRMED", "LISTING_TOOL_ACCEPTED"}
 _INITIAL_PROFILE_PATH = (
     Path(__file__).resolve().parents[1] / "data" / "category_mapper_initial_profiles.csv"
 )
@@ -220,6 +222,25 @@ class CategoryMapperStore:
                 (marketplace, numeric_id),
             ).fetchone()
         return None if row is None else dict(row)
+
+    def list_leaf_categories(self, marketplace: str) -> list[dict[str, Any]]:
+        """Return local leaf Categories only; this never calls a Shopee API."""
+
+        marketplace = _marketplace(marketplace)
+        with self._connect() as connection:
+            return [
+                dict(row)
+                for row in connection.execute(
+                    """
+                    SELECT marketplace, category_id, parent_category_id, category_name, category_path,
+                           is_leaf, is_others, synced_at, api_version
+                    FROM catalog_categories
+                    WHERE marketplace = ? AND is_leaf = 1
+                    ORDER BY category_path, category_id
+                    """,
+                    (marketplace,),
+                )
+            ]
 
     def save_attributes(
         self,
@@ -542,6 +563,26 @@ class CategoryMapperStore:
             ).fetchone()
         return None if row is None else dict(row)
 
+    def list_user_confirmed_category_mappings(self, marketplace: str) -> list[dict[str, Any]]:
+        """Expose only same-marketplace mappings for local shadow candidate ranking."""
+
+        marketplace = _marketplace(marketplace)
+        with self._connect() as connection:
+            return [
+                dict(row)
+                for row in connection.execute(
+                    """
+                    SELECT marketplace, mapping_key_type, mapping_key, canonical_product_type, category_id,
+                           category_path, verification_status, support_count, user_confirmed,
+                           last_verified_at, note
+                    FROM category_mappings
+                    WHERE marketplace = ? AND user_confirmed = 1
+                    ORDER BY support_count DESC, last_verified_at DESC, category_id
+                    """,
+                    (marketplace,),
+                )
+            ]
+
     def save_brand_alias(
         self,
         *,
@@ -719,6 +760,345 @@ class CategoryMapperStore:
             ).fetchone()
         return None if row is None else dict(row)
 
+    def list_listing_profiles(self, marketplace: str) -> list[dict[str, Any]]:
+        """Return marketplace-local accepted profiles for shadow prefiltering."""
+
+        marketplace = _marketplace(marketplace)
+        with self._connect() as connection:
+            return [
+                dict(row)
+                for row in connection.execute(
+                    """
+                    SELECT profile_id, marketplace, canonical_product_type, category_id, category_path,
+                           brand_policy, brand_id, mandatory_attribute_count, verification_status,
+                           last_verified_at, note
+                    FROM listing_profiles
+                    WHERE marketplace = ?
+                    ORDER BY canonical_product_type, category_id
+                    """,
+                    (marketplace,),
+                )
+            ]
+
+    def save_ai_shadow_run(self, record: Mapping[str, Any]) -> None:
+        """Persist aggregate, secret-free metadata for one AI shadow evaluation run."""
+
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO ai_shadow_runs (
+                    run_id, marketplace, provider, model, prompt_version, started_at, finished_at,
+                    group_count, completed_count, abstain_count, failed_count, input_tokens,
+                    output_tokens, cached_tokens, processed_group_count, ai_request_count,
+                    estimated_cost, status
+                ) VALUES (?, ?, ?, ?, ?, ?, '', ?, 0, 0, 0, 0, 0, 0, 0, 0, NULL, ?)
+                """,
+                (
+                    _text(record.get("run_id")),
+                    _marketplace(record.get("marketplace")),
+                    _text(record.get("provider")),
+                    _text(record.get("model")),
+                    _text(record.get("prompt_version")),
+                    _text(record.get("started_at")),
+                    _nonnegative_int(record.get("group_count")) or 0,
+                    _text(record.get("status")) or "RUNNING",
+                ),
+            )
+
+    def finish_ai_shadow_run(
+        self,
+        run_id: str,
+        *,
+        finished_at: str,
+        completed_count: int,
+        abstain_count: int,
+        failed_count: int,
+        processed_group_count: int,
+        ai_request_count: int,
+        input_tokens: int,
+        output_tokens: int,
+        cached_tokens: int,
+        estimated_cost: float | None,
+        status: str,
+    ) -> None:
+        """Finish a run without persisting any provider response or exception text."""
+
+        with self._connect() as connection:
+            connection.execute(
+                """
+                UPDATE ai_shadow_runs
+                SET finished_at = ?, completed_count = ?, abstain_count = ?, failed_count = ?,
+                    processed_group_count = ?, ai_request_count = ?, input_tokens = ?,
+                    output_tokens = ?, cached_tokens = ?, estimated_cost = ?, status = ?
+                WHERE run_id = ?
+                """,
+                (
+                    _text(finished_at),
+                    _nonnegative_int(completed_count) or 0,
+                    _nonnegative_int(abstain_count) or 0,
+                    _nonnegative_int(failed_count) or 0,
+                    _nonnegative_int(processed_group_count) or 0,
+                    _nonnegative_int(ai_request_count) or 0,
+                    _nonnegative_int(input_tokens) or 0,
+                    _nonnegative_int(output_tokens) or 0,
+                    _nonnegative_int(cached_tokens) or 0,
+                    estimated_cost,
+                    _text(status),
+                    _text(run_id),
+                ),
+            )
+
+    def save_ai_shadow_prediction(self, record: Mapping[str, Any]) -> None:
+        """Persist parsed, bounded shadow data only; never a raw provider response."""
+
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO ai_shadow_predictions (
+                    run_id, group_key, marketplace, normalized_keepa_category,
+                    normalized_keepa_brand, candidate_category_ids_json, ranked_candidates_json,
+                    risk_flags_json, top1_category_id, top2_category_id, top3_category_id,
+                    top1_confidence, abstain, abstain_reason, selected_category_id,
+                    selected_verification_status, top1_match, top3_match, evaluated_at,
+                    prompt_version, provider, model, cache_key, status, canonical_product_type,
+                    is_main_product, is_set, is_accessory, is_replacement_part, latency_seconds,
+                    input_tokens, output_tokens, cached_tokens, estimated_cost
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    _text(record.get("run_id")),
+                    _text(record.get("group_key")),
+                    _marketplace(record.get("marketplace")),
+                    _text(record.get("normalized_keepa_category")),
+                    _text(record.get("normalized_keepa_brand")),
+                    _text(record.get("candidate_category_ids_json")),
+                    _text(record.get("ranked_candidates_json")),
+                    _text(record.get("risk_flags_json")),
+                    _positive_int(record.get("top1_category_id")),
+                    _positive_int(record.get("top2_category_id")),
+                    _positive_int(record.get("top3_category_id")),
+                    record.get("top1_confidence"),
+                    _bool_int(record.get("abstain")),
+                    _text(record.get("abstain_reason")),
+                    _positive_int(record.get("selected_category_id")),
+                    _text(record.get("selected_verification_status")),
+                    record.get("top1_match"),
+                    record.get("top3_match"),
+                    _text(record.get("evaluated_at")),
+                    _text(record.get("prompt_version")),
+                    _text(record.get("provider")),
+                    _text(record.get("model")),
+                    _text(record.get("cache_key")),
+                    _text(record.get("status")),
+                    _text(record.get("canonical_product_type")),
+                    _bool_int(record.get("is_main_product")),
+                    _bool_int(record.get("is_set")),
+                    _bool_int(record.get("is_accessory")),
+                    _bool_int(record.get("is_replacement_part")),
+                    record.get("latency_seconds"),
+                    _nonnegative_int(record.get("input_tokens")) or 0,
+                    _nonnegative_int(record.get("output_tokens")) or 0,
+                    _nonnegative_int(record.get("cached_tokens")) or 0,
+                    record.get("estimated_cost"),
+                ),
+            )
+
+    def find_ai_shadow_prediction_cache(
+        self,
+        *,
+        marketplace: str,
+        cache_key: str,
+        prompt_version: str,
+        provider: str,
+        model: str,
+    ) -> dict[str, Any] | None:
+        """Reuse a prior valid parsed result for an identical bounded prompt input."""
+
+        marketplace = _marketplace(marketplace)
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT candidate_category_ids_json, ranked_candidates_json, risk_flags_json,
+                       abstain, abstain_reason, canonical_product_type, is_main_product, is_set,
+                       is_accessory, is_replacement_part, input_tokens, output_tokens, cached_tokens
+                FROM ai_shadow_predictions
+                WHERE marketplace = ? AND cache_key = ? AND prompt_version = ?
+                      AND provider = ? AND model = ?
+                      AND status IN ('COMPLETED', 'CACHED', 'NO_CANDIDATE')
+                ORDER BY evaluated_at DESC
+                LIMIT 1
+                """,
+                (marketplace, _text(cache_key), _text(prompt_version), _text(provider), _text(model)),
+            ).fetchone()
+        return None if row is None else dict(row)
+
+    def update_ai_shadow_selected_category(
+        self,
+        *,
+        marketplace: str,
+        group_key: str,
+        selected_category_id: int,
+        selected_verification_status: str,
+    ) -> None:
+        """Compatibility wrapper that no longer mutates an original prediction."""
+
+        self.save_ai_shadow_group_confirmation(
+            marketplace=marketplace,
+            group_key=group_key,
+            category_id=selected_category_id,
+            verification_status=selected_verification_status,
+        )
+
+    def save_ai_shadow_group_confirmation(
+        self,
+        *,
+        marketplace: str,
+        group_key: str,
+        category_id: int,
+        verification_status: str,
+    ) -> bool:
+        """Store one current, group-specific accepted truth label without changing AI output."""
+
+        marketplace = _marketplace(marketplace)
+        normalized_status = _text(verification_status).upper()
+        normalized_group_key = _text(group_key)
+        if normalized_status not in _AI_SHADOW_TRUTH_STATUSES or not normalized_group_key:
+            return False
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO ai_shadow_group_confirmations (
+                    marketplace, group_key, category_id, verification_status, confirmed_at
+                ) VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(marketplace, group_key) DO UPDATE SET
+                    category_id = excluded.category_id,
+                    verification_status = excluded.verification_status,
+                    confirmed_at = excluded.confirmed_at
+                WHERE ai_shadow_group_confirmations.category_id != excluded.category_id
+                   OR ai_shadow_group_confirmations.verification_status != excluded.verification_status
+                """,
+                (
+                    marketplace,
+                    normalized_group_key,
+                    _require_category_id(category_id),
+                    normalized_status,
+                    utc_now_iso(),
+                ),
+            )
+        return True
+
+    def ai_shadow_rescore_availability(self, marketplace: str) -> dict[str, int]:
+        """Return distinct saved-prediction groups with and without an accepted truth label."""
+
+        marketplace = _marketplace(marketplace)
+        with self._connect() as connection:
+            total = connection.execute(
+                """
+                SELECT COUNT(DISTINCT group_key)
+                FROM ai_shadow_predictions
+                WHERE marketplace = ? AND status IN ('COMPLETED', 'CACHED')
+                """,
+                (marketplace,),
+            ).fetchone()[0]
+            available = connection.execute(
+                """
+                SELECT COUNT(DISTINCT prediction.group_key)
+                FROM ai_shadow_predictions AS prediction
+                INNER JOIN ai_shadow_group_confirmations AS truth
+                    ON truth.marketplace = prediction.marketplace
+                   AND truth.group_key = prediction.group_key
+                WHERE prediction.marketplace = ?
+                  AND prediction.status IN ('COMPLETED', 'CACHED')
+                  AND truth.verification_status IN ('USER_CONFIRMED', 'LISTING_TOOL_ACCEPTED')
+                """,
+                (marketplace,),
+            ).fetchone()[0]
+        return {
+            "evaluation_available_group_count": int(available),
+            "unconfirmed_group_count": max(0, int(total) - int(available)),
+        }
+
+    def rescore_ai_shadow_predictions(self, marketplace: str) -> list[dict[str, Any]]:
+        """Evaluate stored ranks against current group truth labels with no provider call.
+
+        Original ``ai_shadow_predictions`` remain immutable: each `(run, group,
+        truth state)` receives at most one derived record in
+        ``ai_shadow_rescores``.
+        """
+
+        marketplace = _marketplace(marketplace)
+        with self._connect() as connection:
+            rows = [
+                dict(row)
+                for row in connection.execute(
+                    """
+                    SELECT prediction.run_id, prediction.group_key, prediction.marketplace,
+                           prediction.candidate_category_ids_json, prediction.top1_category_id,
+                           prediction.top2_category_id, prediction.top3_category_id,
+                           truth.category_id, truth.verification_status
+                    FROM ai_shadow_predictions AS prediction
+                    INNER JOIN ai_shadow_group_confirmations AS truth
+                        ON truth.marketplace = prediction.marketplace
+                       AND truth.group_key = prediction.group_key
+                    WHERE prediction.marketplace = ?
+                      AND prediction.status IN ('COMPLETED', 'CACHED')
+                      AND truth.verification_status IN ('USER_CONFIRMED', 'LISTING_TOOL_ACCEPTED')
+                    ORDER BY prediction.run_id, prediction.group_key
+                    """,
+                    (marketplace,),
+                )
+            ]
+            results: list[dict[str, Any]] = []
+            for row in rows:
+                candidate_ids = _json_positive_ints(row["candidate_category_ids_json"])
+                category_id = int(row["category_id"])
+                ranked_ids = tuple(
+                    int(value)
+                    for value in (row["top1_category_id"], row["top2_category_id"], row["top3_category_id"])
+                    if _positive_int(value) is not None
+                )
+                prefilter_rank = _rank_for(category_id, candidate_ids)
+                ai_rank = _rank_for(category_id, ranked_ids)
+                top1_match = int(bool(ranked_ids) and ranked_ids[0] == category_id)
+                top3_match = int(category_id in ranked_ids)
+                truth_key = f"{category_id}:{row['verification_status']}"
+                evaluated_at = utc_now_iso()
+                connection.execute(
+                    """
+                    INSERT OR IGNORE INTO ai_shadow_rescores (
+                        run_id, group_key, marketplace, category_id, verification_status,
+                        truth_key, top1_match, top3_match, prefilter_rank, ai_rank, evaluated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        _text(row["run_id"]),
+                        _text(row["group_key"]),
+                        marketplace,
+                        category_id,
+                        _text(row["verification_status"]),
+                        truth_key,
+                        top1_match,
+                        top3_match,
+                        prefilter_rank,
+                        ai_rank,
+                        evaluated_at,
+                    ),
+                )
+                results.append(
+                    {
+                        "run_id": _text(row["run_id"]),
+                        "group_key": _text(row["group_key"]),
+                        "marketplace": marketplace,
+                        "category_id": category_id,
+                        "verification_status": _text(row["verification_status"]),
+                        "top1_match": bool(top1_match),
+                        "top3_match": bool(top3_match),
+                        "prefilter_rank": prefilter_rank,
+                        "ai_rank": ai_rank,
+                    }
+                )
+        return results
+
     def _category_name_for(self, marketplace: str, category_id: int) -> str:
         category = self.get_category(marketplace, category_id)
         return "" if category is None else str(category["category_name"])
@@ -843,6 +1223,92 @@ class CategoryMapperStore:
                     api_status TEXT NOT NULL,
                     PRIMARY KEY (marketplace, category_id)
                 );
+                CREATE TABLE IF NOT EXISTS ai_shadow_runs (
+                    run_id TEXT PRIMARY KEY,
+                    marketplace TEXT NOT NULL,
+                    provider TEXT NOT NULL,
+                    model TEXT NOT NULL,
+                    prompt_version TEXT NOT NULL,
+                    started_at TEXT NOT NULL,
+                    finished_at TEXT NOT NULL,
+                    group_count INTEGER NOT NULL,
+                    completed_count INTEGER NOT NULL,
+                    abstain_count INTEGER NOT NULL,
+                    failed_count INTEGER NOT NULL,
+                    input_tokens INTEGER NOT NULL,
+                    output_tokens INTEGER NOT NULL,
+                    cached_tokens INTEGER NOT NULL DEFAULT 0,
+                    processed_group_count INTEGER NOT NULL DEFAULT 0,
+                    ai_request_count INTEGER NOT NULL DEFAULT 0,
+                    estimated_cost REAL,
+                    status TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS ai_shadow_predictions (
+                    run_id TEXT NOT NULL,
+                    group_key TEXT NOT NULL,
+                    marketplace TEXT NOT NULL,
+                    normalized_keepa_category TEXT NOT NULL,
+                    normalized_keepa_brand TEXT NOT NULL,
+                    candidate_category_ids_json TEXT NOT NULL,
+                    ranked_candidates_json TEXT NOT NULL,
+                    risk_flags_json TEXT NOT NULL,
+                    top1_category_id INTEGER,
+                    top2_category_id INTEGER,
+                    top3_category_id INTEGER,
+                    top1_confidence REAL,
+                    abstain INTEGER NOT NULL,
+                    abstain_reason TEXT NOT NULL,
+                    selected_category_id INTEGER,
+                    selected_verification_status TEXT NOT NULL,
+                    top1_match INTEGER,
+                    top3_match INTEGER,
+                    evaluated_at TEXT NOT NULL,
+                    prompt_version TEXT NOT NULL,
+                    provider TEXT NOT NULL,
+                    model TEXT NOT NULL,
+                    cache_key TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    canonical_product_type TEXT NOT NULL,
+                    is_main_product INTEGER NOT NULL,
+                    is_set INTEGER NOT NULL,
+                    is_accessory INTEGER NOT NULL,
+                    is_replacement_part INTEGER NOT NULL,
+                    latency_seconds REAL NOT NULL,
+                    input_tokens INTEGER NOT NULL,
+                    output_tokens INTEGER NOT NULL,
+                    cached_tokens INTEGER NOT NULL DEFAULT 0,
+                    estimated_cost REAL,
+                    PRIMARY KEY (run_id, group_key),
+                    FOREIGN KEY (run_id) REFERENCES ai_shadow_runs(run_id)
+                );
+                CREATE INDEX IF NOT EXISTS ai_shadow_prediction_cache_idx
+                    ON ai_shadow_predictions (marketplace, cache_key, prompt_version, provider, model);
+                CREATE TABLE IF NOT EXISTS ai_shadow_group_confirmations (
+                    marketplace TEXT NOT NULL,
+                    group_key TEXT NOT NULL,
+                    category_id INTEGER NOT NULL,
+                    verification_status TEXT NOT NULL,
+                    confirmed_at TEXT NOT NULL,
+                    PRIMARY KEY (marketplace, group_key)
+                );
+                CREATE TABLE IF NOT EXISTS ai_shadow_rescores (
+                    run_id TEXT NOT NULL,
+                    group_key TEXT NOT NULL,
+                    marketplace TEXT NOT NULL,
+                    category_id INTEGER NOT NULL,
+                    verification_status TEXT NOT NULL,
+                    truth_key TEXT NOT NULL,
+                    top1_match INTEGER NOT NULL,
+                    top3_match INTEGER NOT NULL,
+                    prefilter_rank INTEGER,
+                    ai_rank INTEGER,
+                    evaluated_at TEXT NOT NULL,
+                    PRIMARY KEY (run_id, group_key, truth_key),
+                    FOREIGN KEY (run_id, group_key)
+                        REFERENCES ai_shadow_predictions(run_id, group_key)
+                );
+                CREATE INDEX IF NOT EXISTS ai_shadow_rescore_current_idx
+                    ON ai_shadow_rescores (marketplace, group_key, evaluated_at);
                 """
             )
             _ensure_column(
@@ -851,6 +1317,10 @@ class CategoryMapperStore:
                 "multi_select_max",
                 "INTEGER NOT NULL DEFAULT 0",
             )
+            _ensure_column(connection, "ai_shadow_runs", "cached_tokens", "INTEGER NOT NULL DEFAULT 0")
+            _ensure_column(connection, "ai_shadow_runs", "processed_group_count", "INTEGER NOT NULL DEFAULT 0")
+            _ensure_column(connection, "ai_shadow_runs", "ai_request_count", "INTEGER NOT NULL DEFAULT 0")
+            _ensure_column(connection, "ai_shadow_predictions", "cached_tokens", "INTEGER NOT NULL DEFAULT 0")
             self._seed_initial_profiles(connection)
 
     @staticmethod
@@ -977,6 +1447,25 @@ def _nonnegative_int(value: object) -> int | None:
     except (TypeError, ValueError):
         return None
     return result if result >= 0 else None
+
+
+def _json_positive_ints(value: object) -> tuple[int, ...]:
+    """Parse only the bounded, stored Category ID list used for a prediction."""
+
+    try:
+        decoded = json.loads(_text(value))
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return ()
+    if not isinstance(decoded, list):
+        return ()
+    return tuple(category_id for item in decoded if (category_id := _positive_int(item)) is not None)
+
+
+def _rank_for(category_id: int, values: tuple[int, ...]) -> int | None:
+    for rank, value in enumerate(values, start=1):
+        if value == category_id:
+            return rank
+    return None
 
 
 def _bool_int(value: object) -> int:

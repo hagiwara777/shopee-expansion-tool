@@ -21,6 +21,16 @@ from modules.category_mapper import (
     summarize_output_blockers,
 )
 from modules.category_mapper_store import CategoryMapperStore
+from modules.category_mapper_ai import (
+    CategoryShadowConfigurationError,
+    CategoryShadowError,
+    OpenAIResponsesCategoryShadowProvider,
+    build_shadow_groups,
+    rescore_saved_shadow_predictions,
+    run_category_shadow,
+    shadow_group_key_for_recommendation,
+    shadow_kpis,
+)
 from modules.shopee_catalog_client import (
     ShopeeCatalogClient,
     ShopeeCatalogConfigurationError,
@@ -32,7 +42,15 @@ from modules.shopee_catalog_client import (
 _RESULT_KEY = "category_mapper_recommendations"
 _FINGERPRINT_KEY = "category_mapper_input_fingerprint"
 _SOURCE_TYPE_KEY = "category_mapper_source_type"
-_STATE_KEYS = (_RESULT_KEY, _FINGERPRINT_KEY, _SOURCE_TYPE_KEY)
+_AI_SHADOW_RUN_KEY = "category_mapper_ai_shadow_result"
+_AI_SHADOW_RESCORE_KEY = "category_mapper_ai_shadow_rescore_result"
+_STATE_KEYS = (
+    _RESULT_KEY,
+    _FINGERPRINT_KEY,
+    _SOURCE_TYPE_KEY,
+    _AI_SHADOW_RUN_KEY,
+    _AI_SHADOW_RESCORE_KEY,
+)
 
 
 def render_category_mapper_tab() -> None:
@@ -214,6 +232,7 @@ def _render_recommendations(
             )
         with st.expander("阻害条件の対象行を確認"):
             st.dataframe(blocker_rows, hide_index=True)
+        _render_ai_shadow_mode(current, store)
         return
     group_count = len({item.group_key for item in ready})
     st.success(f"出品グループ対象: {len(ready)} ASIN / {group_count} グループ")
@@ -233,6 +252,7 @@ def _render_recommendations(
         icon=":material/content_copy:",
         key="category_mapper_download_txt",
     )
+    _render_ai_shadow_mode(current, store)
 
 
 def _render_group_controls(
@@ -389,8 +409,151 @@ def _apply_category_choice(
             category_path=str(category["category_path"]),
         )
         st.caption(f"次回以降、PHの「{first.keepa_category}」商品へ再利用します。")
+    store.update_ai_shadow_selected_category(
+        marketplace="PH",
+        group_key=shadow_group_key_for_recommendation(first),
+        selected_category_id=int(category["category_id"]),
+        selected_verification_status="USER_CONFIRMED",
+    )
     _replace_group(members, updated)
     return True
+
+
+def _render_ai_shadow_mode(
+    recommendations: tuple[MapperRecommendation, ...], store: CategoryMapperStore
+) -> None:
+    """Render optional AI evaluation without calling or changing Ver0.1 by default."""
+
+    groups = build_shadow_groups(recommendations)
+    with st.expander("AI Category推薦を試験する（出品結果には反映しません）"):
+        st.caption(
+            "このAI推薦はCategory確定、CSV、TXT、出品データには反映されません。"
+        )
+        st.caption(
+            f"実行対象: {min(len(groups), 20)} / {len(groups)} 商品グループ。"
+            "最大20グループ、各リクエスト30秒、再試行なしです。"
+        )
+        st.caption("AI API費用が発生する可能性があります。tokenと費用は取得可能な範囲だけ記録します。")
+        availability = store.ai_shadow_rescore_availability("PH")
+        st.caption(
+            f"保存済み予測の再評価可能: {availability['evaluation_available_group_count']} グループ / "
+            f"未確認: {availability['unconfirmed_group_count']} グループ。"
+        )
+        if st.button(
+            "保存済み予測を現在の確認結果で再評価",
+            icon=":material/refresh:",
+            key="category_mapper_ai_shadow_rescore_button",
+        ):
+            st.session_state[_AI_SHADOW_RESCORE_KEY] = rescore_saved_shadow_predictions(
+                recommendations=recommendations,
+                store=store,
+            )
+            st.rerun()
+        rescore_result = st.session_state.get(_AI_SHADOW_RESCORE_KEY)
+        if rescore_result is not None:
+            st.caption(
+                f"再評価済み: {rescore_result.evaluated_prediction_count} 予測 / "
+                f"評価可能: {rescore_result.evaluation_available_group_count} グループ / "
+                f"未確認: {rescore_result.unconfirmed_group_count} グループ / "
+                f"Top 1: {_rate_label(rescore_result.metrics['top1_accuracy'])} / "
+                f"Top 3: {_rate_label(rescore_result.metrics['top3_accuracy'])}"
+            )
+        if st.button(
+            "AI試験を実行",
+            icon=":material/science:",
+            key="category_mapper_ai_shadow_run_button",
+        ):
+            try:
+                provider = OpenAIResponsesCategoryShadowProvider.from_environment()
+                result = run_category_shadow(
+                    recommendations=recommendations,
+                    store=store,
+                    provider=provider,
+                )
+            except CategoryShadowConfigurationError:
+                st.info("AI認証情報が未設定のため実AIは実行しません。通常のVer0.1操作は継続できます。")
+            except CategoryShadowError:
+                st.warning("AI試験は安全に完了しませんでした。通常のVer0.1操作は継続できます。")
+            else:
+                st.session_state[_AI_SHADOW_RUN_KEY] = result
+                st.rerun()
+        result = st.session_state.get(_AI_SHADOW_RUN_KEY)
+        if result is None:
+            return
+        kpis = shadow_kpis(result.predictions)
+        first, second, third, fourth = st.columns(4)
+        first.metric("AI Top 1", _rate_label(kpis["ai_top1_accuracy"]))
+        second.metric("AI Top 3", _rate_label(kpis["ai_top3_accuracy"]))
+        third.metric("ローカルABSTAIN", int(kpis["local_abstain_count"] or 0))
+        fourth.metric(
+            "AI API 成功",
+            f"{int(kpis['ai_success_count'] or 0)} / {int(kpis['ai_request_count'] or 0)}",
+        )
+        st.caption(
+            f"AI失敗: {int(kpis['ai_failure_count'] or 0)} / "
+            f"AI ABSTAIN: {int(kpis['ai_abstain_count'] or 0)} / "
+            f"候補数: 1件 {int(kpis['single_candidate_group_count'] or 0)}、"
+            f"複数 {int(kpis['multi_candidate_group_count'] or 0)}。"
+        )
+        st.caption(
+            "ルール prefilter coverage: "
+            f"{_rate_label(kpis['prefilter_candidate_coverage'])} / "
+            f"Top 1: {_rate_label(kpis['prefilter_top1_accuracy'])} → "
+            f"AI Top 1: {_rate_label(kpis['ai_top1_accuracy'])} / "
+            f"候補削減: {_rate_label(kpis['candidate_reduction_rate'])} / "
+            f"平均候補数: {float(kpis['average_candidates_before_ai'] or 0):.1f} → "
+            f"{float(kpis['average_candidates_after_ai'] or 0):.1f}"
+        )
+        reference_ready = bool(kpis["reference_data_sufficient"])
+        st.caption(
+            "正解ラベルによる比較: "
+            f"{int(kpis['confirmed_group_count'] or 0)} グループ、"
+            f"複数候補 {int(kpis['confirmed_multi_candidate_group_count'] or 0)} グループ。"
+            + ("参考比較可能。" if reference_ready else "参考比較にはラベルが不足しています。")
+        )
+        rows = []
+        for prediction in result.predictions:
+            ranked = []
+            reasons = []
+            for candidate in prediction.response.ranked_candidates:
+                category = store.get_category("PH", candidate.category_id)
+                path = "" if category is None else str(category["category_path"])
+                ranked.append(f"{candidate.category_id}: {path}")
+                reasons.append(candidate.short_reason)
+            selected = ""
+            if prediction.group.selected_category_id is not None:
+                selected_category = store.get_category("PH", prediction.group.selected_category_id)
+                selected_path = "" if selected_category is None else str(selected_category["category_path"])
+                selected = f"{prediction.group.selected_category_id}: {selected_path}"
+            rows.append(
+                {
+                    "Keepa category": prediction.group.normalized_keepa_category,
+                    "ローカル候補数": len(prediction.candidates),
+                    "AI候補（最大3件）": "\n".join(ranked) or "推薦なし",
+                    "現在の確定Category": selected or "未確定",
+                    "Top 1": _match_label(prediction.top1_match),
+                    "Top 3": _match_label(prediction.top3_match),
+                    "ABSTAIN": "YES" if prediction.response.abstain else "NO",
+                    "理由": prediction.response.abstain_reason or " / ".join(reasons),
+                    "時間（秒）": prediction.latency_seconds,
+                    "token": (prediction.response.input_tokens or 0) + (prediction.response.output_tokens or 0),
+                }
+            )
+        st.dataframe(rows, hide_index=True)
+        st.caption(
+            f"run: {result.status} / provider: {result.provider} / model: {result.model} / "
+            f"概算費用: {'不明' if kpis['estimated_cost_per_100_groups'] is None else kpis['estimated_cost_per_100_groups']}"
+        )
+
+
+def _rate_label(value: object) -> str:
+    return "参考値なし" if value is None else f"{float(value) * 100:.1f}%"
+
+
+def _match_label(value: bool | None) -> str:
+    if value is None:
+        return "未評価"
+    return "一致" if value else "不一致"
 
 
 def _render_attribute_summary(
