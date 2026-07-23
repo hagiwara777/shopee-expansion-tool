@@ -794,7 +794,13 @@ def _find_non_jp_url(values: Iterable[str]) -> str:
     for value in values:
         for match in URL_LIKE_PATTERN.finditer(value):
             candidate = _normalize_url(match.group(0))
-            host = urlparse(candidate).netloc.lower()
+            try:
+                host = urlparse(candidate).netloc.lower()
+            except ValueError:
+                # Bracketed text can satisfy the URL-like pattern while still
+                # being an invalid URL (for example, an invalid IPv6 host).
+                # Ignore only that candidate and continue parsing the row.
+                continue
             if host not in {"amazon.co.jp", "www.amazon.co.jp"}:
                 return candidate
     return ""

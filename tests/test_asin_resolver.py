@@ -524,6 +524,83 @@ def test_non_amazon_jp_urls_are_not_checked():
     assert all(row.note == "Not Amazon.co.jp URL" for row in rows)
 
 
+@pytest.mark.parametrize("malformed_url", ["http://[invalid", "https://[abc"])
+@pytest.mark.parametrize("format_name", ["tsv", "csv", "markdown"])
+def test_malformed_url_candidates_are_ignored_without_interrupting_supported_formats(
+    malformed_url,
+    format_name,
+):
+    rows = [
+        ["R0001", "Malformed URL candidate", malformed_url],
+        [
+            "R0002",
+            f"Valid Japan URL after {malformed_url}",
+            "https://www.amazon.co.jp/dp/B07TSC47PH",
+        ],
+        [
+            "R0003",
+            f"Valid overseas URL after {malformed_url}",
+            "https://www.amazon.com/dp/B08C4Z1XF4",
+        ],
+    ]
+    if format_name == "tsv":
+        response = "\n".join(
+            ["source_id\tinput_title\tamazon_url", *["\t".join(row) for row in rows]]
+        )
+    elif format_name == "csv":
+        response = "\n".join(
+            ["source_id,input_title,amazon_url", *[",".join(row) for row in rows]]
+        )
+    else:
+        response = "\n".join(
+            [
+                "| source_id | input_title | amazon_url |",
+                "| --- | --- | --- |",
+                *[f"| {' | '.join(row)} |" for row in rows],
+            ]
+        )
+
+    preview_rows = preview_candidates(
+        response,
+        {
+            "R0001": "Original malformed title",
+            "R0002": "Original Japan title",
+            "R0003": "Original overseas title",
+        },
+    )
+
+    assert [row["source_id"] for row in preview_rows] == ["R0001", "R0002", "R0003"]
+    assert [row["input_title"] for row in preview_rows] == [
+        "Original malformed title",
+        "Original Japan title",
+        "Original overseas title",
+    ]
+    assert preview_rows[0]["amazon_url"] == ""
+    assert preview_rows[0]["note"] == "No Amazon.co.jp URL or ASIN"
+    assert preview_rows[1]["asin"] == "B07TSC47PH"
+    assert preview_rows[1]["amazon_url"] == "https://www.amazon.co.jp/dp/B07TSC47PH"
+    assert preview_rows[2]["asin"] == ""
+    assert preview_rows[2]["amazon_url"] == "https://www.amazon.com/dp/B08C4Z1XF4"
+    assert preview_rows[2]["note"] == "Not Amazon.co.jp URL"
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Collector bundle [2-piece set]",
+        "Limited edition [color: navy] - gift set",
+    ],
+)
+def test_regular_titles_with_brackets_and_colons_are_not_treated_as_urls(title):
+    rows = parse_ai_response(title)
+
+    assert len(rows) == 1
+    assert rows[0].input_title == title
+    assert rows[0].amazon_url == ""
+    assert rows[0].asin == ""
+    assert rows[0].note == "No Amazon.co.jp URL or ASIN"
+
+
 def test_unknown_url_less_text_and_invalid_asin_are_not_checked():
     rows = parse_ai_response(
         "\n".join(
