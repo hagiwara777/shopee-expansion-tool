@@ -15,6 +15,7 @@ from modules.asin_resolver import (
     summarize_statuses,
     verify_selected_rows,
 )
+from modules.category_mapper_ui import render_category_mapper_tab
 from modules.config import load_settings
 from modules.direct_chat_assist import build_copy_button_html, is_valid_chatgpt_project_url
 from modules.export_csv import rows_to_csv
@@ -431,8 +432,8 @@ st.set_page_config(page_title="Shopee Expansion Tool Ver1", layout="centered")
 
 st.title("Shopee Expansion Tool Ver1")
 
-expansion_tab, resolver_tab, prelisting_gate_tab = st.tabs(
-    ["派生ASIN取得", "起点ASIN取得", "出品前保安ゲート"]
+expansion_tab, resolver_tab, prelisting_gate_tab, category_mapper_tab = st.tabs(
+    ["派生ASIN取得", "起点ASIN取得", "出品前保安ゲート", "Category Mapper"]
 )
 
 with expansion_tab:
@@ -950,3 +951,7 @@ with resolver_tab:
 
 with prelisting_gate_tab:
     _render_prelisting_gate_input_tab()
+
+
+with category_mapper_tab:
+    render_category_mapper_tab()

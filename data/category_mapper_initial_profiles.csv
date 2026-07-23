@@ -1,0 +1,2 @@
+profile_id,marketplace,canonical_product_type,category_id,category_path,brand_policy,brand_id,mandatory_attribute_count,verification_status,last_verified_at,note
+PH_SHAMPOO_NO_BRAND_V1,PH,SHAMPOO,100869,Beauty > Hair Care > Shampoo,NO_BRAND_ALLOWED,0,0,LISTING_TOOL_ACCEPTED,2026-07-21T00:00:00+00:00,API Category Attribute Brand List confirmed; listing tool accepted Category ID 100869 and Brand ID 0.

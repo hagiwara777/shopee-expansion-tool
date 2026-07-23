@@ -93,10 +93,12 @@ def test_third_top_level_tab_preserves_the_existing_two_tabs():
         "派生ASIN取得",
         "起点ASIN取得",
         "出品前保安ゲート",
+        "Category Mapper",
     ]
     assert "with expansion_tab:" in APP_SOURCE
     assert "with resolver_tab:" in APP_SOURCE
     assert "with prelisting_gate_tab:" in APP_SOURCE
+    assert "with category_mapper_tab:" in APP_SOURCE
 
 
 def test_gate_tab_has_sg_ph_marketplace_controls_and_dynamic_labels():
@@ -372,7 +374,8 @@ def test_prelisting_gate_initial_ui_smoke(monkeypatch):
     assert len(app.exception) == 0
     tab_labels = [tab.label for tab in app.tabs]
     assert tab_labels[:2] == ["派生ASIN取得", "起点ASIN取得"]
-    assert tab_labels[-1] == "出品前保安ゲート"
+    assert tab_labels[-2] == "出品前保安ゲート"
+    assert tab_labels[-1] == "Category Mapper"
     assert tab_labels.count("出品前保安ゲート") == 1
     expected_shop_inputs = [
         control
