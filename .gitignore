@@ -21,3 +21,6 @@ guardrails/*.bak
 .agents/
 .codex/
 work/
+
+# Regenerable management handoff view; never commit this generated file.
+docs/CONTEXT_SNAPSHOT.md

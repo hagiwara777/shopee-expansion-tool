@@ -13,13 +13,13 @@
 
 ## 現在の工程
 
-1. Resolver不正URL修正をmainへ正式化
-2. 固定30件のResolver・Keepa確認
-3. FOUND商品をPrelisting Gateへ投入
-4. Gate ELIGIBLEだけAI Shadowを先に実行
-5. AI結果を見ずに人がCategoryを確定
-6. 保存済みAI predictionを再評価
-7. AIの追加価値と実務ボトルネックを判定
+1. PH固定30件評価を継続する
+2. 現在取得済みの9件の元Shopee商品と13件のAmazon候補について同一性監査を行う
+3. 各候補を`MATCH`、`VARIANT_MATCH`、`UNCERTAIN`、`MISMATCH`に分類する
+4. `VARIANT_MATCH`は完全一致率に含めない
+5. 固定30件全体の評価を完了し、結果を記録する
+6. 評価結果をユーザーが確認する
+7. ユーザーが明示的に開始を承認した後にだけCategory Mapper / AI Shadowへ進める。Prelisting Gateの`ELIGIBLE`だけでは開始しない
 
 ## 保留
 
