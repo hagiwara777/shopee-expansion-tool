@@ -201,8 +201,7 @@ $currentWorkContent = Get-Content -LiteralPath $currentWorkPath -Raw -Encoding u
 $currentWorkType = Get-BulletValue -Content $currentWorkContent -Label "current_work_type"
 $currentPhase = Get-BulletValue -Content $currentWorkContent -Label "current_phase"
 $expectedBranch = Get-BulletValue -Content $currentWorkContent -Label "working_branch"
-$nextManagementAction = Get-BulletValue -Content $currentWorkContent -Label "next_management_action"
-$commitPushState = Get-BulletValue -Content $currentWorkContent -Label "commit / push"
+$nextAction = Get-BulletValue -Content $currentWorkContent -Label "next_action"
 $marketplace = Get-BulletValue -Content $currentWorkContent -Label "marketplace"
 $module = Get-BulletValue -Content $currentWorkContent -Label "module"
 $phase = Get-BulletValue -Content $currentWorkContent -Label "phase"
@@ -230,15 +229,12 @@ if ($unconfirmedItems.Count -eq 0) {
 $stopConditionSummary = ($stopConditions | ForEach-Object { "- $_" }) -join [Environment]::NewLine
 $unconfirmedSummary = ($unconfirmedItems | ForEach-Object { "- $_" }) -join [Environment]::NewLine
 
-if ($currentWorkType -ne "management-foundation") {
-    throw "CURRENT_WORK.md のcurrent_work_typeが想定と異なります。"
-}
-
 $currentBranch = Invoke-GitText -RepositoryRoot $repositoryRoot -GitArguments @("branch", "--show-current")
 if ([string]::IsNullOrWhiteSpace($currentBranch)) {
     throw "detached HEADではsnapshotを生成できません。"
 }
-if ($currentBranch -ne $expectedBranch) {
+$unresolvedWorkingBranch = "再開時にGit状態を確認して確定"
+if ($expectedBranch -ne $unresolvedWorkingBranch -and $currentBranch -ne $expectedBranch) {
     throw "CURRENT_WORK.md のworking_branchとGitの現在ブランチが一致しません。"
 }
 
@@ -277,24 +273,23 @@ $snapshot = @"
 - 変更ファイル数: $changedFileCount
 - generated_at: $generatedAt
 
-## 現在の管理作業
+## 現在作業
 
-- 管理基盤Ver1
+- current_work_type: $currentWorkType
 - current_phase: $currentPhase
-- commit / push: $commitPushState
-- next_management_action: $nextManagementAction
+- working_branch: $expectedBranch
+- next_action: $nextAction
 
-## 一時停止中の実作業
+## 評価対象
 
 - marketplace: $marketplace
 - module: $module
 - phase: $phase
-- 固定コホート: $cohort
-- Amazon候補取得済みの元Shopee商品: $sourceProductCount
+- 固定評価コホート: $cohort
+- Amazon候補を取得できた元Shopee商品: $sourceProductCount
 - Amazon候補: $candidateCount
 - Keepa確認: $keepaStatus
-- PH Gate: $gateStatus
-- 次の再開地点: ${candidateCount}を対応する${sourceProductCount}と同一性監査
+- PH Prelisting Gate: $gateStatus
 
 ## 判定区分
 

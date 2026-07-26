@@ -49,6 +49,25 @@ function Assert-EqualHashMaps {
     }
 }
 
+function Get-CurrentWorkValue {
+    param(
+        [string]$Content,
+        [string]$Label
+    )
+
+    $pattern = "(?m)^-[ ]*" + [regex]::Escape($Label) + ":[ ]*(?<value>.+?)[ ]*$"
+    $match = [regex]::Match($Content, $pattern)
+    if (-not $match.Success) {
+        throw "CURRENT_WORK.md に必須項目がありません: $Label"
+    }
+
+    $value = $match.Groups["value"].Value.Trim().Replace([string][char]96, "")
+    if ([string]::IsNullOrWhiteSpace($value)) {
+        throw "CURRENT_WORK.md の必須項目が空です: $Label"
+    }
+    return $value
+}
+
 function Assert-SnapshotSectionHasSubstantiveContent {
     param(
         [string]$Snapshot,
@@ -93,7 +112,8 @@ function Assert-SnapshotSectionHasSubstantiveContent {
 function Assert-InvalidSnapshotRejected {
     param(
         [string]$Snapshot,
-        [string]$Description
+        [string]$Description,
+        [hashtable]$ExpectedValues
     )
 
     $temporaryDirectory = Join-Path ([IO.Path]::GetTempPath()) ("ContextSnapshotVerify-$PID-" + [Guid]::NewGuid().ToString("N"))
@@ -103,7 +123,7 @@ function Assert-InvalidSnapshotRejected {
         [System.IO.File]::WriteAllText($temporaryPath, $Snapshot, [System.Text.UTF8Encoding]::new($false))
         $temporarySnapshot = Get-Content -LiteralPath $temporaryPath -Raw -Encoding utf8
         try {
-            Assert-SnapshotContent -Snapshot $temporarySnapshot
+            Assert-SnapshotContent -Snapshot $temporarySnapshot -ExpectedValues $ExpectedValues
         }
         catch {
             return
@@ -118,24 +138,22 @@ function Assert-InvalidSnapshotRejected {
 }
 
 function Assert-SnapshotContent {
-    param([string]$Snapshot)
+    param(
+        [string]$Snapshot,
+        [hashtable]$ExpectedValues
+    )
 
     $requiredTexts = @(
         "# CONTEXT SNAPSHOT",
         "## このファイルの位置づけ",
         "## Git基準",
-        "## 現在の管理作業",
-        "## 一時停止中の実作業",
+        "## 現在作業",
+        "## 評価対象",
         "## 判定区分",
         "## 進行禁止",
         "## 停止条件",
         "## 未確認事項",
         "## 参照すべき正本",
-        "管理基盤Ver1",
-        "marketplace: PH",
-        "module: ASIN Resolver",
-        "phase: 固定30件評価",
-        "Amazon候補: 13件",
         "MATCH",
         "VARIANT_MATCH",
         "UNCERTAIN",
@@ -146,6 +164,14 @@ function Assert-SnapshotContent {
             throw "snapshotに必須情報がありません: $requiredText"
         }
     }
+    foreach ($label in $ExpectedValues.Keys) {
+        $expectedText = "${label}: $($ExpectedValues[$label])"
+        if ($Snapshot.IndexOf($expectedText, [StringComparison]::Ordinal) -lt 0) {
+            throw "snapshotとCURRENT_WORK.mdの必須項目が一致しません: $label"
+        }
+    }
+    Assert-SnapshotSectionHasSubstantiveContent -Snapshot $Snapshot -Heading "## 現在作業"
+    Assert-SnapshotSectionHasSubstantiveContent -Snapshot $Snapshot -Heading "## 評価対象"
     Assert-SnapshotSectionHasSubstantiveContent -Snapshot $Snapshot -Heading "## 停止条件"
     Assert-SnapshotSectionHasSubstantiveContent -Snapshot $Snapshot -Heading "## 未確認事項"
 
@@ -159,7 +185,12 @@ function Assert-SnapshotContent {
         "partner_key",
         "authorization",
         ".env",
-        "diff --git"
+        "diff --git",
+        "## 現在の管理作業",
+        "## 一時停止中の実作業",
+        "next_management_action",
+        "commit / push: 未実施",
+        "統合検収・受入・正式化前"
     )
     foreach ($forbiddenText in $forbiddenTexts) {
         if ($Snapshot.IndexOf($forbiddenText, [StringComparison]::OrdinalIgnoreCase) -ge 0) {
@@ -185,6 +216,23 @@ if (-not (Test-Path -LiteralPath $generatorPath -PathType Leaf)) {
     throw "snapshot生成スクリプトがありません。"
 }
 
+$currentWorkPath = Join-Path $repositoryRoot "docs/CURRENT_WORK.md"
+$currentWorkContent = Get-Content -LiteralPath $currentWorkPath -Raw -Encoding utf8
+$expectedValues = @{
+    "current_work_type" = Get-CurrentWorkValue -Content $currentWorkContent -Label "current_work_type"
+    "current_phase" = Get-CurrentWorkValue -Content $currentWorkContent -Label "current_phase"
+    "working_branch" = Get-CurrentWorkValue -Content $currentWorkContent -Label "working_branch"
+    "next_action" = Get-CurrentWorkValue -Content $currentWorkContent -Label "next_action"
+    "marketplace" = Get-CurrentWorkValue -Content $currentWorkContent -Label "marketplace"
+    "module" = Get-CurrentWorkValue -Content $currentWorkContent -Label "module"
+    "phase" = Get-CurrentWorkValue -Content $currentWorkContent -Label "phase"
+    "固定評価コホート" = Get-CurrentWorkValue -Content $currentWorkContent -Label "固定評価コホート"
+    "Amazon候補を取得できた元Shopee商品" = Get-CurrentWorkValue -Content $currentWorkContent -Label "Amazon候補を取得できた元Shopee商品"
+    "Amazon候補" = Get-CurrentWorkValue -Content $currentWorkContent -Label "Amazon候補"
+    "Keepa確認" = Get-CurrentWorkValue -Content $currentWorkContent -Label "Keepa確認"
+    "PH Prelisting Gate" = Get-CurrentWorkValue -Content $currentWorkContent -Label "PH Prelisting Gate"
+}
+
 $hashesBefore = Get-FileHashMap -RepositoryRoot $repositoryRoot -RelativePaths $sourceDocuments
 if (Test-Path -LiteralPath $snapshotPath -PathType Leaf) {
     Remove-Item -LiteralPath $snapshotPath -Force
@@ -198,23 +246,23 @@ if (-not (Test-Path -LiteralPath $snapshotPath -PathType Leaf)) {
     throw "snapshotが生成されませんでした。"
 }
 $firstSnapshot = Get-Content -LiteralPath $snapshotPath -Raw -Encoding utf8
-Assert-SnapshotContent -Snapshot $firstSnapshot
+Assert-SnapshotContent -Snapshot $firstSnapshot -ExpectedValues $expectedValues
 
 & $generatorPath
 if ($LASTEXITCODE -ne 0) {
     throw "2回目のsnapshot生成に失敗しました。"
 }
 $secondSnapshot = Get-Content -LiteralPath $snapshotPath -Raw -Encoding utf8
-Assert-SnapshotContent -Snapshot $secondSnapshot
+Assert-SnapshotContent -Snapshot $secondSnapshot -ExpectedValues $expectedValues
 
 $missingSectionSnapshot = $secondSnapshot.Replace("## 停止条件", "## 削除済み停止条件")
-Assert-InvalidSnapshotRejected -Snapshot $missingSectionSnapshot -Description "停止条件の欠落"
+Assert-InvalidSnapshotRejected -Snapshot $missingSectionSnapshot -Description "停止条件の欠落" -ExpectedValues $expectedValues
 $todoOnlySnapshot = [regex]::Replace(
     $secondSnapshot,
     "(?ms)(## 未確認事項\r?\n).*?(?=^## |\z)",
     ('$1- TODO' + [Environment]::NewLine)
 )
-Assert-InvalidSnapshotRejected -Snapshot $todoOnlySnapshot -Description "未確認事項がTODOだけ"
+Assert-InvalidSnapshotRejected -Snapshot $todoOnlySnapshot -Description "未確認事項がTODOだけ" -ExpectedValues $expectedValues
 
 $ignoredCheck = & git -C $repositoryRoot check-ignore -q "docs/CONTEXT_SNAPSHOT.md"
 if ($LASTEXITCODE -ne 0) {

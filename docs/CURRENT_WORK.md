@@ -10,35 +10,33 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 - 重要な方針変更は、この文書に理由を重複記載せず `DECISION_LOG.md` に追記する。
 - 商品名、CSV本文、秘密情報、長大な日次ログは記録しない。
 
-## 正式版と関連ブランチ
+## 管理基盤の正式化確認と関連ブランチ
 
-- 正式版の基準: `main` / `origin/main` の
-  `052dab573eb617ae78e4035024518a8ff5905f8d`
+- 管理基盤Ver1 第1・第2段階の統合検収はPASSであり、ユーザー受入済み。
+- 管理基盤専用ブランチへの初回commit・push済み:
+  `27c2b64b44ff42fdd99a66ed83d445c6d6dc47e2`
+- 正式化は文書の自己申告ではなく、対象commitが `main`、`origin/main`、実リモートmainに
+  含まれることをGitで確認して判断する。
+- `052dab573eb617ae78e4035024518a8ff5905f8d` は管理基盤導入前に確認した
+  `main` / `origin/main` の基準点であり、将来の正式版を固定して示すものではない。
 - 関連するAI実験ブランチ:
   `feature/ph-category-mapper-ai-shadow-v0.2.1`
 - AI実験ブランチの確認済みHEAD:
   `69a1d22c7ff4212d82ca088d09a66b8f4a465e58`
 - 上記のGit refは2026-07-26に確認した情報であり、実作業の進捗そのものではない。
 
-## 現在実行中の作業
+## 現在作業
 
-- current_work_type: `management-foundation`
-- current_phase: 管理基盤Ver1 第1・第2段階の実装完了、統合検収・受入・正式化前
-- working_branch: `chore/management-foundation-v1`
-- next_management_action: 第1・第2段階の差分と安全性の統合検収
-- commit / push: 未実施
+- current_work_type: `PH固定30件評価`
+- current_phase: 取得済み13候補の同一性監査再開前
+- working_branch: `再開時にGit状態を確認して確定`
+- next_action: 9件の元Shopee商品と13件のAmazon候補の同一性監査
 
-現在実行中なのは管理基盤Ver1の整備です。PH固定30件評価は、管理基盤Ver1の
-受入・正式化が完了するまで一時停止中であり、現在の実行対象ではありません。
+現在の事業上・運用上の作業はPH固定30件評価です。管理基盤専用ブランチは文書と
+Snapshotを整備するためのGit上の現在ブランチであり、評価を再開する実作業branchは
+再開時にGit状態を確認して確定します。
 
-## 管理基盤Ver1整備中の作業範囲
-
-- 管理文書と引継ぎ方法だけを整備する。
-- 機能コード、固定30件評価、外部API、Category Mapper / AI Shadowの実行・評価・
-  仕様変更は行わない。
-- CONTEXT_SNAPSHOTは生成スクリプトで再生成する派生物であり、手動編集・commitはしない。
-
-## 一時停止中の実作業
+## 現在の評価対象
 
 - marketplace: `PH`
 - module: `ASIN Resolver`
@@ -59,11 +57,10 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 - 固定30件全体の候補取得状況と判定区分の集計
 - 集計結果の記録
 
-## 管理基盤Ver1完了後の次の単一作業
+## 次の単一作業
 
-管理基盤Ver1の受入・正式化完了後、13件のAmazon候補を、対応する9件の
-元Shopee商品と照合する同一性監査を行います。各候補は次の4区分のいずれかに
-分類します。
+13件のAmazon候補を、対応する9件の元Shopee商品と照合する同一性監査を行います。
+各候補は次の4区分のいずれかに分類します。
 
 | 区分 | 意味 |
 |---|---|
@@ -109,15 +106,15 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 - `README.md` にはPrelisting Gateが「現在SGのみ対応」と記載されています。
 - 一方、この文書にはユーザー確認済み結果として「PH Prelisting Gateで13候補すべて
   `ELIGIBLE`」を記録しています。
-- 管理基盤Ver1では、この不整合の原因調査、README修正、PH対応のコード上の確認を
+- 今回のPH評価では、この不整合の原因調査、README修正、PH対応のコード上の確認を
   行いません。PH対応のコード上の事実は未確認です。
 
 ## 情報の根拠・確認レベル
 
 | 情報 | 根拠・確認レベル |
 |---|---|
-| 正式版・関連ブランチのref | Gitで確認済み |
-| 現在の管理基盤作業・working branch | Gitとこの作業票で確認済み |
+| 管理基盤専用ブランチと関連ブランチのref | Gitで確認済み |
+| 現在のPH評価作業と再開予定branch | この文書と作業票で確認済み。実作業branchは再開時にGit状態で確認する |
 | 30件、9元商品、13候補、Keepa確認、PH Gate結果 | ユーザー確認済みの実運用結果。Git・テスト・CIでの再確認は未実施 |
 | PH対応のコード上の事実 | 未確認 |
 | 最後に成功したテスト結果 | 未確認。コミット済みレポートまたはCI成果物を確認できていない |
@@ -125,18 +122,19 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 <!-- CONTEXT_SNAPSHOT:START -->
 ## 引継ぎ要約
 
-- 現在実行中: 管理基盤Ver1
-- 第1・第2段階: 実装完了、統合検収・受入・正式化前
-- 次の管理作業: 第1・第2段階の差分と安全性の統合検収
-- 一時停止中の実作業: PH ASIN Resolver固定30件評価
+- 現在作業: PH ASIN Resolver固定30件評価
+- current_phase: 取得済み13候補の同一性監査再開前
+- 実作業branch: 再開時にGit状態を確認して確定
+- 次の単一作業: 9件の元Shopee商品と13件のAmazon候補の同一性監査
+- 管理基盤Ver1 第1・第2段階は統合検収PASS・ユーザー受入済みで、専用ブランチへの
+  初回commit・push済み。正式化は対象commitがmain系refに含まれることをGitで確認する。
 - 元Shopee商品9件に対してAmazon候補13件。13候補はKeepa確認済みで、PH Prelisting
   Gateは13候補すべて `ELIGIBLE`。
-- 次の実作業: 9件の元Shopee商品と13件のAmazon候補の同一性監査
-  （`MATCH` / `VARIANT_MATCH` / `UNCERTAIN` / `MISMATCH`）。
-- `VARIANT_MATCH` は完全一致率に含めない。Category Mapper / AI Shadowへはまだ進まない。
+- `MATCH` / `VARIANT_MATCH` / `UNCERTAIN` / `MISMATCH`に分類する。`VARIANT_MATCH` は
+  完全一致率に含めない。Category Mapper / AI Shadowへはまだ進まない。
 - SG / MY / THは今回のPH作業の対象外。
 <!-- CONTEXT_SNAPSHOT:END -->
 
 ## 最終更新日
 
-2026-07-26
+2026-07-27
