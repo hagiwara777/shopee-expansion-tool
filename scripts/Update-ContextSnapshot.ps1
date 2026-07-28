@@ -120,10 +120,19 @@ function Assert-SafeSnapshotValue {
         throw "snapshotに安全に出力できない値です: $Label"
     }
 
+    Assert-NoForbiddenSnapshotContent -Value $Value -Label $Label
+}
+
+function Assert-NoForbiddenSnapshotContent {
+    param(
+        [string]$Value,
+        [string]$Label
+    )
+
     $forbiddenTexts = @(
         "http://",
         "https://",
-        ("C:" + [char]92 + "Users" + [char]92),
+        "file://",
         "OPENAI_API_KEY",
         "access_token",
         "refresh_token",
@@ -134,6 +143,17 @@ function Assert-SafeSnapshotValue {
     foreach ($forbiddenText in $forbiddenTexts) {
         if ($Value.IndexOf($forbiddenText, [StringComparison]::OrdinalIgnoreCase) -ge 0) {
             throw "snapshotに禁止情報が含まれています: $Label"
+        }
+    }
+
+    $absolutePathPatterns = @(
+        '(?i)[a-z]:[\\/]',
+        '(?i)\\\\',
+        '(^|[\s"''(])/(?:[^/\s]+/)*[^/\s]+'
+    )
+    foreach ($absolutePathPattern in $absolutePathPatterns) {
+        if ($Value -match $absolutePathPattern) {
+            throw "snapshotに絶対パスが含まれています: $Label"
         }
     }
 }
@@ -326,5 +346,6 @@ $unconfirmedSummary
 - docs/PROJECT_ROADMAP.md
 "@
 
+Assert-NoForbiddenSnapshotContent -Value $snapshot -Label "snapshot全体"
 Write-SnapshotAtomically -RepositoryRoot $repositoryRoot -SnapshotPath (Join-Path $repositoryRoot "docs/CONTEXT_SNAPSHOT.md") -Content $snapshot
 Write-Host "CONTEXT_SNAPSHOT を生成しました。"
