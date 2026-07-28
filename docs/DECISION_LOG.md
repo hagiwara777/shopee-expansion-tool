@@ -110,3 +110,17 @@
   branchで扱う。Skill、Scheduled task、追加の作業票体系は3作業の評価まで導入しない。
 - 再検討条件: 3作業後の評価で、貼り先の迷い、正本の再入力、marketplace・moduleの混同、または
   ユーザー操作の過多が確認されたとき。問題がなければ、現行の最小構成を維持する。
+
+## DEC-0010 — Handoff Contract v1を正式運用する
+
+- 日付: 2026-07-28
+- 背景: Evidence Gate Liteを3作業で試行し、正本不整合、古いorigin/main、証拠不足を実装前に
+  停止できた。一方で、チャット切替後に最新の現在地とGit外成果物を安全に再構成する契約が必要になった。
+- 決定: GitHub mainへの記録を条件付きで引継ぎに十分とし、FORMAL提案とWORK_BRIEFにはEvidence
+  Gateを必須とする。Codex開始時はfetch、formal commit、remote、worktreeを照合し、Git外成果物は
+  最小索引だけをmainへ残す。正本更新時に古いBriefは失効する。
+- 理由: ChatGPTとCodexが独立して根拠を確認し、新規タスクが古いlocal main、誤ったworktree、
+  古いBriefから開始することを防ぐため。
+- 影響: mainへの自動mergeは行わない。オーナーをSHAやworktreeの技術監査担当にせず、FORMAL Gateと
+  同期ゲートで検査可能な条件を明示する。
+- 再検討条件: 3作業程度の正式運用で往復回数、貼り先迷い、Gate漏れ、成果物再添付負担が改善しない場合。
