@@ -9,38 +9,33 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 - 実作業の事実、進捗、次の単一作業、停止条件が変わった場合だけ更新する。
 - 重要な方針変更は、この文書に理由を重複記載せず `DECISION_LOG.md` に追記する。
 - 商品名、CSV本文、秘密情報、長大な日次ログは記録しない。
-
-## 管理基盤の正式化確認と関連ブランチ
-
-- 管理基盤Ver1 第1・第2段階の統合検収はPASSであり、ユーザー受入済み。
-- 管理基盤専用ブランチへの初回commit・push済み:
-  `27c2b64b44ff42fdd99a66ed83d445c6d6dc47e2`
-- 正式化は文書の自己申告ではなく、対象commitが `main`、`origin/main`、実リモートmainに
-  含まれることをGitで確認して判断する。
-- `052dab573eb617ae78e4035024518a8ff5905f8d` は管理基盤導入前に確認した
-  `main` / `origin/main` の基準点であり、将来の正式版を固定して示すものではない。
-- 関連するAI実験ブランチ:
-  `feature/ph-category-mapper-ai-shadow-v0.2.1`
-- AI実験ブランチの確認済みHEAD:
-  `69a1d22c7ff4212d82ca088d09a66b8f4a465e58`
-- 上記のGit refは2026-07-26に確認した情報であり、実作業の進捗そのものではない。
+- Git外成果物は、Handoff Contractで定めた最小索引だけを記録する。
 
 ## 現在作業
 
-- current_work_type: `PH固定30件評価`
-- current_phase: 固定30件評価完了・オーナー受入済み
+- current_work_type: `PH ASIN Resolver固定30件・再評価準備`
+- current_phase: `Handoff Contract v1適用済み・21件再評価バッチ準備前`
 - working_branch: `再開時にGit状態を確認して確定`
-- next_action: ASIN Resolverの成功基準を定義するか、現状の結果で保留・改善へ進むかを判断するための経営判断材料を整理する。
+- next_action: 固定30件の完全な元入力を回収し、受入済み実行記録フォーマットを使って21件再評価バッチを準備する。
 
 PH固定30件評価は完了し、集計結果はオーナー受入済みです。評価完了は、Resolverの
-成功または完成の宣言ではありません。Git上の現在ブランチは作業開始時に確認し、
-再開時にGit状態を確認して確定します。
+成功または完成の宣言ではありません。Handoff Contract v1の同期ゲートが一致した場合だけ、
+次の作業を開始します。
+
+## 完了・受入済み
+
+- Resolverの読み取り専用仕様監査完了
+- 過去成果物の証拠回収監査完了
+- 候補なし21件の停止工程は過去証拠から復元不能
+- Evidence Gate Liteの3作業試行完了
+- 実行記録フォーマットv0.1.1 final受入済み
+- Handoff Contract v1を適用
 
 ## 固定30件評価の受入済み結果
 
 - marketplace: `PH`
-- module: `ASIN Resolver`
-- phase: 固定30件評価完了・オーナー受入済み
+- module: `ASIN Resolver・ChatGPT-Codex運用基盤`
+- phase: `固定30件評価受入後・21件再評価準備前`
 - 固定評価コホート: 元Shopee商品30件
 - Amazon候補を取得できた元Shopee商品: 9件
 - Amazon候補なしの元Shopee商品: 21件
@@ -56,21 +51,32 @@ PH固定30件評価は完了し、集計結果はオーナー受入済みです�
 - PH Prelisting Gate: 13候補すべて `ELIGIBLE`
 
 元Shopee商品単位の候補取得状況と、Amazon候補単位の同一性判定は分けて集計します。
-上記はユーザー確認済みかつオーナー受入済みの実運用結果として現在地点に採用します。Git、
-テストレポート、CI成果物で再確認された事実ではなく、コード機能の対応市場を
-証明する情報としても扱いません。
+上記はユーザー確認済みかつオーナー受入済みの実運用結果であり、Git、テストレポート、
+CI成果物で再確認された事実ではありません。コード機能の対応市場を証明する情報としても
+扱いません。
+
+## Git外成果物索引
+
+| artifact_id | 種別・版 | ファイル名 | SHA-256 | producer task | 受入状態 | storage alias | 用途 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| ART-PH-ASIN-EXEC-RECORD-V0.1.1 | Excel実行記録テンプレート v0.1.1 | `PH_ASIN_Resolver_Execution_Record_v0.1.1_final.xlsx` | `ef44b555d5e9b3c57062c7c50515ab1c83470d7c09c7d857a32d5b01284269bb` | `PH_ASIN_Resolver_実行記録v0.1設計` | `OWNER_ACCEPTED` | `ARTIFACT_ROOT/HANDOFF_EXECUTION_RECORD/PH_ASIN_Resolver_Execution_Record_v0.1.1_final.xlsx` | 21件再評価の工程・証拠記録 |
+| ART-PH-ASIN-EXEC-GUIDE-V0.1.1 | 非エンジニア向け記入Guide v0.1.1 | `PH_ASIN_Resolver_Execution_Record_v0.1.1_Guide.txt` | `642fe64970efbb83d7e6d175a2c9bde08474f596b004b952429bad6252e15e7e` | `PH_ASIN_Resolver_実行記録v0.1設計` | `OWNER_ACCEPTED` | `ARTIFACT_ROOT/HANDOFF_EXECUTION_RECORD/PH_ASIN_Resolver_Execution_Record_v0.1.1_Guide.txt` | 実行記録テンプレートの記入手順 |
+
+実物が必要な場合は、非コミットBriefでstorage aliasを解決するか、ChatGPTへ再添付する。
 
 ## 未完了事項
 
-- Resolverの成功基準は未決定であり、評価完了とは別に経営判断が必要
-- Category Mapper / AI Shadowの開始は未承認
+- 固定30件の完全な元入力回収
+- 21件再評価バッチ準備
+- 21件再評価
+- 工程別停止原因集計
+- 改善方法選定
+- Resolver成功基準決定
+- Category Mapper / AI Shadow開始判断
 
 ## 次の単一作業
 
-ASIN Resolverの成功基準を定義するか、現状の結果で保留・改善へ進むかを判断するための
-経営判断材料を整理する。
-
-
+固定30件の完全な元入力を回収し、21件再評価用バッチを準備する。
 
 ## 停止条件
 
@@ -82,24 +88,18 @@ ASIN Resolverの成功基準を定義するか、現状の結果で保留・改�
 - 外部APIは、作業票またはCodex指示で許可されたAPI・目的・最大件数・再試行条件の
   範囲内だけ実行する。許可範囲が明記されていない場合は実行せず停止する。
 - Shopee商品系書込APIと自動出品は、明示許可がない限り禁止する。
-- Category Mapper / AI Shadowの開始前に、評価結果とは別にユーザーの明示承認を得る。
-
-## 評価完了条件
-
-固定30件評価の完了条件は、次のすべてを満たしました。
-
-1. 取得済み13候補を4区分のいずれかに分類した。
-2. 固定30件全体について候補取得状況を集計した。
-3. `MATCH`、`VARIANT_MATCH`、`UNCERTAIN`、`MISMATCH`、候補なしを別々に集計した。
-4. 集計結果を管理文書に記録し、オーナー受入を得た。
+- 完全な30件一覧を証拠なしで補完しない。
+- 21件再評価前に実行記録フォーマットを使用する。
+- 初回検索、再検索、Resolver解析、Keepa確認、同一性判定を混在させない。
+- 成功基準は21件の工程別証拠がそろう前に決定しない。
+- Handoff Contractの同期ゲート不一致時は作業しない。
 
 ## 成功判定の状態
 
 - 評価完了とResolverの成功判定は別です。
 - 成功基準は現時点で未決定です。
 - 評価完了だけでResolverの成功や完成を宣言しません。
-- 最後に成功したテスト結果は、根拠となるコミット済みレポートまたはCI成果物を
-  確認できていないため、未確認です。
+- 21件の工程別証拠がそろうまで、成功基準は未確認のままです。
 
 ## 既知の文書不整合
 
@@ -112,28 +112,12 @@ ASIN Resolverの成功基準を定義するか、現状の結果で保留・改�
 ## 情報の根拠・確認レベル
 
 | 情報 | 根拠・確認レベル |
-|---|---|
-| 管理基盤専用ブランチと関連ブランチのref | Gitで確認済み |
-| 現在のPH評価作業と再開予定branch | この文書と作業票で確認済み。実作業branchは作業開始時にGit状態で確認する |
+| --- | --- |
+| 現在作業、次の単一作業、停止条件、Git外成果物索引 | この文書とオーナー承認済みBriefで確認済み |
 | 30件、9件の候補あり元商品、21件の候補なし元商品、13候補、判定区分、Keepa確認、PH Gate結果 | ユーザー確認済みかつオーナー受入済みの実運用結果。Git・テスト・CIでの再確認は未実施 |
+| 候補なし21件の停止工程 | 過去成果物の証拠からは復元不能とする監査結果 |
 | PH対応のコード上の事実 | 未確認 |
-| 最後に成功したテスト結果 | 未確認。コミット済みレポートまたはCI成果物を確認できていない |
-
-<!-- CONTEXT_SNAPSHOT:START -->
-## 引継ぎ要約
-
-- 現在作業: PH ASIN Resolver固定30件評価の完了結果を受入済み
-- current_phase: 固定30件評価完了・オーナー受入済み
-- 実作業branch: 再開時にGit状態を確認して確定
-- 次の単一作業: Resolverの成功基準または保留・改善方針を判断するための経営判断材料の整理
-- 管理基盤Ver1 第1・第2段階は統合検収PASS・ユーザー受入済みで、専用ブランチへの
-  初回commit・push済み。正式化は対象commitがmain系refに含まれることをGitで確認する。
-- 元Shopee商品30件中9件でAmazon候補を取得し、21件は候補なし。候補13件は
-  Keepa確認済みで、PH Prelisting Gateは13候補すべて `ELIGIBLE`。
-- 候補13件は`MATCH` 9件、`VARIANT_MATCH` 2件、`UNCERTAIN` 0件、`MISMATCH` 2件。
-  完全一致率は候補単位で69.2%（9 / 13）。Category Mapper / AI Shadowへは進まない。
-- SG / MY / THは今回のPH作業の対象外。
-<!-- CONTEXT_SNAPSHOT:END -->
+| 固定30件の完全な元入力、21件のsource_id・元商品名、再評価の実行日・担当者・使用外部AI、Resolver成功基準、改善対象と改善方法 | 未確認 |
 
 ## 最終更新日
 

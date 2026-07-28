@@ -106,3 +106,61 @@ ChatGPTは何を・なぜ行うかを決めます。Codexは現状確認、Plan�
 3回の評価前には、Skill、Scheduled task、Control Plane、追加の作業票体系、複数の
 ChatGPTプロジェクト、Environment承認、Work IDごとのAPIキーを導入しません。
 評価後に実際の摩擦が確認された部分だけを、削る・維持する・最小限にSkill化するか判断します。
+
+## Handoff Contract v1
+
+### FORMALとEXPLORATION
+
+- EXPLORATION: 一般論、仮説、論点整理。正式提案、KPI、次の単一作業、WORK_BRIEFとして扱わない。
+- FORMAL: リポジトリ固有の判断、KPI、成功基準、次の単一作業、WORK_BRIEF、commit・PR・merge判断。
+- FORMALにはEvidence Gateを必須とする。GateのないFORMAL提案は無効とする。
+- Evidence Gate: PASSは、提案に必要な根拠を確認できたことを示す。実装成功・受入成功は保証しない。
+
+### チャット切替条件
+
+新しいChatGPTチャットへ切り替える前に、次をすべて満たす。
+
+1. `CURRENT_WORK.md` が最新である。
+2. 必要な判断を `DECISION_LOG.md` へ追記している。
+3. 工程順が変わった場合は `PROJECT_ROADMAP.md` を更新している。
+4. Git外成果物の最小索引を `CURRENT_WORK.md` へ記録している。
+5. 変更がmainへmerge済みであり、merge後のformal main commitを確定している。
+6. 次の単一作業と停止条件を確定している。
+7. 次のCodexタスクを既存継続か新規作成か明記している。
+8. 古いBriefを失効扱いにしている。
+
+### Codex開始時同期ゲート
+
+新規・継続を問わず、FORMAL Briefの開始時に次を独立確認する。
+
+- fetch後のorigin/main、Briefのformal commit、remote、repo root、branch、HEAD、clean / dirty
+- marketplace、module、phase、対象外、Git・APIの許可範囲
+- 必要なGit外成果物へのアクセス
+
+不一致なら `BRIEF_GATE: STOP` とする。formal main照合にはlocal mainではなく、fetch後の
+origin/mainを使う。
+
+### task dispositionと古いBrief
+
+WORK_BRIEFには必ず `CONTINUE_EXISTING_TASK` または `CREATE_NEW_TASK`、Codexタスク名、
+対象worktreeを指定する。formal main commit、CURRENT_WORKのmarketplace・module・phase、
+次の単一作業、停止条件、対象worktree、APIまたはGit許可範囲のいずれかが変わったBriefは
+自動的に失効する。古いBriefを推測で修正して実行しない。
+
+### Git外成果物
+
+mainにはartifact_id、種別・版、ファイル名、SHA-256、producer taskまたはproducer commit、
+受入状態、storage alias、用途だけを記録できる。絶対パス、商品本文、AI回答本文、URL一覧、
+ASIN一覧、認証情報、APIキー、個人情報は記録しない。
+
+実物が必要な場合は、非コミットBriefでstorage aliasを絶対パスへ解決するか、ChatGPTへ
+再添付する。SHA-256、版、producer、用途が一致し、`OWNER_ACCEPTED`かつ差分がなく、次作業が
+記録済み結論だけに依存する場合は再検収を省略できる。生データ判断、未受入、SHA不一致、版変更が
+ある場合は再検収する。
+
+### 新チャット標準開始文
+
+「GitHubの最新mainを基準に、AGENTS.md、CURRENT_WORK.md、DECISION_LOG.md、
+PROJECT_ROADMAP.md、RUNBOOK_CHATGPT_CODEX.mdを確認し、全体目標、現在地、次の単一作業、
+停止条件、Git外成果物索引を報告してください。FORMALな判断またはWORK_BRIEFを作る場合は
+Evidence Gateを表示してください。正本を確認できない場合はGITHUB_UNAVAILABLEとして停止してください。」
