@@ -14,9 +14,9 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 ## 現在作業
 
 - current_work_type: `PH ASIN Resolver固定30件・再評価準備`
-- current_phase: `Handoff Contract v1適用済み・21件再評価バッチ準備前`
+- current_phase: `Handoff Contract v1適用済み・テンプレート正本SHA再確定・固定30件証跡パッケージ監査前`
 - working_branch: `再開時にGit状態を確認して確定`
-- next_action: 固定30件の完全な元入力を回収し、受入済み実行記録フォーマットを使って21件再評価バッチを準備する。
+- next_action: 固定30件証跡パッケージ監査を再開し、完全な元入力、初回export、13候補CSV、正式集計Excelと30件の対応関係を照合する。
 
 PH固定30件評価は完了し、集計結果はオーナー受入済みです。評価完了は、Resolverの
 成功または完成の宣言ではありません。Handoff Contract v1の同期ゲートが一致した場合だけ、
@@ -29,6 +29,7 @@ PH固定30件評価は完了し、集計結果はオーナー受入済みです�
 - 候補なし21件の停止工程は過去証拠から復元不能
 - Evidence Gate Liteの3作業試行完了
 - 実行記録フォーマットv0.1.1 final受入済み
+- テンプレートv0.1.1 finalの正本SHA再確定
 - Handoff Contract v1を適用
 
 ## 固定30件評価の受入済み結果
@@ -59,7 +60,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 | artifact_id | 種別・版 | ファイル名 | SHA-256 | producer task | 受入状態 | storage alias | 用途 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| ART-PH-ASIN-EXEC-RECORD-V0.1.1 | Excel実行記録テンプレート v0.1.1 | `PH_ASIN_Resolver_Execution_Record_v0.1.1_final.xlsx` | `ef44b555d5e9b3c57062c7c50515ab1c83470d7c09c7d857a32d5b01284269bb` | `PH_ASIN_Resolver_実行記録v0.1設計` | `OWNER_ACCEPTED` | `ARTIFACT_ROOT/HANDOFF_EXECUTION_RECORD/PH_ASIN_Resolver_Execution_Record_v0.1.1_final.xlsx` | 21件再評価の工程・証拠記録 |
+| ART-PH-ASIN-EXEC-RECORD-V0.1.1 | Excel実行記録テンプレート v0.1.1 | `PH_ASIN_Resolver_Execution_Record_v0.1.1_final.xlsx` | `d150be6a552d0ef212f0ee4965f11f0c8f324eacbf3d8c56e05db07efd8d616e` | `PH_ASIN_Resolver_実行記録v0.1設計` | `OWNER_ACCEPTED` | `ARTIFACT_ROOT/HANDOFF_EXECUTION_RECORD/PH_ASIN_Resolver_Execution_Record_v0.1.1_final.xlsx` | 21件再評価の工程・証拠記録 |
 | ART-PH-ASIN-EXEC-GUIDE-V0.1.1 | 非エンジニア向け記入Guide v0.1.1 | `PH_ASIN_Resolver_Execution_Record_v0.1.1_Guide.txt` | `642fe64970efbb83d7e6d175a2c9bde08474f596b004b952429bad6252e15e7e` | `PH_ASIN_Resolver_実行記録v0.1設計` | `OWNER_ACCEPTED` | `ARTIFACT_ROOT/HANDOFF_EXECUTION_RECORD/PH_ASIN_Resolver_Execution_Record_v0.1.1_Guide.txt` | 実行記録テンプレートの記入手順 |
 
 実物が必要な場合は、非コミットBriefでstorage aliasを解決するか、ChatGPTへ再添付する。
@@ -76,7 +77,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-固定30件の完全な元入力を回収し、21件再評価用バッチを準備する。
+固定30件証跡パッケージ監査を再開し、完全な元入力、初回export、13候補CSV、正式集計Excelと30件の対応関係を照合する。
 
 ## 停止条件
 
@@ -114,6 +115,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 | 情報 | 根拠・確認レベル |
 | --- | --- |
 | 現在作業、次の単一作業、停止条件、Git外成果物索引 | この文書とオーナー承認済みBriefで確認済み |
+| テンプレートv0.1.1 finalの正本SHA | オーナー一次記録と読み取り専用監査で確認済み |
 | 30件、9件の候補あり元商品、21件の候補なし元商品、13候補、判定区分、Keepa確認、PH Gate結果 | ユーザー確認済みかつオーナー受入済みの実運用結果。Git・テスト・CIでの再確認は未実施 |
 | 候補なし21件の停止工程 | 過去成果物の証拠からは復元不能とする監査結果 |
 | PH対応のコード上の事実 | 未確認 |
@@ -121,4 +123,4 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 最終更新日
 
-2026-07-28
+2026-07-29
