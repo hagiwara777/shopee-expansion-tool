@@ -28,70 +28,70 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 ## 現在作業
 
 - current_work_type: `PH固定30件評価`
-- current_phase: 取得済み13候補の同一性監査再開前
+- current_phase: 固定30件評価完了・オーナー受入済み
 - working_branch: `再開時にGit状態を確認して確定`
-- next_action: 9件の元Shopee商品と13件のAmazon候補の同一性監査
+- next_action: ASIN Resolverの成功基準を定義するか、現状の結果で保留・改善へ進むかを判断するための経営判断材料を整理する。
 
-現在の事業上・運用上の作業はPH固定30件評価です。管理基盤専用ブランチは文書と
-Snapshotを整備するためのGit上の現在ブランチであり、評価を再開する実作業branchは
+PH固定30件評価は完了し、集計結果はオーナー受入済みです。評価完了は、Resolverの
+成功または完成の宣言ではありません。Git上の現在ブランチは作業開始時に確認し、
 再開時にGit状態を確認して確定します。
 
-## 現在の評価対象
+## 固定30件評価の受入済み結果
 
 - marketplace: `PH`
 - module: `ASIN Resolver`
-- phase: 固定30件評価
+- phase: 固定30件評価完了・オーナー受入済み
 - 固定評価コホート: 元Shopee商品30件
 - Amazon候補を取得できた元Shopee商品: 9件
+- Amazon候補なしの元Shopee商品: 21件
+- 候補取得率（元商品単位）: 30.0%（9 / 30）
+- MATCHありの元Shopee商品: 8件
 - Amazon候補: 13件
+- MATCH（Amazon候補単位）: 9件
+- VARIANT_MATCH（Amazon候補単位）: 2件
+- UNCERTAIN（Amazon候補単位）: 0件
+- MISMATCH（Amazon候補単位）: 2件
+- 完全一致率（Amazon候補単位）: 69.2%（9 / 13）
 - Keepa確認: 13候補すべて確認済み
 - PH Prelisting Gate: 13候補すべて `ELIGIBLE`
 
-上記はユーザー確認済みの実運用結果として現在地点に採用します。Git、
+元Shopee商品単位の候補取得状況と、Amazon候補単位の同一性判定は分けて集計します。
+上記はユーザー確認済みかつオーナー受入済みの実運用結果として現在地点に採用します。Git、
 テストレポート、CI成果物で再確認された事実ではなく、コード機能の対応市場を
 証明する情報としても扱いません。
 
 ## 未完了事項
 
-- 13件のAmazon候補を、対応する9件の元Shopee商品と照合する同一性監査
-- 固定30件全体の候補取得状況と判定区分の集計
-- 集計結果の記録
+- Resolverの成功基準は未決定であり、評価完了とは別に経営判断が必要
+- Category Mapper / AI Shadowの開始は未承認
 
 ## 次の単一作業
 
-13件のAmazon候補を、対応する9件の元Shopee商品と照合する同一性監査を行います。
-各候補は次の4区分のいずれかに分類します。
+ASIN Resolverの成功基準を定義するか、現状の結果で保留・改善へ進むかを判断するための
+経営判断材料を整理する。
 
-| 区分 | 意味 |
-|---|---|
-| `MATCH` | 同一商品・同一仕様 |
-| `VARIANT_MATCH` | 同一シリーズだが、色・容量・数量・サイズなどが異なる |
-| `UNCERTAIN` | 情報不足 |
-| `MISMATCH` | 別商品 |
 
-完全一致は `MATCH` だけで数えます。`VARIANT_MATCH` は別集計とし、完全一致率に
-含めません。候補なしは、固定30件のうちAmazon候補を取得できなかった元Shopee商品
-として別集計します。
 
 ## 停止条件
 
-- 同一性監査が未完了の候補を、Category Mapper / AI Shadowへ渡さない。
-- 固定30件評価の結果が記録されるまで、大機能を追加しない。
+- Category Mapper / AI Shadowは、オーナーの明示的な開始承認があるまで開始しない。
+- 固定30件評価のオーナー受入だけでは、Category Mapper / AI Shadowの開始を承認した
+  ものと扱わない。
+- Resolverの成功基準が未決定のまま、大機能を追加しない。
 - SG / MY / THの資料、規則、Category情報を今回のPH作業へ使用しない。
 - 外部APIは、作業票またはCodex指示で許可されたAPI・目的・最大件数・再試行条件の
   範囲内だけ実行する。許可範囲が明記されていない場合は実行せず停止する。
 - Shopee商品系書込APIと自動出品は、明示許可がない限り禁止する。
-- 固定30件評価の完了、集計結果のユーザー確認、ユーザーの明示承認がそろうまで、
-  Category Mapper / AI Shadowへ進まない。
+- Category Mapper / AI Shadowの開始前に、評価結果とは別にユーザーの明示承認を得る。
 
 ## 評価完了条件
 
-固定30件評価は、次のすべてが完了したときに完了とします。
+固定30件評価の完了条件は、次のすべてを満たしました。
 
-1. 現在取得済みの13候補を4区分のいずれかに分類する。
-2. 固定30件全体について候補取得状況を集計する。
-3. `MATCH`、`VARIANT_MATCH`、`UNCERTAIN`、`MISMATCH`、候補なしを別々に集計する。
-4. 集計結果を管理文書または評価成果物に記録する。
+1. 取得済み13候補を4区分のいずれかに分類した。
+2. 固定30件全体について候補取得状況を集計した。
+3. `MATCH`、`VARIANT_MATCH`、`UNCERTAIN`、`MISMATCH`、候補なしを別々に集計した。
+4. 集計結果を管理文書に記録し、オーナー受入を得た。
 
 ## 成功判定の状態
 
@@ -114,27 +114,27 @@ Snapshotを整備するためのGit上の現在ブランチであり、評価を
 | 情報 | 根拠・確認レベル |
 |---|---|
 | 管理基盤専用ブランチと関連ブランチのref | Gitで確認済み |
-| 現在のPH評価作業と再開予定branch | この文書と作業票で確認済み。実作業branchは再開時にGit状態で確認する |
-| 30件、9元商品、13候補、Keepa確認、PH Gate結果 | ユーザー確認済みの実運用結果。Git・テスト・CIでの再確認は未実施 |
+| 現在のPH評価作業と再開予定branch | この文書と作業票で確認済み。実作業branchは作業開始時にGit状態で確認する |
+| 30件、9件の候補あり元商品、21件の候補なし元商品、13候補、判定区分、Keepa確認、PH Gate結果 | ユーザー確認済みかつオーナー受入済みの実運用結果。Git・テスト・CIでの再確認は未実施 |
 | PH対応のコード上の事実 | 未確認 |
 | 最後に成功したテスト結果 | 未確認。コミット済みレポートまたはCI成果物を確認できていない |
 
 <!-- CONTEXT_SNAPSHOT:START -->
 ## 引継ぎ要約
 
-- 現在作業: PH ASIN Resolver固定30件評価
-- current_phase: 取得済み13候補の同一性監査再開前
+- 現在作業: PH ASIN Resolver固定30件評価の完了結果を受入済み
+- current_phase: 固定30件評価完了・オーナー受入済み
 - 実作業branch: 再開時にGit状態を確認して確定
-- 次の単一作業: 9件の元Shopee商品と13件のAmazon候補の同一性監査
+- 次の単一作業: Resolverの成功基準または保留・改善方針を判断するための経営判断材料の整理
 - 管理基盤Ver1 第1・第2段階は統合検収PASS・ユーザー受入済みで、専用ブランチへの
   初回commit・push済み。正式化は対象commitがmain系refに含まれることをGitで確認する。
-- 元Shopee商品9件に対してAmazon候補13件。13候補はKeepa確認済みで、PH Prelisting
-  Gateは13候補すべて `ELIGIBLE`。
-- `MATCH` / `VARIANT_MATCH` / `UNCERTAIN` / `MISMATCH`に分類する。`VARIANT_MATCH` は
-  完全一致率に含めない。Category Mapper / AI Shadowへはまだ進まない。
+- 元Shopee商品30件中9件でAmazon候補を取得し、21件は候補なし。候補13件は
+  Keepa確認済みで、PH Prelisting Gateは13候補すべて `ELIGIBLE`。
+- 候補13件は`MATCH` 9件、`VARIANT_MATCH` 2件、`UNCERTAIN` 0件、`MISMATCH` 2件。
+  完全一致率は候補単位で69.2%（9 / 13）。Category Mapper / AI Shadowへは進まない。
 - SG / MY / THは今回のPH作業の対象外。
 <!-- CONTEXT_SNAPSHOT:END -->
 
 ## 最終更新日
 
-2026-07-27
+2026-07-28
