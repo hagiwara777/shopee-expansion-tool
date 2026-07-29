@@ -14,9 +14,9 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 ## 現在作業
 
 - current_work_type: `PH ASIN Resolver固定30件・再評価準備`
-- current_phase: `Handoff Contract v1適用済み・固定30件入力候補回収・歴史的実行対応未証明・再基準化設計前`
+- current_phase: `再現可能固定30件基準実行設計承認済み・Resolver証拠永続化実装前`
 - working_branch: `再開時にGit状態を確認して確定`
-- next_action: 回収TSVを歴史的実行入力と同一視せず、新しい基準入力候補として使用する再現可能な固定30件実行案を作成し、外部AI・Keepa・実運用の開始はオーナー決裁へ回す。
+- next_action: 承認済み設計に基づき、JPH→R source map、Evidence Manifest、成果物SHA、batch中断・再開情報を永続化するResolver改修と、実行記録テンプレートの最小補強を実装・検証する。
 
 PH固定30件評価は完了し、集計結果はオーナー受入済みです。評価完了は、Resolverの
 成功または完成の宣言ではありません。Handoff Contract v1の同期ゲートが一致した場合だけ、
@@ -35,6 +35,12 @@ PH固定30件評価は完了し、集計結果はオーナー受入済みです�
 - 完全SHAとproducer記録を持つ固定30件入力候補を回収
 - JPH→R対応監査は、実行記録欠如と30/30タイトル不一致によりSTOP
 - 回収TSVは歴史的初回exportの入力として未証明
+- 再現可能な固定30件基準実行の設計ゲート完了
+- 必要性分類 `RESOLVER_CHANGE_REQUIRED`
+- 回収TSVを新規基準実行専用としてオーナー受入
+- Resolver証拠永続化改修を承認
+- テンプレート最小補強を承認
+- 外部AI・Keepa・実データ実行は未許可
 
 ## 固定30件評価の受入済み結果
 
@@ -66,25 +72,26 @@ CI成果物で再確認された事実ではありません。コード機能の
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | ART-PH-ASIN-EXEC-RECORD-V0.1.1 | Excel実行記録テンプレート v0.1.1 | `PH_ASIN_Resolver_Execution_Record_v0.1.1_final.xlsx` | `d150be6a552d0ef212f0ee4965f11f0c8f324eacbf3d8c56e05db07efd8d616e` | `PH_ASIN_Resolver_実行記録v0.1設計` | `OWNER_ACCEPTED` | `ARTIFACT_ROOT/HANDOFF_EXECUTION_RECORD/PH_ASIN_Resolver_Execution_Record_v0.1.1_final.xlsx` | 21件再評価の工程・証拠記録 |
 | ART-PH-ASIN-EXEC-GUIDE-V0.1.1 | 非エンジニア向け記入Guide v0.1.1 | `PH_ASIN_Resolver_Execution_Record_v0.1.1_Guide.txt` | `642fe64970efbb83d7e6d175a2c9bde08474f596b004b952429bad6252e15e7e` | `PH_ASIN_Resolver_実行記録v0.1設計` | `OWNER_ACCEPTED` | `ARTIFACT_ROOT/HANDOFF_EXECUTION_RECORD/PH_ASIN_Resolver_Execution_Record_v0.1.1_Guide.txt` | 実行記録テンプレートの記入手順 |
+| ART-PH-FIXED30-BASELINE-INPUT-V1 | 固定30件基準入力 v1 | `PH_Japan_AI_Eval_Resolver_Input_V1.tsv` | `32e2dcc21f6820134d7919bbc572e1f91781082cd1d28eee892c3213aaa3d5e1` | `PH_Japan_AI_Eval_Selection_Report_V1.md` | `OWNER_ACCEPTED_FOR_NEW_BASELINE_ONLY` | `LOCAL_RECOVERED_PH_FIXED30_INPUT` | 新規固定30件基準実行専用入力 |
 
 実物が必要な場合は、非コミットBriefでstorage aliasを解決するか、ChatGPTへ再添付する。
 
 ## 未完了事項
 
-- 回収TSVを今後の正式基準入力として採用するオーナー決裁
-- 新しい固定30件基準実行案
-- 固定30件証跡パッケージの再構築
-- 21件再評価バッチ準備
-- 正式集計Excelの回収または代替方針
-- 21件再評価
-- 工程別停止原因集計
-- 改善方法選定
-- Resolver成功基準決定
-- Category Mapper / AI Shadow開始判断
+- Resolver証拠永続化改修
+- Evidence Manifest schema・生成・検証
+- source mapの30/30保存
+- batch中断・再開契約
+- テンプレートとGuideの最小補強
+- 実装後の単体・結合テスト
+- オーナーによる実画面受入
+- 外部AI・Keepa・実データ実行の別途決裁
+- 新規固定30件基準実行
+- 新batchで再検索対象となった商品の再評価バッチ準備以降の未完了工程
 
 ## 次の単一作業
 
-回収TSVを歴史的実行入力と同一視せず、新しい基準入力候補として使用する再現可能な固定30件実行案を作成し、外部AI・Keepa・実運用の開始はオーナー決裁へ回す。
+承認済み設計に基づき、JPH→R source map、Evidence Manifest、成果物SHA、batch中断・再開情報を永続化するResolver改修と、実行記録テンプレートの最小補強を実装・検証する。
 
 ## 停止条件
 
@@ -102,9 +109,16 @@ CI成果物で再確認された事実ではありません。コード機能の
 - source map等の一次証拠がない限り、歴史的JPH→R対応探索を再開しない。
 - 新しい固定30件基準実行が完了するまで、既存の9件・21件区分を回収TSVへ接続して21件再評価バッチを作成しない。
 - 外部AI、Keepa、実運用はオーナー明示許可前に開始しない。
-- 21件再評価前に実行記録フォーマットを使用する。
+- Resolver改修とテスト完了前に新規固定30件を実行しない。
+- Evidence Manifestとsource mapを保存できない状態で実行しない。
+- 回収TSVを歴史的初回exportへ接続しない。
+- 外部AI、Keepa、実データ、新batchの再検索対象商品の再評価は別途明示許可前に実行しない。
+- 検索精度改善や商品同一性ロジックを今回の証拠永続化改修へ混在させない。
+- Excelだけを全成果物証拠台帳の正本にしない。
+- 実画面受入前に改修完了扱いにしない。
+- 新batchの再検索対象商品の再評価前に実行記録フォーマットを使用する。
 - 初回検索、再検索、Resolver解析、Keepa確認、同一性判定を混在させない。
-- 成功基準は21件の工程別証拠がそろう前に決定しない。
+- 成功基準は新batchの再検索対象を含む工程別証拠がそろう前に決定しない。
 - Handoff Contractの同期ゲート不一致時は作業しない。
 
 ## 成功判定の状態
@@ -112,7 +126,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 - 評価完了とResolverの成功判定は別です。
 - 成功基準は現時点で未決定です。
 - 評価完了だけでResolverの成功や完成を宣言しません。
-- 21件の工程別証拠がそろうまで、成功基準は未確認のままです。
+- 新batchの再検索対象を含む工程別証拠がそろうまで、成功基準は未確認のままです。
 
 ## 既知の文書不整合
 
@@ -133,9 +147,11 @@ CI成果物で再確認された事実ではありません。コード機能の
 | 回収TSVのファイル名、完全SHA、30件構成、producer chain | 読み取り専用監査で確認済み |
 | 歴史的初回exportとの対応と正式実行入力としての同一性 | 未証明 |
 | JPH→R行順仮説 | タイトル照合0/30 |
-| 回収TSVの今後の正式基準入力としての採用 | 未決裁 |
+| 設計ゲートと必要性分類 | コード・テスト・3成果物の読み取り照合済み。`RESOLVER_CHANGE_REQUIRED` |
+| 回収TSVの今後の正式基準入力としての採用 | 新規基準入力専用としてオーナー受入済み |
+| Resolver改修、テスト、実画面、実データ | 未確認 |
 | PH対応のコード上の事実 | 未確認 |
-| 21件のsource_id・元商品名、再評価の実行日・担当者・使用外部AI、Resolver成功基準、改善対象と改善方法 | 未確認 |
+| 新batchで確定する再検索対象件数・source_id、再評価の実行日・担当者・使用外部AI、Resolver成功基準、改善対象と改善方法 | 未確認 |
 
 ## 最終更新日
 
