@@ -14,9 +14,9 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 ## 現在作業
 
 - current_work_type: `PH ASIN Resolver固定30件・再評価準備`
-- current_phase: `Resolver証拠永続化実装・技術検収・オーナー受入済み・PR検収前`
+- current_phase: `Resolver証拠永続化PR検収済み・main統合正式化中`
 - working_branch: `feature/ph-asin-resolver-evidence-persistence`
-- next_action: 作成されたPRの差分・CI・formal commit条件をChatGPTが正式検収し、main統合可否を判断する。
+- next_action: PR #7をmainへ統合し、ChatGPTが統合後のformal main commitを直接確認する。
 
 PH固定30件評価は完了し、集計結果はオーナー受入済みです。評価完了は、Resolverの
 成功または完成の宣言ではありません。Handoff Contract v1の同期ゲートが一致した場合だけ、
@@ -46,6 +46,8 @@ PH固定30件評価は完了し、集計結果はオーナー受入済みです�
 - 全pytest 696件成功
 - オーナー実画面確認完了
 - Excel／Guide rev2オーナー受入完了
+- PR #7の全差分についてChatGPT正式技術検収完了
+- Excel／Guide rev2オーナー正式受入完了
 
 ## 固定30件評価の受入済み結果
 
@@ -85,9 +87,9 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 未完了事項
 
-- PR検収
 - main統合
 - main統合後formal commit確認
+- 事業全体フロー・ロードマップ正式化
 - 外部AI・Keepa・実データ実行の別決裁
 - 新規固定30件基準実行
 - ASIN到達性能の評価
@@ -95,7 +97,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-作成されたPRの差分・CI・formal commit条件をChatGPTが正式検収し、main統合可否を判断する。
+PR #7をmainへ統合し、ChatGPTが統合後のformal main commitを直接確認する。
 
 ## 停止条件
 
@@ -114,6 +116,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 - 新しい固定30件基準実行が完了するまで、既存の9件・21件区分を回収TSVへ接続して21件再評価バッチを作成しない。
 - 外部AI、Keepa、実運用はオーナー明示許可前に開始しない。
 - 新規固定30件実行前にmain統合と別決裁が必要。
+- main統合後のformal main commitをChatGPTが確認する前に、事業全体フロー・ロードマップ正式化を開始しない。
 - Evidence Manifestとsource mapを保存できない状態で実行しない。
 - 回収TSVを歴史的初回exportへ接続しない。
 - 外部AI、Keepa、実データ、新batchの再検索対象商品の再評価は別途明示許可前に実行しない。

@@ -27,7 +27,7 @@ Amazon.co.jp URLまたは明示されたASIN候補を抽出し、Keepa確認前�
 
 初回AI返答で既知のsource_idがすべて`UNKNOWN / NOT_CHECKED / AI returned unknown`となり、Amazon.co.jp URL・ASIN候補が1件もない商品は、再検索支援タブに1商品1行で表示できます。元の商品名と初回検索用タイトルは読み取り専用で保持し、再検索用タイトルだけを手動修正して、同じsource_id付きの再検索プロンプトを生成します。再検索のAI返答は既存の解析欄へ貼り付けます。再検索対象の生成・編集・プロンプト生成ではKeepa APIを呼ばず、再検索結果を初回結果やCSVへ自動統合しません。
 
-ASIN Resolver Tool Ver0.3は商品名からAmazon商品をアプリ内部で検索する機能ではなく、外部AIの返答から候補を抽出する補助ツールです。CSVファイルのアップロード、Expansion Toolへの自動投入、Shopee API連携、自動出品、Amazonページ操作、ブラウザ自動操作、AI API・Gemini API・Web検索APIの自動呼び出しは行いません。Guardrail FilterもResolverからは呼び出しません。Evidence Batchを開始していないlegacy／非証跡モードでは、source_idや工程証拠を永続保存しません。
+ASIN Resolver Tool Ver0.4.3は商品名からAmazon商品をアプリ内部で検索する機能ではなく、外部AIの返答から候補を抽出する補助ツールです。CSVファイルのアップロード、Expansion Toolへの自動投入、Shopee API連携、自動出品、Amazonページ操作、ブラウザ自動操作、AI API・Gemini API・Web検索APIの自動呼び出しは行いません。Guardrail FilterもResolverからは呼び出しません。Evidence Batchを開始していないlegacy／非証跡モードでは、source_idや工程証拠を永続保存しません。
 
 ### Evidence Batch（PH基準実行用）
 
