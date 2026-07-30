@@ -14,11 +14,11 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 ## 現在作業
 
 - current_work_type: `事業全体フロー・ロードマップ正式化`
-- current_phase: `Resolver証拠永続化main統合済み・全体フロー正本正式化中`
+- current_phase: `事業全体フロー正本PR検収済み・main統合正式化中`
 - working_branch: `codex/ops-business-flow-roadmap-formalization`
 - marketplace: `PH`
 - module: `事業全体フロー・管理正本`
-- next_action: 事業全体フローと市場展開方針の正本差分をChatGPTが正式検収し、main統合可否を判断する。
+- next_action: PR #8をmainへ統合し、ChatGPTが統合後のformal main commitを直接確認する。
 
 PH固定30件評価は完了し、集計結果はオーナー受入済みです。評価完了は、Resolverの
 成功または完成の宣言ではありません。Handoff Contract v1の同期ゲートが一致した場合だけ、
@@ -53,6 +53,8 @@ PH固定30件評価は完了し、集計結果はオーナー受入済みです�
 - formal main commit `8f664cdb42edc521371c389f6ad72ac7e0f3aecd`確認完了
 - Resolver証拠永続化実装をmain上の正式成果として受入
 - 事業全体フローの設計ゲート完了
+- PR #8の正本3文書差分についてChatGPT正式検収完了
+- branch commit・通常push・Draft PR #8作成完了
 
 ## 固定30件評価の受入済み結果
 
@@ -92,8 +94,8 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 未完了事項
 
-- 本正本差分のChatGPT正式検収
-- branchのcommit・push・PR・main統合
+- PR #8のmain統合
+- main統合後formal commit確認
 - 既存出品ツール正式入力契約の監査
 - PH Gate対応不整合の監査
 - モジュール間接続の設計ゲート
@@ -107,7 +109,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-事業全体フローと市場展開方針の正本差分をChatGPTが正式検収し、main統合可否を判断する。
+PR #8をmainへ統合し、ChatGPTが統合後のformal main commitを直接確認する。
 
 ## 停止条件
 
@@ -146,6 +148,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 - 証拠保存機能の完成だけでResolver成功を宣言しない。
 - Category Mapper AI Shadowはオーナー明示承認まで開始しない。
 - 自動出品は明示承認なしに開始しない。
+- main統合後のformal main commitをChatGPTが確認する前に、既存出品ツール正式入力契約の監査を開始しない。
 
 ## 成功判定の状態
 
