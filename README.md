@@ -27,7 +27,17 @@ Amazon.co.jp URLまたは明示されたASIN候補を抽出し、Keepa確認前�
 
 初回AI返答で既知のsource_idがすべて`UNKNOWN / NOT_CHECKED / AI returned unknown`となり、Amazon.co.jp URL・ASIN候補が1件もない商品は、再検索支援タブに1商品1行で表示できます。元の商品名と初回検索用タイトルは読み取り専用で保持し、再検索用タイトルだけを手動修正して、同じsource_id付きの再検索プロンプトを生成します。再検索のAI返答は既存の解析欄へ貼り付けます。再検索対象の生成・編集・プロンプト生成ではKeepa APIを呼ばず、再検索結果を初回結果やCSVへ自動統合しません。
 
-ASIN Resolver Tool Ver0.3は商品名からAmazon商品をアプリ内部で検索する機能ではなく、外部AIの返答から候補を抽出する補助ツールです。CSVファイルのアップロード、Expansion Toolへの自動投入、Shopee API連携、自動出品、Amazonページ操作、ブラウザ自動操作、AI API・Gemini API・Web検索APIの自動呼び出しは行いません。Guardrail FilterもResolverからは呼び出しません。source_idの永続保存も行いません。
+ASIN Resolver Tool Ver0.4.3は商品名からAmazon商品をアプリ内部で検索する機能ではなく、外部AIの返答から候補を抽出する補助ツールです。CSVファイルのアップロード、Expansion Toolへの自動投入、Shopee API連携、自動出品、Amazonページ操作、ブラウザ自動操作、AI API・Gemini API・Web検索APIの自動呼び出しは行いません。Guardrail FilterもResolverからは呼び出しません。Evidence Batchを開始していないlegacy／非証跡モードでは、source_idや工程証拠を永続保存しません。
+
+### Evidence Batch（PH基準実行用）
+
+Evidence Batchは、PHのformalな基準実行で入力からResolver exportまでを追跡するための任意の耐久保存機能です。新規batch作成時には、Manifestに記録する40桁SHAを明示入力します。その値はFORMAL Briefで承認された環境変数`ASIN_RESOLVER_APPROVED_FORMAL_MAIN_COMMIT`の40桁SHAと一致しなければならず、環境変数が未設定・不正値の場合も作成しません。`origin/main`、現在HEAD、別のUI入力欄から承認値を自動採用しません。再開時も同じ環境変数とManifestを照合します。
+
+batchを開始すると、貼り付け入力をUTF-8・LF改行で不変の`source_input`として保存し、`upstream_source_id<TAB>input_title`形式のTSVまたは従来の1行1商品入力から`R0001`形式のResolver source IDを作成します。upstream IDがない従来入力では、架空のupstream IDを補完しません。run packageはGit管理外の`outputs/asin_resolver_runs/<batch_id>/`に保存され、Evidence Manifest、sidecar SHA、source map、prompt、AI応答、解析結果、候補CSV、Resolver exportを親子関係とSHAで索引化します。
+
+既存Manifestから再開する前に、schema、batch ID、artifact SHA、親artifact、source map、checkpointを検証します。SHA不一致、別batch混入、欠落、未対応schema、違法なcheckpoint遷移では既存packageを変更せず停止します。Retryなしは初回解析からexportへ進め、Retryありは選択・prompt・応答・解析の全工程を保存してからexportへ進めます。`COMPLETED`後の成果物追加やcheckpoint変更はできません。
+
+Evidence Manifestは機械可読の成果物台帳であり、runtime artifactの受入状態は`RUNTIME_PRODUCED_PENDING_HUMAN_ACCEPTANCE`です。Excel実行記録は人間向けの補助記録であり、Manifestの代替ではありません。Evidence Batchは外部AI送信、Keepa呼び出し、商品同一性判定、検索条件を自動変更しません。legacy／非証跡モードはformalな固定30件基準実行には使用しないでください。
 
 Direct Chat Assistは、生成済みの初回・再検索プロンプトをブラウザのクリップボードへコピーし、Amazon URL検索用のChatGPTプロジェクトを開くための手動操作補助です。`AMAZON_SEARCH_PROJECT_URL` をプロジェクト直下の `.env` に任意設定するとプロジェクト起動操作を利用できます。URLが未設定でもResolver本体は通常どおり利用でき、ChatGPTへの自動貼り付け・送信・回答取得は行いません。
 

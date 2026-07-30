@@ -1,10 +1,12 @@
 import pandas as pd
 import streamlit as st
+from pathlib import Path
 
 from modules.asin_resolver import (
     build_ai_prompt,
     build_retry_prompt,
     build_retry_rows,
+    build_search_title,
     build_source_map,
     clean_ai_response,
     preview_candidates,
@@ -14,6 +16,25 @@ from modules.asin_resolver import (
     summarize_retry_rows,
     summarize_statuses,
     verify_selected_rows,
+)
+from modules.asin_resolver_evidence import (
+    EvidenceValidationError,
+    complete_batch,
+    create_evidence_batch,
+    generate_batch_id,
+    load_and_validate_batch,
+    pause_batch,
+    persist_source_input_and_source_map,
+    prepare_retry,
+    record_initial_parse,
+    record_initial_prompt,
+    record_initial_response,
+    record_resolver_export,
+    record_retry_parse,
+    record_retry_prompt,
+    record_retry_response,
+    restore_batch_state,
+    resume_batch,
 )
 from modules.category_mapper_ui import render_category_mapper_tab
 from modules.config import load_settings
@@ -75,12 +96,85 @@ RETRY_SESSION_KEYS = (
     "asin_resolver_retry_prompt_display",
     "asin_resolver_retry_prompt_fingerprint",
 )
+EVIDENCE_SESSION_KEYS = (
+    "asin_resolver_evidence_manifest_path",
+    "asin_resolver_evidence_response_phase",
+    "asin_resolver_evidence_source_entries",
+)
+EVIDENCE_RESTORABLE_SESSION_KEYS = (
+    "asin_resolver_source_map",
+    "asin_resolver_prompt",
+    "asin_resolver_prompt_display",
+    "asin_resolver_preview_rows",
+    "asin_resolver_rows",
+    "asin_resolver_input_line_count",
+    "asin_resolver_selection_editor",
+    "asin_resolver_product_names_input",
+    "asin_resolver_evidence_source_input",
+    "asin_resolver_evidence_next_action",
+)
+EVIDENCE_RUNTIME_ROOT = Path(__file__).resolve().parent / "outputs" / "asin_resolver_runs"
+ASIN_RESOLVER_VERSION = "0.4.3"
 PRELISTING_GATE_MARKETPLACES = ("SG", "PH")
 
 
 def _clear_retry_state() -> None:
     for key in RETRY_SESSION_KEYS:
         st.session_state.pop(key, None)
+
+
+def _clear_evidence_state() -> None:
+    for key in EVIDENCE_SESSION_KEYS:
+        st.session_state.pop(key, None)
+    for key in EVIDENCE_RESTORABLE_SESSION_KEYS:
+        st.session_state.pop(key, None)
+    _clear_retry_state()
+
+
+def _active_evidence_manifest_path() -> Path | None:
+    value = st.session_state.get("asin_resolver_evidence_manifest_path")
+    if not isinstance(value, str) or not value:
+        return None
+    return Path(value)
+
+
+def _restore_evidence_session(manifest_path: Path) -> dict:
+    state = restore_batch_state(manifest_path)
+    _clear_evidence_state()
+    st.session_state["asin_resolver_evidence_manifest_path"] = str(manifest_path)
+    st.session_state["asin_resolver_evidence_source_entries"] = state["source_entries"]
+    st.session_state["asin_resolver_evidence_next_action"] = state["next_action"]
+    if "source_input" in state:
+        st.session_state["asin_resolver_evidence_source_input"] = state["source_input"]
+    st.session_state["asin_resolver_source_map"] = {
+        entry["resolver_source_id"]: entry["original_title"]
+        for entry in state["source_entries"]
+    }
+    if "initial_prompt" in state:
+        st.session_state["asin_resolver_prompt"] = state["initial_prompt"]
+        st.session_state["asin_resolver_prompt_display"] = state["initial_prompt"]
+    checkpoint = state["manifest"]["last_completed_checkpoint"]
+    if checkpoint in {"INITIAL_PROMPT_SAVED", "INITIAL_RESPONSE_SAVED", "INITIAL_PARSE_SAVED"}:
+        st.session_state["asin_resolver_evidence_response_phase"] = "initial"
+    if "retry_rows" in state:
+        st.session_state["asin_resolver_retry_rows"] = state["retry_rows"]
+    if "retry_prompt" in state:
+        st.session_state["asin_resolver_retry_prompt"] = state["retry_prompt"]
+        st.session_state["asin_resolver_retry_prompt_display"] = state["retry_prompt"]
+    if checkpoint in {"RETRY_PROMPT_SAVED", "RETRY_RESPONSE_SAVED", "RETRY_PARSE_SAVED"}:
+        st.session_state["asin_resolver_evidence_response_phase"] = "retry"
+    if "retry_parse_rows" in state:
+        st.session_state["asin_resolver_preview_rows"] = state["retry_parse_rows"]
+        st.session_state["asin_resolver_evidence_response_phase"] = "retry"
+    elif "initial_parse_rows" in state:
+        st.session_state["asin_resolver_preview_rows"] = state["initial_parse_rows"]
+        st.session_state["asin_resolver_evidence_response_phase"] = "initial"
+    if "resolver_rows" in state:
+        st.session_state["asin_resolver_rows"] = state["resolver_rows"]
+        st.session_state["asin_resolver_evidence_response_phase"] = state[
+            "resolver_export_phase"
+        ]
+    return state
 
 
 def _render_direct_chat_assist(prompt_state_key: str, dom_id: str) -> None:
@@ -604,6 +698,136 @@ with expansion_tab:
 
 with resolver_tab:
     st.subheader("ASIN Resolver Tool Ver0.4.3")
+    with st.expander("Evidence Batch（PH固定30件基準実行用）", expanded=True):
+        active_manifest_path = _active_evidence_manifest_path()
+        if active_manifest_path is None:
+            st.warning(
+                "現在はlegacy／非証跡モードです。Evidence Manifest、source map、再開保証を"
+                "持たないため、formalな固定30件基準実行には使用できません。"
+            )
+        else:
+            st.success(f"Evidence Batch: {active_manifest_path.parent.name}")
+
+        with st.form("asin_resolver_evidence_batch_form", clear_on_submit=False):
+            recorded_formal_commit = st.text_input(
+                "記録する formal main commit（40桁SHA、必須）",
+                key="asin_resolver_recorded_formal_commit",
+            )
+            st.caption(
+                "承認値は環境変数 ASIN_RESOLVER_APPROVED_FORMAL_MAIN_COMMIT からのみ取得します。"
+            )
+            create_batch_clicked = st.form_submit_button("新規 Evidence Batchを作成")
+
+        if create_batch_clicked:
+            try:
+                manifest_path = create_evidence_batch(
+                    EVIDENCE_RUNTIME_ROOT,
+                    batch_id=generate_batch_id(),
+                    formal_main_commit=recorded_formal_commit,
+                    resolver_version=ASIN_RESOLVER_VERSION,
+                )
+                _clear_evidence_state()
+                _restore_evidence_session(manifest_path)
+                st.success(f"Evidence Batchを作成しました: {manifest_path.parent.name}")
+            except EvidenceValidationError as exc:
+                st.error(f"Evidence Batchを作成せず停止しました: {exc}")
+
+        resume_path_text = st.text_input(
+            "既存 Evidence Manifest のローカルパス",
+            key="asin_resolver_evidence_resume_path",
+            placeholder=".../outputs/asin_resolver_runs/<batch_id>/evidence_manifest.json",
+        )
+        if st.button("Evidence Manifestを検証して再開", width="stretch"):
+            try:
+                manifest_path = Path(resume_path_text)
+                manifest = load_and_validate_batch(manifest_path)
+                if manifest["batch_status"] == "PAUSED":
+                    resume_batch(manifest_path)
+                _restore_evidence_session(manifest_path)
+                st.success(
+                    "Evidence Manifestを検証しました。"
+                    f"次のcheckpoint: {manifest['resume_from_checkpoint']}"
+                )
+            except (EvidenceValidationError, OSError) as exc:
+                st.error(f"Evidence Manifestを変更せず停止しました: {exc}")
+
+        active_manifest_path = _active_evidence_manifest_path()
+        if active_manifest_path is not None:
+            try:
+                active_manifest = load_and_validate_batch(active_manifest_path)
+            except (EvidenceValidationError, OSError) as exc:
+                st.error(f"Evidence Batchを変更せず停止しました: {exc}")
+                _clear_evidence_state()
+            else:
+                status_columns = st.columns(3)
+                status_columns[0].metric("batch status", active_manifest["batch_status"])
+                status_columns[1].metric(
+                    "last checkpoint", active_manifest["last_completed_checkpoint"]
+                )
+                status_columns[2].metric(
+                    "resume checkpoint", active_manifest["resume_from_checkpoint"]
+                )
+                artifact_rows = [
+                    {
+                        "artifact_id": artifact["artifact_id"],
+                        "filename": artifact["filename"],
+                        "sha256": artifact["sha256"],
+                        "producer": artifact["producer"],
+                        "acceptance_status": artifact["acceptance_status"],
+                        "storage_alias": artifact["storage_alias"],
+                        "parent_artifact_ids": "; ".join(artifact["parent_artifact_ids"]),
+                    }
+                    for artifact in active_manifest["artifacts"]
+                ]
+                if artifact_rows:
+                    st.dataframe(pd.DataFrame(artifact_rows), hide_index=True, width="stretch")
+                action_columns = st.columns(2)
+                if action_columns[0].button(
+                    "Evidence Batchを一時停止",
+                    width="stretch",
+                    disabled=active_manifest["last_completed_checkpoint"] == "COMPLETED",
+                ):
+                    try:
+                        pause_batch(active_manifest_path)
+                        st.info("Evidence BatchをPAUSEDとして保存しました。")
+                    except EvidenceValidationError as exc:
+                        st.error(f"Evidence Batchを変更せず停止しました: {exc}")
+                if action_columns[1].button(
+                    "Evidence Batchを完了", width="stretch", disabled=active_manifest[
+                        "last_completed_checkpoint"
+                    ] != "EXPORT_SAVED"
+                ):
+                    try:
+                        complete_batch(active_manifest_path)
+                        st.session_state["asin_resolver_evidence_next_action"] = "view_only"
+                        st.success("Evidence BatchをCOMPLETEDとして保存しました。")
+                    except EvidenceValidationError as exc:
+                        st.error(f"Evidence Batchを変更せず停止しました: {exc}")
+
+    active_evidence_path = _active_evidence_manifest_path()
+    evidence_next_action = st.session_state.get("asin_resolver_evidence_next_action")
+    evidence_prompt_action_allowed = active_evidence_path is None or evidence_next_action in {
+        "save_source_input_and_source_map",
+        "generate_initial_prompt",
+    }
+    evidence_response_action_allowed = active_evidence_path is None or evidence_next_action in {
+        "enter_initial_response",
+        "parse_saved_initial_response",
+        "enter_retry_response",
+        "parse_saved_retry_response",
+    }
+    evidence_retry_action_allowed = active_evidence_path is None or evidence_next_action in {
+        "prepare_retry_or_export",
+        "generate_retry_prompt",
+    }
+    evidence_export_action_allowed = active_evidence_path is None or evidence_next_action in {
+        "prepare_retry_or_export",
+        "export",
+    }
+
+    if active_evidence_path is not None and isinstance(evidence_next_action, str):
+        st.info(f"Evidence Batch再開ガイド: 次の操作は `{evidence_next_action}` です。")
+
     prompt_tab, verify_tab, retry_tab, research_csv_adapter_tab = st.tabs(
         [
             "商品名 → AI用プロンプト",
@@ -626,27 +850,91 @@ with resolver_tab:
                     "HAKUBA Camera Case Plus Shell City 04 Camera Pouch M Black"
                 ),
                 height=180,
+                key="asin_resolver_product_names_input",
             )
             prompt_clicked = st.form_submit_button(
                 "AI用プロンプト生成",
                 type="primary",
                 width="stretch",
+                disabled=not evidence_prompt_action_allowed,
             )
 
         if prompt_clicked:
-            if not product_names_text.strip():
-                st.warning("商品名リストを入力してください。")
-            else:
-                source_map = build_source_map(product_names_text)
-                generated_prompt = build_ai_prompt(product_names_text)
-                st.session_state["asin_resolver_prompt"] = generated_prompt
-                st.session_state["asin_resolver_prompt_display"] = generated_prompt
-                st.session_state["asin_resolver_source_map"] = source_map
-                st.session_state["asin_resolver_preview_rows"] = []
-                st.session_state["asin_resolver_rows"] = []
-                st.session_state["asin_resolver_input_line_count"] = 0
-                st.session_state.pop("asin_resolver_selection_editor", None)
-                _clear_retry_state()
+            try:
+                active_manifest_path = _active_evidence_manifest_path()
+                prompt_source_input: str | None = None
+                if active_manifest_path is not None:
+                    active_manifest = load_and_validate_batch(active_manifest_path)
+                    checkpoint = active_manifest["last_completed_checkpoint"]
+                    if checkpoint == "BATCH_CREATED":
+                        if not product_names_text.strip():
+                            st.warning("商品名リストを入力してください。")
+                        else:
+                            entries = persist_source_input_and_source_map(
+                                active_manifest_path,
+                                product_names_text,
+                                search_title_builder=build_search_title,
+                            )
+                            prompt_source_input = product_names_text
+                            st.session_state["asin_resolver_evidence_next_action"] = (
+                                "generate_initial_prompt"
+                            )
+                    elif checkpoint == "SOURCE_MAP_SAVED":
+                        entries = st.session_state.get("asin_resolver_evidence_source_entries", [])
+                        prompt_source_input = st.session_state.get(
+                            "asin_resolver_evidence_source_input", ""
+                        )
+                        if not prompt_source_input:
+                            raise EvidenceValidationError("saved source input is unavailable for resume")
+                    else:
+                        raise EvidenceValidationError(
+                            f"prompt generation is not allowed at checkpoint {checkpoint}"
+                        )
+                elif product_names_text.strip():
+                    entries = []
+                    prompt_source_input = product_names_text
+                else:
+                    st.warning("商品名リストを入力してください。")
+
+                if prompt_source_input is None:
+                    pass
+                else:
+                    if active_manifest_path is not None:
+                        source_map = {
+                            (
+                                entry.resolver_source_id
+                                if hasattr(entry, "resolver_source_id")
+                                else entry["resolver_source_id"]
+                            ): (
+                                entry.original_title
+                                if hasattr(entry, "original_title")
+                                else entry["original_title"]
+                            )
+                            for entry in entries
+                        }
+                        st.session_state["asin_resolver_evidence_source_entries"] = [
+                            entry.to_record() if hasattr(entry, "to_record") else entry
+                            for entry in entries
+                        ]
+                    else:
+                        source_map = build_source_map(prompt_source_input)
+                    generated_prompt = build_ai_prompt(prompt_source_input)
+                    if active_manifest_path is not None:
+                        record_initial_prompt(active_manifest_path, generated_prompt)
+                        st.session_state["asin_resolver_evidence_response_phase"] = "initial"
+                        st.session_state["asin_resolver_evidence_next_action"] = (
+                            "enter_initial_response"
+                        )
+                    st.session_state["asin_resolver_prompt"] = generated_prompt
+                    st.session_state["asin_resolver_prompt_display"] = generated_prompt
+                    st.session_state["asin_resolver_source_map"] = source_map
+                    st.session_state["asin_resolver_preview_rows"] = []
+                    st.session_state["asin_resolver_rows"] = []
+                    st.session_state["asin_resolver_input_line_count"] = 0
+                    st.session_state.pop("asin_resolver_selection_editor", None)
+                    _clear_retry_state()
+            except EvidenceValidationError as exc:
+                st.error(f"Evidence Batchを変更せず停止しました: {exc}")
 
         st.text_area(
             "生成されたプロンプト",
@@ -677,6 +965,7 @@ with resolver_tab:
                 "AI返答を解析",
                 type="primary",
                 width="stretch",
+                disabled=not evidence_response_action_allowed,
             )
 
         if parse_clicked:
@@ -686,21 +975,64 @@ with resolver_tab:
             st.session_state.pop("asin_resolver_selection_editor", None)
             _clear_retry_state()
 
+            active_manifest_path = _active_evidence_manifest_path()
+            use_saved_response = False
+            if not ai_response_text.strip() and active_manifest_path is not None:
+                restored = restore_batch_state(active_manifest_path)
+                checkpoint = restored["manifest"]["last_completed_checkpoint"]
+                if checkpoint == "INITIAL_RESPONSE_SAVED":
+                    ai_response_text = restored["initial_ai_response"]
+                    st.session_state["asin_resolver_evidence_response_phase"] = "initial"
+                    use_saved_response = True
+                elif checkpoint == "RETRY_RESPONSE_SAVED":
+                    ai_response_text = restored["retry_ai_response"]
+                    st.session_state["asin_resolver_evidence_response_phase"] = "retry"
+                    use_saved_response = True
+
             if not ai_response_text.strip():
                 st.warning("ChatGPT / Geminiの返答を入力してください。")
             else:
-                preview_rows = preview_candidates(
-                    ai_response_text,
-                    st.session_state.get("asin_resolver_source_map"),
-                )
-                st.session_state["asin_resolver_preview_rows"] = preview_rows
-                st.session_state["asin_resolver_input_line_count"] = len(
-                    clean_ai_response(ai_response_text).splitlines()
-                )
-                if preview_rows:
-                    st.success(f"{len(preview_rows)}件の候補行を解析しました。")
-                else:
-                    st.warning("確認対象または候補として残す行はありませんでした。")
+                try:
+                    response_phase = st.session_state.get(
+                        "asin_resolver_evidence_response_phase", "initial"
+                    )
+                    if active_manifest_path is not None and not use_saved_response:
+                        if response_phase == "initial":
+                            record_initial_response(active_manifest_path, ai_response_text)
+                            st.session_state["asin_resolver_evidence_next_action"] = (
+                                "parse_saved_initial_response"
+                            )
+                        elif response_phase == "retry":
+                            record_retry_response(active_manifest_path, ai_response_text)
+                            st.session_state["asin_resolver_evidence_next_action"] = (
+                                "parse_saved_retry_response"
+                            )
+                        else:
+                            raise EvidenceValidationError("unknown Evidence response phase")
+                    preview_rows = preview_candidates(
+                        ai_response_text,
+                        st.session_state.get("asin_resolver_source_map"),
+                    )
+                    if active_manifest_path is not None:
+                        candidate_csv = rows_to_resolver_csv(preview_rows)
+                        if response_phase == "initial":
+                            record_initial_parse(active_manifest_path, preview_rows, candidate_csv)
+                            st.session_state["asin_resolver_evidence_next_action"] = (
+                                "prepare_retry_or_export"
+                            )
+                        else:
+                            record_retry_parse(active_manifest_path, preview_rows, candidate_csv)
+                            st.session_state["asin_resolver_evidence_next_action"] = "export"
+                    st.session_state["asin_resolver_preview_rows"] = preview_rows
+                    st.session_state["asin_resolver_input_line_count"] = len(
+                        clean_ai_response(ai_response_text).splitlines()
+                    )
+                    if preview_rows:
+                        st.success(f"{len(preview_rows)}件の候補行を解析しました。")
+                    else:
+                        st.warning("確認対象または候補として残す行はありませんでした。")
+                except EvidenceValidationError as exc:
+                    st.error(f"Evidence Batchを変更せず停止しました: {exc}")
 
         preview_rows = st.session_state.get("asin_resolver_preview_rows", [])
         if preview_rows:
@@ -756,7 +1088,10 @@ with resolver_tab:
                 "選択したASINをKeepaで確認",
                 type="primary",
                 width="stretch",
-                disabled=preview_summary["selected_unique_asins"] == 0,
+                disabled=(
+                    preview_summary["selected_unique_asins"] == 0
+                    or not evidence_export_action_allowed
+                ),
             )
 
             if verify_clicked:
@@ -773,12 +1108,28 @@ with resolver_tab:
                             domain="JP",
                         )
                         with st.spinner("Keepa APIでASINの実在確認をしています..."):
-                            st.session_state["asin_resolver_rows"] = verify_selected_rows(
+                            verified_rows = verify_selected_rows(
                                 selected_preview_rows,
                                 client,
                             )
+                        active_manifest_path = _active_evidence_manifest_path()
+                        if active_manifest_path is not None:
+                            response_phase = st.session_state.get(
+                                "asin_resolver_evidence_response_phase", "initial"
+                            )
+                            record_resolver_export(
+                                active_manifest_path,
+                                rows_to_resolver_csv(verified_rows),
+                                source_phase=response_phase,
+                            )
+                            st.session_state["asin_resolver_evidence_next_action"] = (
+                                "complete_or_view"
+                            )
+                        st.session_state["asin_resolver_rows"] = verified_rows
                     except (KeepaConfigurationError, KeepaDataError, KeepaClientError) as exc:
                         st.error(str(exc))
+                    except EvidenceValidationError as exc:
+                        st.error(f"Evidence Batchを変更せず停止しました: {exc}")
                     except Exception:
                         st.error(
                             "想定外のエラーが発生しました。アプリを再起動し、同じ内容で再実行してください。"
@@ -878,7 +1229,11 @@ with resolver_tab:
         if not preview_rows:
             st.info("先に「AI返答 → ASIN確認」で初回AI返答を解析してください。")
         else:
-            if st.button("再検索対象を生成", width="stretch"):
+            if st.button(
+                "再検索対象を生成",
+                width="stretch",
+                disabled=not evidence_retry_action_allowed,
+            ):
                 _clear_retry_state()
                 st.session_state["asin_resolver_retry_rows"] = build_retry_rows(
                     preview_rows,
@@ -929,16 +1284,37 @@ with resolver_tab:
                     "再検索用プロンプト生成",
                     type="primary",
                     width="stretch",
-                    disabled=retry_summary["prompt_source_ids"] == 0,
+                    disabled=(
+                        retry_summary["prompt_source_ids"] == 0
+                        or not evidence_retry_action_allowed
+                    ),
                 )
                 if retry_prompt_clicked:
                     retry_prompt = build_retry_prompt(selected_retry_rows)
                     if not retry_prompt:
                         st.warning("再検索対象と再検索用タイトルを確認してください。")
                     else:
-                        st.session_state["asin_resolver_retry_prompt"] = retry_prompt
-                        st.session_state["asin_resolver_retry_prompt_display"] = retry_prompt
-                        st.session_state["asin_resolver_retry_prompt_fingerprint"] = current_fingerprint
+                        try:
+                            active_manifest_path = _active_evidence_manifest_path()
+                            if active_manifest_path is not None:
+                                active_manifest = load_and_validate_batch(active_manifest_path)
+                                checkpoint = active_manifest["last_completed_checkpoint"]
+                                if checkpoint == "INITIAL_PARSE_SAVED":
+                                    prepare_retry(active_manifest_path, selected_retry_rows)
+                                elif checkpoint != "RETRY_PREPARED":
+                                    raise EvidenceValidationError(
+                                        f"retry prompt generation is not allowed at checkpoint {checkpoint}"
+                                    )
+                                record_retry_prompt(active_manifest_path, retry_prompt)
+                                st.session_state["asin_resolver_evidence_response_phase"] = "retry"
+                                st.session_state["asin_resolver_evidence_next_action"] = (
+                                    "enter_retry_response"
+                                )
+                            st.session_state["asin_resolver_retry_prompt"] = retry_prompt
+                            st.session_state["asin_resolver_retry_prompt_display"] = retry_prompt
+                            st.session_state["asin_resolver_retry_prompt_fingerprint"] = current_fingerprint
+                        except EvidenceValidationError as exc:
+                            st.error(f"Evidence Batchを変更せず停止しました: {exc}")
 
                 if st.session_state.get("asin_resolver_retry_prompt"):
                     st.text_area(
