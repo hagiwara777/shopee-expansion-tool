@@ -160,3 +160,12 @@
 - 理由: 入力から成果物までを追跡するsource map、Evidence Manifest、SHA、artifact chain、checkpoint、resume、rollbackの実装と、オーナー受入済みの人間可読実行記録を、main統合前のPRとして明確に区別して検収可能にするため。
 - 影響: 証拠保存機能の完成はResolverの成功を意味しない。Resolverの本質的成功は英字商品名から正しいASINへ到達できることであり、ASIN到達性能は未評価である。正式成果はmain統合後に確定し、検索精度・商品同一性ロジック・Category Mapper／AI Shadow・SG／MY／THをこの変更へ混在させない。
 - 再検討条件: PR差分・CIの正式検収、main統合、main統合後のformal commit確認、または外部AI・Keepa・実商品を伴う新規固定30件基準実行の別決裁時。
+
+## DEC-0015 — 事業全体フローとResolverの中核価値を正式化する
+
+- 日付: 2026-07-30
+- 背景: 現行正本はPH Resolverの再評価準備を中心としていた。オーナーは、Resolver／ExpansionからGate、Category Mapper、既存出品ツールへ至る事業全体フローを明確化した。証拠保存機能の完成と、英字商品名からASINへの到達成功を混同してはならない。既存出品ツールの正式入力契約と自動接続方式は未確認である。
+- 決定: Resolverの中核価値は、英字商品名から正しいASINへ到達することとする。Evidence Manifest、SHA、source map、中断再開は到達性能を測定・監査する補助機能であり、成功の代替ではない。商品候補生成は、英字商品名からASIN候補を生成するResolverと、既知ASINから関連ASIN候補を生成するExpansion Toolの2入口とする。候補はGuardrail／出品前保安ゲートで選別し、Category MapperはShopee Category ID、Brand ID、必須属性情報を確認・準備する。既存出品ツールへの正式入力契約と自動接続は別設計ゲートまで未確定とする。PHで端から端までの成立を確認してからSGとMYへ展開し、SGとMYの順序は現時点で固定しない。THは別途優先順位判断とする。Workflow実装、自動連携、自動出品、外部API実行はこの決定では承認しない。
+- 理由: 各moduleの事業上の役割を明確にし、局所機能の完成を事業成功と混同しないため。PHで業務成立と測定方法を確認してから横展開する方が、市場固有差分を管理しやすいため。未確認の出品ツール契約を正本上の実装済み事実にしないため。
+- 影響: `PROJECT_ROADMAP.md`を候補生成、候補選別、出品準備、市場展開の構造へ更新する。`CURRENT_WORK.md`の次工程を本正本差分の検収へ更新する。外部AI、Keepa、実データ、固定30件実行は引き続き別決裁とする。Category Mapper AI Shadowはオーナー明示承認まで開始しない。Resolver成功基準は新batchの工程別証拠がそろうまで未決定とする。
+- 再検討条件: 既存出品ツールの正式入力仕様を確認したとき。PH Gate対応の不整合を解消したとき。PHの端から端までの受入結果が得られたとき。SGまたはMYの市場固有設計へ着手するとき。Workflowまたは自動出品を検討するとき。

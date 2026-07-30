@@ -13,10 +13,12 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH ASIN Resolver固定30件・再評価準備`
-- current_phase: `Resolver証拠永続化PR検収済み・main統合正式化中`
-- working_branch: `feature/ph-asin-resolver-evidence-persistence`
-- next_action: PR #7をmainへ統合し、ChatGPTが統合後のformal main commitを直接確認する。
+- current_work_type: `事業全体フロー・ロードマップ正式化`
+- current_phase: `Resolver証拠永続化main統合済み・全体フロー正本正式化中`
+- working_branch: `codex/ops-business-flow-roadmap-formalization`
+- marketplace: `PH`
+- module: `事業全体フロー・管理正本`
+- next_action: 事業全体フローと市場展開方針の正本差分をChatGPTが正式検収し、main統合可否を判断する。
 
 PH固定30件評価は完了し、集計結果はオーナー受入済みです。評価完了は、Resolverの
 成功または完成の宣言ではありません。Handoff Contract v1の同期ゲートが一致した場合だけ、
@@ -45,9 +47,12 @@ PH固定30件評価は完了し、集計結果はオーナー受入済みです�
 - Resolver関連122件成功
 - 全pytest 696件成功
 - オーナー実画面確認完了
-- Excel／Guide rev2オーナー受入完了
-- PR #7の全差分についてChatGPT正式技術検収完了
 - Excel／Guide rev2オーナー正式受入完了
+- PR #7の全差分についてChatGPT正式技術検収完了
+- PR #7 main統合完了
+- formal main commit `8f664cdb42edc521371c389f6ad72ac7e0f3aecd`確認完了
+- Resolver証拠永続化実装をmain上の正式成果として受入
+- 事業全体フローの設計ゲート完了
 
 ## 固定30件評価の受入済み結果
 
@@ -87,17 +92,22 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 未完了事項
 
-- main統合
-- main統合後formal commit確認
-- 事業全体フロー・ロードマップ正式化
+- 本正本差分のChatGPT正式検収
+- branchのcommit・push・PR・main統合
+- 既存出品ツール正式入力契約の監査
+- PH Gate対応不整合の監査
+- モジュール間接続の設計ゲート
 - 外部AI・Keepa・実データ実行の別決裁
 - 新規固定30件基準実行
 - ASIN到達性能の評価
 - Resolver成功基準と続行・保留・打ち切り判断
+- PH端から端の業務受入
+- SG／MY市場展開設計
+- TH優先順位判断
 
 ## 次の単一作業
 
-PR #7をmainへ統合し、ChatGPTが統合後のformal main commitを直接確認する。
+事業全体フローと市場展開方針の正本差分をChatGPTが正式検収し、main統合可否を判断する。
 
 ## 停止条件
 
@@ -115,8 +125,6 @@ PR #7をmainへ統合し、ChatGPTが統合後のformal main commitを直接確�
 - source map等の一次証拠がない限り、歴史的JPH→R対応探索を再開しない。
 - 新しい固定30件基準実行が完了するまで、既存の9件・21件区分を回収TSVへ接続して21件再評価バッチを作成しない。
 - 外部AI、Keepa、実運用はオーナー明示許可前に開始しない。
-- 新規固定30件実行前にmain統合と別決裁が必要。
-- main統合後のformal main commitをChatGPTが確認する前に、事業全体フロー・ロードマップ正式化を開始しない。
 - Evidence Manifestとsource mapを保存できない状態で実行しない。
 - 回収TSVを歴史的初回exportへ接続しない。
 - 外部AI、Keepa、実データ、新batchの再検索対象商品の再評価は別途明示許可前に実行しない。
@@ -128,6 +136,16 @@ PR #7をmainへ統合し、ChatGPTが統合後のformal main commitを直接確�
 - 初回検索、再検索、Resolver解析、Keepa確認、同一性判定を混在させない。
 - 成功基準は新batchの再検索対象を含む工程別証拠がそろう前に決定しない。
 - Handoff Contractの同期ゲート不一致時は作業しない。
+- この正本更新だけでWorkflow実装を開始しない。
+- 既存出品ツールの入力契約を推測で確定しない。
+- PH Gate対応不整合を解消するまで、PH対応をコード上の確定事実として扱わない。
+- PH端から端の受入前にSG／MY実装を開始しない。
+- SG／MYの順序を証拠なしで固定しない。
+- THを自動的に次市場としない。
+- 外部AI、Keepa、実商品、固定30件実行は別決裁まで開始しない。
+- 証拠保存機能の完成だけでResolver成功を宣言しない。
+- Category Mapper AI Shadowはオーナー明示承認まで開始しない。
+- 自動出品は明示承認なしに開始しない。
 
 ## 成功判定の状態
 
@@ -157,7 +175,8 @@ PR #7をmainへ統合し、ChatGPTが統合後のformal main commitを直接確�
 | JPH→R行順仮説 | タイトル照合0/30 |
 | 設計ゲートと必要性分類 | コード・テスト・3成果物の読み取り照合済み。`RESOLVER_CHANGE_REQUIRED` |
 | 回収TSVの今後の正式基準入力としての採用 | 新規基準入力専用としてオーナー受入済み |
-| Resolver改修、テスト、実画面、実データ | 未確認 |
+| Resolver証拠永続化改修、テスト、実画面 | branch技術検収、オーナー実画面確認、PR #7 main統合およびformal main確認済み |
+| 実データ | 未確認 |
 | PH対応のコード上の事実 | 未確認 |
 | 新batchで確定する再検索対象件数・source_id、再評価の実行日・担当者・使用外部AI、Resolver成功基準、改善対象と改善方法 | 未確認 |
 
