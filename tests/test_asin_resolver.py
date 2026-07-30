@@ -1,5 +1,6 @@
 import csv
 from io import StringIO
+from pathlib import Path
 
 import pytest
 
@@ -26,6 +27,16 @@ from modules.asin_resolver import (
 )
 from modules.cache import KeepaCache
 from modules.keepa_client import KeepaClientError, KeepaExpansionClient
+
+
+def test_evidence_batch_ui_uses_only_the_independent_approved_commit_channel():
+    app_source = (Path(__file__).resolve().parents[1] / "app.py").read_text(encoding="utf-8")
+
+    assert "ASIN_RESOLVER_APPROVED_FORMAL_MAIN_COMMIT" in app_source
+    assert "asin_resolver_approved_formal_commit" not in app_source
+    assert "Evidence Batch再開ガイド" in app_source
+    assert "disabled=not evidence_prompt_action_allowed" in app_source
+    assert "disabled=not evidence_response_action_allowed" in app_source
 
 
 class FakeResolverClient:
@@ -80,6 +91,16 @@ def test_build_source_map_assigns_stable_ids_to_non_empty_product_names():
         "R0001": "First",
         "R0002": "Second",
     }
+
+
+def test_build_source_map_accepts_two_column_upstream_source_input_without_changing_resolver_ids():
+    source_map = build_source_map("JPH-001\tFirst\nJPH-002\tSecond\n")
+
+    assert source_map == {"R0001": "First", "R0002": "Second"}
+    prompt = build_ai_prompt("JPH-001\tFirst\nJPH-002\tSecond\n")
+    assert "R0001\tFirst" in prompt
+    assert "R0002\tSecond" in prompt
+    assert "JPH-001" not in prompt
 
 
 def test_build_search_title_removes_known_bracketed_promos_with_nfkc_and_casefolding():

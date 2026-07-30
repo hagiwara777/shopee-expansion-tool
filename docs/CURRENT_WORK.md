@@ -14,9 +14,9 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 ## 現在作業
 
 - current_work_type: `PH ASIN Resolver固定30件・再評価準備`
-- current_phase: `再現可能固定30件基準実行設計承認済み・Resolver証拠永続化実装前`
-- working_branch: `再開時にGit状態を確認して確定`
-- next_action: 承認済み設計に基づき、JPH→R source map、Evidence Manifest、成果物SHA、batch中断・再開情報を永続化するResolver改修と、実行記録テンプレートの最小補強を実装・検証する。
+- current_phase: `Resolver証拠永続化実装・技術検収・オーナー受入済み・PR検収前`
+- working_branch: `feature/ph-asin-resolver-evidence-persistence`
+- next_action: 作成されたPRの差分・CI・formal commit条件をChatGPTが正式検収し、main統合可否を判断する。
 
 PH固定30件評価は完了し、集計結果はオーナー受入済みです。評価完了は、Resolverの
 成功または完成の宣言ではありません。Handoff Contract v1の同期ゲートが一致した場合だけ、
@@ -41,6 +41,11 @@ PH固定30件評価は完了し、集計結果はオーナー受入済みです�
 - Resolver証拠永続化改修を承認
 - テンプレート最小補強を承認
 - 外部AI・Keepa・実データ実行は未許可
+- Resolver証拠永続化実装のbranch技術検収完了
+- Resolver関連122件成功
+- 全pytest 696件成功
+- オーナー実画面確認完了
+- Excel／Guide rev2オーナー受入完了
 
 ## 固定30件評価の受入済み結果
 
@@ -73,25 +78,24 @@ CI成果物で再確認された事実ではありません。コード機能の
 | ART-PH-ASIN-EXEC-RECORD-V0.1.1 | Excel実行記録テンプレート v0.1.1 | `PH_ASIN_Resolver_Execution_Record_v0.1.1_final.xlsx` | `d150be6a552d0ef212f0ee4965f11f0c8f324eacbf3d8c56e05db07efd8d616e` | `PH_ASIN_Resolver_実行記録v0.1設計` | `OWNER_ACCEPTED` | `ARTIFACT_ROOT/HANDOFF_EXECUTION_RECORD/PH_ASIN_Resolver_Execution_Record_v0.1.1_final.xlsx` | 21件再評価の工程・証拠記録 |
 | ART-PH-ASIN-EXEC-GUIDE-V0.1.1 | 非エンジニア向け記入Guide v0.1.1 | `PH_ASIN_Resolver_Execution_Record_v0.1.1_Guide.txt` | `642fe64970efbb83d7e6d175a2c9bde08474f596b004b952429bad6252e15e7e` | `PH_ASIN_Resolver_実行記録v0.1設計` | `OWNER_ACCEPTED` | `ARTIFACT_ROOT/HANDOFF_EXECUTION_RECORD/PH_ASIN_Resolver_Execution_Record_v0.1.1_Guide.txt` | 実行記録テンプレートの記入手順 |
 | ART-PH-FIXED30-BASELINE-INPUT-V1 | 固定30件基準入力 v1 | `PH_Japan_AI_Eval_Resolver_Input_V1.tsv` | `32e2dcc21f6820134d7919bbc572e1f91781082cd1d28eee892c3213aaa3d5e1` | `PH_Japan_AI_Eval_Selection_Report_V1.md` | `OWNER_ACCEPTED_FOR_NEW_BASELINE_ONLY` | `LOCAL_RECOVERED_PH_FIXED30_INPUT` | 新規固定30件基準実行専用入力 |
+| ART-PH-ASIN-EXEC-RECORD-V0.1.2-CANDIDATE-REV2 | Excel実行記録 v0.1.2 candidate rev2 | `PH_ASIN_Resolver_Execution_Record_v0.1.2_candidate_rev2.xlsx` | `054f771328b9be4d128c42e650791a22f6c0e4bab9892bb8ebd9fb0ca98e4f7b` | `PH ASIN Resolver 証拠永続化実装` | `OWNER_ACCEPTED` | `LOCAL_ARTIFACT_ROOT/HANDOFF_EXECUTION_RECORD/candidate/v0.1.2/` | PH固定30件の人間可読実行記録 |
+| ART-PH-ASIN-EXEC-GUIDE-V0.1.2-CANDIDATE-REV2 | 非エンジニア向け実行Guide v0.1.2 candidate rev2 | `PH_ASIN_Resolver_Execution_Record_v0.1.2_Guide_candidate_rev2.txt` | `7e55527e6eee6288b679db37937954be1cb8ccd23b51a327eea2171aa6e59540` | `PH ASIN Resolver 証拠永続化実装` | `OWNER_ACCEPTED` | `LOCAL_ARTIFACT_ROOT/HANDOFF_EXECUTION_RECORD/candidate/v0.1.2/` | 非エンジニア向け実行Guide |
 
 実物が必要な場合は、非コミットBriefでstorage aliasを解決するか、ChatGPTへ再添付する。
 
 ## 未完了事項
 
-- Resolver証拠永続化改修
-- Evidence Manifest schema・生成・検証
-- source mapの30/30保存
-- batch中断・再開契約
-- テンプレートとGuideの最小補強
-- 実装後の単体・結合テスト
-- オーナーによる実画面受入
-- 外部AI・Keepa・実データ実行の別途決裁
+- PR検収
+- main統合
+- main統合後formal commit確認
+- 外部AI・Keepa・実データ実行の別決裁
 - 新規固定30件基準実行
-- 新batchで再検索対象となった商品の再評価バッチ準備以降の未完了工程
+- ASIN到達性能の評価
+- Resolver成功基準と続行・保留・打ち切り判断
 
 ## 次の単一作業
 
-承認済み設計に基づき、JPH→R source map、Evidence Manifest、成果物SHA、batch中断・再開情報を永続化するResolver改修と、実行記録テンプレートの最小補強を実装・検証する。
+作成されたPRの差分・CI・formal commit条件をChatGPTが正式検収し、main統合可否を判断する。
 
 ## 停止条件
 
@@ -109,11 +113,12 @@ CI成果物で再確認された事実ではありません。コード機能の
 - source map等の一次証拠がない限り、歴史的JPH→R対応探索を再開しない。
 - 新しい固定30件基準実行が完了するまで、既存の9件・21件区分を回収TSVへ接続して21件再評価バッチを作成しない。
 - 外部AI、Keepa、実運用はオーナー明示許可前に開始しない。
-- Resolver改修とテスト完了前に新規固定30件を実行しない。
+- 新規固定30件実行前にmain統合と別決裁が必要。
 - Evidence Manifestとsource mapを保存できない状態で実行しない。
 - 回収TSVを歴史的初回exportへ接続しない。
 - 外部AI、Keepa、実データ、新batchの再検索対象商品の再評価は別途明示許可前に実行しない。
 - 検索精度改善や商品同一性ロジックを今回の証拠永続化改修へ混在させない。
+- 証拠保存機能の完成だけでResolver成功を宣言しない。
 - Excelだけを全成果物証拠台帳の正本にしない。
 - 実画面受入前に改修完了扱いにしない。
 - 新batchの再検索対象商品の再評価前に実行記録フォーマットを使用する。
@@ -155,4 +160,4 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 最終更新日
 
-2026-07-29
+2026-07-30

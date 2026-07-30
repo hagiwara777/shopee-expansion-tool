@@ -8,6 +8,7 @@ from typing import Any, Iterable
 from urllib.parse import urlparse
 import unicodedata
 
+from modules.asin_resolver_evidence import parse_source_input
 from modules.keepa_client import KeepaClientError, KeepaExpansionClient, normalize_asin
 
 
@@ -105,8 +106,11 @@ def build_ai_prompt(product_names_text: str) -> str:
 
 def build_source_map(product_names_text: str) -> dict[str, str]:
     return {
-        f"R{index:04d}": name
-        for index, name in enumerate(_non_empty_lines(product_names_text), 1)
+        entry.resolver_source_id: entry.original_title
+        for entry in parse_source_input(
+            product_names_text,
+            search_title_builder=build_search_title,
+        )
     }
 
 

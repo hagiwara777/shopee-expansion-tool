@@ -151,3 +151,12 @@
 - 理由: 新規実行では入力から最終成果物までを一意に逆追跡できる必要がある。session stateだけでは中断・再開や後日監査に耐えない。Excelだけで証拠台帳を管理すると手入力・構造変更のリスクが高い。証拠永続化と検索精度改善を分けることで改修範囲を限定できる。
 - 影響: 次工程はResolver証拠永続化改修とテンプレート最小補強になる。外部APIや実データは改修・テスト・実画面受入後に別決裁する。過去の9件・21件区分は新batchへ流用しない。Resolver成功基準は引き続き未決定とする。
 - 再検討条件: 実装調査で複数moduleの共有インターフェース変更が必要と判明した場合。Evidence Manifestだけでは業務再開に不足すると判明した場合。オーナーの実画面確認で操作性または証拠確認に不足があった場合。外部AI・Keepa・実データ実行を承認する段階。
+
+## DEC-0014 — PH ASIN Resolver証拠永続化実装をPR正式化へ進める
+
+- 日付: 2026-07-30
+- 背景: DEC-0013で承認したResolver証拠永続化実装について、作業branch上の技術検収、Resolver関連122件および全pytest 696件の確認、オーナーによる新規batch作成・prompt保存・再起動後のManifest再開・artifact表示の実画面確認が完了した。Git外のExcel／Guide rev2も技術検収とオーナー受入を完了した。
+- 決定: `feature/ph-asin-resolver-evidence-persistence` の実装を技術成果として受け入れ、指定差分をcommit・通常pushし、main向けPRの正式検収へ進める。外部AI、Keepa、実商品、固定30件基準実行は引き続き別決裁まで許可しない。
+- 理由: 入力から成果物までを追跡するsource map、Evidence Manifest、SHA、artifact chain、checkpoint、resume、rollbackの実装と、オーナー受入済みの人間可読実行記録を、main統合前のPRとして明確に区別して検収可能にするため。
+- 影響: 証拠保存機能の完成はResolverの成功を意味しない。Resolverの本質的成功は英字商品名から正しいASINへ到達できることであり、ASIN到達性能は未評価である。正式成果はmain統合後に確定し、検索精度・商品同一性ロジック・Category Mapper／AI Shadow・SG／MY／THをこの変更へ混在させない。
+- 再検討条件: PR差分・CIの正式検収、main統合、main統合後のformal commit確認、または外部AI・Keepa・実商品を伴う新規固定30件基準実行の別決裁時。
