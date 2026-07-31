@@ -14,11 +14,11 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 ## 現在作業
 
 - current_work_type: `Shopee三独立ツール構成・出品支援優先順位正式化`
-- current_phase: `三独立ツール構成正本差分・技術検収済み・Draft PR正式化中`
+- current_phase: `三独立ツール構成正本差分・Draft PR作成済み・PR正式検収待ち`
 - working_branch: `codex/ops-shopee-three-independent-tools-priority`
 - marketplace: `PH`
 - module: `事業ポートフォリオ・出品支援ツール`
-- next_action: 技術受入済みの三独立ツール構成・出品支援優先順位差分をcommitし、通常pushしてDraft PRを作成する。
+- next_action: ChatGPTがDraft PRの全差分、commit、検証状態を正式検収する。
 
 三つの独立ツール構成と、出品支援ツール完成を現在の最優先とする設計ゲートは完了しています。出品支援ツールの完成条件は未決定であり、現在の正本差分だけで完成を宣言しません。Handoff Contract v1の同期ゲートが一致した場合だけ、次の作業を開始します。
 
@@ -83,6 +83,8 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 - 外部契約証拠回収の開始Gateは、対象製品・一次資料不足によりSTOP。これは証拠回収を開始できなかった事実であり、出品支援ツール中核開発全体の停止理由ではない。
 - 三独立ツール構成・出品支援優先順位のbranch差分をChatGPTが正式技術受入
 - commit・通常push・Draft PR作成をChatGPTが許可
+- 三独立ツール構成・出品支援優先順位のcommit・通常push完了
+- Draft PR #10作成完了
 
 ## 固定30件評価の受入済み結果
 
@@ -122,6 +124,11 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 未完了事項
 
+- Draft PR #10のChatGPT正式検収
+- Draft PRのReady化
+- main統合
+- 統合後formal main commit確認
+- 統合後CURRENT_WORK closeout
 - 三つの独立ツール構成と出品支援ツール優先順位のmain正本化
 - 出品支援ツールの完成定義
 - 出品支援ツールの残課題一覧
