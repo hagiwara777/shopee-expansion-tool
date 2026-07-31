@@ -13,12 +13,12 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `既存出品ツール契約・PH工程接続監査準備`
-- current_phase: `GPTチャット切替基準正式化main受入済み・新GPTチャット切替待ち`
+- current_work_type: `外部既存出品ツール正式入力契約・証拠回収準備`
+- current_phase: `PH工程接続読み取り専用監査受入済み・新GPTチャット切替待ち`
 - working_branch: `main`
 - marketplace: `PH`
-- module: `事業全体フロー・接続契約監査`
-- next_action: 新しいGPTチャットへ切り替え、GitHub最新mainを基準に既存出品ツール契約・PH工程接続監査のFORMAL開始条件を確認する。
+- module: `事業全体フロー・外部出品ツール契約監査`
+- next_action: 新しいGPTチャットへ切り替え、GitHub最新mainを基準に外部既存出品ツールの正式入力テンプレートまたは仕様書の読み取り専用証拠回収のFORMAL開始条件を確認する。
 
 PH固定30件評価は完了し、集計結果はオーナー受入済みです。評価完了は、Resolverの
 成功または完成の宣言ではありません。Handoff Contract v1の同期ゲートが一致した場合だけ、
@@ -68,6 +68,14 @@ PH固定30件評価は完了し、集計結果はオーナー受入済みです�
 - PR #9 main統合完了
 - formal main commit `87ed73115652c181d4e25da585a3f6104f94f6a5`をChatGPTがGitHubから直接確認完了
 - DEC-0016、GPTチャット切替基準、WORK_BRIEF canonical field、静的検証をmain上の正式成果として受入
+- 既存出品ツール契約・PH工程接続の読み取り専用監査完了
+- 読み取り専用監査結果をChatGPTが正式技術結果として受入
+- `EXTERNAL_CONTRACT_UNCONFIRMED`
+- Candidate生成からPrelisting Gate、Category Mapper、listing-tool向けtextまでの内部受け渡し候補をコード・テストソースで確認
+- テストは未実行であり、実行成功としては受け入れていない
+- 端から端の接続可能性は未確認で、停止境界は外部出品ツール契約およびShopee出品区間
+- READMEのPrelisting Gate対応市場記載と実装のCONTRADICTIONを確認
+- Gate eligible CSVのgate_schema_version再検証不足を確認
 
 ## 固定30件評価の受入済み結果
 
@@ -107,8 +115,10 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 未完了事項
 
-- 既存出品ツール正式入力契約の監査
-- PH Gate対応不整合の監査
+- 外部既存出品ツールの正式入力テンプレートまたは仕様書の読み取り専用証拠回収
+- 外部出品ツールの正式ヘッダー順序、エンコーディング、必須値、カテゴリ・ブランド・属性、バリエーション・SKU・在庫契約の確認
+- READMEのPH対応記載修正要否の判断
+- Gate eligible CSVのgate_schema_version再検証設計・修正要否の判断
 - モジュール間接続の設計ゲート
 - 外部AI・Keepa・実データ実行の別決裁
 - 新規固定30件基準実行
@@ -120,7 +130,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-新しいGPTチャットへ切り替え、GitHub最新mainを基準に既存出品ツール契約・PH工程接続監査のFORMAL開始条件を確認する。
+新しいGPTチャットへ切り替え、GitHub最新mainを基準に外部既存出品ツールの正式入力テンプレートまたは仕様書の読み取り専用証拠回収のFORMAL開始条件を確認する。
 
 ## 停止条件
 
@@ -151,7 +161,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 - Handoff Contractの同期ゲート不一致時は作業しない。
 - この正本更新だけでWorkflow実装を開始しない。
 - 既存出品ツールの入力契約を推測で確定しない。
-- PH Gate対応不整合を解消するまで、PH対応をコード上の確定事実として扱わない。
+- READMEのPrelisting Gate対応市場記載の修正要否を判断するまで、READMEをPH対応の正本として扱わない。
 - PH端から端の受入前にSG／MY実装を開始しない。
 - SG／MYの順序を証拠なしで固定しない。
 - THを自動的に次市場としない。
@@ -159,12 +169,16 @@ CI成果物で再確認された事実ではありません。コード機能の
 - 証拠保存機能の完成だけでResolver成功を宣言しない。
 - Category Mapper AI Shadowはオーナー明示承認まで開始しない。
 - 自動出品は明示承認なしに開始しない。
-- 次の監査ではファイル編集、commit、push、PR、mergeを行わない。
-- 既存出品ツール契約とPH Gate対応は、コード・仕様・実ファイルの証拠確認前に確定しない。
+- 外部既存出品ツールの正式入力テンプレートまたは仕様書を確認する前に、接続設計ゲートへ進まない。
+- listing-tool向けtextを外部出品ツールの正式入力契約として扱わない。
+- 外部出品ツールの正式契約なしにWorkflow、自動接続、自動出品を開始しない。
+- README記載修正とgate_schema_version検証修正を、外部契約証拠回収へ無断で混在させない。
+- テスト未実行の監査結果を、実行テストPASSとして扱わない。
+- 実商品、実在庫、実画面、実取込を確認前に端から端の業務成立を確定しない。
 - 読み取り専用監査結果だけでWorkflow実装または自動接続を開始しない。
-- ChatGPTが本CURRENT_WORK更新後のformal main commitをGitHubから直接確認する前に、新しいGPTチャットへ切り替えない。
-- 以前の「既存出品ツール契約・PH工程接続監査」Briefは失効済みとして使用しない。
-- 新しいGPTチャットでGitHub最新mainとEvidence Gateを確認する前に、接続契約監査を開始しない。
+- ChatGPTが本CURRENT_WORK closeout後のformal main commitをGitHubから直接確認する前に、新しいGPTチャットへ切り替えない。
+- 現在の監査Briefはcloseout完了後に失効し、外部契約証拠回収へ再利用しない。
+- 新しいGPTチャットでGitHub最新mainとEvidence Gateを確認する前に、外部契約証拠回収を開始しない。
 - 今回の判断だけでdocs/PROJECT_ROADMAP.mdを変更しない。
 
 ## 成功判定の状態
@@ -177,10 +191,9 @@ CI成果物で再確認された事実ではありません。コード機能の
 ## 既知の文書不整合
 
 - `README.md` にはPrelisting Gateが「現在SGのみ対応」と記載されています。
-- 一方、この文書にはユーザー確認済み結果として「PH Prelisting Gateで13候補すべて
-  `ELIGIBLE`」を記録しています。
-- 今回のPH評価では、この不整合の原因調査、README修正、PH対応のコード上の確認を
-  行いません。PH対応のコード上の事実は未確認です。
+- 一方、読み取り専用監査では、実装、PH Guardrail辞書、PH v2 fixture、テストソースにより
+  SG／PH対応を確認しました。テストは実行していません。
+- README修正は未承認であり、修正要否は後続判断とします。
 
 ## 情報の根拠・確認レベル
 
@@ -197,7 +210,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 | 回収TSVの今後の正式基準入力としての採用 | 新規基準入力専用としてオーナー受入済み |
 | Resolver証拠永続化改修、テスト、実画面 | branch技術検収、オーナー実画面確認、PR #7 main統合およびformal main確認済み |
 | 実データ | 未確認 |
-| PH対応のコード上の事実 | 未確認 |
+| PH対応のコード上の事実 | 読み取り専用監査で実装、PH Guardrail辞書、PH v2 fixture、テストソースを確認。テストは未実行 |
 | 新batchで確定する再検索対象件数・source_id、再評価の実行日・担当者・使用外部AI、Resolver成功基準、改善対象と改善方法 | 未確認 |
 
 ## 最終更新日
