@@ -119,15 +119,35 @@ ChatGPTプロジェクト、Environment承認、Work IDごとのAPIキーを導�
 ### FORMAL work unitとチャット切替
 
 FORMAL work unitは、同じ目的の設計、実装、修正、検証、技術検収、PR、main統合、
-統合後確認までを含む一つの正式作業単位です。次の3条件がすべて成立した時だけ、
-FORMAL作業単位を閉鎖します。
+統合後確認または読み取り専用結果の受入までを含む一つの正式作業単位です。閉鎖方式は、
+成果にGit管理対象の変更を含むかで分けます。
+
+#### PR-backed FORMAL work unit
+
+PR-backed FORMAL work unit（PRを伴うFORMAL作業）は、Git管理対象の変更を成果とする作業です。次の3条件がすべて
+成立した時だけ、PRを伴うFORMAL作業を閉鎖します。
 
 1. 対象PRがmainへ統合済みである。
 2. ChatGPTが統合後のformal main commitをGitHubから直接確認済みである。
 3. docs/CURRENT_WORK.mdが統合後の現在地と次の単一作業へ更新済みである。
 
-上記3条件の成立前は、実装、修正、再検収、PR、merge、統合後確認を同じGPTチャットで
-継続します。条件成立後、次のFORMAL作業を始める前に新しいGPTチャットへ切り替えます。
+#### no-PR FORMAL work unit
+
+no-PR FORMAL work unit（PRを伴わないFORMAL作業）は、読み取り専用監査、BRIEF_GATE: STOP、EVIDENCE_PACKAGE: STOP、
+Git変更を成果としない技術検収、またはGit外成果物だけを扱う正式検収です。これらのために
+空commitまたは形式だけのPRを作成しない。次の3条件がすべて成立した時だけ、
+PRを伴わないFORMAL作業を閉鎖します。
+
+1. ChatGPTが対象作業の基準となるformal main commitをGitHubから直接確認済みである。
+2. ChatGPTが読み取り専用結果またはSTOP結果を、完了した正式な技術結果として受入済みである。
+3. docs/CURRENT_WORK.mdが作業後の現在地と次の単一作業へ更新済みである。実作業の状態、
+   次の単一作業、停止条件に変化がなく更新不要な場合は、ChatGPTによる
+   CURRENT_WORK更新不要時の正式確認をこの条件の代替とする。
+
+FORMAL_WORK_UNIT_CLOSED: YESは、適用される閉鎖方式の3条件をすべて満たした場合だけ使用
+できます。どちらの方式でも閉鎖前は、実装、修正、再検収、PR、merge、統合後確認または
+結果受入を同じGPTチャットで継続します。条件成立後、次のFORMAL作業を始める前に新しいGPT
+チャットへ切り替えます。
 チャットの長さ、体感的な重さ、日付変更、module変更、新しいCodexタスクの作成だけでは
 切り替えません。GPTチャット切替とCodexタスク切替は別の判断です。
 

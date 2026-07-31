@@ -177,17 +177,25 @@
   分断される。従来のRunbookには切替条件があったが、FORMAL作業単位の閉鎖とWORK_BRIEFの
   検査可能な欄を一意に定義していなかった。
 - 決定: FORMAL作業単位は、同じ目的の設計、実装、修正、検証、技術検収、PR、main統合、
-  統合後確認までとする。対象PRのmain統合、ChatGPTによる統合後formal main commitのGitHub
-  直接確認、CURRENT_WORK.mdの統合後現在地と次の単一作業への更新の3条件がそろった時だけ
-  閉鎖する。同一作業の途中ではGPTチャットを切り替えず、閉鎖後に次のFORMAL作業を始める前に
-  新しいGPTチャットへ切り替える。チャットの長さ、体感的な重さ、日付変更、module変更、
-  新しいCodexタスクの作成は切替条件にしない。現在チャットが技術的障害で使用不能な場合だけ
-  例外的な途中切替を許可し、これは閉鎖ではなく同一作業の継続とする。GPTチャット切替と
-  Codexタスク切替は別判断とする。
+  統合後確認または読み取り専用結果の受入までとする。PR-backed FORMAL work unit（PRを伴うFORMAL作業）はGit管理対象の変更を
+  成果とし、対象PRのmain統合、ChatGPTによる統合後formal main commitのGitHub直接確認、
+  CURRENT_WORK.mdの統合後現在地と次の単一作業への更新の3条件がそろった時だけ閉鎖する。
+  no-PR FORMAL work unit（PRを伴わないFORMAL作業）は、読み取り専用監査、BRIEF_GATE: STOP、EVIDENCE_PACKAGE: STOP、
+  Git変更を成果としない技術検収、またはGit外成果物だけの正式検収とする。これらでは空commit
+  または形式だけのPRを作成しない。ChatGPTによる基準formal main commitのGitHub直接確認、
+  読み取り専用結果またはSTOP結果の正式受入、CURRENT_WORK.mdの作業後現在地と次の単一作業への
+  更新の3条件がそろった時だけ閉鎖する。更新不要な場合は、ChatGPTによる
+  CURRENT_WORK更新不要時の正式確認を3番目の条件の代替とする。同一作業の途中ではGPTチャットを
+  切り替えず、閉鎖後に次のFORMAL作業を始める前に新しいGPTチャットへ切り替える。チャットの長さ、
+  体感的な重さ、日付変更、module変更、新しいCodexタスクの作成は切替条件にしない。現在チャットが
+  技術的障害で使用不能な場合だけ例外的な途中切替を許可し、これは閉鎖ではなく同一作業の継続とする。
+  GPTチャット切替とCodexタスク切替は別判断とする。
 - 理由: 作業の正式な切れ目を会話量や担当者の感覚ではなく、GitHub mainと正本文書で検査可能に
   し、引継ぎ時に未統合の作業事実を正式成果と混同しないため。
 - 影響: WORK_BRIEFはGPT chat disposition、result target GPT project、result target GPT chat、
-  FORMAL_WORK_UNIT_CLOSED、CHAT_HANDOFF_GATEを必須欄とする。欄の欠落、空欄、不正値、
+  FORMAL_WORK_UNIT_CLOSED、CHAT_HANDOFF_GATEを必須欄とする。FORMAL_WORK_UNIT_CLOSED: YESは、
+  PRを伴うFORMAL作業またはPRを伴わないFORMAL作業の適用される3条件を満たした場合だけ使用する。
+  両方式ともGitHub main、ChatGPT正式受入、CURRENT_WORKで検査可能にし、欄の欠落、空欄、不正値、
   矛盾する組合せ、またはCHAT_HANDOFF_GATE: STOPを検出した場合、Codexは編集、commit、pushを
   行わずBRIEF_GATE: STOPとする。静的検証で正常な継続・新規チャット組合せを受理し、異常な
   組合せとSTOP中の変更許可を拒否する。商品機能、外部API、業務インターフェース、ロードマップの

@@ -39,6 +39,10 @@
 - FORMAL_WORK_UNIT_CLOSED: YES / NO
 - CHAT_HANDOFF_GATE: PASS / STOP
 
+`FORMAL_WORK_UNIT_CLOSED: YES` は、PRを伴う場合はPR-backed closure条件、PRを伴わない場合は
+no-PR closure条件をすべて満たした時だけ使用する。適用される閉鎖条件を満たしていないYESは
+`BRIEF_GATE: STOP` とする。
+
 ## Evidence Gate
 
 ### 確認済み事実と根拠

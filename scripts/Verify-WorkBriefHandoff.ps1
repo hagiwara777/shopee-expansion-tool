@@ -86,7 +86,10 @@ function Assert-ConfirmedTarget {
     if ([string]::IsNullOrWhiteSpace($Value)) {
         throw "WORK_BRIEF の必須欄が空です: $Field"
     }
-    if ([regex]::IsMatch($Value, "^(?:TBD|N/?A|UNCONFIRMED|未確定|未定)$", [Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
+    if ([regex]::IsMatch($Value, '(?:TBD|UNCONFIRMED|未確定|未定)', [Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
+        throw "WORK_BRIEF の結果戻し先が未確定です: $Field"
+    }
+    if ([regex]::IsMatch($Value, '^(?:N/?A)$', [Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
         throw "WORK_BRIEF の結果戻し先が未確定です: $Field"
     }
 }
@@ -243,7 +246,17 @@ $canonicalFields = @(
 
 $agentsContent = Get-RequiredContent -RepositoryRoot $repositoryRoot -RelativePath "AGENTS.md"
 $runbookContent = Get-RequiredContent -RepositoryRoot $repositoryRoot -RelativePath "docs/RUNBOOK_CHATGPT_CODEX.md"
+$decisionLogContent = Get-RequiredContent -RepositoryRoot $repositoryRoot -RelativePath "docs/DECISION_LOG.md"
 $templateContent = Get-RequiredContent -RepositoryRoot $repositoryRoot -RelativePath "docs/templates/WORK_BRIEF.md"
+$formalClosureTerms = @(
+    "PR-backed FORMAL work unit",
+    "no-PR FORMAL work unit",
+    "PRを伴うFORMAL作業",
+    "PRを伴わないFORMAL作業",
+    "読み取り専用監査",
+    "形式だけのPRを作成しない",
+    "CURRENT_WORK更新不要時の正式確認"
+)
 
 Assert-ContainsText -Content $agentsContent -DocumentName "AGENTS.md" -RequiredTexts ($canonicalFields + @(
     "BRIEF_GATE: STOP",
@@ -263,11 +276,17 @@ Assert-ContainsText -Content $runbookContent -DocumentName "docs/RUNBOOK_CHATGPT
 Assert-ContainsText -Content $templateContent -DocumentName "docs/templates/WORK_BRIEF.md" -RequiredTexts ($canonicalFields + @(
     "GPT chat disposition: CONTINUE_CURRENT_CHAT / CREATE_NEW_CHAT",
     "FORMAL_WORK_UNIT_CLOSED: YES / NO",
-    "CHAT_HANDOFF_GATE: PASS / STOP"
+    "CHAT_HANDOFF_GATE: PASS / STOP",
+    "PR-backed closure条件",
+    "no-PR closure条件"
 ))
+Assert-ContainsText -Content $agentsContent -DocumentName "AGENTS.md" -RequiredTexts $formalClosureTerms
+Assert-ContainsText -Content $runbookContent -DocumentName "docs/RUNBOOK_CHATGPT_CODEX.md" -RequiredTexts $formalClosureTerms
+Assert-ContainsText -Content $decisionLogContent -DocumentName "docs/DECISION_LOG.md" -RequiredTexts $formalClosureTerms
 
 [void](Assert-WorkBriefHandoff -Content (New-TestWorkBrief -Disposition "CONTINUE_CURRENT_CHAT" -Closed "NO" -Gate "PASS"))
 [void](Assert-WorkBriefHandoff -Content (New-TestWorkBrief -Disposition "CREATE_NEW_CHAT" -Closed "YES" -Gate "PASS"))
+[void](Assert-WorkBriefHandoff -Content (New-TestWorkBrief -Disposition "CONTINUE_CURRENT_CHAT" -Project "Shopee Portfolio Control" -Chat "GPTチャット切替基準正式化" -Closed "NO" -Gate "PASS"))
 $explicitlyDeniedMutations = @(
     "編集: 禁止",
     "commit: 禁止",
@@ -285,6 +304,27 @@ Assert-Rejected -Description "空欄" -Action {
 }
 Assert-Rejected -Description "不正な列挙値" -Action {
     Assert-WorkBriefHandoff -Content (New-TestWorkBrief -Disposition "PAUSE" -Closed "NO" -Gate "PASS")
+}
+Assert-Rejected -Description "chatに未確定を含む" -Action {
+    Assert-WorkBriefHandoff -Content (New-TestWorkBrief -Disposition "CONTINUE_CURRENT_CHAT" -Chat "未確定（新規チャット作成後）" -Closed "NO" -Gate "PASS")
+}
+Assert-Rejected -Description "chatに新規チャット・未確定を含む" -Action {
+    Assert-WorkBriefHandoff -Content (New-TestWorkBrief -Disposition "CONTINUE_CURRENT_CHAT" -Chat "新規チャット・未確定" -Closed "NO" -Gate "PASS")
+}
+Assert-Rejected -Description "chatにTBDを含む" -Action {
+    Assert-WorkBriefHandoff -Content (New-TestWorkBrief -Disposition "CONTINUE_CURRENT_CHAT" -Chat "TBD after handoff" -Closed "NO" -Gate "PASS")
+}
+Assert-Rejected -Description "chatにUNCONFIRMEDを含む" -Action {
+    Assert-WorkBriefHandoff -Content (New-TestWorkBrief -Disposition "CONTINUE_CURRENT_CHAT" -Chat "UNCONFIRMED_CHAT" -Closed "NO" -Gate "PASS")
+}
+Assert-Rejected -Description "projectに未定を含む" -Action {
+    Assert-WorkBriefHandoff -Content (New-TestWorkBrief -Disposition "CONTINUE_CURRENT_CHAT" -Project "project未定" -Closed "NO" -Gate "PASS")
+}
+Assert-Rejected -Description "projectがN/A" -Action {
+    Assert-WorkBriefHandoff -Content (New-TestWorkBrief -Disposition "CONTINUE_CURRENT_CHAT" -Project "N/A" -Closed "NO" -Gate "PASS")
+}
+Assert-Rejected -Description "projectがNA" -Action {
+    Assert-WorkBriefHandoff -Content (New-TestWorkBrief -Disposition "CONTINUE_CURRENT_CHAT" -Project "NA" -Closed "NO" -Gate "PASS")
 }
 Assert-Rejected -Description "CREATE_NEW_CHATとchat空欄" -Action {
     Assert-WorkBriefHandoff -Content (New-TestWorkBrief -Disposition "CREATE_NEW_CHAT" -Chat "" -Closed "YES" -Gate "PASS")

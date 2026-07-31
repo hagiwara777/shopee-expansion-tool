@@ -60,11 +60,22 @@
 
 - FORMAL work unitは、同じ目的の設計、実装、修正、検証、技術検収、PR、main統合、
   統合後確認までを一つにした作業単位とする。
-- 次の3条件がすべて成立した時点だけを、FORMAL作業単位の正式な閉鎖とする。
+- PR-backed FORMAL work unit（PRを伴うFORMAL作業）は、Git管理対象の変更を成果とする作業とする。次の3条件がすべて
+  成立した時点だけを、PRを伴うFORMAL作業の正式な閉鎖とする。
   1. 対象PRがmainへ統合済みである。
   2. ChatGPTが統合後のformal main commitをGitHubから直接確認済みである。
   3. docs/CURRENT_WORK.mdが統合後の現在地と次の単一作業へ更新済みである。
-- 同じFORMAL作業単位の実装、修正、検収、PR、merge、統合後確認の途中では、GPTチャットを
+- no-PR FORMAL work unit（PRを伴わないFORMAL作業）は、読み取り専用監査、BRIEF_GATE: STOP、EVIDENCE_PACKAGE: STOP、
+  Git変更を成果としない技術検収、またはGit外成果物だけの正式検収とする。読み取り専用作業の
+  ために空commitまたは形式だけのPRを作成しない。次の3条件がすべて成立した時点だけを、
+  PRを伴わないFORMAL作業の正式な閉鎖とする。
+  1. ChatGPTが対象作業の基準となるformal main commitをGitHubから直接確認済みである。
+  2. ChatGPTが読み取り専用結果またはSTOP結果を、完了した正式な技術結果として受入済みである。
+  3. docs/CURRENT_WORK.mdが作業後の現在地と次の単一作業へ更新済みである。実作業の状態、
+     次の単一作業、停止条件に変化がなく更新不要な場合は、ChatGPTによる
+     CURRENT_WORK更新不要時の正式確認をこの条件の代替とする。
+- PRを伴うFORMAL作業、PRを伴わないFORMAL作業のどちらも、実装、修正、検収、PR、merge、
+  統合後確認または結果受入の途中では、GPTチャットを
   切り替えない。3条件の成立後、次のFORMAL作業を開始する前に新しいGPTチャットへ切り替える。
 - チャットの長さ、体感的な重さ、日付変更、module変更、新しいCodexタスクの作成だけでは、
   GPTチャットを切り替えない。

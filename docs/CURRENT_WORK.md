@@ -14,11 +14,11 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 ## 現在作業
 
 - current_work_type: `GPTチャット切替基準正式化`
-- current_phase: `Draft PR作成済み・PR正式検収待ち`
+- current_phase: `Draft PR差戻し修正済み・再検収待ち`
 - working_branch: `codex/ops-gpt-chat-handoff-gate-formalization`
 - marketplace: `PH`
 - module: `ChatGPT-Codex運用基盤`
-- next_action: ChatGPTがDraft PRの全差分と検証状態を正式検収する。
+- next_action: ChatGPTがPR #9の修正後全差分と検証状態を再検収する。
 
 PH固定30件評価は完了し、集計結果はオーナー受入済みです。評価完了は、Resolverの
 成功または完成の宣言ではありません。Handoff Contract v1の同期ゲートが一致した場合だけ、
@@ -62,6 +62,8 @@ PH固定30件評価は完了し、集計結果はオーナー受入済みです�
 - GPTチャット切替基準のcommit・通常push許可判断完了
 - GPTチャット切替基準のcommit・通常push完了
 - GPTチャット切替基準のDraft PR #9作成完了
+- PR #9初回正式検収はno-PR FORMAL作業の閉鎖経路不足により差戻し
+- no-PR閉鎖経路と未確定戻し先検出の修正・通常push完了
 
 ## 固定30件評価の受入済み結果
 
@@ -101,10 +103,10 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 未完了事項
 
-- GPTチャット切替基準のPR差分検収
-- GPTチャット切替基準のmain統合
-- GPTチャット切替基準の統合後formal main commit確認
-- GPTチャット切替基準の統合後CURRENT_WORK更新
+- PR #9修正後差分のChatGPT正式再検収
+- main統合
+- 統合後formal main commit確認
+- 統合後CURRENT_WORK更新
 - 既存出品ツール契約・PH工程接続監査の再開
 - 既存出品ツール正式入力契約の監査
 - PH Gate対応不整合の監査
@@ -119,7 +121,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-ChatGPTがDraft PRの全差分と検証状態を正式検収する。
+ChatGPTがPR #9の修正後全差分と検証状態を正式再検収する。
 
 ## 停止条件
 
