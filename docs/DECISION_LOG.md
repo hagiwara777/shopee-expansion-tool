@@ -169,3 +169,36 @@
 - 理由: 各moduleの事業上の役割を明確にし、局所機能の完成を事業成功と混同しないため。PHで業務成立と測定方法を確認してから横展開する方が、市場固有差分を管理しやすいため。未確認の出品ツール契約を正本上の実装済み事実にしないため。
 - 影響: `PROJECT_ROADMAP.md`を候補生成、候補選別、出品準備、市場展開の構造へ更新する。`CURRENT_WORK.md`の次工程を本正本差分の検収へ更新する。外部AI、Keepa、実データ、固定30件実行は引き続き別決裁とする。Category Mapper AI Shadowはオーナー明示承認まで開始しない。Resolver成功基準は新batchの工程別証拠がそろうまで未決定とする。
 - 再検討条件: 既存出品ツールの正式入力仕様を確認したとき。PH Gate対応の不整合を解消したとき。PHの端から端までの受入結果が得られたとき。SGまたはMYの市場固有設計へ着手するとき。Workflowまたは自動出品を検討するとき。
+
+## DEC-0016 — FORMAL作業単位とGPTチャット切替基準を正式化する
+
+- 日付: 2026-07-31
+- 背景: FORMALな作業の途中でチャットを切り替えると、根拠、差分、検収、PR、統合後確認が
+  分断される。従来のRunbookには切替条件があったが、FORMAL作業単位の閉鎖とWORK_BRIEFの
+  検査可能な欄を一意に定義していなかった。
+- 決定: FORMAL作業単位は、同じ目的の設計、実装、修正、検証、技術検収、PR、main統合、
+  統合後確認または読み取り専用結果の受入までとする。PR-backed FORMAL work unit（PRを伴うFORMAL作業）はGit管理対象の変更を
+  成果とし、対象PRのmain統合、ChatGPTによる統合後formal main commitのGitHub直接確認、
+  CURRENT_WORK.mdの統合後現在地と次の単一作業への更新の3条件がそろった時だけ閉鎖する。
+  no-PR FORMAL work unit（PRを伴わないFORMAL作業）は、読み取り専用監査、BRIEF_GATE: STOP、EVIDENCE_PACKAGE: STOP、
+  Git変更を成果としない技術検収、またはGit外成果物だけの正式検収とする。これらでは空commit
+  または形式だけのPRを作成しない。ChatGPTによる基準formal main commitのGitHub直接確認、
+  読み取り専用結果またはSTOP結果の正式受入、CURRENT_WORK.mdの作業後現在地と次の単一作業への
+  更新の3条件がそろった時だけ閉鎖する。更新不要な場合は、ChatGPTによる
+  CURRENT_WORK更新不要時の正式確認を3番目の条件の代替とする。同一作業の途中ではGPTチャットを
+  切り替えず、閉鎖後に次のFORMAL作業を始める前に新しいGPTチャットへ切り替える。チャットの長さ、
+  体感的な重さ、日付変更、module変更、新しいCodexタスクの作成は切替条件にしない。現在チャットが
+  技術的障害で使用不能な場合だけ例外的な途中切替を許可し、これは閉鎖ではなく同一作業の継続とする。
+  GPTチャット切替とCodexタスク切替は別判断とする。
+- 理由: 作業の正式な切れ目を会話量や担当者の感覚ではなく、GitHub mainと正本文書で検査可能に
+  し、引継ぎ時に未統合の作業事実を正式成果と混同しないため。
+- 影響: WORK_BRIEFはGPT chat disposition、result target GPT project、result target GPT chat、
+  FORMAL_WORK_UNIT_CLOSED、CHAT_HANDOFF_GATEを必須欄とする。FORMAL_WORK_UNIT_CLOSED: YESは、
+  PRを伴うFORMAL作業またはPRを伴わないFORMAL作業の適用される3条件を満たした場合だけ使用する。
+  両方式ともGitHub main、ChatGPT正式受入、CURRENT_WORKで検査可能にし、欄の欠落、空欄、不正値、
+  矛盾する組合せ、またはCHAT_HANDOFF_GATE: STOPを検出した場合、Codexは編集、commit、pushを
+  行わずBRIEF_GATE: STOPとする。静的検証で正常な継続・新規チャット組合せを受理し、異常な
+  組合せとSTOP中の変更許可を拒否する。商品機能、外部API、業務インターフェース、ロードマップの
+  工程順は変更しない。
+- 再検討条件: 3件程度のFORMAL作業で、チャット切替漏れ、Brief欄の不整合、または技術障害時の
+  例外運用が安全に扱えないことを確認したとき。GitHubまたはChatGPTの運用制約が変わるとき。

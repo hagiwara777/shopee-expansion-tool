@@ -15,8 +15,7 @@
 
 ### 結果の戻し先
 
-- ChatGPTプロジェクト:
-- ChatGPTチャット:
+- canonical fieldはHandoff Contractに記入する。
 
 ### 今回行わない操作
 
@@ -34,8 +33,15 @@
 - marketplace:
 - module:
 - phase:
-- 結果を戻すChatGPTプロジェクト:
-- 結果を戻すChatGPTチャット:
+- GPT chat disposition: CONTINUE_CURRENT_CHAT / CREATE_NEW_CHAT
+- result target GPT project:
+- result target GPT chat:
+- FORMAL_WORK_UNIT_CLOSED: YES / NO
+- CHAT_HANDOFF_GATE: PASS / STOP
+
+`FORMAL_WORK_UNIT_CLOSED: YES` は、PRを伴う場合はPR-backed closure条件、PRを伴わない場合は
+no-PR closure条件をすべて満たした時だけ使用する。適用される閉鎖条件を満たしていないYESは
+`BRIEF_GATE: STOP` とする。
 
 ## Evidence Gate
 
@@ -106,6 +112,14 @@
 - marketplace・module・phase不一致
 - 必要な成果物へアクセス不能
 - API・Git許可が不足
+- GPT chat dispositionが許容値以外
+- result target GPT projectまたはresult target GPT chatが空欄・未確定
+- FORMAL_WORK_UNIT_CLOSEDが許容値以外
+- CHAT_HANDOFF_GATEが許容値以外またはSTOP
+- CREATE_NEW_CHATなのにresult target GPT chatが未確定
+- CREATE_NEW_CHATなのにFORMAL_WORK_UNIT_CLOSEDがNO
+- 不正な組合せなのにCHAT_HANDOFF_GATEがPASS
+- CHAT_HANDOFF_GATE: STOPなのに編集、commitまたはpushを許可している
 - READMEや会話だけでコード仕様を断定している
 - 古いBriefが最新CURRENT_WORKと矛盾
 
@@ -115,6 +129,8 @@
 - FORMALな判断またはWORK_BRIEFではEvidence Gateを表示する。GateのないFORMAL提案は無効とする。
 - 新規・継続を問わず、fetch後のorigin/main、formal commit、remote、repo root、branch、HEAD、
   clean / dirty、marketplace、module、phase、対象外、Git・API許可、必要なGit外成果物を独立確認する。
+- GPT chat disposition、result target GPT project、result target GPT chat、
+  FORMAL_WORK_UNIT_CLOSED、CHAT_HANDOFF_GATEも独立確認する。
 - 同期ゲートに不一致があれば、古いBriefを推測で修正せず `BRIEF_GATE: STOP` とする。
 - 原因不明、外部API、Git・CI・認証、責務境界、複数ファイルへ広がる可能性がある場合は、
   Plan Modeから始める。

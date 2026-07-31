@@ -116,18 +116,67 @@ ChatGPTプロジェクト、Environment承認、Work IDごとのAPIキーを導�
 - FORMALにはEvidence Gateを必須とする。GateのないFORMAL提案は無効とする。
 - Evidence Gate: PASSは、提案に必要な根拠を確認できたことを示す。実装成功・受入成功は保証しない。
 
-### チャット切替条件
+### FORMAL work unitとチャット切替
 
-新しいChatGPTチャットへ切り替える前に、次をすべて満たす。
+FORMAL work unitは、同じ目的の設計、実装、修正、検証、技術検収、PR、main統合、
+統合後確認または読み取り専用結果の受入までを含む一つの正式作業単位です。閉鎖方式は、
+成果にGit管理対象の変更を含むかで分けます。
 
-1. `CURRENT_WORK.md` が最新である。
-2. 必要な判断を `DECISION_LOG.md` へ追記している。
-3. 工程順が変わった場合は `PROJECT_ROADMAP.md` を更新している。
-4. Git外成果物の最小索引を `CURRENT_WORK.md` へ記録している。
-5. 変更がmainへmerge済みであり、merge後のformal main commitを確定している。
-6. 次の単一作業と停止条件を確定している。
-7. 次のCodexタスクを既存継続か新規作成か明記している。
-8. 古いBriefを失効扱いにしている。
+#### PR-backed FORMAL work unit
+
+PR-backed FORMAL work unit（PRを伴うFORMAL作業）は、Git管理対象の変更を成果とする作業です。次の3条件がすべて
+成立した時だけ、PRを伴うFORMAL作業を閉鎖します。
+
+1. 対象PRがmainへ統合済みである。
+2. ChatGPTが統合後のformal main commitをGitHubから直接確認済みである。
+3. docs/CURRENT_WORK.mdが統合後の現在地と次の単一作業へ更新済みである。
+
+#### no-PR FORMAL work unit
+
+no-PR FORMAL work unit（PRを伴わないFORMAL作業）は、読み取り専用監査、BRIEF_GATE: STOP、EVIDENCE_PACKAGE: STOP、
+Git変更を成果としない技術検収、またはGit外成果物だけを扱う正式検収です。これらのために
+空commitまたは形式だけのPRを作成しない。次の3条件がすべて成立した時だけ、
+PRを伴わないFORMAL作業を閉鎖します。
+
+1. ChatGPTが対象作業の基準となるformal main commitをGitHubから直接確認済みである。
+2. ChatGPTが読み取り専用結果またはSTOP結果を、完了した正式な技術結果として受入済みである。
+3. docs/CURRENT_WORK.mdが作業後の現在地と次の単一作業へ更新済みである。実作業の状態、
+   次の単一作業、停止条件に変化がなく更新不要な場合は、ChatGPTによる
+   CURRENT_WORK更新不要時の正式確認をこの条件の代替とする。
+
+FORMAL_WORK_UNIT_CLOSED: YESは、適用される閉鎖方式の3条件をすべて満たした場合だけ使用
+できます。どちらの方式でも閉鎖前は、実装、修正、再検収、PR、merge、統合後確認または
+結果受入を同じGPTチャットで継続します。条件成立後、次のFORMAL作業を始める前に新しいGPT
+チャットへ切り替えます。
+チャットの長さ、体感的な重さ、日付変更、module変更、新しいCodexタスクの作成だけでは
+切り替えません。GPTチャット切替とCodexタスク切替は別の判断です。
+
+現在チャットで作業不能となる技術的障害がある場合だけ、例外的に途中切替できます。
+この例外はFORMAL作業単位の閉鎖を意味せず、新しいチャットを現在チャットとして確定した後も
+同じFORMAL作業を継続します。
+
+WORK_BRIEFは次のcanonical fieldを必須とします。
+
+| canonical field | 意味と許容値 |
+| --- | --- |
+| GPT chat disposition | CONTINUE_CURRENT_CHAT / CREATE_NEW_CHAT。現在のGPTチャットを継続するか、新しいGPTチャットを作成するか。 |
+| result target GPT project | 結果を戻すGPTプロジェクト。空欄・未確定は不可。 |
+| result target GPT chat | 結果を戻すGPTチャット。空欄・未確定は不可。 |
+| FORMAL_WORK_UNIT_CLOSED | YES / NO。Brief発行時点で直前のFORMAL作業単位が閉鎖済みか。 |
+| CHAT_HANDOFF_GATE | PASS / STOP。GPTチャット切替に関する必須欄と組合せの判定。 |
+
+標準の組合せは次のとおりです。
+
+| 場面 | GPT chat disposition | FORMAL_WORK_UNIT_CLOSED | CHAT_HANDOFF_GATE |
+| --- | --- | --- | --- |
+| 同一作業の実装、修正、再検収 | CONTINUE_CURRENT_CHAT | NO | PASS |
+| 閉鎖済み作業から次のFORMAL作業へ移行 | CREATE_NEW_CHAT | YES | PASS |
+| 技術障害による例外切替後の同一作業継続 | CONTINUE_CURRENT_CHAT | NO | PASS |
+
+CREATE_NEW_CHATでresult target GPT chatが未確定、またはFORMAL_WORK_UNIT_CLOSEDがNOの場合は
+CHAT_HANDOFF_GATE: STOPかつBRIEF_GATE: STOPとします。その他の必須欄の欠落、空欄、
+不正な列挙値、矛盾する組合せも同様です。CHAT_HANDOFF_GATE: STOPのBriefでは、編集、
+commit、pushを許可しません。
 
 ### Codex開始時同期ゲート
 
@@ -135,6 +184,8 @@ ChatGPTプロジェクト、Environment承認、Work IDごとのAPIキーを導�
 
 - fetch後のorigin/main、Briefのformal commit、remote、repo root、branch、HEAD、clean / dirty
 - marketplace、module、phase、対象外、Git・APIの許可範囲
+- GPT chat disposition、result target GPT project、result target GPT chat、
+  FORMAL_WORK_UNIT_CLOSED、CHAT_HANDOFF_GATE
 - 必要なGit外成果物へのアクセス
 
 不一致なら `BRIEF_GATE: STOP` とする。formal main照合にはlocal mainではなく、fetch後の

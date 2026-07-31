@@ -56,6 +56,41 @@
   `.codex/`, or `work/`.
 - Do not hard-code API keys, tokens, or passwords in source code, README files, or tests.
 
+## FORMAL作業単位とGPTチャット切替
+
+- FORMAL work unitは、同じ目的の設計、実装、修正、検証、技術検収、PR、main統合、
+  統合後確認までを一つにした作業単位とする。
+- PR-backed FORMAL work unit（PRを伴うFORMAL作業）は、Git管理対象の変更を成果とする作業とする。次の3条件がすべて
+  成立した時点だけを、PRを伴うFORMAL作業の正式な閉鎖とする。
+  1. 対象PRがmainへ統合済みである。
+  2. ChatGPTが統合後のformal main commitをGitHubから直接確認済みである。
+  3. docs/CURRENT_WORK.mdが統合後の現在地と次の単一作業へ更新済みである。
+- no-PR FORMAL work unit（PRを伴わないFORMAL作業）は、読み取り専用監査、BRIEF_GATE: STOP、EVIDENCE_PACKAGE: STOP、
+  Git変更を成果としない技術検収、またはGit外成果物だけの正式検収とする。読み取り専用作業の
+  ために空commitまたは形式だけのPRを作成しない。次の3条件がすべて成立した時点だけを、
+  PRを伴わないFORMAL作業の正式な閉鎖とする。
+  1. ChatGPTが対象作業の基準となるformal main commitをGitHubから直接確認済みである。
+  2. ChatGPTが読み取り専用結果またはSTOP結果を、完了した正式な技術結果として受入済みである。
+  3. docs/CURRENT_WORK.mdが作業後の現在地と次の単一作業へ更新済みである。実作業の状態、
+     次の単一作業、停止条件に変化がなく更新不要な場合は、ChatGPTによる
+     CURRENT_WORK更新不要時の正式確認をこの条件の代替とする。
+- PRを伴うFORMAL作業、PRを伴わないFORMAL作業のどちらも、実装、修正、検収、PR、merge、
+  統合後確認または結果受入の途中では、GPTチャットを
+  切り替えない。3条件の成立後、次のFORMAL作業を開始する前に新しいGPTチャットへ切り替える。
+- チャットの長さ、体感的な重さ、日付変更、module変更、新しいCodexタスクの作成だけでは、
+  GPTチャットを切り替えない。
+- 現在のGPTチャットで作業不能となる技術的障害がある場合だけ、例外的な途中切替を許可する。
+  この例外はFORMAL作業単位の閉鎖を意味せず、同じ作業を新しい現在チャットで継続する。
+- WORK_BRIEFでは次のcanonical fieldをすべて確認する。
+  - GPT chat disposition: CONTINUE_CURRENT_CHAT / CREATE_NEW_CHAT
+  - result target GPT project:
+  - result target GPT chat:
+  - FORMAL_WORK_UNIT_CLOSED: YES / NO
+  - CHAT_HANDOFF_GATE: PASS / STOP
+- canonical fieldの欠落、空欄、不正値、矛盾する組合せ、またはCHAT_HANDOFF_GATE: STOPを
+  検出した場合、Codexは編集、commit、pushを行わずBRIEF_GATE: STOPとして読み取り結果だけを
+  報告する。GPTチャット切替とCodexタスク切替は別の判断として扱う。
+
 ## Validation
 
 - Run `pytest` after changes whenever practical.
