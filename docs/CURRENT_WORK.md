@@ -13,12 +13,12 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `GPTチャット切替基準正式化`
-- current_phase: `Draft PR差戻し修正済み・再検収待ち`
-- working_branch: `codex/ops-gpt-chat-handoff-gate-formalization`
+- current_work_type: `既存出品ツール契約・PH工程接続監査準備`
+- current_phase: `GPTチャット切替基準正式化main受入済み・新GPTチャット切替待ち`
+- working_branch: `main`
 - marketplace: `PH`
-- module: `ChatGPT-Codex運用基盤`
-- next_action: ChatGPTがPR #9の修正後全差分と検証状態を再検収する。
+- module: `事業全体フロー・接続契約監査`
+- next_action: 新しいGPTチャットへ切り替え、GitHub最新mainを基準に既存出品ツール契約・PH工程接続監査のFORMAL開始条件を確認する。
 
 PH固定30件評価は完了し、集計結果はオーナー受入済みです。評価完了は、Resolverの
 成功または完成の宣言ではありません。Handoff Contract v1の同期ゲートが一致した場合だけ、
@@ -64,6 +64,10 @@ PH固定30件評価は完了し、集計結果はオーナー受入済みです�
 - GPTチャット切替基準のDraft PR #9作成完了
 - PR #9初回正式検収はno-PR FORMAL作業の閉鎖経路不足により差戻し
 - no-PR閉鎖経路と未確定戻し先検出の修正・通常push完了
+- PR #9修正後全差分のChatGPT正式再検収完了
+- PR #9 main統合完了
+- formal main commit `87ed73115652c181d4e25da585a3f6104f94f6a5`をChatGPTがGitHubから直接確認完了
+- DEC-0016、GPTチャット切替基準、WORK_BRIEF canonical field、静的検証をmain上の正式成果として受入
 
 ## 固定30件評価の受入済み結果
 
@@ -103,11 +107,6 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 未完了事項
 
-- PR #9修正後差分のChatGPT正式再検収
-- main統合
-- 統合後formal main commit確認
-- 統合後CURRENT_WORK更新
-- 既存出品ツール契約・PH工程接続監査の再開
 - 既存出品ツール正式入力契約の監査
 - PH Gate対応不整合の監査
 - モジュール間接続の設計ゲート
@@ -121,7 +120,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-ChatGPTがPR #9の修正後全差分と検証状態を正式再検収する。
+新しいGPTチャットへ切り替え、GitHub最新mainを基準に既存出品ツール契約・PH工程接続監査のFORMAL開始条件を確認する。
 
 ## 停止条件
 
@@ -163,10 +162,9 @@ ChatGPTがPR #9の修正後全差分と検証状態を正式再検収する。
 - 次の監査ではファイル編集、commit、push、PR、mergeを行わない。
 - 既存出品ツール契約とPH Gate対応は、コード・仕様・実ファイルの証拠確認前に確定しない。
 - 読み取り専用監査結果だけでWorkflow実装または自動接続を開始しない。
-- このFORMAL作業単位が閉じる前に新しいGPTチャットへ切り替えない。
-- GPTチャット切替基準正式化のmainへのmergeは別途許可前に行わない。
-- GPTチャット切替基準のPR差分のChatGPT正式検収前にmainへmergeしない。
-- 既存出品ツール契約・PH工程接続監査を今回の正本化変更へ混在させない。
+- ChatGPTが本CURRENT_WORK更新後のformal main commitをGitHubから直接確認する前に、新しいGPTチャットへ切り替えない。
+- 以前の「既存出品ツール契約・PH工程接続監査」Briefは失効済みとして使用しない。
+- 新しいGPTチャットでGitHub最新mainとEvidence Gateを確認する前に、接続契約監査を開始しない。
 - 今回の判断だけでdocs/PROJECT_ROADMAP.mdを変更しない。
 
 ## 成功判定の状態
