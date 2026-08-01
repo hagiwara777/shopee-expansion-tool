@@ -13,14 +13,14 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `Shopee三独立ツール構成・出品支援優先順位正式化`
-- current_phase: `三独立ツール構成正本差分・Draft PR作成済み・PR正式検収待ち`
-- working_branch: `codex/ops-shopee-three-independent-tools-priority`
+- current_work_type: `出品支援ツール完成定義・設計ゲート準備`
+- current_phase: `三独立ツール構成・出品支援優先順位main受入済み・新GPTチャット切替待ち`
+- working_branch: `main`
 - marketplace: `PH`
 - module: `事業ポートフォリオ・出品支援ツール`
-- next_action: ChatGPTがDraft PRの全差分、commit、検証状態を正式検収する。
+- next_action: ChatGPTがcloseout後formal main commitをGitHubから直接確認し、FORMAL作業単位を閉鎖して新しいGPTチャットへ切り替える。
 
-三つの独立ツール構成と、出品支援ツール完成を現在の最優先とする設計ゲートは完了しています。出品支援ツールの完成条件は未決定であり、現在の正本差分だけで完成を宣言しません。Handoff Contract v1の同期ゲートが一致した場合だけ、次の作業を開始します。
+三つの独立ツール構成と出品支援ツール優先順位はmain上で受入済みです。出品支援ツールの完成条件は未決定であり、完成を宣言しません。次のFORMAL作業は、出品支援ツールの完成定義、残課題、利用者シナリオ、受入条件の設計ゲートです。closeout commitをChatGPTがGitHubから直接確認する前に、次のFORMAL作業を開始しません。
 
 ## 完了・受入済み
 
@@ -85,6 +85,11 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 - commit・通常push・Draft PR作成をChatGPTが許可
 - 三独立ツール構成・出品支援優先順位のcommit・通常push完了
 - Draft PR #10作成完了
+- PR #10の全差分をChatGPTが正式技術受入
+- PR #10をReady for reviewへ変更
+- PR #10をmerge commit方式でmainへ統合
+- merge commit `2e536af7478a0ad53c52622146e52088289333d6`をChatGPTがGitHubから直接確認
+- DEC-0017、三つの独立ツール構成、出品支援ツール優先順位、更新後ロードマップをmain上の正式成果として受入
 
 ## 固定30件評価の受入済み結果
 
@@ -124,12 +129,9 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 未完了事項
 
-- Draft PR #10のChatGPT正式検収
-- Draft PRのReady化
-- main統合
-- 統合後formal main commit確認
-- 統合後CURRENT_WORK closeout
-- 三つの独立ツール構成と出品支援ツール優先順位のmain正本化
+- closeout後formal main commitのChatGPT直接確認
+- FORMAL作業単位の閉鎖
+- 新しいGPTチャットへの切替
 - 出品支援ツールの完成定義
 - 出品支援ツールの残課題一覧
 - 出品支援ツールの利用者シナリオ
@@ -154,7 +156,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-ChatGPTが三つの独立ツール構成と出品支援優先順位の正本差分を正式技術検収する。
+ChatGPTがcloseout後formal main commitをGitHubから直接確認し、FORMAL作業単位を閉鎖して新しいGPTチャットへ切り替える。
 
 ## 停止条件
 
@@ -200,9 +202,9 @@ ChatGPTが三つの独立ツール構成と出品支援優先順位の正本差�
 - テスト未実行の監査結果を、実行テストPASSとして扱わない。
 - 実商品、実在庫、実画面、実取込を確認前に端から端の業務成立を確定しない。
 - 読み取り専用監査結果だけでWorkflow実装または自動接続を開始しない。
-- このFORMAL作業単位が閉じる前に、新しいGPTチャットへ切り替えない。
-- 三独立ツール構成・出品支援優先順位の差分について、ChatGPTの再検収前にcommit、push、PR作成またはmergeを行わない。
-- PR上の全差分をChatGPTが正式検収する前にReady化またはmergeしない。
+- closeout後formal main commitをChatGPTがGitHubから直接確認する前に、FORMAL作業単位を閉鎖扱いにしない。
+- FORMAL作業単位の閉鎖前に新しいGPTチャットへ切り替えない。
+- 新しいGPTチャットで最新mainとEvidence Gateを確認する前に、出品支援ツール完成定義の設計ゲートを開始しない。
 - 以前の外部契約証拠回収用Briefおよびそのcloseout Briefは失効済みとして再利用しない。
 - 外部契約証拠回収を現在の最優先作業として再開しない。
 - 今回許可されたdocs/CURRENT_WORK.md、docs/DECISION_LOG.md、docs/PROJECT_ROADMAP.md以外のファイルを変更しない。
@@ -210,6 +212,8 @@ ChatGPTが三つの独立ツール構成と出品支援優先順位の正本差�
 - 出品支援ツールの完成条件を確定する前に、完成済みと扱わない。
 - 三つのツール間のデータ連携、API連携、実行順序、共有状態管理を設計しない。
 - 一つのツールの出力を、他のツールの正式入力として扱わない。
+- 今回docs/DECISION_LOG.mdまたはdocs/PROJECT_ROADMAP.mdを変更しない。
+- 今回のcloseoutで商品機能、API、テスト、実画面、実データを変更・実行しない。
 - 外部出品ツール契約未確認だけを理由に、ASIN、Shopee Category ID、Shopee Brand IDの取得・確認に関する中核開発全体を停止しない。
 - 自動投入、自動出品、E2E受入には別設計・別承認を必要とする。
 - 出品後商品改善ツールとAmazon仕入れ支援ツールの詳細仕様を今回確定しない。
@@ -249,4 +253,4 @@ ChatGPTが三つの独立ツール構成と出品支援優先順位の正本差�
 
 ## 最終更新日
 
-2026-07-31
+2026-08-01
