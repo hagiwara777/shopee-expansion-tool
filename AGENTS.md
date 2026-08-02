@@ -49,47 +49,41 @@
 
 ## Git and sensitive data
 
-- Do not commit or push unless the user explicitly authorizes it.
+- A scoped local commit is allowed after relevant validation succeeds and the
+  changed files, diff, and secret-data checks have been reviewed. Do not stage
+  or commit unrelated user changes.
+- Do not push, create a pull request, merge, or deploy unless the user
+  explicitly authorizes the operation. One approval may cover a normal push
+  and Draft PR creation for the same reviewed commit.
 - Force push with `--force` or `--force-with-lease` is prohibited by default. Make an exception only when the user explicitly authorizes the target branch and exact operation; do not automatically perform ordinary pushes or formalization beyond the requested scope.
 - Never add the following to Git: `.env`, `.env.*`, cache databases, `outputs/`,
   `.venv/`, `__pycache__/`, `.pytest_cache/`, `.pytest_tmp/`, `.agents/`,
   `.codex/`, or `work/`.
 - Do not hard-code API keys, tokens, or passwords in source code, README files, or tests.
 
-## FORMAL作業単位とGPTチャット切替
+## 軽量開発運用 v1
 
-- FORMAL work unitは、同じ目的の設計、実装、修正、検証、技術検収、PR、main統合、
-  統合後確認までを一つにした作業単位とする。
-- PR-backed FORMAL work unit（PRを伴うFORMAL作業）は、Git管理対象の変更を成果とする作業とする。次の3条件がすべて
-  成立した時点だけを、PRを伴うFORMAL作業の正式な閉鎖とする。
-  1. 対象PRがmainへ統合済みである。
-  2. ChatGPTが統合後のformal main commitをGitHubから直接確認済みである。
-  3. docs/CURRENT_WORK.mdが統合後の現在地と次の単一作業へ更新済みである。
-- no-PR FORMAL work unit（PRを伴わないFORMAL作業）は、読み取り専用監査、BRIEF_GATE: STOP、EVIDENCE_PACKAGE: STOP、
-  Git変更を成果としない技術検収、またはGit外成果物だけの正式検収とする。読み取り専用作業の
-  ために空commitまたは形式だけのPRを作成しない。次の3条件がすべて成立した時点だけを、
-  PRを伴わないFORMAL作業の正式な閉鎖とする。
-  1. ChatGPTが対象作業の基準となるformal main commitをGitHubから直接確認済みである。
-  2. ChatGPTが読み取り専用結果またはSTOP結果を、完了した正式な技術結果として受入済みである。
-  3. docs/CURRENT_WORK.mdが作業後の現在地と次の単一作業へ更新済みである。実作業の状態、
-     次の単一作業、停止条件に変化がなく更新不要な場合は、ChatGPTによる
-     CURRENT_WORK更新不要時の正式確認をこの条件の代替とする。
-- PRを伴うFORMAL作業、PRを伴わないFORMAL作業のどちらも、実装、修正、検収、PR、merge、
-  統合後確認または結果受入の途中では、GPTチャットを
-  切り替えない。3条件の成立後、次のFORMAL作業を開始する前に新しいGPTチャットへ切り替える。
-- チャットの長さ、体感的な重さ、日付変更、module変更、新しいCodexタスクの作成だけでは、
-  GPTチャットを切り替えない。
-- 現在のGPTチャットで作業不能となる技術的障害がある場合だけ、例外的な途中切替を許可する。
-  この例外はFORMAL作業単位の閉鎖を意味せず、同じ作業を新しい現在チャットで継続する。
-- WORK_BRIEFでは次のcanonical fieldをすべて確認する。
-  - GPT chat disposition: CONTINUE_CURRENT_CHAT / CREATE_NEW_CHAT
-  - result target GPT project:
-  - result target GPT chat:
-  - FORMAL_WORK_UNIT_CLOSED: YES / NO
-  - CHAT_HANDOFF_GATE: PASS / STOP
-- canonical fieldの欠落、空欄、不正値、矛盾する組合せ、またはCHAT_HANDOFF_GATE: STOPを
-  検出した場合、Codexは編集、commit、pushを行わずBRIEF_GATE: STOPとして読み取り結果だけを
-  報告する。GPTチャット切替とCodexタスク切替は別の判断として扱う。
+- オーナーは、作りたいもの、理由、利用方法、満足条件、避けたい結果を事業用語で示す。
+  技術方式、branch、テスト方式の選択をオーナーへ求めない。
+- CodexはGitと正本を実行時に確認し、曖昧な要望を具体化し、技術設計、ローカル編集、
+  テスト、平易な完了報告を担当する。GPTは必須の伝言役または承認者にしない。
+- 読み取り専用調査、branch作成、範囲内のローカル編集、ローカルテスト、検証済み差分の
+  ローカルcommitは、目的と禁止範囲が明確で可逆な限りCodexが進められる。
+- 次は実行前にオーナーの明示承認を得る。
+  - 費用または有料API利用
+  - Shopee等の外部サービスへのlive書込み
+  - 復元不能な削除、上書き、移行
+  - pushとDraft PR作成、merge、deploy
+  - 承認済みの目的、責務、満足条件を大きく変える変更
+- pushとDraft PR作成は、同一の検証済みcommitについて一度の承認で実行できる。
+  mergeとdeployは別の明示承認を必要とする。
+- `docs/templates/WORK_BRIEF.md` は全作業の開始条件ではない。目的が曖昧、複数module、
+  責務変更、外部API、費用、データ移行、復元不能操作等を伴う場合だけ使用する。
+  pushまたはPRを行うことだけを理由に必須化しない。
+- Codexプロジェクト名、GPTチャット名、worktree絶対パスを安全ゲートにしない。
+  repo root、remote、branch、HEAD、origin/main、clean / dirtyはCodexが実行時に確認する。
+- 不明事項が作業の危険性へ直接関係しない場合は、確認済み事実と仮定を区別して可逆な範囲を
+  続行する。外部影響、復元不能性、責務変更へ関係する場合だけ停止する。
 
 ## Validation
 
@@ -110,8 +104,8 @@
 - `CURRENT_WORK.md` または `DECISION_LOG.md` を更新した場合は、
   `scripts/Update-ContextSnapshot.ps1` でsnapshotを再生成する。生成に失敗した場合は
   作業完了扱いにしない。
-- commit前に変更ファイル、未追跡ファイル、秘密情報の混入を確認する。
-  commit・pushの許可がない場合は実行しない。
+- commit前に変更ファイル、未追跡ファイル、秘密情報の混入、関連テスト結果を確認する。
+  push、PR、merge、deployの許可がない場合は実行しない。
 
 ## Component boundaries
 
