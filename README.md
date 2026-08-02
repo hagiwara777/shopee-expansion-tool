@@ -53,7 +53,9 @@ Ver0.4.3では、Keepa確認後に元Shopeeタイトル、Keepa商品タイト�
 
 ## 出品前保安ゲート Phase 4A-2
 
-出品前保安ゲートは現在SGのみ対応です。Expansion ToolまたはASIN Resolver Toolで出力した候補CSVと、各ショップの既出品CSVを入力し、Guardrail、既出品ASIN、入力内重複、起点ASIN自身、メタデータ不足を判定します。最終判定は `ELIGIBLE / REVIEW / EXCLUDE` とし、ELIGIBLE CSV、REVIEW CSV、全件の監査用CSVを出力します。
+出品前保安ゲートは、画面上でSGまたはPHを選択できます。Expansion ToolまたはASIN Resolver Toolで出力した候補CSVと、対象市場の各ショップの既出品CSVを入力し、Guardrail、既出品ASIN、入力内重複、起点ASIN自身、メタデータ不足を判定します。最終判定は `ELIGIBLE / REVIEW / EXCLUDE` とし、ELIGIBLE CSV、REVIEW CSV、全件の監査用CSVを出力します。
+
+PH対応は、PH専用Guardrail辞書、入力契約、ローカルテストで確認済みです。実データを使ったPHの実画面・実業務受入と、出品支援ツール全体の完成判定はまだ完了していません。
 
 ELIGIBLEはShopee規約上の安全を保証するものではなく、出力CSVは外部出品ツールへ直接投入する形式ではありません。入力が変わった場合は古い判定結果を破棄し、判定時に外部APIを追加で呼び出しません。
 
@@ -86,7 +88,14 @@ Guardrail辞書が存在しない、壊れている、必須列が不足して�
   - Shopee SG向け禁止語・要確認語辞書です。
   - `title / brand / category / all` に対して、`exact / contains` で判定します。
 
-両CSVの列は以下に固定しています。
+- `guardrails/prohibited_brands_ph.csv`
+  - Shopee PH向けブランド辞書です。現在は固定ヘッダーのみで、PHの有効ブランドルールはありません。
+
+- `guardrails/risk_keywords_ph.csv`
+  - Shopee PH向け禁止語・要確認語辞書です。
+  - PHを選択した出品前保安ゲートだけに適用します。
+
+各辞書CSVの列は以下に固定しています。
 
 ```text
 term,action,risk_category,match_field,match_type,source_type,note,enabled
@@ -116,7 +125,7 @@ term,action,risk_category,match_field,match_type,source_type,note,enabled
 - アプリ内部からのAI API / Gemini APIの自動呼び出し
 - AI返答の自動取得
 - ASIN Resolverの結果をExpansion Toolへ自動投入
-- PH / MY / TH対応（出品前保安ゲートを含む、現在はSGのみ対応）
+- Expansion ToolのPH / MY / TH市場対応（出品前保安ゲートはSG／PHを選択可能。PHの実データを使った業務受入は未完了）
 - 外部出品ツール互換CSV
 - Shopee API連携
 - 自動出品
@@ -240,7 +249,7 @@ Guardrail列の意味は以下です。
 - 入力ASIN自身と候補内の重複ASINは除外します。
 - Expansion Tool単体では既出品ASIN照合と削除済みASIN履歴は未連携です。出品前保安ゲートでは、アップロードした既出品CSVとのASIN照合を行います。
 - 価格や利益の良否判定はVer1では行いません。
-- Guardrailの `SAFE` は安全保証ではありません。現時点のSG辞書ルールに一致しなかったという意味です。
+- Guardrailの `SAFE` は安全保証ではありません。対象市場の現時点の辞書ルールに一致しなかったという意味です。
 - `REVIEW` は通常出品フローから分離し、出品前に人間が確認してください。
 - `BLOCK` は出品候補CSVから除外されます。
 - 起点ASINから `brand` または `category` が取得できない場合は処理を止めます。
