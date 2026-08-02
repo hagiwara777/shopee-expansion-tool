@@ -13,14 +13,14 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `出品支援ツール完成定義・設計ゲート準備`
-- current_phase: `三独立ツール構成・出品支援優先順位main受入済み・新GPTチャット切替待ち`
+- current_work_type: `出品支援ツール完成定義・設計ゲート`
+- current_phase: `新GPTチャット切替完了・完成定義設計ゲート進行中・GPT-Codex整合監査準備`
 - working_branch: `main`
 - marketplace: `PH`
 - module: `事業ポートフォリオ・出品支援ツール`
-- next_action: ChatGPTがcloseout後formal main commitをGitHubから直接確認し、FORMAL作業単位を閉鎖して新しいGPTチャットへ切り替える。
+- next_action: ChatGPTとCodexが、オーナー確認済みのリサーチツール定義、現行正本、実装、テストソース、PH Guardrail辞書の読み取り専用整合監査を行う。
 
-三つの独立ツール構成と出品支援ツール優先順位はmain上で受入済みです。出品支援ツールの完成条件は未決定であり、完成を宣言しません。次のFORMAL作業は、出品支援ツールの完成定義、残課題、利用者シナリオ、受入条件の設計ゲートです。closeout commitをChatGPTがGitHubから直接確認する前に、次のFORMAL作業を開始しません。
+三つの独立ツール構成と出品支援ツール優先順位はmain上で受入済みです。先行FORMAL作業は閉鎖済みであり、新GPTチャットへの切替も完了しています。現在は、出品支援ツールの完成定義、残課題、利用者シナリオ、受入条件を整理する設計ゲートの途中です。次はChatGPTとCodexによるリサーチツール定義、現行正本、実装、テストソース、PH Guardrail辞書の読み取り専用整合監査です。完成定義、受入条件、現行実装との差分は未確定であり、出品支援ツールを完成済みとは扱いません。
 
 ## 完了・受入済み
 
@@ -129,18 +129,18 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 未完了事項
 
-- closeout後formal main commitのChatGPT直接確認
-- FORMAL作業単位の閉鎖
-- 新しいGPTチャットへの切替
+- GPT・Codexによるリサーチツール定義と現行実装の読み取り専用整合監査
 - 出品支援ツールの完成定義
 - 出品支援ツールの残課題一覧
 - 出品支援ツールの利用者シナリオ
 - 出品支援ツールの受入条件
+- PH Guardrailテスト用基準辞書v1
 - ChatGPT／Codex指示書式基準の正本化
 - 完成定義と現行実装の差分監査
 - ASIN到達性能の評価
+- Expansion・Resolverの実商品テスト
 - Shopee Category ID・Shopee Brand ID確認工程の受入
-- PHでの実画面・実業務受入
+- オーナーによるPHでの実画面・実業務受入
 - 出品後商品改善ツールの将来優先順位判断
 - Amazon仕入れ支援ツールの将来優先順位判断
 - 外部既存出品ツールの正式入力テンプレートまたは仕様書の読み取り専用証拠回収（自動投入またはE2E接続を検討する場合）
@@ -156,7 +156,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-ChatGPTがcloseout後formal main commitをGitHubから直接確認し、FORMAL作業単位を閉鎖して新しいGPTチャットへ切り替える。
+ChatGPTとCodexが、オーナー確認済みのリサーチツール定義、現行正本、実装、テストソース、PH Guardrail辞書の読み取り専用整合監査を行う。
 
 ## 停止条件
 
@@ -202,18 +202,12 @@ ChatGPTがcloseout後formal main commitをGitHubから直接確認し、FORMAL�
 - テスト未実行の監査結果を、実行テストPASSとして扱わない。
 - 実商品、実在庫、実画面、実取込を確認前に端から端の業務成立を確定しない。
 - 読み取り専用監査結果だけでWorkflow実装または自動接続を開始しない。
-- closeout後formal main commitをChatGPTがGitHubから直接確認する前に、FORMAL作業単位を閉鎖扱いにしない。
-- FORMAL作業単位の閉鎖前に新しいGPTチャットへ切り替えない。
-- 新しいGPTチャットで最新mainとEvidence Gateを確認する前に、出品支援ツール完成定義の設計ゲートを開始しない。
 - 以前の外部契約証拠回収用Briefおよびそのcloseout Briefは失効済みとして再利用しない。
 - 外部契約証拠回収を現在の最優先作業として再開しない。
-- 今回許可されたdocs/CURRENT_WORK.md、docs/DECISION_LOG.md、docs/PROJECT_ROADMAP.md以外のファイルを変更しない。
 - 出品支援ツール完成前に、出品後商品改善ツールまたはAmazon仕入れ支援ツールの本格設計・実装を開始しない。
 - 出品支援ツールの完成条件を確定する前に、完成済みと扱わない。
 - 三つのツール間のデータ連携、API連携、実行順序、共有状態管理を設計しない。
 - 一つのツールの出力を、他のツールの正式入力として扱わない。
-- 今回docs/DECISION_LOG.mdまたはdocs/PROJECT_ROADMAP.mdを変更しない。
-- 今回のcloseoutで商品機能、API、テスト、実画面、実データを変更・実行しない。
 - 外部出品ツール契約未確認だけを理由に、ASIN、Shopee Category ID、Shopee Brand IDの取得・確認に関する中核開発全体を停止しない。
 - 自動投入、自動出品、E2E受入には別設計・別承認を必要とする。
 - 出品後商品改善ツールとAmazon仕入れ支援ツールの詳細仕様を今回確定しない。
@@ -253,4 +247,4 @@ ChatGPTがcloseout後formal main commitをGitHubから直接確認し、FORMAL�
 
 ## 最終更新日
 
-2026-08-01
+2026-08-02
