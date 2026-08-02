@@ -1,137 +1,81 @@
-# WORK BRIEF テンプレート
+# 軽量 WORK BRIEF テンプレート
 
-このファイルは、ChatGPTからCodexへ渡す依頼のテンプレートです。個別のBrief、会話全文、
-商品データ、認証情報はこのリポジトリに保存・commitしません。
+このテンプレートは、すべての作業の開始条件ではありません。目的または完成条件が曖昧、
+複数moduleや責務境界へ影響する、外部API・費用・実データ・データ移行・復元不能操作・
+外部サービスへのlive書込みを伴う場合に使用します。
 
-## ユーザー操作
+読み取り専用調査、原因と範囲が明確な局所修正、ローカルテスト、小さく可逆なUI調整、
+pushまたはPRを予定しているだけの明確な変更では原則不要です。
 
-### Codex側
+個別のBrief、会話全文、商品データ、認証情報はリポジトリへ保存・commitしません。
 
-- プロジェクト:
-- 新規タスク / 既存タスク:
-- タスク名:
-- 対象フォルダ:
-- 開始モード:
+## オーナーが伝えること
 
-### 結果の戻し先
+- 作りたいもの:
+- なぜ必要か:
+- 誰がどう使うか:
+- 何ができれば満足か:
+- 起きると困ること:
 
-- canonical fieldはHandoff Contractに記入する。
+技術方式、branch、テスト方式はCodexが決め、事業上異なる選択がある場合だけ推奨案を
+添えてオーナーへ確認します。
 
-### 今回行わない操作
+## Codexが具体化すること
 
--
+- 目的の理解:
+- 完成時の動作:
+- 対象範囲:
+- 対象外:
+- 既存動作との違い:
+- 推奨案と理由:
 
-貼り先の既存タスク名を確認できない場合は推測せず、`CREATE_NEW_TASK`を指定します。
+## 実行時のGit確認
 
-## Handoff Contract
-
-- task disposition: `CONTINUE_EXISTING_TASK` / `CREATE_NEW_TASK`
-- Codexタスク名:
-- 対象worktree:
+- repo root:
 - expected remote:
-- formal main commit:
-- marketplace:
-- module:
-- phase:
-- GPT chat disposition: CONTINUE_CURRENT_CHAT / CREATE_NEW_CHAT
-- result target GPT project:
-- result target GPT chat:
-- FORMAL_WORK_UNIT_CLOSED: YES / NO
-- CHAT_HANDOFF_GATE: PASS / STOP
+- fetch後のorigin/main:
+- 作業base:
+- branch:
+- HEAD:
+- clean / dirty:
+- ユーザー変更との重複:
 
-`FORMAL_WORK_UNIT_CLOSED: YES` は、PRを伴う場合はPR-backed closure条件、PRを伴わない場合は
-no-PR closure条件をすべて満たした時だけ使用する。適用される閉鎖条件を満たしていないYESは
-`BRIEF_GATE: STOP` とする。
+ローカル絶対パス、Codexプロジェクト名、GPTチャット名は事前の安全ゲートにしません。
 
-## Evidence Gate
+## 外部・不可逆操作
 
-### 確認済み事実と根拠
-
-| 事実 | 根拠の種類 | 参照先 |
-| --- | --- | --- |
-|  | Git確認済み / テスト確認済み / ユーザー確認済み |  |
-
-### 未確認事項
-
--
-
-### Gate判定
-
-- Evidence Gate: `PASS` / `STOP`
-- PASSの意味: 提案に必要な根拠を確認できたこと。実装成功・受入成功は保証しない。
-
-### Git外成果物参照
-
-| artifact_id | ファイル名・版 | SHA-256 | 受入状態 | storage alias | 用途 | 実物アクセス要否 |
-| --- | --- | --- | --- | --- | --- | --- |
-|  |  |  |  |  |  | 必要 / 不要 |
-
-絶対パス、商品本文、AI回答本文、URL一覧、ASIN一覧、認証情報、APIキー、個人情報は記録しない。
-
-## 作業契約
-
-### 目的
-
--
-
-### 理由・優先順位
-
--
-
-### 対象範囲
-
--
-
-### 対象外
-
--
-
-### 完了条件
-
--
-
-## 許可範囲
-
-| 項目 | 許可内容 |
+| 項目 | 今回の扱い |
 | --- | --- |
-| Git操作 |  |
-| 外部API |  |
-| APIの目的 |  |
-| 最大件数 |  |
-| 再試行条件 |  |
-| 禁止操作 |  |
+| 外部API | 使用しない / 使用するAPI・目的 |
+| 費用 | なし / 上限 |
+| 最大件数 | なし / 件数 |
+| 再試行 | なし / 条件 |
+| 実データ | 使用しない / 種類・用途 |
+| 外部サービスへのlive書込み | 行わない / 対象・影響 |
+| データ削除・移行 | 行わない / 対象・バックアップ・復旧方法 |
+| push＋Draft PR | 行わない / 報告後に承認を得る |
+| merge | 行わない / 別途承認を得る |
+| deploy | 行わない / 別途承認を得る |
 
-## BRIEF_GATE
+## 停止条件
 
-次のいずれかでは、編集・commit・pushを行わず `BRIEF_GATE: STOP` として読み取り結果だけを報告する。
+- 正式repositoryを特定できない
+- dirtyなworktreeでユーザー変更を上書きする可能性がある
+- 秘密情報または禁止ファイルをGitへ追加する
+- 費用、外部書込み、復元不能操作、push、PR、merge、deployが未承認
+- 承認済みの目的、責務、満足条件から大きく外れる
 
-- formal commit不一致
-- remote不一致
-- 対象worktree不一致
-- dirty状態を安全に扱えない
-- marketplace・module・phase不一致
-- 必要な成果物へアクセス不能
-- API・Git許可が不足
-- GPT chat dispositionが許容値以外
-- result target GPT projectまたはresult target GPT chatが空欄・未確定
-- FORMAL_WORK_UNIT_CLOSEDが許容値以外
-- CHAT_HANDOFF_GATEが許容値以外またはSTOP
-- CREATE_NEW_CHATなのにresult target GPT chatが未確定
-- CREATE_NEW_CHATなのにFORMAL_WORK_UNIT_CLOSEDがNO
-- 不正な組合せなのにCHAT_HANDOFF_GATEがPASS
-- CHAT_HANDOFF_GATE: STOPなのに編集、commitまたはpushを許可している
-- READMEや会話だけでコード仕様を断定している
-- 古いBriefが最新CURRENT_WORKと矛盾
+不明事項が危険性へ直接関係しない場合は、確認済み事実と仮定を区別し、可逆な範囲を続行します。
 
-## Codexへの依頼
+## 完了条件
 
-- `AGENTS.md` と適用対象の管理文書を確認してから着手する。
-- FORMALな判断またはWORK_BRIEFではEvidence Gateを表示する。GateのないFORMAL提案は無効とする。
-- 新規・継続を問わず、fetch後のorigin/main、formal commit、remote、repo root、branch、HEAD、
-  clean / dirty、marketplace、module、phase、対象外、Git・API許可、必要なGit外成果物を独立確認する。
-- GPT chat disposition、result target GPT project、result target GPT chat、
-  FORMAL_WORK_UNIT_CLOSED、CHAT_HANDOFF_GATEも独立確認する。
-- 同期ゲートに不一致があれば、古いBriefを推測で修正せず `BRIEF_GATE: STOP` とする。
-- 原因不明、外部API、Git・CI・認証、責務境界、複数ファイルへ広がる可能性がある場合は、
-  Plan Modeから始める。
-- 実装・検証の終了時は、`docs/RUNBOOK_CHATGPT_CODEX.md` の5項目形式で報告する。
+-
+
+## 完了報告
+
+1. 変更したもの
+2. 以前より簡単になったこと
+3. 残した安全策
+4. 実行したテストと結果
+5. 未確認事項またはオーナーが実物で確認すること
+6. 次の単一作業

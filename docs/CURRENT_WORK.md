@@ -9,18 +9,18 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 - 実作業の事実、進捗、次の単一作業、停止条件が変わった場合だけ更新する。
 - 重要な方針変更は、この文書に理由を重複記載せず `DECISION_LOG.md` に追記する。
 - 商品名、CSV本文、秘密情報、長大な日次ログは記録しない。
-- Git外成果物は、Handoff Contractで定めた最小索引だけを記録する。
+- Git外成果物は、この文書で定めた最小索引だけを記録する。
 
 ## 現在作業
 
 - current_work_type: `出品支援ツール完成定義・設計ゲート`
-- current_phase: `新GPTチャット切替完了・完成定義設計ゲート進行中・GPT-Codex整合監査準備`
-- working_branch: `main`
+- current_phase: `軽量開発運用v1適用・リサーチツール整合監査再開準備`
+- working_branch: `再開時にGit状態を確認して確定`
 - marketplace: `PH`
 - module: `事業ポートフォリオ・出品支援ツール`
-- next_action: ChatGPTとCodexが、オーナー確認済みのリサーチツール定義、現行正本、実装、テストソース、PH Guardrail辞書の読み取り専用整合監査を行う。
+- next_action: Codexが、オーナー確認済みのリサーチツール定義、現行正本、実装、テストソース、PH Guardrail辞書の読み取り専用整合監査を行う。
 
-三つの独立ツール構成と出品支援ツール優先順位はmain上で受入済みです。先行FORMAL作業は閉鎖済みであり、新GPTチャットへの切替も完了しています。現在は、出品支援ツールの完成定義、残課題、利用者シナリオ、受入条件を整理する設計ゲートの途中です。次はChatGPTとCodexによるリサーチツール定義、現行正本、実装、テストソース、PH Guardrail辞書の読み取り専用整合監査です。完成定義、受入条件、現行実装との差分は未確定であり、出品支援ツールを完成済みとは扱いません。
+三つの独立ツール構成と出品支援ツール優先順位はmain上で受入済みです。開発運用は軽量開発運用v1へ移行し、GPTを必須の伝言役または承認者にしません。現在は、出品支援ツールの完成定義、残課題、利用者シナリオ、受入条件を整理する設計ゲートの途中です。次はCodexによるリサーチツール定義、現行正本、実装、テストソース、PH Guardrail辞書の読み取り専用整合監査です。完成定義、受入条件、現行実装との差分は未確定であり、出品支援ツールを完成済みとは扱いません。
 
 ## 完了・受入済み
 
@@ -125,17 +125,16 @@ CI成果物で再確認された事実ではありません。コード機能の
 | ART-PH-ASIN-EXEC-RECORD-V0.1.2-CANDIDATE-REV2 | Excel実行記録 v0.1.2 candidate rev2 | `PH_ASIN_Resolver_Execution_Record_v0.1.2_candidate_rev2.xlsx` | `054f771328b9be4d128c42e650791a22f6c0e4bab9892bb8ebd9fb0ca98e4f7b` | `PH ASIN Resolver 証拠永続化実装` | `OWNER_ACCEPTED` | `LOCAL_ARTIFACT_ROOT/HANDOFF_EXECUTION_RECORD/candidate/v0.1.2/` | PH固定30件の人間可読実行記録 |
 | ART-PH-ASIN-EXEC-GUIDE-V0.1.2-CANDIDATE-REV2 | 非エンジニア向け実行Guide v0.1.2 candidate rev2 | `PH_ASIN_Resolver_Execution_Record_v0.1.2_Guide_candidate_rev2.txt` | `7e55527e6eee6288b679db37937954be1cb8ccd23b51a327eea2171aa6e59540` | `PH ASIN Resolver 証拠永続化実装` | `OWNER_ACCEPTED` | `LOCAL_ARTIFACT_ROOT/HANDOFF_EXECUTION_RECORD/candidate/v0.1.2/` | 非エンジニア向け実行Guide |
 
-実物が必要な場合は、非コミットBriefでstorage aliasを解決するか、ChatGPTへ再添付する。
+実物が必要な場合は、必要時だけ軽量WORK_BRIEFでstorage aliasを解決するか、オーナーが現在のCodexタスクへ再添付する。
 
 ## 未完了事項
 
-- GPT・Codexによるリサーチツール定義と現行実装の読み取り専用整合監査
+- Codexによるリサーチツール定義と現行実装の読み取り専用整合監査
 - 出品支援ツールの完成定義
 - 出品支援ツールの残課題一覧
 - 出品支援ツールの利用者シナリオ
 - 出品支援ツールの受入条件
 - PH Guardrailテスト用基準辞書v1
-- ChatGPT／Codex指示書式基準の正本化
 - 完成定義と現行実装の差分監査
 - ASIN到達性能の評価
 - Expansion・Resolverの実商品テスト
@@ -156,7 +155,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-ChatGPTとCodexが、オーナー確認済みのリサーチツール定義、現行正本、実装、テストソース、PH Guardrail辞書の読み取り専用整合監査を行う。
+Codexが、オーナー確認済みのリサーチツール定義、現行正本、実装、テストソース、PH Guardrail辞書の読み取り専用整合監査を行う。
 
 ## 停止条件
 
@@ -184,7 +183,6 @@ ChatGPTとCodexが、オーナー確認済みのリサーチツール定義、�
 - 新batchの再検索対象商品の再評価前に実行記録フォーマットを使用する。
 - 初回検索、再検索、Resolver解析、Keepa確認、同一性判定を混在させない。
 - 成功基準は新batchの再検索対象を含む工程別証拠がそろう前に決定しない。
-- Handoff Contractの同期ゲート不一致時は作業しない。
 - この正本更新だけでWorkflow実装を開始しない。
 - 既存出品ツールの入力契約を推測で確定しない。
 - READMEのPrelisting Gate対応市場記載の修正要否を判断するまで、READMEをPH対応の正本として扱わない。
@@ -231,7 +229,7 @@ ChatGPTとCodexが、オーナー確認済みのリサーチツール定義、�
 
 | 情報 | 根拠・確認レベル |
 | --- | --- |
-| 現在作業、次の単一作業、停止条件、Git外成果物索引 | この文書とオーナー承認済みBriefで確認済み |
+| 現在作業、次の単一作業、停止条件、Git外成果物索引 | この文書とオーナー決定で確認済み |
 | テンプレートv0.1.1 finalの正本SHA | オーナー一次記録と読み取り専用監査で確認済み |
 | 30件、9件の候補あり元商品、21件の候補なし元商品、13候補、判定区分、Keepa確認、PH Gate結果 | ユーザー確認済みかつオーナー受入済みの実運用結果。Git・テスト・CIでの再確認は未実施 |
 | 候補なし21件の停止工程 | 過去成果物の証拠からは復元不能とする監査結果 |
