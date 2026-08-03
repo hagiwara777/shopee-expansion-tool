@@ -106,6 +106,22 @@ def _test_app(monkeypatch, tmp_path: Path) -> AppTest:
     return AppTest.from_file(str(APP_PATH), default_timeout=10).run()
 
 
+def test_category_mapper_hides_catalog_admin_controls_by_default(monkeypatch, tmp_path):
+    app = _test_app(monkeypatch, tmp_path)
+
+    assert not app.exception
+    assert not any("PH catalog sync status" in str(caption.value) for caption in app.caption)
+    assert not any(button.key == "category_mapper_sync_categories" for button in app.button)
+
+
+def test_category_mapper_shows_catalog_admin_controls_when_explicitly_enabled(monkeypatch, tmp_path):
+    monkeypatch.setenv("CATEGORY_MAPPER_CATALOG_ADMIN_UI_ENABLED", "1")
+    app = _test_app(monkeypatch, tmp_path)
+
+    assert not app.exception
+    assert any("PH catalog sync status" in str(caption.value) for caption in app.caption)
+    assert app.button(key="category_mapper_sync_categories").label == "PH Category Treeを同期"
+
 def test_category_mapper_tab_is_ph_only_and_uploads_csv(monkeypatch, tmp_path):
     app = _test_app(monkeypatch, tmp_path)
 
