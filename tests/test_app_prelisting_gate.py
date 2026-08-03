@@ -306,9 +306,9 @@ def test_gate_result_view_uses_four_metrics_three_safe_tabs_and_download_contrac
     assert "外部出品ツールへの直接投入形式は未確認です。" in source
 
 
-def test_existing_candidate_download_controls_remain_in_the_application_contract():
-    assert "SG一次判定候補CSVダウンロード（SAFEのみ）" in APP_SOURCE
-    assert "監査用CSVダウンロード（SAFE / REVIEW / BLOCK 全件）" in APP_SOURCE
+def test_candidate_download_controls_use_gate_handoff_only():
+    assert "SG一次判定候補CSVダウンロード" not in APP_SOURCE
+    assert "監査用CSVダウンロード（SAFE / REVIEW / BLOCK 全件）" not in APP_SOURCE
     assert "出品前保安ゲート用CSVダウンロード" in APP_SOURCE
     assert "起点ASIN候補CSVダウンロード" in APP_SOURCE
 

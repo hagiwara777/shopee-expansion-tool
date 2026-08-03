@@ -39,13 +39,6 @@ from modules.asin_resolver_evidence import (
 from modules.category_mapper_ui import render_category_mapper_tab
 from modules.config import load_settings
 from modules.direct_chat_assist import build_copy_button_html, is_valid_chatgpt_project_url
-from modules.export_csv import rows_to_csv
-from modules.guardrails import (
-    GuardrailDictionaryError,
-    apply_guardrails,
-    filter_safe_rows,
-    summarize_guardrails,
-)
 from modules.keepa_client import (
     KeepaClientError,
     KeepaConfigurationError,
@@ -596,18 +589,6 @@ with expansion_tab:
     result = st.session_state.get("result")
 
     if result:
-        try:
-            guarded_rows = apply_guardrails(result.rows)
-        except GuardrailDictionaryError as exc:
-            st.error(f"Guardrail辞書を読み込めませんでした。{exc}")
-            st.warning(
-                "アカウント保護のため、Guardrail判定が完了するまで候補一覧とCSVダウンロードは表示しません。"
-            )
-            st.stop()
-
-        guardrail_summary = summarize_guardrails(guarded_rows)
-        safe_rows = filter_safe_rows(guarded_rows)
-
         if result.final_display_count:
             st.success(f"{result.final_display_count}件の候補ASINを取得しました。")
         else:
@@ -632,22 +613,6 @@ with expansion_tab:
         st.write(f"削除済みASIN除外: {result.deleted_asin_exclusion_status}")
         st.write(f"最終表示件数: {result.final_display_count}件")
         st.write(f"キャッシュ利用: {'あり' if result.cache_hit else 'なし'}")
-        st.write("SG一次判定: 適用済み（SG辞書）")
-        st.write(f"SAFE件数: {guardrail_summary['SAFE']}件")
-        st.write(f"REVIEW件数: {guardrail_summary['REVIEW']}件")
-        st.write(f"BLOCK件数: {guardrail_summary['BLOCK']}件")
-        st.write(f"SG一次判定候補CSV件数: {guardrail_summary['safe_csv_count']}件（SAFEのみ）")
-        st.write(f"監査用CSV件数: {guardrail_summary['audit_csv_count']}件（全件）")
-        st.warning(
-            "SAFEは出品安全を保証するものではありません。これはSG辞書での一次判定です。"
-            "SGを含む対象市場で出品可否を確認する場合は、出品前保安ゲートで市場を選択してください。"
-        )
-        if guardrail_summary["BLOCK"]:
-            st.warning("BLOCK候補はアカウント保護のため出品候補CSVから除外されます。")
-        if guardrail_summary["REVIEW"]:
-            st.warning(
-                "REVIEW候補は人間確認が必要なため、通常の出品候補CSVには含めていません。"
-            )
         if result.total_results_note:
             st.info(result.total_results_note)
         if result.strict_low_count_suggestion:
@@ -662,20 +627,6 @@ with expansion_tab:
                 for diagnostic in result.diagnostics:
                     st.write(diagnostic)
 
-        st.download_button(
-            label="SG一次判定候補CSVダウンロード（SAFEのみ）",
-            data=rows_to_csv(safe_rows),
-            file_name=f"keepa_safe_candidates_{result.source_asin}.csv",
-            mime="text/csv",
-            width="stretch",
-        )
-        st.download_button(
-            label="監査用CSVダウンロード（SAFE / REVIEW / BLOCK 全件）",
-            data=rows_to_csv(guarded_rows),
-            file_name=f"keepa_guardrail_audit_{result.source_asin}.csv",
-            mime="text/csv",
-            width="stretch",
-        )
         try:
             expansion_prelisting_rows = expansion_rows_to_prelisting_candidates(result.rows)
             expansion_prelisting_csv = rows_to_prelisting_candidate_csv(expansion_prelisting_rows)
@@ -695,7 +646,7 @@ with expansion_tab:
                 key="prelisting-expansion-download",
                 width="stretch",
             )
-        st.dataframe(pd.DataFrame(guarded_rows), width="stretch", hide_index=True)
+        st.dataframe(pd.DataFrame(result.rows), width="stretch", hide_index=True)
 
 with resolver_tab:
     st.subheader("ASIN Resolver Tool Ver0.4.3")
