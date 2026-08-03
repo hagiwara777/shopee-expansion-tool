@@ -90,8 +90,8 @@ def test_third_top_level_tab_preserves_the_existing_two_tabs():
 
     assert isinstance(tab_call, ast.Call)
     assert ast.literal_eval(tab_call.args[0]) == [
-        "派生ASIN取得",
-        "起点ASIN取得",
+        "ASIN Expansion",
+        "ASIN Resolver",
         "出品前保安ゲート",
         "Category Mapper",
     ]
@@ -374,7 +374,7 @@ def test_prelisting_gate_initial_ui_smoke(monkeypatch):
 
     assert len(app.exception) == 0
     tab_labels = [tab.label for tab in app.tabs]
-    assert tab_labels[:2] == ["派生ASIN取得", "起点ASIN取得"]
+    assert tab_labels[:2] == ["ASIN Expansion", "ASIN Resolver"]
     assert tab_labels[-2] == "出品前保安ゲート"
     assert tab_labels[-1] == "Category Mapper"
     assert tab_labels.count("出品前保安ゲート") == 1

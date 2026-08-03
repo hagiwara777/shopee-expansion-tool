@@ -523,7 +523,7 @@ st.set_page_config(page_title="Shopee Expansion Tool Ver1", layout="centered")
 st.title("Shopee Expansion Tool Ver1")
 
 expansion_tab, resolver_tab, prelisting_gate_tab, category_mapper_tab = st.tabs(
-    ["派生ASIN取得", "起点ASIN取得", "出品前保安ゲート", "Category Mapper"]
+    ["ASIN Expansion", "ASIN Resolver", "出品前保安ゲート", "Category Mapper"]
 )
 
 with expansion_tab:
