@@ -117,8 +117,6 @@ term,action,risk_category,match_field,match_type,source_type,note,enabled
 
 同じ候補CSVでも、Gateを再実行すればその時点の辞書で再判定します。
 
-
-
 ## 検索モード
 
 - `strict`: brand + leaf category ID。初期値。精度重視です。
@@ -227,27 +225,22 @@ cd shopee-expansion-tool
 
 合成fixtureを使い、外部APIを呼ばずにローカルで画面操作を検証する、開発・回帰確認用の手順です。Git管理する正本fixtureとChromeで選択する作業用コピーを分離し、起動、停止、入力準備、ダウンロード照合用のスクリプトを用意しています。詳細は [Browser E2E Test Kit手順](docs/testing/browser_e2e.md) を参照してください。
 
-## 出力CSV
+## Expansionの出品前保安ゲート用候補CSV
 
-CSV列は以下に固定しています。
+Expansion画面は候補を市場別に判断せず、出品前保安ゲートへ渡すための候補CSVを出力する。
+このCSVは外部出品ツールへ直接渡さず、対象市場を選んだ出品前保安ゲートへ入力する。
+
+CSV列は次の15列に固定している。
 
 ```text
-seed_asin,candidate_asin,brand,category,product_title,source,token_estimate,fetched_at,duplicate_flag,note,guardrail_status,guardrail_risk_category,guardrail_matched_terms,guardrail_source,guardrail_note
+schema_version,source_type,source_id,source_asin,candidate_asin,input_title,product_title,brand,category,amazon_url,source_status,source_verification,source,fetched_at,source_note
 ```
 
-取得できない項目は空欄になります。
+- `source_type` は `EXPANSION` または `RESOLVER` で、候補の入口を示す。出品先市場を示す列ではない。
+- Resolverから渡すCSVには、`FOUND`かつ`KEEPA_VERIFIED`の候補だけを含める。
+- Guardrailの `SAFE / REVIEW / BLOCK`、既出品照合、最終の `ELIGIBLE / REVIEW / EXCLUDE` は、この候補CSVの出力ではなく、対象市場を選んだ出品前保安ゲートで確認する。
 
-Guardrail列の意味は以下です。
-
-- `guardrail_status`: `SAFE / REVIEW / BLOCK` の判定結果
-- `guardrail_risk_category`: 一致したリスク分類
-- `guardrail_matched_terms`: 一致した辞書語
-- `guardrail_source`: 一致した辞書ルールの情報源
-- `guardrail_note`: 判定理由の補足
-
-Expansion画面では、候補を市場別に判断せず、出品前保安ゲート用候補CSVを出力します。
-このCSVを外部出品ツールへ直接渡さず、対象市場を選んだ出品前保安ゲートへ入力してください。
-
+GateはELIGIBLE CSV、REVIEW CSV、全件監査CSVを別途出力する。これらは外部出品ツールへの直接投入形式ではない。
 
 ## 注意
 
@@ -255,7 +248,5 @@ Expansion画面では、候補を市場別に判断せず、出品前保安ゲ�
 - Expansion Tool単体では既出品ASIN照合と削除済みASIN履歴は未連携です。出品前保安ゲートでは、アップロードした既出品CSVとのASIN照合を行います。
 - 価格や利益の良否判定はVer1では行いません。
 - Expansion画面では出品可否を判定しません。SGを含む対象市場の出品可否は、出品前保安ゲートで対象市場を選んで確認してください。
-- `REVIEW` は通常出品フローから分離し、出品前に人間が確認してください。
-- `BLOCK` は出品候補CSVから除外されます。
 - 起点ASINから `brand` または `category` が取得できない場合は処理を止めます。
 - Keepa API仕様またはライブラリ都合で詰まった場合も、Web操作やスクレイピングへは切り替えません。
