@@ -79,7 +79,7 @@ PHは最初の受入市場とする。PHの受入が完了しても、他市場�
 | ASIN Expansion | 既知ASINからKeepaを使い関連候補を作る。検索範囲、キャッシュ、CSV出力、Gate用CSV出力がある。 | 候補生成の中核。実Keepa・実業務の受入は未実施 |
 | ASIN Resolver | 商品名から外部AI用プロンプトを作り、返答の候補を確認する。対象市場は選ばない。 | 候補生成の中核。到達性能は未評価 |
 | 出品前保安ゲート | SG / PHを選択し、市場別辞書でELIGIBLE / REVIEW / EXCLUDEを出す。 | 対象市場の正式な候補選別。PH実業務受入は未実施 |
-| Category Mapper | 現在PH限定。PH GateのELIGIBLE CSVだけを出品準備済みにできる。 | 市場別の出品準備。PH以外は未対応 |
+| Category Mapper | 現在PH限定。現在のGate形式（`PRELISTING_GATE_RESULT_V1`）のPH ELIGIBLE CSVだけを出品準備済みにできる。 | 市場別の出品準備。PH以外は未対応 |
 | 既存出品ツール | 貼付用テキストは作れるが、正式な入力契約は未確認。 | 手入力のみ。自動連携は対象外 |
 
 Expansionの旧SG一次判定と`SAFE`出力は、候補生成と市場別判断を混同させるため画面から外す。
@@ -98,10 +98,10 @@ Expansion機能そのものやGate内部の市場別Guardrailは削除しない�
 
 ## 次の推奨工程
 
-1. オーナーが、Expansion／Resolver → 市場別Gate → Category / Brand準備という画面導線を確認する。
-2. Gate結果CSVのschema versionを、Category Mapper入力時に再検証する設計・修正要否を判断する。
-3. オーナーの明示承認後だけ、少量の実データ、必要な外部API、実画面でPHの実業務受入を行う。
-4. ResolverのASIN到達性能とExpansionの候補品質について、固定した評価方法を設計・実行する。
+1. オーナーの明示承認後だけ、少量の実データ、必要な外部API、実画面でPHの実業務受入を行う。
+2. ResolverのASIN到達性能とExpansionの候補品質について、固定した評価方法を設計・実行する。
+
+画面導線のオーナー確認と、Category Mapper入力時のGate結果CSV schema version再検証は完了している。
 
 この段階でオーナーに技術方式の選択を求めない。実業務で「候補を安全に絞れ、確認済みの
 情報を手入力準備できれば役立つか」を確認する。

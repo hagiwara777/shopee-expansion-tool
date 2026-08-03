@@ -18,7 +18,10 @@ from modules.prelisting_candidate_csv import (
     PrelistingCandidateCsvError,
     parse_prelisting_candidate_csv,
 )
-from modules.prelisting_gate_csv import PRELISTING_GATE_RESULT_COLUMNS
+from modules.prelisting_gate_csv import (
+    GATE_RESULT_SCHEMA_VERSION,
+    PRELISTING_GATE_RESULT_COLUMNS,
+)
 from modules.shopee_catalog_client import BrandPage, ShopeeCatalogError, ShopeeRateLimitError
 
 
@@ -800,6 +803,9 @@ def _parse_gate_eligible_input(content: bytes, filename: str) -> CategoryMapperI
     rows = _csv_dict_rows(content, filename, expected_header=PRELISTING_GATE_RESULT_COLUMNS)
     if not rows:
         raise CategoryMapperInputError("Eligible Gate CSV contains no rows.")
+    gate_schema_versions = {_text(row.get("gate_schema_version")) for row in rows}
+    if gate_schema_versions != {GATE_RESULT_SCHEMA_VERSION}:
+        raise CategoryMapperInputError("Gate CSV schema version is unsupported.")
     source_types = {_text(row.get("source_type")).upper() for row in rows}
     if not source_types <= {"EXPANSION", "RESOLVER"} or len(source_types) != 1:
         raise CategoryMapperInputError("Eligible Gate CSV source type is invalid.")

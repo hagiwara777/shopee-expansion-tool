@@ -74,6 +74,7 @@ def _gate_csv(
     *,
     marketplace="PH",
     eligibility="ELIGIBLE",
+    gate_schema_version="PRELISTING_GATE_RESULT_V1",
     asin="B000000001",
     category="シャンプー",
     title="Shampoo",
@@ -82,7 +83,7 @@ def _gate_csv(
     row = {column: "" for column in PRELISTING_GATE_RESULT_COLUMNS}
     row.update(
         {
-            "gate_schema_version": "PRELISTING_GATE_RESULT_V1",
+            "gate_schema_version": gate_schema_version,
             "candidate_asin": asin,
             "final_eligibility": eligibility,
             "marketplace": marketplace,
@@ -115,9 +116,41 @@ def test_accepts_expansion_and_gate_eligible_but_rejects_audit_review_exclude_an
         _gate_csv(eligibility="REVIEW"),
         _gate_csv(eligibility="EXCLUDE"),
         _gate_csv(marketplace="SG"),
+        _gate_csv(gate_schema_version="PRELISTING_GATE_RESULT_V0"),
+        _gate_csv(gate_schema_version=""),
     ):
         with pytest.raises(CategoryMapperInputError):
             parse_category_mapper_input(content, filename="unsafe.csv")
+
+
+def test_rejects_gate_csv_with_mixed_schema_versions():
+    first = {column: "" for column in PRELISTING_GATE_RESULT_COLUMNS}
+    second = {column: "" for column in PRELISTING_GATE_RESULT_COLUMNS}
+    for index, row in enumerate((first, second), start=1):
+        row.update(
+            {
+                "gate_schema_version": (
+                    "PRELISTING_GATE_RESULT_V1"
+                    if index == 1
+                    else "PRELISTING_GATE_RESULT_V0"
+                ),
+                "candidate_asin": f"B00000000{index}",
+                "final_eligibility": "ELIGIBLE",
+                "marketplace": "PH",
+                "candidate_schema_version": "PRELISTING_CANDIDATE_V1",
+                "source_type": "EXPANSION",
+                "source_asin": "B000000000",
+                "product_title": "Shampoo",
+                "brand": "ASIENCE",
+                "category": "シャンプー",
+            }
+        )
+
+    with pytest.raises(CategoryMapperInputError, match="schema version"):
+        parse_category_mapper_input(
+            _csv_bytes(PRELISTING_GATE_RESULT_COLUMNS, [first, second]),
+            filename="mixed-schema.csv",
+        )
 
 
 def test_rejects_invalid_or_duplicate_candidate_asins():
