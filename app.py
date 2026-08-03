@@ -1,3 +1,5 @@
+import os
+
 import pandas as pd
 import streamlit as st
 from pathlib import Path
@@ -650,111 +652,112 @@ with expansion_tab:
 
 with resolver_tab:
     st.subheader("ASIN Resolver Tool Ver0.4.3")
-    with st.expander("Evidence Batch（PH固定30件基準実行用）", expanded=True):
-        active_manifest_path = _active_evidence_manifest_path()
-        if active_manifest_path is None:
-            st.warning(
-                "現在はlegacy／非証跡モードです。Evidence Manifest、source map、再開保証を"
-                "持たないため、formalな固定30件基準実行には使用できません。"
-            )
-        else:
-            st.success(f"Evidence Batch: {active_manifest_path.parent.name}")
-
-        with st.form("asin_resolver_evidence_batch_form", clear_on_submit=False):
-            recorded_formal_commit = st.text_input(
-                "記録する formal main commit（40桁SHA、必須）",
-                key="asin_resolver_recorded_formal_commit",
-            )
-            st.caption(
-                "承認値は環境変数 ASIN_RESOLVER_APPROVED_FORMAL_MAIN_COMMIT からのみ取得します。"
-            )
-            create_batch_clicked = st.form_submit_button("新規 Evidence Batchを作成")
-
-        if create_batch_clicked:
-            try:
-                manifest_path = create_evidence_batch(
-                    EVIDENCE_RUNTIME_ROOT,
-                    batch_id=generate_batch_id(),
-                    formal_main_commit=recorded_formal_commit,
-                    resolver_version=ASIN_RESOLVER_VERSION,
+    if os.environ.get("ASIN_RESOLVER_EVIDENCE_UI_ENABLED") == "1":
+        with st.expander("Evidence Batch（PH固定30件基準実行用）", expanded=True):
+            active_manifest_path = _active_evidence_manifest_path()
+            if active_manifest_path is None:
+                st.warning(
+                    "現在はlegacy／非証跡モードです。Evidence Manifest、source map、再開保証を"
+                    "持たないため、formalな固定30件基準実行には使用できません。"
                 )
-                _clear_evidence_state()
-                _restore_evidence_session(manifest_path)
-                st.success(f"Evidence Batchを作成しました: {manifest_path.parent.name}")
-            except EvidenceValidationError as exc:
-                st.error(f"Evidence Batchを作成せず停止しました: {exc}")
-
-        resume_path_text = st.text_input(
-            "既存 Evidence Manifest のローカルパス",
-            key="asin_resolver_evidence_resume_path",
-            placeholder=".../outputs/asin_resolver_runs/<batch_id>/evidence_manifest.json",
-        )
-        if st.button("Evidence Manifestを検証して再開", width="stretch"):
-            try:
-                manifest_path = Path(resume_path_text)
-                manifest = load_and_validate_batch(manifest_path)
-                if manifest["batch_status"] == "PAUSED":
-                    resume_batch(manifest_path)
-                _restore_evidence_session(manifest_path)
-                st.success(
-                    "Evidence Manifestを検証しました。"
-                    f"次のcheckpoint: {manifest['resume_from_checkpoint']}"
-                )
-            except (EvidenceValidationError, OSError) as exc:
-                st.error(f"Evidence Manifestを変更せず停止しました: {exc}")
-
-        active_manifest_path = _active_evidence_manifest_path()
-        if active_manifest_path is not None:
-            try:
-                active_manifest = load_and_validate_batch(active_manifest_path)
-            except (EvidenceValidationError, OSError) as exc:
-                st.error(f"Evidence Batchを変更せず停止しました: {exc}")
-                _clear_evidence_state()
             else:
-                status_columns = st.columns(3)
-                status_columns[0].metric("batch status", active_manifest["batch_status"])
-                status_columns[1].metric(
-                    "last checkpoint", active_manifest["last_completed_checkpoint"]
+                st.success(f"Evidence Batch: {active_manifest_path.parent.name}")
+
+            with st.form("asin_resolver_evidence_batch_form", clear_on_submit=False):
+                recorded_formal_commit = st.text_input(
+                    "記録する formal main commit（40桁SHA、必須）",
+                    key="asin_resolver_recorded_formal_commit",
                 )
-                status_columns[2].metric(
-                    "resume checkpoint", active_manifest["resume_from_checkpoint"]
+                st.caption(
+                    "承認値は環境変数 ASIN_RESOLVER_APPROVED_FORMAL_MAIN_COMMIT からのみ取得します。"
                 )
-                artifact_rows = [
-                    {
-                        "artifact_id": artifact["artifact_id"],
-                        "filename": artifact["filename"],
-                        "sha256": artifact["sha256"],
-                        "producer": artifact["producer"],
-                        "acceptance_status": artifact["acceptance_status"],
-                        "storage_alias": artifact["storage_alias"],
-                        "parent_artifact_ids": "; ".join(artifact["parent_artifact_ids"]),
-                    }
-                    for artifact in active_manifest["artifacts"]
-                ]
-                if artifact_rows:
-                    st.dataframe(pd.DataFrame(artifact_rows), hide_index=True, width="stretch")
-                action_columns = st.columns(2)
-                if action_columns[0].button(
-                    "Evidence Batchを一時停止",
-                    width="stretch",
-                    disabled=active_manifest["last_completed_checkpoint"] == "COMPLETED",
-                ):
-                    try:
-                        pause_batch(active_manifest_path)
-                        st.info("Evidence BatchをPAUSEDとして保存しました。")
-                    except EvidenceValidationError as exc:
-                        st.error(f"Evidence Batchを変更せず停止しました: {exc}")
-                if action_columns[1].button(
-                    "Evidence Batchを完了", width="stretch", disabled=active_manifest[
-                        "last_completed_checkpoint"
-                    ] != "EXPORT_SAVED"
-                ):
-                    try:
-                        complete_batch(active_manifest_path)
-                        st.session_state["asin_resolver_evidence_next_action"] = "view_only"
-                        st.success("Evidence BatchをCOMPLETEDとして保存しました。")
-                    except EvidenceValidationError as exc:
-                        st.error(f"Evidence Batchを変更せず停止しました: {exc}")
+                create_batch_clicked = st.form_submit_button("新規 Evidence Batchを作成")
+
+            if create_batch_clicked:
+                try:
+                    manifest_path = create_evidence_batch(
+                        EVIDENCE_RUNTIME_ROOT,
+                        batch_id=generate_batch_id(),
+                        formal_main_commit=recorded_formal_commit,
+                        resolver_version=ASIN_RESOLVER_VERSION,
+                    )
+                    _clear_evidence_state()
+                    _restore_evidence_session(manifest_path)
+                    st.success(f"Evidence Batchを作成しました: {manifest_path.parent.name}")
+                except EvidenceValidationError as exc:
+                    st.error(f"Evidence Batchを作成せず停止しました: {exc}")
+
+            resume_path_text = st.text_input(
+                "既存 Evidence Manifest のローカルパス",
+                key="asin_resolver_evidence_resume_path",
+                placeholder=".../outputs/asin_resolver_runs/<batch_id>/evidence_manifest.json",
+            )
+            if st.button("Evidence Manifestを検証して再開", width="stretch"):
+                try:
+                    manifest_path = Path(resume_path_text)
+                    manifest = load_and_validate_batch(manifest_path)
+                    if manifest["batch_status"] == "PAUSED":
+                        resume_batch(manifest_path)
+                    _restore_evidence_session(manifest_path)
+                    st.success(
+                        "Evidence Manifestを検証しました。"
+                        f"次のcheckpoint: {manifest['resume_from_checkpoint']}"
+                    )
+                except (EvidenceValidationError, OSError) as exc:
+                    st.error(f"Evidence Manifestを変更せず停止しました: {exc}")
+
+            active_manifest_path = _active_evidence_manifest_path()
+            if active_manifest_path is not None:
+                try:
+                    active_manifest = load_and_validate_batch(active_manifest_path)
+                except (EvidenceValidationError, OSError) as exc:
+                    st.error(f"Evidence Batchを変更せず停止しました: {exc}")
+                    _clear_evidence_state()
+                else:
+                    status_columns = st.columns(3)
+                    status_columns[0].metric("batch status", active_manifest["batch_status"])
+                    status_columns[1].metric(
+                        "last checkpoint", active_manifest["last_completed_checkpoint"]
+                    )
+                    status_columns[2].metric(
+                        "resume checkpoint", active_manifest["resume_from_checkpoint"]
+                    )
+                    artifact_rows = [
+                        {
+                            "artifact_id": artifact["artifact_id"],
+                            "filename": artifact["filename"],
+                            "sha256": artifact["sha256"],
+                            "producer": artifact["producer"],
+                            "acceptance_status": artifact["acceptance_status"],
+                            "storage_alias": artifact["storage_alias"],
+                            "parent_artifact_ids": "; ".join(artifact["parent_artifact_ids"]),
+                        }
+                        for artifact in active_manifest["artifacts"]
+                    ]
+                    if artifact_rows:
+                        st.dataframe(pd.DataFrame(artifact_rows), hide_index=True, width="stretch")
+                    action_columns = st.columns(2)
+                    if action_columns[0].button(
+                        "Evidence Batchを一時停止",
+                        width="stretch",
+                        disabled=active_manifest["last_completed_checkpoint"] == "COMPLETED",
+                    ):
+                        try:
+                            pause_batch(active_manifest_path)
+                            st.info("Evidence BatchをPAUSEDとして保存しました。")
+                        except EvidenceValidationError as exc:
+                            st.error(f"Evidence Batchを変更せず停止しました: {exc}")
+                    if action_columns[1].button(
+                        "Evidence Batchを完了", width="stretch", disabled=active_manifest[
+                            "last_completed_checkpoint"
+                        ] != "EXPORT_SAVED"
+                    ):
+                        try:
+                            complete_batch(active_manifest_path)
+                            st.session_state["asin_resolver_evidence_next_action"] = "view_only"
+                            st.success("Evidence BatchをCOMPLETEDとして保存しました。")
+                        except EvidenceValidationError as exc:
+                            st.error(f"Evidence Batchを変更せず停止しました: {exc}")
 
     active_evidence_path = _active_evidence_manifest_path()
     evidence_next_action = st.session_state.get("asin_resolver_evidence_next_action")
