@@ -17,6 +17,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 APP_PATH = PROJECT_ROOT / "app.py"
 FORMAL_MAIN_COMMIT = "1c5a16a843a10140c75df9214744fe1c692da101"
 PRODUCT_INPUT_KEY = "asin_resolver_product_names_input"
+EVIDENCE_UI_ENABLED_ENV = "ASIN_RESOLVER_EVIDENCE_UI_ENABLED"
 
 
 def _standard_logger_warning(self, message, *args, **kwargs):
@@ -26,6 +27,7 @@ def _standard_logger_warning(self, message, *args, **kwargs):
 
 def _new_evidence_manifest(tmp_path, monkeypatch, batch_id, *, save_source_map):
     monkeypatch.setenv(APPROVED_FORMAL_MAIN_COMMIT_ENV, FORMAL_MAIN_COMMIT)
+    monkeypatch.setenv(EVIDENCE_UI_ENABLED_ENV, "1")
     manifest_path = create_evidence_batch(
         tmp_path / "runs",
         batch_id=batch_id,
@@ -69,6 +71,17 @@ def test_app_resolver_imports_match_public_resolver_functions():
 
     assert missing == []
 
+
+def test_internal_evidence_batch_controls_are_hidden_by_default(monkeypatch, tmp_path):
+    app = _test_app(monkeypatch, tmp_path)
+
+    assert not app.exception
+    assert not any(
+        expander.label == "Evidence Batch（PH固定30件基準実行用）" for expander in app.expander
+    )
+    assert not any(
+        button.label == "Evidence Manifestを検証して再開" for button in app.button
+    )
 
 def test_resolver_ui_handles_30_synthetic_tsv_lines_and_malformed_url(monkeypatch, tmp_path):
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "localappdata"))

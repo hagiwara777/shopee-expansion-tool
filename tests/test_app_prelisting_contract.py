@@ -64,7 +64,7 @@ def test_app_imports_only_the_phase2a_and_phase4a1_public_adapter_functions():
     assert "PRELISTING_CANDIDATE_COLUMNS" not in APP_SOURCE
 
 
-def test_expansion_adapter_uses_unguarded_result_rows_and_preserves_existing_buttons():
+def test_expansion_adapter_uses_result_rows_and_exposes_only_gate_handoff():
     expansion_calls = _function_calls("expansion_rows_to_prelisting_candidates")
 
     assert len(expansion_calls) == 1
@@ -73,14 +73,10 @@ def test_expansion_adapter_uses_unguarded_result_rows_and_preserves_existing_but
     assert isinstance(argument.value, ast.Name)
     assert argument.value.id == "result"
     assert argument.attr == "rows"
-    assert "expansion_rows_to_prelisting_candidates(safe_rows)" not in APP_SOURCE
-    assert "expansion_rows_to_prelisting_candidates(guarded_rows)" not in APP_SOURCE
-
-    for label in (
-        "出品候補CSVダウンロード（SAFEのみ）",
-        "監査用CSVダウンロード（SAFE / REVIEW / BLOCK 全件）",
-    ):
-        _download_call(label)
+    assert "apply_guardrails(result.rows)" not in APP_SOURCE
+    assert "出品候補CSVダウンロード（SAFEのみ）" not in APP_SOURCE
+    assert "SG一次判定候補CSVダウンロード" not in APP_SOURCE
+    assert "監査用CSVダウンロード（SAFE / REVIEW / BLOCK 全件）" not in APP_SOURCE
 
     prelisting_download = _download_call("出品前保安ゲート用CSVダウンロード")
     assert ast.get_source_segment(APP_SOURCE, _keyword_value(prelisting_download, "file_name")) == (

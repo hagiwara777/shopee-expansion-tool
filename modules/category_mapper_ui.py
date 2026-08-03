@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 from typing import Any, Iterable, Mapping
 
 import streamlit as st
@@ -33,6 +34,7 @@ _RESULT_KEY = "category_mapper_recommendations"
 _FINGERPRINT_KEY = "category_mapper_input_fingerprint"
 _SOURCE_TYPE_KEY = "category_mapper_source_type"
 _STATE_KEYS = (_RESULT_KEY, _FINGERPRINT_KEY, _SOURCE_TYPE_KEY)
+CATALOG_ADMIN_UI_ENABLED_ENV = "CATEGORY_MAPPER_CATALOG_ADMIN_UI_ENABLED"
 
 
 def render_category_mapper_tab() -> None:
@@ -45,7 +47,8 @@ def render_category_mapper_tab() -> None:
     marketplace = st.selectbox("Marketplace", ("PH",), disabled=True, key="category_mapper_marketplace")
     st.caption("SG / MY / TH は未検証・未対応のため、この画面から内部APIへ渡しません。")
     store = CategoryMapperStore()
-    _render_catalog_status(store, marketplace)
+    if os.environ.get(CATALOG_ADMIN_UI_ENABLED_ENV) == "1":
+        _render_catalog_status(store, marketplace)
 
     source_file = st.file_uploader(
         "Expansion候補CSV または Prelisting Gate eligible CSV",
