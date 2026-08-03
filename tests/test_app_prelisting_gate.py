@@ -307,6 +307,7 @@ def test_gate_result_view_uses_four_metrics_three_safe_tabs_and_download_contrac
 
 
 def test_candidate_download_controls_use_gate_handoff_only():
+    assert "出品候補CSVダウンロード（SAFEのみ）" not in APP_SOURCE
     assert "SG一次判定候補CSVダウンロード" not in APP_SOURCE
     assert "監査用CSVダウンロード（SAFE / REVIEW / BLOCK 全件）" not in APP_SOURCE
     assert "出品前保安ゲート用CSVダウンロード" in APP_SOURCE

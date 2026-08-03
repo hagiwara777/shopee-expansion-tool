@@ -74,6 +74,7 @@ def test_expansion_adapter_uses_result_rows_and_exposes_only_gate_handoff():
     assert argument.value.id == "result"
     assert argument.attr == "rows"
     assert "apply_guardrails(result.rows)" not in APP_SOURCE
+    assert "出品候補CSVダウンロード（SAFEのみ）" not in APP_SOURCE
     assert "SG一次判定候補CSVダウンロード" not in APP_SOURCE
     assert "監査用CSVダウンロード（SAFE / REVIEW / BLOCK 全件）" not in APP_SOURCE
 
