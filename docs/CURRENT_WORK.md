@@ -14,13 +14,13 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 ## 現在作業
 
 - current_work_type: `出品支援ツール完成定義・設計ゲート`
-- current_phase: `出品支援ツール完成定義案作成・オーナー確認待ち`
+- current_phase: `候補生成・市場別処理の責務確定・現行実装差分監査準備`
 - working_branch: `再開時にGit状態を確認して確定`
 - marketplace: `PH`
 - module: `事業ポートフォリオ・出品支援ツール`
-- next_action: オーナーが docs/LISTING_SUPPORT_COMPLETION_DEFINITION_DRAFT.md の事業上の期待とPH v1の範囲を確認する。確認後、Codexが完成条件と現行実装の差分監査を行う。
+- next_action: Codexが、ASIN Expansion、ASIN Resolver、出品前保安ゲート、Category Mapperについて、候補生成と市場別処理の責務分離に対する現行実装差分を読み取り専用で監査する。
 
-三つの独立ツール構成と出品支援ツール優先順位はmain上で受入済みです。開発運用は軽量開発運用v1へ移行し、GPTを必須の伝言役または承認者にしません。リサーチツール定義、現行正本、実装、テストソース、PH Guardrail辞書の読み取り専用整合監査は完了しました。現在は、出品支援ツールの完成定義、残課題、利用者シナリオ、受入条件を整理する設計ゲートの途中です。Codexは監査結果を基に、docs/LISTING_SUPPORT_COMPLETION_DEFINITION_DRAFT.md に推奨案を作成しました。これはオーナー確認前の提案であり、完成定義、受入条件、現行実装との差分は未確定です。出品支援ツールを完成済みとは扱いません。
+三つの独立ツール構成と出品支援ツール優先順位はmain上で受入済みです。開発運用は軽量開発運用v1へ移行し、GPTを必須の伝言役または承認者にしません。リサーチツール定義、現行正本、実装、テストソース、PH Guardrail辞書の読み取り専用整合監査は完了しました。オーナーは、ASIN ExpansionとASIN Resolverを出品先市場に依存しない候補生成の二入口とし、出品可否、既出品照合、Category ID、Brand IDを対象市場ごとの後段処理とする責務分離を確認しました。PHは最初の受入確認市場であり、候補生成をPH専用とする意味ではありません。Codexはこの前提で、docs/LISTING_SUPPORT_COMPLETION_DEFINITION_DRAFT.md を更新しました。出品支援ツール全体の完成受入と現行実装との差分は未確定であり、完成済みとは扱いません。
 
 ## 完了・受入済み
 
@@ -155,7 +155,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-オーナーが docs/LISTING_SUPPORT_COMPLETION_DEFINITION_DRAFT.md の事業上の期待とPH v1の範囲を確認する。確認後、Codexが完成条件と現行実装の差分監査を行う。
+Codexが、ASIN Expansion、ASIN Resolver、出品前保安ゲート、Category Mapperについて、候補生成と市場別処理の責務分離に対する現行実装差分を読み取り専用で監査する。
 
 ## 停止条件
 

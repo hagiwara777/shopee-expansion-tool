@@ -2,7 +2,7 @@
 
 ## 当面の全体目標
 
-PHにおいて、出品支援ツールがASIN、Shopee Category ID、Shopee Brand IDを取得・確認し、作業者が既存出品ツールへ手作業で入力できる状態を段階別に検証できるようにする。Resolverの成功は、英字商品名から正しいASINへの到達性能で判断する。Resolver、Expansion、Gate、Mapperの責務を分離し、外部出品ツール契約、自動Workflow、自動出品は別設計・別承認とする。
+出品支援ツールは、出品先市場に依存しない候補生成と、対象市場ごとの出品判断・準備を分ける。候補生成は、既知ASINから関連ASIN候補を広げるExpansionと、英字商品名からASIN候補を探すResolverの二つの入口とする。PHは現在の最初の受入確認市場であり、候補生成機能をPH専用とする意味ではない。対象市場ごとのGuardrail、既出品照合、Shopee Category ID、Shopee Brand IDを確認し、作業者が既存出品ツールへ手作業で入力できる状態を段階別に検証する。Resolverの成功は、英字商品名から正しいASINへの到達性能で判断する。外部出品ツール契約、自動Workflow、自動出品は別設計・別承認とする。
 
 ## 開発対象と優先順位
 
@@ -37,18 +37,19 @@ ASIN到達性能とResolver成功は未評価であり、Evidence Persistenceの
 
 ### 1. 候補生成
 
+- ResolverとExpansionは、出品先市場を決めず、候補を作る。候補の出品可否は決めない。
 - 英字商品名 → Resolver → ASIN候補
 - 既知ASIN → Expansion Tool → 関連ASIN候補
 
 ### 2. 候補選別
 
-- Guardrail／出品前保安ゲート
-- `ELIGIBLE` / `REVIEW` / `EXCLUDE`
+- Guardrail／出品前保安ゲート（対象市場を明示して実行）
+- ELIGIBLE / REVIEW / EXCLUDE
 - 現在の市場対応範囲は別途コード・仕様監査が必要
 
 ### 3. 出品準備
 
-- Category Mapper
+- Category Mapper（対象市場ごとのCategory ID、Brand ID、必須属性確認。現在はPHのみ）
 - Category ID
 - Brand ID
 - 必須属性情報
