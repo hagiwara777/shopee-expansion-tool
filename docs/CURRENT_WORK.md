@@ -14,15 +14,15 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 ## 現在作業
 
 - current_work_type: `出品支援ツール完成定義・設計ゲート`
-- current_phase: `PH Guardrail根拠・カバレッジ監査完了・オーナー確認待ち`
+- current_phase: `PH Guardrail一発アウト基準・根拠監査完了・Block Register作成準備`
 - working_branch: `codex/ph-guardrail-evidence-audit`
 - marketplace: `PH`
 - module: `事業ポートフォリオ・出品支援ツール`
-- next_action: CodexがPH Guardrail根拠・カバレッジ監査を平易に報告し、Evidence Ledger作成または少量PH実務テストの進め方を提案する。
+- next_action: Codexが現在のPH BLOCKルールについて、根拠・対象語・期待するEXCLUDEを整理するBlock Register案を作成する。
 
 三つの独立ツール構成と出品支援ツール優先順位はmain上で受入済みです。開発運用は軽量開発運用v1へ移行し、GPTを必須の伝言役または承認者にしません。リサーチツール定義、現行正本、実装、テストソース、PH Guardrail辞書の読み取り専用整合監査は完了しました。オーナーは、ASIN ExpansionとASIN Resolverを出品先市場に依存しない候補生成の二入口とし、出品可否、既出品照合、Category ID、Brand IDを対象市場ごとの後段処理とする責務分離を確認しました。PHは最初の受入確認市場であり、候補生成をPH専用とする意味ではありません。Codexはこの前提で、完成定義案と候補生成・市場別処理の境界監査を作成しました。主要な経路は方針と整合します。オーナーは、ExpansionまたはResolverで候補ASINを集め、市場を選んだGateで確認し、Category / Brand情報を準備する流れを完成形として確認しました。このため、Expansionの旧SG一次判定とSAFE／監査CSV出力は正式フローから外しました。GPT独立レビューは商品コードの追加修正を求めず、READMEのCSV契約、完成定義の状態と工程、監査時と修正後のテスト根拠、現在地の整合修正を求めました。これらの文書修正後の再確認では、削除した旧SAFE CSVボタンの実際のラベルを直接検査する回帰テストが不足していると指摘されました。Codexは指定された2テストを補強し、全pytest 716件の再実行を完了しました。GPT独立レビューは最終承認済みです。オーナーの画面確認で、通常のResolver利用に不要なEvidence Batchが分かりにくいと分かったため、通常画面から非表示にしました。証跡保存・再開の内部機能は、明示的な開発設定がある場合だけ表示して維持します。続いてオーナーの確認により、Category MapperのPHカテゴリ同期の状態表示と手動同期ボタンも通常画面から非表示にしました。Category／Brand候補を作るCSV入力と推薦機能は維持します。同期管理は明示的な開発設定時だけ表示します。さらに、タブ名を正本の用語に合わせてASIN ExpansionとASIN Resolverへ統一しました。全pytest 719件成功後、オーナーは「候補生成 → 市場別Gate → Category／Brand準備」の画面導線を問題ないと確認しました。PR #15はGitGuardian Security Checks成功後にmainへ統合され、formal main commitは`39f4a4416209509226a10b922c5a8207345aa78c`です。続いてCategory MapperがGate結果CSVを受け取る際、現在の`PRELISTING_GATE_RESULT_V1`だけを受け入れ、空・未知・混在したschema versionを停止するようにしました。関連94件と全pytest 720件が成功しています。Gate結果CSVの再検証は未完了差分ではありません。出品支援ツール全体の完成受入と現行実装との差分は未確定であり、完成済みとは扱いません。
 
-PR #16はGate結果CSVのschema version再検証をmainへ統合し、formal main commitは`a364b42d09afd11ba61b556ead675d677652aa70`です。PH Guardrail根拠・カバレッジ監査では、PH辞書の89ルール、実装・テスト、Shopee公式ポリシーを照合しました。現行Guardrailは初期の保守的なフィルタとして使える一方、PHのブランド・知的財産リスク、複数の公式カテゴリ、根拠資料の保存・更新管理には不足があります。`ELIGIBLE`は現在のフィルタを通過したことを示すだけで、出品承認や規約・法令適合を保証しません。詳細は`docs/PH_GUARDRAIL_EVIDENCE_COVERAGE_AUDIT.md`を正本とします。
+PR #16はGate結果CSVのschema version再検証をmainへ統合し、formal main commitは`a364b42d09afd11ba61b556ead675d677652aa70`です。PH Guardrail一発アウト基準・根拠監査では、PH辞書の89ルール、実装・テスト、Shopee公式ポリシーを照合しました。Guardrailは網羅的な規約適合を約束するものではなく、明確に危険な候補を先に止めることを最優先とします。`ELIGIBLE`は現在のフィルタを通過したことを示すだけで、出品承認や規約・法令適合を保証しません。`REVIEW`は完全にアウトとは言えない候補を人が試すか判断するために残します。詳細は`docs/PH_GUARDRAIL_EVIDENCE_COVERAGE_AUDIT.md`を正本とします。
 
 ## 完了・受入済み
 
@@ -98,7 +98,7 @@ PR #16はGate結果CSVのschema version再検証をmainへ統合し、formal mai
 - オーナーが、Expansion／Resolver → 市場別Gate → Category / Brand準備を完成形として確認。Expansionの旧SG一次判定とSAFE／監査CSV出力を正式フローから外す修正・関連テスト完了（全pytest 716件成功）
 - Category Mapper入力時にGate結果CSVの`PRELISTING_GATE_RESULT_V1`を再検証し、空・未知・混在したschema versionを停止する修正・関連94件および全pytest 720件成功
 - PR #16をmainへ統合。formal main commit `a364b42d09afd11ba61b556ead675d677652aa70`
-- PH Guardrail根拠・カバレッジ監査完了。PH 89ルール、実装・テスト、Shopee公式ポリシーを照合し、ブランド・知的財産、未対応公式カテゴリ、根拠資料の保存・更新管理を残課題として記録
+- PH Guardrail一発アウト基準・根拠監査完了。PH 89ルール、実装・テスト、Shopee公式ポリシーを照合し、明確な一発アウト候補の遮断を最優先、その他の不確実な候補はREVIEWとして人が判断する方針を記録
 - GPT独立レビュー最終承認済み。商品コードの追加修正は不要。正本文書の整合修正と、実際の旧SAFE CSVボタン名を直接検査する2箇所の回帰テスト補強を完了（全pytest 716件成功）
 - オーナー画面導線フィードバックにより、通常のResolver画面からEvidence Batchを非表示化。明示的な開発設定時だけ内部機能を表示し、全pytest 717件成功
 - オーナー画面導線フィードバックにより、通常のCategory Mapper画面からPHカテゴリ同期の状態表示・手動同期を非表示化。CSV入力と推薦機能は維持し、全pytest 719件成功
@@ -157,7 +157,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 - Amazon仕入れ支援ツールの将来優先順位判断
 - 外部既存出品ツールの正式入力テンプレートまたは仕様書の読み取り専用証拠回収（自動投入またはE2E接続を検討する場合）
 - 外部出品ツールの正式ヘッダー順序、エンコーディング、必須値、カテゴリ・ブランド・属性、バリエーション・SKU・在庫契約の確認（同上）
-- PH Guardrail Evidence Ledger v1（公式資料、PHルール、手動確認範囲、見直し日の対応表）
+- PH Guardrail Block Register v1（現在のBLOCKルール、根拠、期待するEXCLUDE、実務結果の記録）
 - 出品支援ツール内部工程の接続設計ゲート（必要な場合）
 - 外部AI・Keepa・実データ実行の別決裁
 - 新規固定30件基準実行
@@ -167,7 +167,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-Codexが検証済みの最終変更内容とテスト結果を平易に報告し、オーナーからpush・Draft PR作成の承認を受ける。
+Codexが現在のPH BLOCKルールを根拠・対象語・期待するEXCLUDEとして整理するPH Guardrail Block Register v1を作成する。
 
 ## 停止条件
 
@@ -256,4 +256,4 @@ Codexが検証済みの最終変更内容とテスト結果を平易に報告し
 
 ## 最終更新日
 
-2026-08-02
+2026-08-03
