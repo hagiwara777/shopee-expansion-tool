@@ -77,7 +77,7 @@ def test_expansion_adapter_uses_unguarded_result_rows_and_preserves_existing_but
     assert "expansion_rows_to_prelisting_candidates(guarded_rows)" not in APP_SOURCE
 
     for label in (
-        "出品候補CSVダウンロード（SAFEのみ）",
+        "SG一次判定候補CSVダウンロード（SAFEのみ）",
         "監査用CSVダウンロード（SAFE / REVIEW / BLOCK 全件）",
     ):
         _download_call(label)

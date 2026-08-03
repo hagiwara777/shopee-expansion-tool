@@ -12,8 +12,9 @@ KeepaのWeb画面操作、Amazonページ操作、Amazon/Keepaスクレイピン
 - Keepa APIで起点ASINの商品情報を取得
 - 起点ASINの `brand` と `categoryTree` を使って候補ASINを取得
 - 結果を画面表示
-- Guardrail Filter Ver1.1で `SAFE / REVIEW / BLOCK` を分類
-- 出品候補CSV（SAFEのみ）と監査用CSV（SAFE / REVIEW / BLOCK 全件）をダウンロード
+- Guardrail Filter Ver1.1（SG辞書）で `SAFE / REVIEW / BLOCK` を一次分類
+- SG一次判定候補CSV（SAFEのみ）と監査用CSV（SAFE / REVIEW / BLOCK 全件）をダウンロード
+- 市場を選んで出品可否を確認するための、出品前保安ゲート用候補CSVをダウンロード
 - 入力欄、検索モード、検索ページ数、検索ボタン、CSVダウンロードボタンを縦並びで表示
 - 同じ検索条件の結果はSQLiteに7日間キャッシュ
 
@@ -239,17 +240,18 @@ Guardrail列の意味は以下です。
 - `guardrail_source`: 一致した辞書ルールの情報源
 - `guardrail_note`: 判定理由の補足
 
-出力CSVは2種類です。
+Expansion画面の出力CSVは3種類です。
 
-- 出品候補CSV: `SAFE` のみ。`REVIEW` と `BLOCK` は含めません。
-- 監査用CSV: `SAFE / REVIEW / BLOCK` すべてを含めます。
+- SG一次判定候補CSV: SG辞書で `SAFE` だった候補のみ。`REVIEW` と `BLOCK` は含めません。既存のCSV内容・ファイル名は維持します。
+- SG一次判定監査CSV: SAFE / REVIEW / BLOCK すべてを含めます。
+- 出品前保安ゲート用候補CSV: SG一次判定前の候補を対象市場を固定せずに出力します。外部出品ツールへ直接渡さず、対象市場を選んだ出品前保安ゲートへ入力してください。
 
 ## 注意
 
 - 入力ASIN自身と候補内の重複ASINは除外します。
 - Expansion Tool単体では既出品ASIN照合と削除済みASIN履歴は未連携です。出品前保安ゲートでは、アップロードした既出品CSVとのASIN照合を行います。
 - 価格や利益の良否判定はVer1では行いません。
-- Guardrailの `SAFE` は安全保証ではありません。対象市場の現時点の辞書ルールに一致しなかったという意味です。
+- Expansion画面のGuardrail `SAFE` は安全保証ではありません。SG辞書ルールに一致しなかったという意味です。SGを含む対象市場の出品可否は、出品前保安ゲートで対象市場を選んで確認してください。
 - `REVIEW` は通常出品フローから分離し、出品前に人間が確認してください。
 - `BLOCK` は出品候補CSVから除外されます。
 - 起点ASINから `brand` または `category` が取得できない場合は処理を止めます。

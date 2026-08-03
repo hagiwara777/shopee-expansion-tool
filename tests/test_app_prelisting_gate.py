@@ -307,7 +307,7 @@ def test_gate_result_view_uses_four_metrics_three_safe_tabs_and_download_contrac
 
 
 def test_existing_candidate_download_controls_remain_in_the_application_contract():
-    assert "出品候補CSVダウンロード（SAFEのみ）" in APP_SOURCE
+    assert "SG一次判定候補CSVダウンロード（SAFEのみ）" in APP_SOURCE
     assert "監査用CSVダウンロード（SAFE / REVIEW / BLOCK 全件）" in APP_SOURCE
     assert "出品前保安ゲート用CSVダウンロード" in APP_SOURCE
     assert "起点ASIN候補CSVダウンロード" in APP_SOURCE

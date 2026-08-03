@@ -632,14 +632,15 @@ with expansion_tab:
         st.write(f"削除済みASIN除外: {result.deleted_asin_exclusion_status}")
         st.write(f"最終表示件数: {result.final_display_count}件")
         st.write(f"キャッシュ利用: {'あり' if result.cache_hit else 'なし'}")
-        st.write("ガードレール適用有無: 適用済み（SG辞書）")
+        st.write("SG一次判定: 適用済み（SG辞書）")
         st.write(f"SAFE件数: {guardrail_summary['SAFE']}件")
         st.write(f"REVIEW件数: {guardrail_summary['REVIEW']}件")
         st.write(f"BLOCK件数: {guardrail_summary['BLOCK']}件")
-        st.write(f"出品候補CSV件数: {guardrail_summary['safe_csv_count']}件（SAFEのみ）")
+        st.write(f"SG一次判定候補CSV件数: {guardrail_summary['safe_csv_count']}件（SAFEのみ）")
         st.write(f"監査用CSV件数: {guardrail_summary['audit_csv_count']}件（全件）")
         st.warning(
-            "SAFEは出品安全を保証するものではありません。現時点のSG辞書ルールに一致しなかった、という意味です。"
+            "SAFEは出品安全を保証するものではありません。これはSG辞書での一次判定です。"
+            "SGを含む対象市場で出品可否を確認する場合は、出品前保安ゲートで市場を選択してください。"
         )
         if guardrail_summary["BLOCK"]:
             st.warning("BLOCK候補はアカウント保護のため出品候補CSVから除外されます。")
@@ -662,7 +663,7 @@ with expansion_tab:
                     st.write(diagnostic)
 
         st.download_button(
-            label="出品候補CSVダウンロード（SAFEのみ）",
+            label="SG一次判定候補CSVダウンロード（SAFEのみ）",
             data=rows_to_csv(safe_rows),
             file_name=f"keepa_safe_candidates_{result.source_asin}.csv",
             mime="text/csv",
@@ -684,7 +685,7 @@ with expansion_tab:
             )
         else:
             st.caption(
-                "このCSVは外部出品ツールへ直接渡さず、出品前保安ゲートの候補CSVとして使用してください。"
+                "このCSVは外部出品ツールへ直接渡さず、対象市場（SG／PH）を選んだ出品前保安ゲートの候補CSVとして使用してください。"
             )
             st.download_button(
                 label="出品前保安ゲート用CSVダウンロード",
