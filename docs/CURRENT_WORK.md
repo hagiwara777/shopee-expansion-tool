@@ -13,20 +13,22 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `Guardrail禁止辞書再設計・正本更新`
-- current_phase: `Guardrail禁止辞書構造・判定方針の正本化完了・具体辞書設計前`
+- current_work_type: `Guardrail 3資料監査結果・オーナー判断の正本化`
+- current_phase: `Guardrail 3資料監査・オーナー判断完了・候補データ構造設計ゲート前`
 - working_branch: `codex/guardrail-block-dictionary-redesign`
-- marketplace: `COMMON + marketplace-specific（最初の実業務受入市場はPH）`
+- marketplace: `COMMON + PH`
 - module: `Prelisting Guardrail / 出品前保安ゲート`
-- phase: `Guardrail禁止辞書構造・判定方針の正本化完了・実装前`
-- next_action: 3つのソース資料を実物照合し、COMMON_BLOCK / PH_BLOCK / REVIEW候補へ具体的に分類するための設計・データ監査を行う。
+- phase: `Guardrail 3資料監査結果・オーナー判断の正本化完了・実装前`
+- next_action: Guardrailの正式COMMON／PH辞書を作れるよう、Category ID等を扱う候補データ構造・判定単位・根拠種別の設計ゲートを行う。
 
-DEC-0026で、選択市場の実効BLOCKを`COMMON_BLOCK ∪ 選択市場BLOCK`とし、市場別BLOCKは
-追加禁止だけを担当する方針を決定しました。COMMON_BLOCKの市場別解除と、BLOCKから
-REVIEWへの降格は行いません。REVIEWは具体的な追加確認・対応で販売可能性が残り、通過または
-BLOCKを決める確認事項を明示できる対象だけに限定します。必要情報がなければ無理にREVIEW辞書を
-作りません。今回変更したのは正本文書だけで、辞書CSV、商品コード、Gate判定ロジック、
-BLOCK／REVIEW具体項目は未変更です。
+DEC-0027でGuardrail 3資料監査とオーナー判断を記録しました。727候補は正式辞書ではなく、
+COMMON_BLOCK候補18、PH_BLOCK候補221、REVIEW候補124、根拠不足314、根拠競合6、
+オーナー判断要3、他市場対象41として扱います。理由不足の一般コミュニティNG 311行は
+BLOCK／REVIEWへ移植しません。市場と具体的NG理由があるPHコミュニティ14項目は、Shopee公式
+禁止と区別した当社内部リスク回避のcommunity evidenceとしてPH_BLOCK採用方針です。当社が
+取得しない現地ライセンス・政府許可が必須の商品は該当市場BLOCKとし、市場固有条件だけで
+COMMON_BLOCKへ昇格しません。今回変更したのは正本文書だけで、辞書CSV、商品コード、
+Gate判定ロジック、正式BLOCK／REVIEW辞書は未変更です。
 
 三つの独立ツール構成と出品支援ツール優先順位はmain上で受入済みです。開発運用は軽量開発運用v1へ移行し、GPTを必須の伝言役または承認者にしません。リサーチツール定義、現行正本、実装、テストソース、PH Guardrail辞書の読み取り専用整合監査は完了しました。オーナーは、ASIN ExpansionとASIN Resolverを出品先市場に依存しない候補生成の二入口とし、出品可否、既出品照合、Category ID、Brand IDを対象市場ごとの後段処理とする責務分離を確認しました。PHは最初の受入確認市場であり、候補生成をPH専用とする意味ではありません。Codexはこの前提で、完成定義案と候補生成・市場別処理の境界監査を作成しました。主要な経路は方針と整合します。オーナーは、ExpansionまたはResolverで候補ASINを集め、市場を選んだGateで確認し、Category / Brand情報を準備する流れを完成形として確認しました。このため、Expansionの旧SG一次判定とSAFE／監査CSV出力は正式フローから外しました。GPT独立レビューは商品コードの追加修正を求めず、READMEのCSV契約、完成定義の状態と工程、監査時と修正後のテスト根拠、現在地の整合修正を求めました。これらの文書修正後の再確認では、削除した旧SAFE CSVボタンの実際のラベルを直接検査する回帰テストが不足していると指摘されました。Codexは指定された2テストを補強し、全pytest 716件の再実行を完了しました。GPT独立レビューは最終承認済みです。オーナーの画面確認で、通常のResolver利用に不要なEvidence Batchが分かりにくいと分かったため、通常画面から非表示にしました。証跡保存・再開の内部機能は、明示的な開発設定がある場合だけ表示して維持します。続いてオーナーの確認により、Category MapperのPHカテゴリ同期の状態表示と手動同期ボタンも通常画面から非表示にしました。Category／Brand候補を作るCSV入力と推薦機能は維持します。同期管理は明示的な開発設定時だけ表示します。さらに、タブ名を正本の用語に合わせてASIN ExpansionとASIN Resolverへ統一しました。全pytest 719件成功後、オーナーは「候補生成 → 市場別Gate → Category／Brand準備」の画面導線を問題ないと確認しました。PR #15はGitGuardian Security Checks成功後にmainへ統合され、formal main commitは`39f4a4416209509226a10b922c5a8207345aa78c`です。続いてCategory MapperがGate結果CSVを受け取る際、現在の`PRELISTING_GATE_RESULT_V1`だけを受け入れ、空・未知・混在したschema versionを停止するようにしました。関連94件と全pytest 720件が成功しています。Gate結果CSVの再検証は未完了差分ではありません。出品支援ツール全体の完成受入と現行実装との差分は未確定であり、完成済みとは扱いません。
 
@@ -149,6 +151,10 @@ CI成果物で再確認された事実ではありません。コード機能の
 | OWNER_SOURCE_SLS_PROHIBITED_CATEGORY | SLS出品可否確認表・2025年3月17日適用 | `【SLS対象マーケット】SLS出品可否確認表（Prohibited Category List）2025年3月17日適用.xlsx` | `ee68151aa951921dfb7c8a5ea76ea67441342b5be5511d4b18905591e4c621c2` | オーナー提供（producer metadata独立確認未実施） | `OWNER_PROVIDED_SOURCE / NOT_CANONICAL` | `OWNER_SOURCE_SLS_PROHIBITED_2025_03_17` | 将来のBLOCK／REVIEW辞書具体化の根拠資料。具体化前に実物照合必須 |
 | OWNER_SOURCE_COMMUNITY_NG_LIST | コミュニティNGリスト・版指定なし | `ＮＧリスト.xlsx` | `82a4b72cfdfa53fdfec87f00685ea3f81ced6bde747e54a71155e56ef92312d1` | オーナー提供（producer metadata独立確認未実施） | `OWNER_PROVIDED_SOURCE / NOT_CANONICAL` | `OWNER_SOURCE_COMMUNITY_NG_LIST` | 当社BLOCK候補の実務資料。無条件移植せず、具体化前に実物照合必須 |
 | OWNER_SOURCE_PH_RESTRICTION_IMAGE | PH制限参考画像・元資料版未確認 | `2026-08-13_121116.png` | `7df6f6196b7ad4ac7a63a380f3eb3c03a3b6ab661bd4941152b6a4484196a681` | オーナー提供（producer metadata独立確認未実施） | `OWNER_PROVIDED_SOURCE / NOT_CANONICAL` | `OWNER_SOURCE_PH_RESTRICTION_IMAGE_2026_08_13` | PH禁止・輸入禁止・ライセンス条件の参考一次資料。PH辞書具体化前に実物照合必須 |
+| GAR-AUD-CLASSIFICATION-CANDIDATES | 727候補詳細分類・版指定なし | `classification_candidates.csv` | `b6c0329e1d5d63a38507c34588ca95e0c8483a05614c4bb711f27ea0a4dc2832` | Guardrail 3資料監査 | `GENERATED_AUDIT_CANDIDATE / NOT_CANONICAL` | `LOCAL_GITEXCLUDED_GUARDRAIL_AUDIT_CLASSIFICATION_CANDIDATES` | 727候補の詳細分類。実物アクセス確認済み |
+| GAR-AUD-SUMMARY | 監査要約・版指定なし | `audit_summary.md` | `0f76e38904c6f4eeaa6be3338f75dbb15c10725260b5e0ba2451a431d14efeb1` | Guardrail 3資料監査 | `GENERATED_AUDIT_CANDIDATE / NOT_CANONICAL` | `LOCAL_GITEXCLUDED_GUARDRAIL_AUDIT_SUMMARY` | 監査要約。実物アクセス確認済み |
+| GAR-AUD-EXISTING-DICTIONARY-COMPARISON | 既存辞書比較・版指定なし | `existing_dictionary_comparison.csv` | `c5a2c6faaf5d24ca722d406e571bcdd669c1a271e5779c96a6d2be6370cbd180` | Guardrail 3資料監査 | `GENERATED_AUDIT_CANDIDATE / NOT_CANONICAL` | `LOCAL_GITEXCLUDED_GUARDRAIL_AUDIT_EXISTING_DICTIONARY_COMPARISON` | 既存89ルールとの比較。実物アクセス確認済み |
+| GAR-AUD-NEW-CANDIDATE-EXISTING-COVERAGE | 新候補既存辞書カバレッジ比較・版指定なし | `new_candidate_existing_coverage.csv` | `e545583f8b3765ddecadc6878128f95e446bd358bfb2ea3f7162475495b9b08b` | Guardrail 3資料監査 | `GENERATED_AUDIT_CANDIDATE / NOT_CANONICAL` | `LOCAL_GITEXCLUDED_GUARDRAIL_AUDIT_NEW_CANDIDATE_EXISTING_COVERAGE` | 新候補363件と既存辞書の比較。実物アクセス確認済み |
 
 実物が必要な場合は、必要時だけ軽量WORK_BRIEFでstorage aliasを解決するか、オーナーが現在のCodexタスクへ再添付する。
 
@@ -158,7 +164,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 - 出品支援ツールの残課題一覧
 - 出品支援ツールの利用者シナリオ
 - 出品支援ツールの受入条件
-- COMMON_BLOCK／PH_BLOCK／REVIEW候補の設計・データ監査と具体辞書作成
+- Category ID等を扱うGuardrail候補データ構造・判定単位・根拠種別の設計
 - 完成定義と現行実装の差分監査
 - ASIN到達性能の評価
 - Expansion・Resolverの実商品テスト
@@ -177,11 +183,15 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-3つのオーナー提供ソース資料を実物照合し、既存辞書を正解とせず比較・移行対象として扱い、
-`COMMON_BLOCK`、`PH_BLOCK`、REVIEW候補へ具体的に分類するための設計・データ監査を行う。
+Guardrailの正式COMMON／PH辞書を作れるよう、Category ID等を扱う候補データ構造・判定単位・
+根拠種別の設計ゲートを行う。
 
 ## 停止条件
 
+- 727候補を、設計・根拠の確認なしに正式COMMON_BLOCK、PH_BLOCK、REVIEW辞書として扱わない。
+- 理由不足の一般コミュニティNG 311行を、今回のPHコミュニティ14項目の採用判断だけでBLOCKまたはREVIEWへ昇格しない。
+- 台湾・タイ・マレーシア等の参考資料から具体辞書を作らず、PHルールへ混ぜず、共通項目へ昇格しない。
+- 今回の正本化だけで、Category ID等を扱うデータ構造、判定単位、根拠種別の実装方式を確定しない。
 - オーナー提供3資料の実物照合前に、COMMON_BLOCK、PH_BLOCK、REVIEWの具体項目を確定しない。
 - 既存Guardrail辞書を正解として新辞書へ移植せず、比較・移行対象として扱う。
 - 辞書CSV、商品コード、Gate判定ロジックは、別の実装範囲と承認が確定するまで変更しない。
