@@ -13,12 +13,20 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `出品支援ツール完成定義・設計ゲート`
-- current_phase: `PH Guardrail Keepa Field Impact Analysis完了・HOLD`
-- working_branch: `codex/ph-guardrail-evidence-audit`
-- marketplace: `PH`
-- module: `事業ポートフォリオ・出品支援ツール`
-- next_action: Codexがオーナーへ、小規模・上限付きKeepa読み取り確認を提案するか、現行Guardrail維持で保留するかを報告する。
+- current_work_type: `Guardrail禁止辞書再設計・正本更新`
+- current_phase: `Guardrail禁止辞書構造・判定方針の正本化完了・具体辞書設計前`
+- working_branch: `codex/guardrail-block-dictionary-redesign`
+- marketplace: `COMMON + marketplace-specific（最初の実業務受入市場はPH）`
+- module: `Prelisting Guardrail / 出品前保安ゲート`
+- phase: `Guardrail禁止辞書構造・判定方針の正本化完了・実装前`
+- next_action: 3つのソース資料を実物照合し、COMMON_BLOCK / PH_BLOCK / REVIEW候補へ具体的に分類するための設計・データ監査を行う。
+
+DEC-0026で、選択市場の実効BLOCKを`COMMON_BLOCK ∪ 選択市場BLOCK`とし、市場別BLOCKは
+追加禁止だけを担当する方針を決定しました。COMMON_BLOCKの市場別解除と、BLOCKから
+REVIEWへの降格は行いません。REVIEWは具体的な追加確認・対応で販売可能性が残り、通過または
+BLOCKを決める確認事項を明示できる対象だけに限定します。必要情報がなければ無理にREVIEW辞書を
+作りません。今回変更したのは正本文書だけで、辞書CSV、商品コード、Gate判定ロジック、
+BLOCK／REVIEW具体項目は未変更です。
 
 三つの独立ツール構成と出品支援ツール優先順位はmain上で受入済みです。開発運用は軽量開発運用v1へ移行し、GPTを必須の伝言役または承認者にしません。リサーチツール定義、現行正本、実装、テストソース、PH Guardrail辞書の読み取り専用整合監査は完了しました。オーナーは、ASIN ExpansionとASIN Resolverを出品先市場に依存しない候補生成の二入口とし、出品可否、既出品照合、Category ID、Brand IDを対象市場ごとの後段処理とする責務分離を確認しました。PHは最初の受入確認市場であり、候補生成をPH専用とする意味ではありません。Codexはこの前提で、完成定義案と候補生成・市場別処理の境界監査を作成しました。主要な経路は方針と整合します。オーナーは、ExpansionまたはResolverで候補ASINを集め、市場を選んだGateで確認し、Category / Brand情報を準備する流れを完成形として確認しました。このため、Expansionの旧SG一次判定とSAFE／監査CSV出力は正式フローから外しました。GPT独立レビューは商品コードの追加修正を求めず、READMEのCSV契約、完成定義の状態と工程、監査時と修正後のテスト根拠、現在地の整合修正を求めました。これらの文書修正後の再確認では、削除した旧SAFE CSVボタンの実際のラベルを直接検査する回帰テストが不足していると指摘されました。Codexは指定された2テストを補強し、全pytest 716件の再実行を完了しました。GPT独立レビューは最終承認済みです。オーナーの画面確認で、通常のResolver利用に不要なEvidence Batchが分かりにくいと分かったため、通常画面から非表示にしました。証跡保存・再開の内部機能は、明示的な開発設定がある場合だけ表示して維持します。続いてオーナーの確認により、Category MapperのPHカテゴリ同期の状態表示と手動同期ボタンも通常画面から非表示にしました。Category／Brand候補を作るCSV入力と推薦機能は維持します。同期管理は明示的な開発設定時だけ表示します。さらに、タブ名を正本の用語に合わせてASIN ExpansionとASIN Resolverへ統一しました。全pytest 719件成功後、オーナーは「候補生成 → 市場別Gate → Category／Brand準備」の画面導線を問題ないと確認しました。PR #15はGitGuardian Security Checks成功後にmainへ統合され、formal main commitは`39f4a4416209509226a10b922c5a8207345aa78c`です。続いてCategory MapperがGate結果CSVを受け取る際、現在の`PRELISTING_GATE_RESULT_V1`だけを受け入れ、空・未知・混在したschema versionを停止するようにしました。関連94件と全pytest 720件が成功しています。Gate結果CSVの再検証は未完了差分ではありません。出品支援ツール全体の完成受入と現行実装との差分は未確定であり、完成済みとは扱いません。
 
@@ -138,6 +146,9 @@ CI成果物で再確認された事実ではありません。コード機能の
 | ART-PH-FIXED30-BASELINE-INPUT-V1 | 固定30件基準入力 v1 | `PH_Japan_AI_Eval_Resolver_Input_V1.tsv` | `32e2dcc21f6820134d7919bbc572e1f91781082cd1d28eee892c3213aaa3d5e1` | `PH_Japan_AI_Eval_Selection_Report_V1.md` | `OWNER_ACCEPTED_FOR_NEW_BASELINE_ONLY` | `LOCAL_RECOVERED_PH_FIXED30_INPUT` | 新規固定30件基準実行専用入力 |
 | ART-PH-ASIN-EXEC-RECORD-V0.1.2-CANDIDATE-REV2 | Excel実行記録 v0.1.2 candidate rev2 | `PH_ASIN_Resolver_Execution_Record_v0.1.2_candidate_rev2.xlsx` | `054f771328b9be4d128c42e650791a22f6c0e4bab9892bb8ebd9fb0ca98e4f7b` | `PH ASIN Resolver 証拠永続化実装` | `OWNER_ACCEPTED` | `LOCAL_ARTIFACT_ROOT/HANDOFF_EXECUTION_RECORD/candidate/v0.1.2/` | PH固定30件の人間可読実行記録 |
 | ART-PH-ASIN-EXEC-GUIDE-V0.1.2-CANDIDATE-REV2 | 非エンジニア向け実行Guide v0.1.2 candidate rev2 | `PH_ASIN_Resolver_Execution_Record_v0.1.2_Guide_candidate_rev2.txt` | `7e55527e6eee6288b679db37937954be1cb8ccd23b51a327eea2171aa6e59540` | `PH ASIN Resolver 証拠永続化実装` | `OWNER_ACCEPTED` | `LOCAL_ARTIFACT_ROOT/HANDOFF_EXECUTION_RECORD/candidate/v0.1.2/` | 非エンジニア向け実行Guide |
+| OWNER_SOURCE_SLS_PROHIBITED_CATEGORY | SLS出品可否確認表・2025年3月17日適用 | `【SLS対象マーケット】SLS出品可否確認表（Prohibited Category List）2025年3月17日適用.xlsx` | `ee68151aa951921dfb7c8a5ea76ea67441342b5be5511d4b18905591e4c621c2` | オーナー提供（producer metadata独立確認未実施） | `OWNER_PROVIDED_SOURCE / NOT_CANONICAL` | `OWNER_SOURCE_SLS_PROHIBITED_2025_03_17` | 将来のBLOCK／REVIEW辞書具体化の根拠資料。具体化前に実物照合必須 |
+| OWNER_SOURCE_COMMUNITY_NG_LIST | コミュニティNGリスト・版指定なし | `ＮＧリスト.xlsx` | `82a4b72cfdfa53fdfec87f00685ea3f81ced6bde747e54a71155e56ef92312d1` | オーナー提供（producer metadata独立確認未実施） | `OWNER_PROVIDED_SOURCE / NOT_CANONICAL` | `OWNER_SOURCE_COMMUNITY_NG_LIST` | 当社BLOCK候補の実務資料。無条件移植せず、具体化前に実物照合必須 |
+| OWNER_SOURCE_PH_RESTRICTION_IMAGE | PH制限参考画像・元資料版未確認 | `2026-08-13_121116.png` | `7df6f6196b7ad4ac7a63a380f3eb3c03a3b6ab661bd4941152b6a4484196a681` | オーナー提供（producer metadata独立確認未実施） | `OWNER_PROVIDED_SOURCE / NOT_CANONICAL` | `OWNER_SOURCE_PH_RESTRICTION_IMAGE_2026_08_13` | PH禁止・輸入禁止・ライセンス条件の参考一次資料。PH辞書具体化前に実物照合必須 |
 
 実物が必要な場合は、必要時だけ軽量WORK_BRIEFでstorage aliasを解決するか、オーナーが現在のCodexタスクへ再添付する。
 
@@ -147,7 +158,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 - 出品支援ツールの残課題一覧
 - 出品支援ツールの利用者シナリオ
 - 出品支援ツールの受入条件
-- PH Guardrailテスト用基準辞書v1
+- COMMON_BLOCK／PH_BLOCK／REVIEW候補の設計・データ監査と具体辞書作成
 - 完成定義と現行実装の差分監査
 - ASIN到達性能の評価
 - Expansion・Resolverの実商品テスト
@@ -166,10 +177,16 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-CodexがPH Guardrail Keepa Field Impact AnalysisのHOLD結論をオーナーへ報告し、小規模・上限付きKeepa読み取り確認を別途提案するか、現行Guardrail維持で保留するかの事業判断を求める。
+3つのオーナー提供ソース資料を実物照合し、既存辞書を正解とせず比較・移行対象として扱い、
+`COMMON_BLOCK`、`PH_BLOCK`、REVIEW候補へ具体的に分類するための設計・データ監査を行う。
 
 ## 停止条件
 
+- オーナー提供3資料の実物照合前に、COMMON_BLOCK、PH_BLOCK、REVIEWの具体項目を確定しない。
+- 既存Guardrail辞書を正解として新辞書へ移植せず、比較・移行対象として扱う。
+- 辞書CSV、商品コード、Gate判定ロジックは、別の実装範囲と承認が確定するまで変更しない。
+- COMMON_BLOCKを市場別ルールで解除する仕組み、またはBLOCKからREVIEWへ降格する経路を設計しない。
+- SG／MY／TH等の具体的辞書内容は、各市場の根拠資料と別の作業範囲が確定するまで作成しない。
 - Category Mapper / AI Shadowは、オーナーの明示的な開始承認があるまで開始しない。
 - 固定30件評価のオーナー受入だけでは、Category Mapper / AI Shadowの開始を承認した
   ものと扱わない。
@@ -255,4 +272,4 @@ CodexがPH Guardrail Keepa Field Impact AnalysisのHOLD結論をオーナーへ�
 
 ## 最終更新日
 
-2026-08-04
+2026-08-14
