@@ -13,22 +13,15 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `Guardrail 3資料監査結果・オーナー判断の正本化`
-- current_phase: `Guardrail 3資料監査・オーナー判断完了・候補データ構造設計ゲート前`
+- current_work_type: `出品支援ツールV2設計・データ契約の正本化`
+- current_phase: `承認済みV2全体設計の正本化完了・実装前`
 - working_branch: `codex/guardrail-block-dictionary-redesign`
 - marketplace: `COMMON + PH`
-- module: `Prelisting Guardrail / 出品前保安ゲート`
-- phase: `Guardrail 3資料監査結果・オーナー判断の正本化完了・実装前`
-- next_action: Guardrailの正式COMMON／PH辞書を作れるよう、Category ID等を扱う候補データ構造・判定単位・根拠種別の設計ゲートを行う。
+- module: `出品支援ツール全体（ASIN Expansion / ASIN Resolver / Prelisting Guardrail / Category Mapper / Batch Builder）`
+- phase: `V2設計正本化完了・実装前`
+- next_action: V2 Phase 1 deterministic BLOCKの最小実装範囲を具体化し、COMMON_BLOCK ∪ PH_BLOCK、Rule V2、SafetyDecision V2を既存Guardrailへ安全に追加する工程を設計する。
 
-DEC-0027でGuardrail 3資料監査とオーナー判断を記録しました。727候補は正式辞書ではなく、
-COMMON_BLOCK候補18、PH_BLOCK候補221、REVIEW候補124、根拠不足314、根拠競合6、
-オーナー判断要3、他市場対象41として扱います。理由不足の一般コミュニティNG 311行は
-BLOCK／REVIEWへ移植しません。市場と具体的NG理由があるPHコミュニティ14項目は、Shopee公式
-禁止と区別した当社内部リスク回避のcommunity evidenceとしてPH_BLOCK採用方針です。当社が
-取得しない現地ライセンス・政府許可が必須の商品は該当市場BLOCKとし、市場固有条件だけで
-COMMON_BLOCKへ昇格しません。今回変更したのは正本文書だけで、辞書CSV、商品コード、
-Gate判定ロジック、正式BLOCK／REVIEW辞書は未変更です。
+DEC-0028で、出品支援ツールV2の目的、責務、論理データ契約、実装順を承認済み方針として正本化しました。これは実装前の設計であり、コード、辞書CSV、Gateロジック、既存V1 schema、物理CSV列、API fieldは変更していません。DEC-0027の727候補とGit外監査成果物は正式辞書へ昇格していません。
 
 三つの独立ツール構成と出品支援ツール優先順位はmain上で受入済みです。開発運用は軽量開発運用v1へ移行し、GPTを必須の伝言役または承認者にしません。リサーチツール定義、現行正本、実装、テストソース、PH Guardrail辞書の読み取り専用整合監査は完了しました。オーナーは、ASIN ExpansionとASIN Resolverを出品先市場に依存しない候補生成の二入口とし、出品可否、既出品照合、Category ID、Brand IDを対象市場ごとの後段処理とする責務分離を確認しました。PHは最初の受入確認市場であり、候補生成をPH専用とする意味ではありません。Codexはこの前提で、完成定義案と候補生成・市場別処理の境界監査を作成しました。主要な経路は方針と整合します。オーナーは、ExpansionまたはResolverで候補ASINを集め、市場を選んだGateで確認し、Category / Brand情報を準備する流れを完成形として確認しました。このため、Expansionの旧SG一次判定とSAFE／監査CSV出力は正式フローから外しました。GPT独立レビューは商品コードの追加修正を求めず、READMEのCSV契約、完成定義の状態と工程、監査時と修正後のテスト根拠、現在地の整合修正を求めました。これらの文書修正後の再確認では、削除した旧SAFE CSVボタンの実際のラベルを直接検査する回帰テストが不足していると指摘されました。Codexは指定された2テストを補強し、全pytest 716件の再実行を完了しました。GPT独立レビューは最終承認済みです。オーナーの画面確認で、通常のResolver利用に不要なEvidence Batchが分かりにくいと分かったため、通常画面から非表示にしました。証跡保存・再開の内部機能は、明示的な開発設定がある場合だけ表示して維持します。続いてオーナーの確認により、Category MapperのPHカテゴリ同期の状態表示と手動同期ボタンも通常画面から非表示にしました。Category／Brand候補を作るCSV入力と推薦機能は維持します。同期管理は明示的な開発設定時だけ表示します。さらに、タブ名を正本の用語に合わせてASIN ExpansionとASIN Resolverへ統一しました。全pytest 719件成功後、オーナーは「候補生成 → 市場別Gate → Category／Brand準備」の画面導線を問題ないと確認しました。PR #15はGitGuardian Security Checks成功後にmainへ統合され、formal main commitは`39f4a4416209509226a10b922c5a8207345aa78c`です。続いてCategory MapperがGate結果CSVを受け取る際、現在の`PRELISTING_GATE_RESULT_V1`だけを受け入れ、空・未知・混在したschema versionを停止するようにしました。関連94件と全pytest 720件が成功しています。Gate結果CSVの再検証は未完了差分ではありません。出品支援ツール全体の完成受入と現行実装との差分は未確定であり、完成済みとは扱いません。
 
@@ -183,11 +176,12 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-Guardrailの正式COMMON／PH辞書を作れるよう、Category ID等を扱う候補データ構造・判定単位・
-根拠種別の設計ゲートを行う。
+V2 Phase 1 deterministic BLOCKの最小実装範囲を具体化し、COMMON_BLOCK ∪ PH_BLOCK、Rule V2、
+SafetyDecision V2を既存Guardrailへ安全に追加する工程を設計する。
 
 ## 停止条件
 
+- 今回承認したV2論理契約だけで、物理schema、API field、confidence threshold、具体的辞書、コード実装を確定・開始しない。
 - 727候補を、設計・根拠の確認なしに正式COMMON_BLOCK、PH_BLOCK、REVIEW辞書として扱わない。
 - 理由不足の一般コミュニティNG 311行を、今回のPHコミュニティ14項目の採用判断だけでBLOCKまたはREVIEWへ昇格しない。
 - 台湾・タイ・マレーシア等の参考資料から具体辞書を作らず、PHルールへ混ぜず、共通項目へ昇格しない。
@@ -282,4 +276,4 @@ Guardrailの正式COMMON／PH辞書を作れるよう、Category ID等を扱う�
 
 ## 最終更新日
 
-2026-08-14
+2026-08-15

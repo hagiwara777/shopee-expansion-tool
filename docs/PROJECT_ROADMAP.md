@@ -2,7 +2,9 @@
 
 ## 当面の全体目標
 
-出品支援ツールは、出品先市場に依存しない候補生成と、対象市場ごとの出品判断・準備を分ける。候補生成は、既知ASINから関連ASIN候補を広げるExpansionと、英字商品名からASIN候補を探すResolverの二つの入口とする。PHは現在の最初の受入確認市場であり、候補生成機能をPH専用とする意味ではない。対象市場ごとのGuardrail、既出品照合、Shopee Category ID、Shopee Brand IDを確認し、作業者が既存出品ツールへ手作業で入力できる状態を段階別に検証する。Resolverの成功は、英字商品名から正しいASINへの到達性能で判断する。外部出品ツール契約、自動Workflow、自動出品は別設計・別承認とする。
+出品支援ツールの目的は、安全に出品準備できるASIN数を少ない人手で増やすことである。
+
+出品支援ツールは、出品先市場に依存しない候補生成と、対象市場ごとの出品判断・準備を分ける。候補生成は、既知Amazon ASINから関連Amazon ASIN候補を広げるASIN Expansionと、Shopeeに出品されている商品の英字タイトルから対応するAmazon ASINへ到達するASIN Resolverの二つの入口とする。PHは現在の最初の受入確認市場であり、候補生成機能をPH専用とする意味ではない。対象市場ごとのGuardrail、既出品照合、Shopee Category ID、Shopee Brand IDを確認し、作業者が既存出品ツールへ手作業で入力できる状態を段階別に検証する。Resolverの成功は、英字タイトルから正しいASINへの到達性能で判断する。外部出品ツール契約、自動Workflow、自動出品は別設計・別承認とする。
 
 ## 開発対象と優先順位
 
@@ -16,6 +18,16 @@ Shopee事業で開発する対象は、次の三つの独立ツールである�
 
 外部出品ツールへの自動接続・自動投入は出品支援ツールの中核目的と別の責務境界であり、別設計・別承認とする。外部契約未確認の事実は残すが、その未確認だけを理由にASIN、Shopee Category ID、Shopee Brand IDの取得・確認に関する中核開発全体を停止しない。
 
+
+## V2の論理責務と実装順
+
+V2では、候補ASINと出所を`Candidate`、確認済み事実を`FactSnapshot`、Safety上のPASS / REVIEW / BLOCKを`SafetyDecision`、不足Factを解決する構造化質問・回答を`ReviewCase`、Primeまたは翌日発送等の当社運用条件を`OperationalFilter`、Categoryと必須属性単位のASIN groupを`CategoryBatch`として論理的に分離する。物理CSV列、DB構造、API fieldは今回確定しない。
+
+APIはFact、RuleはDecision、AIはPrediction、HumanはExceptionを担当する。Gate／Guardrailが無秩序に外部APIを直接呼ばない。実効BLOCKは`COMMON_BLOCK ∪ 選択市場BLOCK`とし、市場別BLOCKはCOMMON_BLOCKを解除せず、BLOCKを後工程でREVIEWまたはPASSへ降格しない。
+
+Category Mapperは唯一の正しいleaf Categoryの完全自動確定ではなく、既存出品ツールで一括処理しやすいCategoryと必須属性単位へのBatch Preparationを主目的とする。AI Category predictionは候補予測に限り、Safety BLOCK根拠にしない。Safety REVIEWとCategory Confirmationは別責務とする。
+
+PHでのV2実装順は、(1) deterministic BLOCK、(2) structured REVIEW + API auto-resolution、(3) 発送条件、(4) Category Batch Builder、(5) mandatory attribute Batch化、(6) exception-only human confirmationとする。他市場はPHで成立したcommon coreへ市場固有の根拠・属性を追加する方向とする。
 ## 正式完成済み
 
 - PH Category Mapper Ver0.1
@@ -38,8 +50,8 @@ ASIN到達性能とResolver成功は未評価であり、Evidence Persistenceの
 ### 1. 候補生成
 
 - ResolverとExpansionは、出品先市場を決めず、候補を作る。候補の出品可否は決めない。
-- 英字商品名 → Resolver → ASIN候補
-- 既知ASIN → Expansion Tool → 関連ASIN候補
+- Shopeeに出品されている商品の英字タイトル → Resolver → 対応するAmazon ASIN
+- 既知Amazon ASIN → Expansion Tool → 関連Amazon ASIN候補
 
 ### 2. 候補選別
 
@@ -49,7 +61,7 @@ ASIN到達性能とResolver成功は未評価であり、Evidence Persistenceの
 
 ### 3. 出品準備
 
-- Category Mapper（対象市場ごとのCategory ID、Brand ID、必須属性確認。現在はPHのみ）
+- Category Mapper（対象市場ごとのCategory ID、Brand ID、必須属性確認。現在はPHのみ。V2ではBatch Preparationを主目的とする）
 - Category ID
 - Brand ID
 - 必須属性情報
