@@ -4,12 +4,14 @@ from pathlib import Path
 
 import pytest
 
+import modules.guardrails as guardrails_module
 from modules.export_csv import rows_to_csv
 from modules.guardrails import (
     ALLOWED_RISK_CATEGORIES,
     GuardrailDictionaryError,
     apply_guardrails,
     filter_safe_rows,
+    load_deterministic_block_rules_v2,
     load_guardrail_dictionaries,
     normalize_text,
     summarize_guardrails,
@@ -525,6 +527,7 @@ PH review,REVIEW,other,title,contains,internal_rule,PH review rule,TRUE
 """
 PH_RISK_KEYWORDS_PATH = Path(__file__).resolve().parents[1] / "guardrails" / "risk_keywords_ph.csv"
 PH_PROHIBITED_BRANDS_PATH = Path(__file__).resolve().parents[1] / "guardrails" / "prohibited_brands_ph.csv"
+PH_V2_RULESET_PATH = Path(__file__).resolve().parents[1] / "guardrails" / guardrails_module.V2_RULESET_FILE
 PH_BLOCK_RULE_IDS = {
     *(f"PH-D{number:03d}" for number in range(1, 8)),
     *(f"PH-D{number:03d}" for number in range(8, 15)),
@@ -535,11 +538,19 @@ PH_BLOCK_RULE_IDS = {
 }
 
 
-def write_ph_dictionaries(tmp_path, brand_csv=PH_BRAND_CSV, risk_csv=PH_RISK_CSV):
+def write_ph_dictionaries(
+    tmp_path,
+    brand_csv=PH_BRAND_CSV,
+    risk_csv=PH_RISK_CSV,
+    v2_csv=None,
+):
     dictionary_dir = tmp_path / "guardrails"
-    dictionary_dir.mkdir()
+    dictionary_dir.mkdir(parents=True)
     (dictionary_dir / "prohibited_brands_ph.csv").write_text(brand_csv, encoding="utf-8")
     (dictionary_dir / "risk_keywords_ph.csv").write_text(risk_csv, encoding="utf-8")
+    if v2_csv is None:
+        v2_csv = PH_V2_RULESET_PATH.read_text(encoding="utf-8-sig")
+    (dictionary_dir / guardrails_module.V2_RULESET_FILE).write_text(v2_csv, encoding="utf-8")
     return dictionary_dir
 
 
@@ -747,3 +758,279 @@ PH rule,REVIEW,other,title,contains,internal_rule,Missing enabled
 
     with pytest.raises(GuardrailDictionaryError, match="必須列"):
         apply_guardrails([candidate()], write_ph_dictionaries(tmp_path, risk_csv=missing_column_csv), marketplace="PH")
+
+
+PHASE1_V2_BRAND_RULES = [
+    ("PH-V2-BRAND-001", "グルマンディーズ"),
+    ("PH-V2-BRAND-002", "Gourmandise"),
+    ("PH-V2-BRAND-003", "OXO"),
+    ("PH-V2-BRAND-004", "ZOJIRUSHI"),
+    ("PH-V2-BRAND-005", "Schleich"),
+    ("PH-V2-BRAND-006", "L'OREAL"),
+    ("PH-V2-BRAND-007", "nivea"),
+    ("PH-V2-BRAND-008", "LEGO"),
+    ("PH-V2-BRAND-009", "Shu Uemura"),
+    ("PH-V2-BRAND-010", "ロート製薬"),
+    ("PH-V2-BRAND-011", "Endgame Gear"),
+    ("PH-V2-BRAND-012", "エーザイ"),
+    ("PH-V2-BRAND-013", "ゼンハイザー"),
+]
+V2_COLUMNS = [
+    "schema_version",
+    "rule_id",
+    "scope",
+    "fact_field",
+    "operator",
+    "value",
+    "action",
+    "risk_category",
+    "source_type",
+    "decision_ref",
+    "evidence_ref",
+    "note",
+]
+
+
+def v2_rule(**overrides):
+    row = {
+        "schema_version": guardrails_module.V2_RULESET_SCHEMA_VERSION,
+        "rule_id": "PH-V2-TEST-001",
+        "scope": "PH_BLOCK",
+        "fact_field": "brand",
+        "operator": "exact",
+        "value": "Synthetic Brand",
+        "action": "BLOCK",
+        "risk_category": "community_report",
+        "source_type": "community_report",
+        "decision_ref": "DEC-0030",
+        "evidence_ref": "OWNER_SOURCE_COMMUNITY_NG_LIST",
+        "note": "Synthetic canonical test rule",
+    }
+    row.update(overrides)
+    return row
+
+
+def render_v2_rules(*rows, columns=V2_COLUMNS):
+    output = StringIO()
+    writer = csv.DictWriter(output, fieldnames=columns, lineterminator="\n")
+    writer.writeheader()
+    for row in rows:
+        writer.writerow({column: row.get(column, "") for column in columns})
+    return output.getvalue()
+
+
+def test_production_v2_ruleset_contains_only_the_13_canonical_ph_brand_rules():
+    rules = load_deterministic_block_rules_v2()
+
+    assert [rule.rule_id for rule in rules] == [rule_id for rule_id, _ in PHASE1_V2_BRAND_RULES]
+    assert [rule.value for rule in rules] == [brand for _, brand in PHASE1_V2_BRAND_RULES]
+    assert len(rules) == 13
+    assert sum(rule.scope == "COMMON_BLOCK" for rule in rules) == 0
+    assert sum(rule.scope == "PH_BLOCK" for rule in rules) == 13
+    assert {rule.schema_version for rule in rules} == {guardrails_module.V2_RULESET_SCHEMA_VERSION}
+    assert all(rule.fact_field == "brand" for rule in rules)
+    assert all(rule.operator == "exact" for rule in rules)
+    assert all(rule.action == "BLOCK" for rule in rules)
+    assert all(rule.risk_category == "community_report" for rule in rules)
+    assert all(rule.source_type == "community_report" for rule in rules)
+    assert all(rule.decision_ref == "DEC-0030" for rule in rules)
+    assert all(rule.evidence_ref == "OWNER_SOURCE_COMMUNITY_NG_LIST" for rule in rules)
+    assert "Bose" not in {rule.value for rule in rules}
+
+
+@pytest.mark.parametrize(("rule_id", "brand"), PHASE1_V2_BRAND_RULES, ids=[item[0] for item in PHASE1_V2_BRAND_RULES])
+def test_every_phase1_v2_brand_rule_blocks_ph_by_normalized_exact(rule_id, brand):
+    row = apply_guardrails([candidate(brand=brand)], marketplace="PH")[0]
+
+    assert row["guardrail_status"] == "BLOCK"
+    assert row["guardrail_risk_category"] == "community_report"
+    assert row["guardrail_matched_terms"] == brand
+    assert row["guardrail_source"] == "community_report"
+    assert f"V2 Rule matched: {rule_id}" in row["guardrail_note"]
+    assert "No guardrail dictionary match" not in row["guardrail_note"]
+
+
+@pytest.mark.parametrize("brand", ["  ｌｅｇｏ  ", "SHU   UEMURA", "ｏｘｏ"])
+def test_phase1_v2_brand_exact_uses_nfkc_case_trim_and_space_normalization(brand):
+    row = apply_guardrails([candidate(brand=brand)], marketplace="PH")[0]
+
+    assert row["guardrail_status"] == "BLOCK"
+    assert "V2 Rule matched" in row["guardrail_note"]
+
+
+def test_phase1_v2_never_matches_contains_title_blank_or_unrelated_brand():
+    rows = apply_guardrails(
+        [
+            candidate(brand="LEGO Store"),
+            candidate(brand="Other", title="LEGO building set"),
+            candidate(brand="", title="ordinary product"),
+            candidate(brand="Other", title="ordinary product"),
+        ],
+        marketplace="PH",
+    )
+
+    assert [row["guardrail_status"] for row in rows] == ["SAFE", "SAFE", "SAFE", "SAFE"]
+    assert all("V2 Rule matched" not in row["guardrail_note"] for row in rows)
+
+
+def test_phase1_v2_no_match_preserves_complete_v1_output_order_and_count():
+    rows = [
+        candidate(brand="Other", title="ordinary product"),
+        candidate(brand="Other", title="medicated cleanser"),
+        candidate(brand="Other", title="処方薬"),
+    ]
+    dictionaries = load_guardrail_dictionaries(marketplace="PH")
+    v1_only = [
+        guardrails_module._apply_matches_to_row(
+            row,
+            guardrails_module._find_matches(row, dictionaries),
+        )
+        for row in rows
+    ]
+
+    combined = apply_guardrails(rows, marketplace="PH")
+
+    assert combined == v1_only
+    assert len(combined) == len(rows)
+    assert [row["product_title"] for row in combined] == [row["product_title"] for row in rows]
+
+
+def test_phase1_v2_block_veto_composes_after_v1_without_losing_v1_audit_evidence():
+    safe_v2 = apply_guardrails(
+        [candidate(brand="LEGO", title="ordinary product")],
+        marketplace="PH",
+    )[0]
+    review_v2 = apply_guardrails(
+        [candidate(brand="LEGO", title="medicated cleanser")],
+        marketplace="PH",
+    )[0]
+    block_v2 = apply_guardrails(
+        [candidate(brand="LEGO", title="処方薬")],
+        marketplace="PH",
+    )[0]
+
+    assert safe_v2["guardrail_status"] == "BLOCK"
+    assert safe_v2["guardrail_matched_terms"] == "LEGO"
+    assert review_v2["guardrail_status"] == "BLOCK"
+    assert review_v2["guardrail_matched_terms"] == "medicated|LEGO"
+    assert review_v2["guardrail_source"] == "internal_rule|community_report"
+    assert "PH-D018" in review_v2["guardrail_note"]
+    assert "PH-V2-BRAND-008" in review_v2["guardrail_note"]
+    assert block_v2["guardrail_status"] == "BLOCK"
+    assert block_v2["guardrail_matched_terms"] == "処方薬|LEGO"
+    assert block_v2["guardrail_source"] == "shopee_policy|community_report"
+    assert "PH-D008" in block_v2["guardrail_note"]
+    assert "PH-V2-BRAND-008" in block_v2["guardrail_note"]
+
+
+def test_phase1_v2_is_not_enabled_for_sg_even_when_v2_ruleset_is_missing(tmp_path):
+    dictionary_dir = write_dictionaries(tmp_path)
+
+    row = apply_guardrails(
+        [candidate(brand="OXO", title="ordinary product")],
+        dictionary_dir,
+        marketplace="SG",
+    )[0]
+
+    assert row["guardrail_status"] == "SAFE"
+    assert "V2 Rule matched" not in row["guardrail_note"]
+
+
+@pytest.mark.parametrize(
+    ("overrides", "error_match"),
+    [
+        ({"schema_version": "UNKNOWN"}, "schema_version"),
+        ({"rule_id": ""}, "rule_id"),
+        ({"scope": "SG_BLOCK"}, "scope"),
+        ({"fact_field": "title"}, "fact_field"),
+        ({"operator": "contains"}, "operator"),
+        ({"action": "REVIEW"}, "action"),
+        ({"value": ""}, "value"),
+        ({"risk_category": "other"}, "risk_category"),
+        ({"source_type": "internal_rule"}, "source_type"),
+        ({"decision_ref": "DEC-0029"}, "decision_ref"),
+        ({"evidence_ref": "UNKNOWN"}, "evidence_ref"),
+        ({"note": ""}, "note"),
+    ],
+)
+def test_v2_ruleset_contract_errors_fail_closed(tmp_path, overrides, error_match):
+    dictionary_dir = write_ph_dictionaries(
+        tmp_path,
+        v2_csv=render_v2_rules(v2_rule(**overrides)),
+    )
+
+    with pytest.raises(GuardrailDictionaryError, match=error_match):
+        apply_guardrails([candidate()], dictionary_dir, marketplace="PH")
+
+
+def test_v2_ruleset_missing_required_column_fails_closed(tmp_path):
+    columns = [column for column in V2_COLUMNS if column != "evidence_ref"]
+    dictionary_dir = write_ph_dictionaries(
+        tmp_path,
+        v2_csv=render_v2_rules(v2_rule(), columns=columns),
+    )
+
+    with pytest.raises(GuardrailDictionaryError, match="V2必須列"):
+        apply_guardrails([candidate()], dictionary_dir, marketplace="PH")
+
+
+def test_v2_duplicate_rule_id_and_semantic_duplicate_fail_closed(tmp_path):
+    duplicate_id_dir = write_ph_dictionaries(
+        tmp_path / "duplicate-id",
+        v2_csv=render_v2_rules(
+            v2_rule(rule_id="PH-V2-DUPLICATE", value="First Brand"),
+            v2_rule(rule_id="PH-V2-DUPLICATE", value="Second Brand"),
+        ),
+    )
+    semantic_duplicate_dir = write_ph_dictionaries(
+        tmp_path / "semantic-duplicate",
+        v2_csv=render_v2_rules(
+            v2_rule(rule_id="PH-V2-SEMANTIC-001", value="LEGO"),
+            v2_rule(rule_id="PH-V2-SEMANTIC-002", value="  lego  "),
+        ),
+    )
+
+    with pytest.raises(GuardrailDictionaryError, match="duplicate rule_id"):
+        apply_guardrails([candidate()], duplicate_id_dir, marketplace="PH")
+    with pytest.raises(GuardrailDictionaryError, match="semantic duplicate"):
+        apply_guardrails([candidate()], semantic_duplicate_dir, marketplace="PH")
+
+
+def test_v2_missing_empty_and_malformed_rulesets_fail_closed(tmp_path):
+    missing_dir = write_ph_dictionaries(tmp_path / "missing")
+    (missing_dir / guardrails_module.V2_RULESET_FILE).unlink()
+    empty_dir = write_ph_dictionaries(
+        tmp_path / "empty",
+        v2_csv=render_v2_rules(),
+    )
+    malformed_dir = write_ph_dictionaries(
+        tmp_path / "malformed",
+        v2_csv=",".join(V2_COLUMNS) + '\n"unterminated',
+    )
+
+    with pytest.raises(GuardrailDictionaryError, match="見つかりません"):
+        apply_guardrails([candidate()], missing_dir, marketplace="PH")
+    with pytest.raises(GuardrailDictionaryError, match="active V2 rule"):
+        apply_guardrails([candidate()], empty_dir, marketplace="PH")
+    with pytest.raises(GuardrailDictionaryError, match="V2 CSV形式"):
+        apply_guardrails([candidate()], malformed_dir, marketplace="PH")
+
+
+def test_v2_common_and_ph_scopes_form_a_union_for_ph(tmp_path):
+    dictionary_dir = write_ph_dictionaries(
+        tmp_path,
+        v2_csv=render_v2_rules(
+            v2_rule(rule_id="COMMON-V2-BRAND-001", scope="COMMON_BLOCK", value="Common Brand"),
+            v2_rule(rule_id="PH-V2-BRAND-TEST", scope="PH_BLOCK", value="PH Brand"),
+        ),
+    )
+
+    rows = apply_guardrails(
+        [candidate(brand="Common Brand"), candidate(brand="PH Brand")],
+        dictionary_dir,
+        marketplace="PH",
+    )
+
+    assert [row["guardrail_status"] for row in rows] == ["BLOCK", "BLOCK"]
+    assert "COMMON-V2-BRAND-001" in rows[0]["guardrail_note"]
+    assert "PH-V2-BRAND-TEST" in rows[1]["guardrail_note"]

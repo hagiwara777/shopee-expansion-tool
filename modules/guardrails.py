@@ -61,6 +61,23 @@ MARKETPLACE_DICTIONARY_FILES = {
     "SG": ("prohibited_brands_sg.csv", "risk_keywords_sg.csv"),
     "PH": ("prohibited_brands_ph.csv", "risk_keywords_ph.csv"),
 }
+V2_RULESET_FILE = "deterministic_block_rules_v2.csv"
+V2_RULESET_SCHEMA_VERSION = "GUARDRAIL_RULE_V2_V1"
+V2_REQUIRED_COLUMNS = {
+    "schema_version",
+    "rule_id",
+    "scope",
+    "fact_field",
+    "operator",
+    "value",
+    "action",
+    "risk_category",
+    "source_type",
+    "decision_ref",
+    "evidence_ref",
+    "note",
+}
+V2_ALLOWED_SCOPES = {"COMMON_BLOCK", "PH_BLOCK"}
 
 
 class GuardrailDictionaryError(RuntimeError):
@@ -93,18 +110,57 @@ class GuardrailMatch:
     rule: GuardrailRule
 
 
+@dataclass(frozen=True)
+class DeterministicBlockRuleV2:
+    schema_version: str
+    rule_id: str
+    scope: str
+    fact_field: str
+    operator: str
+    value: str
+    normalized_value: str
+    action: str
+    risk_category: str
+    source_type: str
+    decision_ref: str
+    evidence_ref: str
+    note: str
+    file_name: str
+    row_number: int
+
+
+@dataclass(frozen=True)
+class DeterministicBlockMatchV2:
+    rule: DeterministicBlockRuleV2
+
+
 def apply_guardrails(
     rows: Iterable[dict[str, Any]],
     dictionary_dir: str | Path | None = None,
     *,
     marketplace: str = "SG",
 ) -> list[dict[str, str]]:
-    dictionaries = load_guardrail_dictionaries(dictionary_dir, marketplace=marketplace)
+    normalized_marketplace = _normalize_marketplace(marketplace)
+    dictionaries = load_guardrail_dictionaries(
+        dictionary_dir,
+        marketplace=normalized_marketplace,
+    )
+    v2_rules = (
+        load_deterministic_block_rules_v2(dictionary_dir)
+        if normalized_marketplace == "PH"
+        else []
+    )
     guarded_rows: list[dict[str, str]] = []
 
     for row in rows:
         matches = _find_matches(row, dictionaries)
-        guarded_rows.append(_apply_matches_to_row(row, matches))
+        v1_row = _apply_matches_to_row(row, matches)
+        v2_matches = evaluate_deterministic_blocks_v2(
+            row,
+            v2_rules,
+            marketplace=normalized_marketplace,
+        )
+        guarded_rows.append(_apply_v2_matches_to_row(v1_row, v2_matches))
 
     return guarded_rows
 
@@ -153,6 +209,105 @@ def load_guardrail_dictionaries(
         brand_rules=_load_rules(brand_path, dictionary_type="brand"),
         keyword_rules=_load_rules(keyword_path, dictionary_type="keyword"),
     )
+
+
+def load_deterministic_block_rules_v2(
+    dictionary_dir: str | Path | None = None,
+) -> list[DeterministicBlockRuleV2]:
+    base_dir = Path(dictionary_dir) if dictionary_dir is not None else _default_dictionary_dir()
+    path = base_dir / V2_RULESET_FILE
+    if not path.exists():
+        raise GuardrailDictionaryError(
+            f"{path.name} が見つかりません。V2 rulesetを確認してください。"
+        )
+
+    try:
+        with path.open("r", encoding="utf-8-sig", newline="") as csv_file:
+            reader = csv.DictReader(csv_file, strict=True)
+            if reader.fieldnames is None:
+                raise GuardrailDictionaryError(f"{path.name} にヘッダー行がありません。")
+
+            fieldnames = {str(field or "").strip() for field in reader.fieldnames}
+            missing_columns = V2_REQUIRED_COLUMNS - fieldnames
+            if missing_columns:
+                missing = ", ".join(sorted(missing_columns))
+                raise GuardrailDictionaryError(
+                    f"{path.name} のV2必須列が不足しています: {missing}"
+                )
+            unsupported_columns = fieldnames - V2_REQUIRED_COLUMNS
+            if unsupported_columns:
+                unsupported = ", ".join(sorted(unsupported_columns))
+                raise GuardrailDictionaryError(
+                    f"{path.name} に未対応のV2列があります: {unsupported}"
+                )
+
+            rules: list[DeterministicBlockRuleV2] = []
+            rule_ids: set[str] = set()
+            semantic_keys: set[tuple[str, str, str, str, str]] = set()
+            for row_number, raw_row in enumerate(reader, start=2):
+                if None in raw_row:
+                    raise GuardrailDictionaryError(
+                        f"{path.name} {row_number}行目: V2列数がヘッダーと一致しません。"
+                    )
+                row = _normalize_csv_row(raw_row)
+                if _is_blank_row(row):
+                    continue
+                rule = _parse_v2_rule(path.name, row_number, row)
+                if rule.rule_id in rule_ids:
+                    raise GuardrailDictionaryError(
+                        f"{path.name} {row_number}行目: duplicate rule_idです: {rule.rule_id}"
+                    )
+                semantic_key = (
+                    rule.scope,
+                    rule.fact_field,
+                    rule.operator,
+                    rule.normalized_value,
+                    rule.action,
+                )
+                if semantic_key in semantic_keys:
+                    raise GuardrailDictionaryError(
+                        f"{path.name} {row_number}行目: semantic duplicate ruleです: {rule.value}"
+                    )
+                rule_ids.add(rule.rule_id)
+                semantic_keys.add(semantic_key)
+                rules.append(rule)
+
+            if not rules:
+                raise GuardrailDictionaryError(f"{path.name} にactive V2 ruleがありません。")
+            return rules
+    except GuardrailDictionaryError:
+        raise
+    except UnicodeDecodeError as exc:
+        raise GuardrailDictionaryError(
+            f"{path.name} をUTF-8として読み込めません。UTF-8またはUTF-8 BOMで保存してください。"
+        ) from exc
+    except csv.Error as exc:
+        raise GuardrailDictionaryError(f"{path.name} のV2 CSV形式を読み込めません: {exc}") from exc
+    except OSError as exc:
+        raise GuardrailDictionaryError(f"{path.name} のV2 rulesetを読み込めません。") from exc
+
+
+def evaluate_deterministic_blocks_v2(
+    row: dict[str, Any],
+    rules: Iterable[DeterministicBlockRuleV2],
+    *,
+    marketplace: str,
+) -> list[DeterministicBlockMatchV2]:
+    """Evaluate already-validated deterministic BLOCK rules without I/O."""
+    normalized_marketplace = _normalize_marketplace(marketplace)
+    if normalized_marketplace != "PH":
+        return []
+
+    normalized_brand = normalize_text(row.get("brand"))
+    if not normalized_brand:
+        return []
+
+    applicable_scopes = {"COMMON_BLOCK", "PH_BLOCK"}
+    return [
+        DeterministicBlockMatchV2(rule=rule)
+        for rule in rules
+        if rule.scope in applicable_scopes and normalized_brand == rule.normalized_value
+    ]
 
 
 def _normalize_marketplace(marketplace: Any) -> str:
@@ -326,6 +481,101 @@ def _parse_rule(
     )
 
 
+def _parse_v2_rule(
+    file_name: str,
+    row_number: int,
+    row: dict[str, str],
+) -> DeterministicBlockRuleV2:
+    schema_version = str(row.get("schema_version") or "").strip()
+    if schema_version != V2_RULESET_SCHEMA_VERSION:
+        raise GuardrailDictionaryError(
+            f"{file_name} {row_number}行目: schema_versionが不正です: "
+            f"{schema_version or '空欄'}"
+        )
+
+    rule_id = str(row.get("rule_id") or "").strip()
+    if not rule_id:
+        raise GuardrailDictionaryError(f"{file_name} {row_number}行目: rule_idが空です。")
+    if re.fullmatch(r"[A-Z0-9][A-Z0-9._-]*", rule_id) is None:
+        raise GuardrailDictionaryError(
+            f"{file_name} {row_number}行目: rule_idはmachine-readable形式にしてください。"
+        )
+
+    scope = unicodedata.normalize("NFKC", str(row.get("scope") or "")).strip().upper()
+    if scope not in V2_ALLOWED_SCOPES:
+        allowed = ", ".join(sorted(V2_ALLOWED_SCOPES))
+        raise GuardrailDictionaryError(
+            f"{file_name} {row_number}行目: unsupported scopeです。"
+            f"許可値: {allowed}、現在値: {scope or '空欄'}"
+        )
+
+    fact_field = normalize_text(row.get("fact_field"))
+    if fact_field != "brand":
+        raise GuardrailDictionaryError(
+            f"{file_name} {row_number}行目: unsupported fact_fieldです: "
+            f"{fact_field or '空欄'}"
+        )
+    operator = normalize_text(row.get("operator"))
+    if operator != "exact":
+        raise GuardrailDictionaryError(
+            f"{file_name} {row_number}行目: unsupported operatorです: "
+            f"{operator or '空欄'}"
+        )
+    action = unicodedata.normalize("NFKC", str(row.get("action") or "")).strip().upper()
+    if action != "BLOCK":
+        raise GuardrailDictionaryError(
+            f"{file_name} {row_number}行目: unsupported actionです: "
+            f"{action or '空欄'}"
+        )
+
+    value = str(row.get("value") or "").strip()
+    normalized_value = normalize_text(value)
+    if not normalized_value:
+        raise GuardrailDictionaryError(f"{file_name} {row_number}行目: valueが空です。")
+
+    risk_category = normalize_text(row.get("risk_category"))
+    if risk_category != "community_report":
+        raise GuardrailDictionaryError(
+            f"{file_name} {row_number}行目: risk_categoryはcommunity_reportにしてください。"
+        )
+    source_type = normalize_text(row.get("source_type"))
+    if source_type != "community_report":
+        raise GuardrailDictionaryError(
+            f"{file_name} {row_number}行目: source_typeはcommunity_reportにしてください。"
+        )
+    decision_ref = str(row.get("decision_ref") or "").strip()
+    if decision_ref != "DEC-0030":
+        raise GuardrailDictionaryError(
+            f"{file_name} {row_number}行目: decision_refはDEC-0030にしてください。"
+        )
+    evidence_ref = str(row.get("evidence_ref") or "").strip()
+    if evidence_ref != "OWNER_SOURCE_COMMUNITY_NG_LIST":
+        raise GuardrailDictionaryError(
+            f"{file_name} {row_number}行目: evidence_refが不正です。"
+        )
+    note = str(row.get("note") or "").strip()
+    if not note:
+        raise GuardrailDictionaryError(f"{file_name} {row_number}行目: noteが空です。")
+
+    return DeterministicBlockRuleV2(
+        schema_version=schema_version,
+        rule_id=rule_id,
+        scope=scope,
+        fact_field=fact_field,
+        operator=operator,
+        value=value,
+        normalized_value=normalized_value,
+        action=action,
+        risk_category=risk_category,
+        source_type=source_type,
+        decision_ref=decision_ref,
+        evidence_ref=evidence_ref,
+        note=note,
+        file_name=file_name,
+        row_number=row_number,
+    )
+
+
 def _require_choice(
     file_name: str,
     row_number: int,
@@ -428,12 +678,63 @@ def _apply_matches_to_row(
     return guarded_row
 
 
+def _apply_v2_matches_to_row(
+    v1_row: dict[str, str],
+    matches: list[DeterministicBlockMatchV2],
+) -> dict[str, str]:
+    if not matches:
+        return v1_row
+
+    guarded_row = dict(v1_row)
+    v1_status = guarded_row.get("guardrail_status", "")
+    if v1_status == "SAFE":
+        risk_values: Iterable[str] = (match.rule.risk_category for match in matches)
+        term_values: Iterable[str] = (match.rule.value for match in matches)
+        source_values: Iterable[str] = (match.rule.source_type for match in matches)
+        note_values: Iterable[str] = (_v2_match_note(match) for match in matches)
+    else:
+        risk_values = (
+            guarded_row.get("guardrail_risk_category", ""),
+            *(match.rule.risk_category for match in matches),
+        )
+        term_values = (
+            guarded_row.get("guardrail_matched_terms", ""),
+            *(match.rule.value for match in matches),
+        )
+        source_values = (
+            guarded_row.get("guardrail_source", ""),
+            *(match.rule.source_type for match in matches),
+        )
+        note_values = (
+            guarded_row.get("guardrail_note", ""),
+            *(_v2_match_note(match) for match in matches),
+        )
+
+    guarded_row.update(
+        {
+            "guardrail_status": "BLOCK",
+            "guardrail_risk_category": _join_unique(risk_values),
+            "guardrail_matched_terms": _join_unique(term_values),
+            "guardrail_source": _join_unique(source_values),
+            "guardrail_note": _join_unique(note_values),
+        }
+    )
+    return guarded_row
+
+
 def _match_note(match: GuardrailMatch) -> str:
     prefix = "Brand matched" if match.rule.dictionary_type == "brand" else "Keyword matched"
     note = f"{prefix}: {match.rule.term}"
     if match.rule.note:
         note = f"{note} ({match.rule.note})"
     return note
+
+
+def _v2_match_note(match: DeterministicBlockMatchV2) -> str:
+    return (
+        f"V2 Rule matched: {match.rule.rule_id} "
+        f"(Brand exact: {match.rule.value}; {match.rule.note})"
+    )
 
 
 def _join_unique(values: Iterable[str]) -> str:

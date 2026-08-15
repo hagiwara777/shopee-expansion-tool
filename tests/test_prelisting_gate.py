@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import replace
+import inspect
+from pathlib import Path
 
 import pytest
 
+import modules.guardrails as guardrails_module
 import modules.prelisting_gate as gate
 from modules.guardrails import GuardrailDictionaryError
 from modules.listing_inventory_parser import ListingEvidence, ListingInventoryFileResult
@@ -14,6 +17,7 @@ from modules.prelisting_candidate_csv import (
     PrelistingCandidateFileResult,
     PrelistingCandidateRow,
 )
+from modules.prelisting_gate_csv import GATE_RESULT_SCHEMA_VERSION
 
 
 def candidate(
@@ -637,3 +641,88 @@ def test_v12_dictionary_review_and_existing_block_propagate_to_gate_results():
     assert "medical_or_therapeutic" in block_row.guardrail_risk_category.split("|")
     assert block_row.final_eligibility == "EXCLUDE"
     assert block_row.reason_codes == ("GUARDRAIL_BLOCK",)
+
+
+def test_phase1_v2_brand_block_routes_ph_candidate_to_guardrail_exclude():
+    ph_inventory = inventory(
+        (),
+        marketplace="PH",
+        shop_label="PH Shop",
+        source_file="Shopee 更新_PH.csv",
+        data_row_count=0,
+    )
+
+    result = evaluate(
+        [candidate(brand="lego", product_title="ordinary building set")],
+        [ph_inventory],
+        marketplace="PH",
+    )
+
+    row = result.rows[0]
+    assert row.guardrail_status == "BLOCK"
+    assert row.guardrail_risk_category == "community_report"
+    assert row.guardrail_matched_terms == "LEGO"
+    assert row.guardrail_source == "community_report"
+    assert "PH-V2-BRAND-008" in row.guardrail_note
+    assert row.final_eligibility == "EXCLUDE"
+    assert row.reason_codes == ("GUARDRAIL_BLOCK",)
+
+
+def test_phase1_v2_title_only_and_non_exact_brand_do_not_exclude_at_gate():
+    ph_inventory = inventory(
+        (),
+        marketplace="PH",
+        shop_label="PH Shop",
+        source_file="Shopee 更新_PH.csv",
+        data_row_count=0,
+    )
+
+    result = evaluate(
+        [
+            candidate("B000000001", brand="Other", product_title="LEGO building set"),
+            candidate("B000000002", brand="LEGO Store", product_title="ordinary building set"),
+        ],
+        [ph_inventory],
+        marketplace="PH",
+    )
+
+    assert [row.guardrail_status for row in result.rows] == ["SAFE", "SAFE"]
+    assert [row.final_eligibility for row in result.rows] == ["ELIGIBLE", "ELIGIBLE"]
+    assert all("GUARDRAIL_BLOCK" not in row.reason_codes for row in result.rows)
+
+
+def test_malformed_v2_ruleset_stops_the_entire_gate_via_existing_error_path(tmp_path, monkeypatch):
+    source_dir = Path(__file__).resolve().parents[1] / "guardrails"
+    dictionary_dir = tmp_path / "guardrails"
+    dictionary_dir.mkdir()
+    for file_name in ("prohibited_brands_ph.csv", "risk_keywords_ph.csv"):
+        (dictionary_dir / file_name).write_bytes((source_dir / file_name).read_bytes())
+    (dictionary_dir / guardrails_module.V2_RULESET_FILE).write_text(
+        "schema_version,rule_id\nUNKNOWN,broken\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(guardrails_module, "_default_dictionary_dir", lambda: dictionary_dir)
+
+    ph_inventory = inventory(
+        (),
+        marketplace="PH",
+        shop_label="PH Shop",
+        source_file="Shopee 更新_PH.csv",
+        data_row_count=0,
+    )
+
+    with pytest.raises(gate.PrelistingGateError, match="Guardrail辞書"):
+        evaluate([candidate(brand="LEGO")], [ph_inventory], marketplace="PH")
+
+
+def test_phase1_v2_keeps_candidate_gate_schema_and_gate_public_interface_v1():
+    parameters = inspect.signature(gate.evaluate_prelisting_gate).parameters
+
+    assert tuple(parameters) == (
+        "candidates",
+        "inventories",
+        "marketplace",
+        "expected_shop_count",
+    )
+    assert PRELISTING_CANDIDATE_SCHEMA_VERSION == "PRELISTING_CANDIDATE_V1"
+    assert GATE_RESULT_SCHEMA_VERSION == "PRELISTING_GATE_RESULT_V1"
