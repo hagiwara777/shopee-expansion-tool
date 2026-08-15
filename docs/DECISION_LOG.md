@@ -300,3 +300,12 @@
 - 理由: 根拠不足の候補を自動的にBLOCKへ昇格させず、PHに限定された事業上のリスク回避とShopee公式根拠を区別するため。公式資料のCategory ID中心の判定単位を扱える設計がなければ、候補と現行keyword辞書の不一致を安全に解消できないため。
 - 影響: DEC-0026のCOMMON_BLOCKと市場別BLOCKの原則を維持する。今回、Guardrail辞書CSV、商品コード、Gate判定ロジック、正式COMMON_BLOCK／PH_BLOCK項目、REVIEW辞書、台湾・タイ・マレーシア等の具体辞書は変更しない。次の単一作業は、Category ID等を扱う候補データ構造、判定単位、根拠種別の設計ゲートとする。データ構造そのものは今回確定しない。
 - 再検討条件: 後継SLS資料、PHの一次根拠、またはPHコミュニティ14項目の理由に変更・不足が確認されたとき。設計ゲートでCategory ID等を扱う候補構造、根拠種別、既存keyword辞書との移行境界が明確になったとき。PH以外の市場を正式監査するとき。
+
+## DEC-0028 — 出品支援ツールV2の責務・データ契約・実装原則を承認する
+
+- 日付: 2026-08-15
+- 背景: 現行正本はV1の候補生成、Gate、Category / Brand準備を中心としており、structured REVIEW、Fact取得の分離、発送条件、Category Batch化を含む承認済みV2方針を一意に読めなかった。
+- 決定: 出品支援ツールの目的を、安全に出品準備できるASIN数を少ない人手で増やすこととし、評価軸を安全に出品準備完了できたASIN数を人間作業時間で割ったものとする。ASIN Expansionは既知Amazon ASINから関連候補を広げ、ASIN ResolverはShopee出品商品の英字タイトルから対応するAmazon ASINへ到達する。両者は候補生成の並列入口であり、出品可否、Guardrail、Shopee Category判定を担当しない。V2はCandidate、FactSnapshot、SafetyDecision、ReviewCase、OperationalFilter、CategoryBatchを論理的に分離する。APIはFact、RuleはDecision、AIはPrediction、HumanはExceptionとし、Gate／GuardrailはFact取得層と決定層を分離する。REVIEWは不足Factを解決する構造化ReviewCaseとし、APIで解決できるものを人間へ出さず、ruleの正式化にはevidence reviewとowner approvalを必要とする。発送条件はSafetyとは別のOperational Filterとし、初期条件はPrimeまたは翌日発送とする。Category Mapperは唯一のleaf Categoryの完全自動確定ではなく、Categoryと必須属性単位のBatch Preparationを主目的とする。接続は手動CSVを維持し、V1 / V2を区別して破壊的migrationを行わない。まずPHでdeterministic BLOCK、structured REVIEW + API auto-resolution、発送条件、Category Batch Builder、mandatory attribute Batch化、exception-only human confirmationの順に進める。
+- 理由: 安全な出品準備を速く増やすために、候補生成、確認済みFact、安全判断、運用条件、カテゴリ準備、人間例外を混同せず、未承認の技術詳細を固定しないため。
+- 影響: V2は実装前であり、コード、辞書、既存V1 schemaは今回変更しない。三つの独立ツール構成を維持し、自動Workflow／自動投入の保留を維持する。オーナーの実物受入前に完成扱いしない。
+- 再検討条件: PHの実画面・実データ受入で、Fact取得可否、発送条件の技術マッピング、既存出品ツールのBatch共通入力、またはV1 / V2移行境界の追加判断が必要になったとき。
