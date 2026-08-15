@@ -13,13 +13,15 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `出品支援ツールV2設計・データ契約の正本化`
-- current_phase: `承認済みV2全体設計の正本化完了・実装前`
-- working_branch: `codex/guardrail-block-dictionary-redesign`
+- current_work_type: `出品支援ツールV2 Phase 1 deterministic BLOCK`
+- current_phase: `Phase 1最小設計正本化完了・canonical Rule V2 Evidence Gate前`
+- working_branch: `codex/v2-phase1-deterministic-block-formalization`
 - marketplace: `COMMON + PH`
-- module: `出品支援ツール全体（ASIN Expansion / ASIN Resolver / Prelisting Guardrail / Category Mapper / Batch Builder）`
-- phase: `V2設計正本化完了・実装前`
-- next_action: V2 Phase 1 deterministic BLOCKの最小実装範囲を具体化し、COMMON_BLOCK ∪ PH_BLOCK、Rule V2、SafetyDecision V2を既存Guardrailへ安全に追加する工程を設計する。
+- module: `Prelisting Guardrail / 出品前保安ゲート`
+- phase: `V2 Phase 1 deterministic BLOCK最小設計正本化完了・実装前`
+- next_action: DEC-0027でPH_BLOCK採用方針が承認済みのPHコミュニティ14項目を含め、Phase 1でcanonical Rule V2へ具体化する候補について、Git外Evidence実物、必要Fact、Rule条件、false-positive境界を照合し、初期採用Rule V2範囲を限定するEvidence Gateを行う。
+
+DEC-0029で、V2 Phase 1 deterministic BLOCKの最小設計を正本化しました。コード、Guardrail辞書、V1 schema、Gate interfaceはまだ変更していません。DEC-0027のPHコミュニティ14項目をcommunity evidenceとしてPH_BLOCKへ採用する方針は維持しますが、14項目を含むcanonical Rule V2は未具体化・未有効化です。727候補全体を正式辞書として扱わず、次工程はRule V2具体化のEvidence Gateとします。このGate完了前に実装WORK_BRIEFを発行しません。
 
 DEC-0028で、出品支援ツールV2の目的、責務、論理データ契約、実装順を承認済み方針として正本化しました。これは実装前の設計であり、コード、辞書CSV、Gateロジック、既存V1 schema、物理CSV列、API fieldは変更していません。DEC-0027の727候補とGit外監査成果物は正式辞書へ昇格していません。
 
@@ -181,6 +183,13 @@ SafetyDecision V2を既存Guardrailへ安全に追加する工程を設計する
 
 ## 停止条件
 
+- Rule V2 Evidence Gate前にcanonical Ruleを追加・有効化しない。
+- DEC-0027のPHコミュニティ14項目を、採用方針だけから機械ruleへ直接変換しない。
+- 727候補を一括移植せず、理由不足community NGを昇格しない。
+- `PRELISTING_CANDIDATE_V1`、`PRELISTING_GATE_RESULT_V1`、V2 BLOCK非該当時のV1挙動を変更しない。
+- Gate / GuardrailからAPIを呼ばず、COMMON_BLOCKを市場側で解除せず、BLOCKをREVIEW / PASSへ降格しない。
+- Phase 2以降をPhase 1へ混在させず、SG / MY / TH等を今回同時対応しない。
+- Rule V2 Evidence Gate前に実装WORK_BRIEFへ進まない。
 - 今回承認したV2論理契約だけで、物理schema、API field、confidence threshold、具体的辞書、コード実装を確定・開始しない。
 - 727候補を、設計・根拠の確認なしに正式COMMON_BLOCK、PH_BLOCK、REVIEW辞書として扱わない。
 - 理由不足の一般コミュニティNG 311行を、今回のPHコミュニティ14項目の採用判断だけでBLOCKまたはREVIEWへ昇格しない。
