@@ -324,3 +324,13 @@
 - 理由: 既存Gate interfaceとV1 schemaを壊さず、確定BLOCKだけを小さく追加できる構造にするため。Safety判断の責務をGuardrail層に維持し、GateをV1 / V2 Safety engineの合成層にしないため。未確認FactやAI Predictionによる過剰BLOCKを防ぐため。
 - 影響: 今回変更するのは正本文書だけであり、コード、Guardrail辞書、V1 schema、Gate interface、API連携、UIは変更しない。DEC-0027のPHコミュニティ14項目の採用方針は維持する一方、canonical Rule V2は未具体化・未有効化のままとする。
 - 再検討条件: Rule V2で4条件以上または複雑なoperatorが必要になったとき。Candidate / Gate Result V1の変更、Gate / GuardrailからのAPI呼出し、COMMON_BLOCKを市場側で解除する必要が生じたとき。PH実データで重大な過剰BLOCKまたは見逃しが確認されたとき。Category IDまたはstructured attribute Factの供給方式に追加設計が必要になったとき。
+
+## DEC-0030 — Phase 1初期canonical Rule V2設計候補を13 Brand-exact PH_BLOCKに限定する
+
+- 日付: 2026-08-15
+- 背景: DEC-0029でPhase 1 deterministic BLOCKの最小実装設計を正本化した。その後、Git外Evidence 7点を実物・完全SHA-256で照合し、PHコミュニティ14項目と追加承認済みPH_BLOCK方針について、元Evidence、必要Fact、Rule条件、false-positive境界、V1重複を監査した。RULE_V2_EVIDENCE_GATEおよびEVIDENCE_PACKAGEはPASSである。
+- 決定: Phase 1初期canonical Rule V2設計候補を、PHの`PH_BLOCK`、Fact `Brand`、operator `exact`、action `BLOCK`という共通条件を満たす次の13件だけに限定する: グルマンディーズ、Gourmandise、OXO、ZOJIRUSHI、Schleich、L'OREAL、nivea、LEGO、Shu Uemura、ロート製薬、Endgame Gear、エーザイ、ゼンハイザー。Candidateのbrandがexact一致した場合だけ対象とし、titleにブランド名が含まれるだけ、別ブランド、brand欠損、fuzzy / containsによるブランド判定ではBLOCKしない。13件が実装・有効化済みであることは意味しない。
+- 決定: Boseイヤホン／ヘッドホンはRule境界が曖昧なため保留する。一般用医薬品および医療用針は必要Factが未供給のため保留する。その他711候補は新規canonical BLOCK採用判断なしでは進めず、今回対象外とする。
+- 理由: 13件はDEC-0027によるowner-approved PH_BLOCK disposition、元Evidenceとの一意対応、Brand exactでの表現可能性、Candidate brand Factの利用可能性、明確なfalse-positive境界、およびDEC-0029のPhase 1最小能力を満たすため。
+- 影響: 次の実装対象を13件だけに限定する。Rule V2コード、Guardrail辞書、V1 schema、Gate interface、Bose、一般用医薬品、医療用針、その他711候補は今回変更しない。
+- 再検討条件: 13ブランドのbrand Fact品質に問題が確認されたとき。V1完全互換を維持できないとき。Boseの製品種別Factが確立したとき。Shopee Category IDまたはstructured attribute Factの供給経路が確立したとき。オーナーが追加canonical BLOCK候補を承認したとき。
