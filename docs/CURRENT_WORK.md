@@ -13,15 +13,17 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `出品支援ツールV2 Phase 2 structured REVIEW + API auto-resolution設計ゲート`
-- current_phase: `Phase 1 main正式技術受入済み・Phase 2 structured REVIEW + API auto-resolution設計ゲート前`
-- working_branch: `codex/v2-phase1-brand-block-implementation`
+- current_work_type: `PH End-to-End業務ボトルネック測定ゲート v0.1`
+- current_phase: `測定ゲート設計正本化済み・実測前`
+- working_branch: `codex/ph-e2e-bottleneck-measurement-formalization`
 - marketplace: `PH`
-- module: `Prelisting Guardrail / 出品前保安ゲート`
-- phase: `V2 Phase 2 structured REVIEW + API auto-resolution / 最小設計ゲート前`
-- next_action: Phase 2 structured REVIEW + API auto-resolutionについて、ReviewCaseの最小契約、required fact、APIで自動解決する範囲、人間へ質問する条件、回答選択肢、SafetyDecisionとの接続、V1/V2境界、Phase 2では実装しないもの、停止条件を整理する最小設計ゲートを行う。
+- module: `出品支援ツール横断 / Candidate / Prelisting Guardrail / Category Mapper / Brand準備`
+- phase: `PH E2E業務ボトルネック測定 v0.1 / 実行前`
+- next_action: 既存Git外Excel実行記録を読み取り専用で確認し、E2E測定に流用可能な項目と不足項目を特定して、新規measurement logの要否と最小追加項目を確定する。
 
-PR #23はmainへ統合済みで、formal main commitは`09d1634bf8bce1405d557adb725a2e8d539a4df4`です。DEC-0030で限定した13 Brand-exact PH_BLOCKはmain上の正式技術成果です。独立V2 rulesetとGuardrail層のdeterministic BLOCK evaluatorを既存`apply_guardrails()`内でV1結果へBLOCK vetoとして合成し、V2非該当時のV1完全互換、malformed rulesetのfail-closed、Gate public interface不変、PH限定有効化を技術検証しました。targeted pytestは`tests/test_guardrails.py`が323 passed、`tests/test_prelisting_gate.py`が58 passed、全pytestは761 passedです。実商品、実データ、実画面、実業務受入は未実施であり、Phase 1の技術受入と業務受入を混同しません。Bose、一般用医薬品、医療用針、その他711候補は対象外のままです。
+PR #24はmainへ統合済みで、formal main commitは`5ebd4270e516d199a8e592298a15723414d2da9a`です。DEC-0030で限定した13 Brand-exact PH_BLOCKはmain上の正式技術成果です。独立V2 rulesetとGuardrail層のdeterministic BLOCK evaluatorを既存`apply_guardrails()`内でV1結果へBLOCK vetoとして合成し、V2非該当時のV1完全互換、malformed rulesetのfail-closed、Gate public interface不変、PH限定有効化を技術検証しました。targeted pytestは`tests/test_guardrails.py`が323 passed、`tests/test_prelisting_gate.py`が58 passed、全pytestは761 passedです。実商品、実データ、実画面、実業務受入は未実施であり、Phase 1の技術受入と業務受入を混同しません。Bose、一般用医薬品、医療用針、その他711候補は対象外のままです。
+
+Phase 1後はPhase 2へ自動直進せず、PH End-to-End業務ボトルネック測定ゲート v0.1を先行する。対象はCandidate、Safety、Category、Brand、Preparationの5 Stageであり、実務担当者の人間介入、概算人間作業時間、停止理由、必要情報を揃えられたかを測る。`SAFETY_CLEARED`、`CORE_INFO_READY`、`CURRENT_PREPARATION_READY`を区別し、外部出品ツールの正式入力契約未確認のため、後者を実際の出品可能状態とは扱わない。中心指標は`CORE_INFO_READY ASIN / human hour`である。実データ測定、AI Shadow、外部API、Phase 2実装は未開始である。
 
 DEC-0028で、出品支援ツールV2の目的、責務、論理データ契約、実装順を承認済み方針として正本化しました。これは実装前の設計であり、コード、辞書CSV、Gateロジック、既存V1 schema、物理CSV列、API fieldは変更していません。DEC-0027の727候補とGit外監査成果物は正式辞書へ昇格していません。
 
@@ -178,22 +180,19 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-Phase 2 structured REVIEW + API auto-resolutionの最小設計ゲートを開始する。
+既存Git外Excel実行記録を読み取り専用で実物確認し、今回のE2E測定に流用可能な項目と不足項目を特定して、新規measurement logの要否と最小追加項目を確定する。
 
 ## 停止条件
 
-- structured REVIEWを今回実装しない。
-- API auto-resolutionを今回実装しない。
-- 外部APIを今回呼ばない。
-- ReviewCase schemaを実装確定しない。
-- 人間回答を自動でcanonical ruleへ昇格させない。
-- AI予測単独でSafety BLOCKしない。
-- API欠損だけでSafety BLOCKしない。
-- Phase 1の13 Brand rulesを変更しない。
-- Shipping / Operational Filterへ進まない。
-- Category Batch Builderへ進まない。
-- SG / MY / THへ展開しない。
-- Phase 2設計ゲート前に実装WORK_BRIEFを発行しない。
+- 実データによるE2E測定を今回開始しない。
+- Shopee、Keepa、AIその他の外部APIを今回呼ばない。
+- AI Shadowを今回開始しない。
+- 新しいExcel、CSV、physical measurement schemaを作成または確定しない。
+- structured REVIEW、ReviewCase、API auto-resolutionを実装しない。
+- Category Mapper、Brand resolution、Resolver、Expansion、Guardrail辞書、Gateロジック、Phase 1の13 Brand rulesを変更しない。
+- Shipping / Operational Filter、Category Batch Builder、mandatory attribute Batchへ進まない。
+- SG / MY / THへ展開せず、Marketplace-neutral schemaを先行確定しない。
+- push、PR作成、merge、deployを行わない。
 - 727候補を、設計・根拠の確認なしに正式COMMON_BLOCK、PH_BLOCK、REVIEW辞書として扱わない。
 - 理由不足の一般コミュニティNG 311行を、今回のPHコミュニティ14項目の採用判断だけでBLOCKまたはREVIEWへ昇格しない。
 - 台湾・タイ・マレーシア等の参考資料から具体辞書を作らず、PHルールへ混ぜず、共通項目へ昇格しない。
@@ -288,4 +287,4 @@ Phase 2 structured REVIEW + API auto-resolutionの最小設計ゲートを開始
 
 ## 最終更新日
 
-2026-08-15
+2026-08-16

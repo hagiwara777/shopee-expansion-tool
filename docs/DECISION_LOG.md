@@ -334,3 +334,14 @@
 - 理由: 13件はDEC-0027によるowner-approved PH_BLOCK disposition、元Evidenceとの一意対応、Brand exactでの表現可能性、Candidate brand Factの利用可能性、明確なfalse-positive境界、およびDEC-0029のPhase 1最小能力を満たすため。
 - 影響: 次の実装対象を13件だけに限定する。Rule V2コード、Guardrail辞書、V1 schema、Gate interface、Bose、一般用医薬品、医療用針、その他711候補は今回変更しない。
 - 再検討条件: 13ブランドのbrand Fact品質に問題が確認されたとき。V1完全互換を維持できないとき。Boseの製品種別Factが確立したとき。Shopee Category IDまたはstructured attribute Factの供給経路が確立したとき。オーナーが追加canonical BLOCK候補を承認したとき。
+
+## DEC-0031 — Phase 2前にPH End-to-End業務ボトルネック測定ゲート v0.1を挿入する
+
+- 日付: 2026-08-16
+- 背景: 出品支援ツールの最上位目的は、安全に出品準備できるASIN数を人間作業時間で割った値を高めることである。Phase 1 deterministic BLOCKはmain技術受入済みだが、DEC-0028の現行順序では次にstructured REVIEW + API auto-resolutionへ直進する。Safety REVIEW、Category、Brand、候補生成、またはPreparationのどこが実際の業務ボトルネックかは測定されていない。第三者独立レビューを受け、オーナーはPhase 2実装前にE2E測定を先行することを承認した。
+- 決定: PH End-to-End業務ボトルネック測定ゲート v0.1をPhase 1後、Phase 2前に置く。対象はCandidate、Safety、Category、Brand、Preparationの5 Stageとし、Shopeeへの出品自体は対象外とする。成果状態は、PH Gateが`ELIGIBLE`である`SAFETY_CLEARED`、Amazon ASIN・確認済みShopee Category ID・確認済みShopee Brand IDまたは確認済みNo Brandが揃う`CORE_INFO_READY`、現行実装上`listing_ready`相当まで到達する`CURRENT_PREPARATION_READY`を論理的に区別する。外部出品ツールの正式入力契約は未確認のため、`CURRENT_PREPARATION_READY`を実際の出品可能とは扱わない。
+- 決定: 実務担当者のStage・batch単位の概算`human_minutes`、`human_touch_count`、停止理由、既存出力参照を、既存のcandidate ASIN、Gate final eligibility・reason codes、Category推薦、Brand推薦、manual review、`listing_ready`等と可能な限り再利用して記録する。新しい物理CSV schemaやExcel列は、既存Git外実行記録を読み取り専用で確認するまで確定しない。初回コホートは20〜50程度のdistinct candidate ASINを実行時の目安とし、両入口が通常業務として利用できる場合はExpansionとResolverを含めるが、人工的に件数を均等化しない。中心指標は`CORE_INFO_READY ASIN / human hour`、補助指標はHuman Touch RateとStage Human-Time Shareとする。人間作業時間は操作・判断・情報確認を含め、API・AI・放置の待ち時間を原則含めない。Safety見逃しが観測された場合は時間効率だけで良い結果と評価しない。
+- 決定: 測定結果を次の開発優先順位のEvidenceとし、structured REVIEW + API auto-resolution、Category / Brand、ASIN Resolver、ASIN Expansion、mandatory attribute、発送条件を測定前に固定順序へ戻さない。Baseline測定にCategory Mapper AI Shadowは含めず、開始しない。測定実行前に別途明示承認がある場合だけ、業務判断に影響しない観測専用Shadowとして並走できる。測定完了後はAI Shadowについて`START`、`HOLD`、`DROP`のいずれかをオーナー判断事項として提示する。PH v0.1を先に実使用し、Marketplace-neutral measurement schemaの共通化はその後に判断する。
+- 理由: 想定した技術工程ではなく、実務担当者が実際に使う時間、介入、停止理由から、最上位目的を最も改善する次の開発対象を選ぶため。Safetyを弱めず、既存出力とGit外実行記録を優先して測定負荷と新規設計を最小に保つため。
+- 影響: 今回は管理文書だけを更新する。実データ測定、Shopee・Keepa・AI API、AI Shadow、Phase 2、Category Mapper、Brand resolution、Resolver、Expansion、Guardrail辞書、Shipping、他市場、physical measurement schema、新しいExcelまたはCSVを開始・変更しない。既存Git外Excel実行記録は次の単一作業で読み取り専用に確認する。
+- 再検討条件: 既存実行記録に流用可能な測定項目がない、Stage定義が現行出力と整合しない、Safety見逃しまたは重大な過剰な人間負荷が観測された、または測定結果が次の優先順位変更を示すとき。
