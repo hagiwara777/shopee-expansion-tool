@@ -14,16 +14,16 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 ## 現在作業
 
 - current_work_type: `PH出品支援ツール Beta Minimum Feasibility`
-- current_phase: `Beta Minimum Definition正本化完了・Feasibility Audit前`
-- working_branch: `codex/ph-beta-minimum-definition-formalization`
+- current_phase: `PH Beta Minimum Feasibility Audit完了・B1 test provider設計ゲート前`
+- working_branch: `codex/ph-beta-minimum-feasibility-audit-formalization`
 - marketplace: `PH`
 - module: `出品支援ツール横断 / ASIN Expansion / ASIN Resolver / Prelisting Guardrail / Category Mapper / Brand準備 / Handoff`
-- phase: `PH Beta Minimum Definition / B1〜B7 Feasibility Audit前`
-- next_action: B1〜B7について、GitHub mainの実装・テスト・既存Evidenceを読み取り専用で照合し、READY / PARTIAL / BLOCKEDへ分類するBeta Minimum Feasibility Auditを行う。
+- phase: `PH Beta Minimum Definition / B1〜B7 Feasibility Audit完了・B1 test provider設計ゲート前`
+- next_action: Keepa本番標準を維持したまま、Beta完成までのB1 live試験を低コストで行うためのAmazon Data Provider Test Bridge Design Gateを行う。Canopy APIを第一候補として評価するが、採用結論・実装仕様はこの時点で確定しない。
 
 PR #24はmainへ統合済みで、formal main commitは`5ebd4270e516d199a8e592298a15723414d2da9a`です。DEC-0030で限定した13 Brand-exact PH_BLOCKはmain上の正式技術成果です。独立V2 rulesetとGuardrail層のdeterministic BLOCK evaluatorを既存`apply_guardrails()`内でV1結果へBLOCK vetoとして合成し、V2非該当時のV1完全互換、malformed rulesetのfail-closed、Gate public interface不変、PH限定有効化を技術検証しました。targeted pytestは`tests/test_guardrails.py`が323 passed、`tests/test_prelisting_gate.py`が58 passed、全pytestは761 passedです。実商品、実データ、実画面、実業務受入は未実施であり、Phase 1の技術受入と業務受入を混同しません。Bose、一般用医薬品、医療用針、その他711候補は対象外のままです。
 
-PH Beta Minimum DefinitionはB1〜B7を最小能力として定め、次はその成立可能性を読み取り専用で監査する。Beta前に詳細なE2E人間作業時間を測定せず、`CORE_INFO_READY ASIN / human hour`、Human Touch Rate、固定工数削減目標を必須Gateにしない。B1〜B7のREADY / PARTIAL / BLOCKED判定、実データ、実画面、実業務の受入はまだ行っていない。mandatory attributeはconditionalであり、structured REVIEW、API auto-resolution、Shipping、Category Batch、AI Shadow、Workflow、外部出品ツールへの自動投入、他市場展開はBeta MUSTではない。
+PH Beta Minimum DefinitionのB1〜B7 Feasibility Auditは完了した。B1 CandidateはPARTIALである。Resolver / Expansionの既存コード経路、Python / Keepa client起動経路、Keepa credential sourceは存在するが、Keepa API契約が現在利用可能とは確認できず、live Resolver確認はERRORで終了したため、Keepa本番契約再開時のB1 live成立は未確認である。B2 PH Safety、B3 Category ID、B4 Brand ID / No Brand、B5 未確定停止、B6 準備状態判別、B7 Handoffは技術Feasibility上READYであり、BLOCKEDはない。B3はShopee PH Category APIのlive成功により2301 Categoryと有効ID / nameの取得を確認し、B4はCategory `100869` のShopee Brand API live成功によりBrand FactとNo Brand ID `0`を確認した。これらのREADYはBeta実画面・実商品・実業務受入の完了を意味しない。Beta前に詳細なE2E人間作業時間を測定せず、`CORE_INFO_READY ASIN / human hour`、Human Touch Rate、固定工数削減目標を必須Gateにしない。mandatory attributeはconditionalであり、structured REVIEW、API auto-resolution、Shipping、Category Batch、AI Shadow、Workflow、外部出品ツールへの自動投入、他市場展開はBeta MUSTではない。
 
 DEC-0028で、出品支援ツールV2の目的、責務、論理データ契約、実装順を承認済み方針として正本化しました。これは実装前の設計であり、コード、辞書CSV、Gateロジック、既存V1 schema、物理CSV列、API fieldは変更していません。DEC-0027の727候補とGit外監査成果物は正式辞書へ昇格していません。
 
