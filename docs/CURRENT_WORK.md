@@ -14,14 +14,14 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 ## 現在作業
 
 - current_work_type: `出品支援ツールV2 Phase 1 deterministic BLOCK`
-- current_phase: `canonical Rule V2 Evidence Gate完了・13 Brand-exact初期実装前`
+- current_phase: `13 Brand-exact Rule V2実装完了・branch技術検収前`
 - working_branch: `codex/v2-phase1-brand-block-implementation`
 - marketplace: `PH`
 - module: `Prelisting Guardrail / 出品前保安ゲート`
-- phase: `V2 Phase 1 deterministic BLOCK / 13 Brand-exact初期Rule実装前`
-- next_action: 13 Brand-exact PH_BLOCKだけを対象に、DEC-0029のV2 Guardrail内部合成設計を実装し、V1非該当時完全互換、PH限定BLOCK、fail-closed、既存Gate interface不変をテストする。
+- phase: `V2 Phase 1 deterministic BLOCK / 13 Brand-exact初期Rule実装完了`
+- next_action: 実装commitの差分、V2 ruleset、V1互換、fail-closed、関連テストと全pytest結果をChatGPTへ戻し、未統合branch上の技術検収を行う。
 
-RULE_V2_EVIDENCE_GATEおよびEVIDENCE_PACKAGEはPASSです。DEC-0030により、Phase 1初期実装対象はPHのBrand exactによる13 Brand-exact PH_BLOCK候補だけに限定しました。これは13件が実装・有効化済みであることを意味しません。BoseはRule境界が曖昧、一般用医薬品と医療用針は必要Factが未供給のため保留です。その他711候補は新規canonical BLOCK採用判断がないため対象外です。コード、Guardrail辞書、V1 schema、Gate interfaceはまだ変更していません。
+RULE_V2_EVIDENCE_GATEおよびEVIDENCE_PACKAGEはPASSです。DEC-0030で限定した13 Brand-exact PH_BLOCKを独立V2 rulesetとGuardrail層のdeterministic BLOCK evaluatorとして実装し、既存`apply_guardrails()`内でV1結果へBLOCK vetoを合成しました。V2非該当時のV1完全互換、malformed rulesetのfail-closed、Gate public interface不変、PH限定有効化をテストし、targeted pytestと全pytest 761件が成功しています。Bose、一般用医薬品、医療用針、その他711候補は対象外のままです。
 
 DEC-0028で、出品支援ツールV2の目的、責務、論理データ契約、実装順を承認済み方針として正本化しました。これは実装前の設計であり、コード、辞書CSV、Gateロジック、既存V1 schema、物理CSV列、API fieldは変更していません。DEC-0027の727候補とGit外監査成果物は正式辞書へ昇格していません。
 
