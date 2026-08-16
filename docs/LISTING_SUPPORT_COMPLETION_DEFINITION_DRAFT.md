@@ -108,11 +108,31 @@ Expansion機能そのものやGate内部の市場別Guardrailは削除しない�
 - Category Mapper AI Shadow
 - 出品後商品改善ツール、Amazon仕入れ支援ツール
 
+## PH Beta Minimum Definition
+
+この節はPHで実際に使い始められる最小Betaの定義であり、既存のV1完成受入候補および後述するV2の完成受入目標を置き換えない。Betaは完全自動化、外部出品ツールへの自動投入、実際の出品可能の保証、固定工数削減KPIを意味しない。
+
+Beta Minimum Coreは次のB1〜B7とする。
+
+1. **B1 Candidate取得** — ASIN ExpansionとASIN Resolverの両入口で、実利用可能なAmazon ASIN候補を得る経路がある。両入口は候補生成だけを担当し、PH出品可否、Category、Brandを決めない。
+2. **B2 PH Safety** — 対象市場PHを明示してGateを実行でき、BLOCK / EXCLUDEを出品準備へ進めず、未解決REVIEWを準備完了に混ぜず、ELIGIBLEだけをCategory / Brand確認へ進める。structured REVIEW完成形やAPI auto-resolution完成形はBeta MUSTではない。
+3. **B3 Shopee Category ID** — PHのELIGIBLE候補が確認済みShopee Category IDへ到達する、現実的かつ反復可能な経路がある。完全自動化やAIによるもっともらしいIDの生成だけを確認済みFactとは扱わない。
+4. **B4 Shopee Brand ID / No Brand** — PHのELIGIBLE候補が確認済みShopee Brand IDまたは確認済みNo Brandへ到達する、現実的かつ反復可能な経路がある。AI推測だけのBrand IDを確認済みFactとは扱わない。
+5. **B5 未確定の安全な扱い** — Category ID、Brand IDその他のBeta準備情報を確認できない候補を、推測値で埋めて準備完了にせず、未確定または要確認として止められる。
+6. **B6 Beta準備状態の判別** — Amazon ASIN、確認済みShopee Category ID、確認済みShopee Brand IDまたは確認済みNo Brandが揃ったかを、候補ごとに一意に判別できる。これはShopeeへ実際に出品可能、または外部出品ツールへの完全入力準備済みという表現ではない。
+7. **B7 人間への引渡し** — 確認済みのAmazon ASIN、Shopee Category ID、Shopee Brand ID / No Brandを画面またはファイルで人間が取得・確認し、既存出品ツールへの手入力準備に利用できる。自動投入・自動接続はBeta MUSTではない。
+
+mandatory attribute全面対応は現時点でconditionalであり、Beta MUSTではない。後続のFeasibility Auditで、mandatory attributeがなければ既存出品ツールへの実務的な手入力準備が成立しないと確認された場合だけ、MUSTへの昇格をオーナー判断事項として戻す。
+
+Beta受入は、B1〜B7にBeta成立を妨げるBLOCKEDがなく、残るPARTIALの通常利用可能性をオーナーが実物で確認し、少量の実商品で一連の導線を実画面・実業務として確認した後に行う。EXCLUDE / 未解決REVIEWや未確認Category / Brandを準備完了に混ぜず、確認済みASIN / Category ID / Brand IDを取得できることを要する。実画面、実データ、実業務の受入はオーナー確認前に完了扱いにしない。
+
+Beta後は、実利用でオーナーが実務ボトルネックを報告し、次versionで改善して再利用する。詳細なE2E時間測定はBeta前の必須Gateではなく、必要になった場合のBeta後の改善手段候補とする。
+
 ## 次の推奨工程
 
-1. オーナーの明示承認後だけ、少量の実データ、必要な外部API、実画面でPHの実業務受入を行う。
-2. ResolverのASIN到達性能とExpansionの候補品質について、固定した評価方法を設計・実行する。
-3. V2 Phase 1 deterministic BLOCKの最小実装範囲を具体化し、COMMON_BLOCK ∪ PH_BLOCK、Rule V2、SafetyDecision V2を既存Guardrailへ安全に追加する工程を設計する。
+1. B1〜B7をmainの実装・テスト・既存Evidenceへ読み取り専用で照合し、READY / PARTIAL / BLOCKED、現状、根拠、不足、最小対応を整理するPH Beta Minimum Feasibility Auditを行う。
+2. 監査でBeta成立を妨げるBLOCKEDまたはPARTIALと確認された不足だけを、別途承認した範囲で実装する。
+3. その後、オーナーの明示承認後だけ、少量の実商品、必要な外部API、実画面でPH Betaの実業務受入を行う。
 
 画面導線のオーナー確認と、Category Mapper入力時のGate結果CSV schema version再検証は完了している。
 
@@ -120,6 +140,7 @@ Expansion機能そのものやGate内部の市場別Guardrailは削除しない�
 情報を手入力準備できれば役立つか」を確認する。
 ## V2の完成受入目標
 
+このV2の完成受入目標はPH Beta Minimum Definitionとは別の、より先の完成目標である。
 
 PHを最初の受入市場とし、(1) deterministic BLOCK、(2) structured REVIEW + API auto-resolution、(3) 発送条件、(4) Category Batch Builder、(5) mandatory attribute Batch化、(6) exception-only human confirmationを順に成立させる。V1 / V2の契約は区別し、既存V1を破壊しない。
 
