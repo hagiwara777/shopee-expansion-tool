@@ -359,3 +359,16 @@
 - 理由: 測定システムを先に整えるより、実際に使えるBetaの根本能力を最短で成立させることを優先する。不成立の能力があれば、作業時間を測るより先にその不足を解消する必要があり、実利用後の方が継続的な実務ボトルネックを発見しやすい。
 - 影響: DEC-0031のBeta前E2E測定必須GateをこのDecisionでsupersedeする。measurement log設計・実測は停止し、Phase 2等へは自動直進しない。今回の変更は正本文書のみであり、コード、Guardrail、tests、README、外部API、実データ、Git外成果物、外部サービスへの書込みを変更しない。
 - 再検討条件: Feasibility Auditで追加のBeta MUSTが判明したとき、mandatory attributeがBeta利用に不可欠と判明したとき、外部出品ツールの正式入力契約が判明してBetaのhandoff条件が変わるとき、またはBeta実利用で新しい重大な不足が確認されたとき。
+
+## DEC-0033 — B1 Amazon Data Provider Test BridgeにCanopy試験専用providerを採用する
+
+- 日付: 2026-08-16
+- 背景: B1 Feasibility Auditで、既存のResolver / ExpansionとKeepa client起動経路は存在する一方、Keepa API契約が現在利用可能とは確認できず、Beta前のlive確認はPARTIALのままである。Keepaを本番標準として維持しつつ、Beta完成までの開発・試験を低コストで進める明示的なprovider境界が必要になった。
+- 決定: 本番標準providerは `AMAZON_DATA_PROVIDER=keepa` のKeepaとする。Canopyは `AMAZON_DATA_PROVIDER=canopy_test` が明示された場合だけ用いるBeta開発・試験専用providerとし、通常UIでproviderを選択させない。credentialはKeepaを `KEEPA_API_KEY`、Canopyを `CANOPY_API_KEY` として分離し、秘密情報をGitへ入れない。自動provider fallbackは実装しない。Rainforestは今回対象外とする。
+- 決定: Amazon ASINの存在確認はprovider境界を経由させ、Keepaの確認結果を `KEEPA_VERIFIED`、Canopyの確認結果を `CANOPY_VERIFIED` とする。Canopy確認結果を `KEEPA_VERIFIED` として扱わない。`PRELISTING_CANDIDATE_V1` の既存15列schemaとKeepa既存値（`KEEPA_VERIFIED`、`asin_resolver_keepa_verified`）を維持し、Canopy Resolverでは既存列に `source_verification=CANOPY_VERIFIED`、`source=asin_resolver_canopy_verified` を記録する。新schema versionは作らない。
+- 決定: Canopy SearchはKeepa Product Finderと同等の性能・意味を保証する代替ではない。v0.1のExpansionは、起点ASINの商品・brand取得、brandをsearch termにしたJP Search、上位候補から最大5 ASIN、Product詳細によるbrand exact match、自ASIN・重複・不正ASINの除外に限定する。Canopy category構造をKeepa leaf categoryへ対応付けず、category利用はlive実データ確認後に再検討する。
+- 決定: Canopy test modeの利用上限は、Resolverを1回最大10 ASIN・自動retryなし、Expansionを1回最大7 requests・最大5候補・pagination自動継続なし・自動fallbackなしとする。Canopy v0.1の結果は既存Keepa SQLite cacheへ書き込まない（no-write）。Canopy test mode時だけUIに `Amazon data provider: Canopy TEST` を明示し、provider-neutralにできる文言は「Amazon商品を確認」とする。
+- 決定: Guardrail / Prelisting Gate / Category Mapper / Brand処理がCanopyまたはKeepa APIを直接呼ばない責務境界を維持する。provider差異は候補生成とASIN確認層で閉じる。
+- 理由: Keepa本番標準と既存のSafety、Category、Brand責務を壊さず、無料枠の不用意な消費、確認出所の混同、cache混在を防ぎながら、B1の開発・mock試験を進めるため。
+- 影響: 次作業はCanopy Test Provider v0.1の最小実装となる。live Canopy API試験は実装・mock test後に別途オーナー承認を必要とする。Keepa本番廃止、Rainforest実装、自動fallback、Canopy本番標準化、provider性能比較、Safety / Category / Brandロジック変更、SG / MY / TH、外部出品ツール接続、deployは今回対象外である。
+- 再検討条件: live Canopy実データでAPI契約、request数、brand exact確認、category利用可能性、またはcache分離に追加設計が必要と判明したとき。Keepa本番契約が再開し、B1の本番経路を再確認するとき。Canopy以外のprovider追加が必要になったとき。
