@@ -27,9 +27,11 @@ APIはFact、RuleはDecision、AIはPrediction、HumanはExceptionを担当す�
 
 Category Mapperは唯一の正しいleaf Categoryの完全自動確定ではなく、既存出品ツールで一括処理しやすいCategoryと必須属性単位へのBatch Preparationを主目的とする。AI Category predictionは候補予測に限り、Safety BLOCK根拠にしない。Safety REVIEWとCategory Confirmationは別責務とする。
 
-PHではPhase 1 deterministic BLOCKのmain技術受入後、structured REVIEW + API auto-resolutionへ自動直進せず、まずPH End-to-End業務ボトルネック測定ゲート v0.1を実施する。Candidate、Safety、Category、Brand、Preparationの5 Stageで人間介入、概算人間作業時間、停止理由、必要情報を揃えられたかを測り、`CORE_INFO_READY ASIN / human hour`を中心指標として扱う。`CURRENT_PREPARATION_READY`は現行実装上の準備到達を示すだけであり、外部出品ツールの正式入力契約上の出品可能を意味しない。
+PHではPhase 1 deterministic BLOCKのmain技術受入後、PH Beta Minimum Definitionを先に置く。Beta Minimum Coreは、(B1) ExpansionとResolverの両入口による候補ASIN取得、(B2) PH Safety、(B3) 確認済みShopee Category IDへの経路、(B4) 確認済みShopee Brand IDまたはNo Brandへの経路、(B5) 未確定を推測で準備完了にしない停止能力、(B6) ASIN・Category ID・Brand ID / No Brandの揃い具合の一意な判別、(B7) 人間が確認済み情報を取得して既存出品ツールへの手入力準備に利用できるhandoffとする。これは外部出品ツールへの自動投入や実際の出品可能を意味しない。
 
-測定結果をEvidenceとして、structured REVIEW + API auto-resolution、Category / Brand、Resolver / Expansion、mandatory attribute、発送条件を含む次の開発優先順位を再判断する。測定前に新しい固定順序は作らず、発送条件も次工程として開始しない。Baseline E2E測定にCategory Mapper AI Shadowは含めない。測定実行前に別途明示承認がある場合だけ、業務判断に影響しない観測専用Shadowとして並走できる。E2E測定完了後は、AI Shadowを`START`、`HOLD`、`DROP`のいずれにするかをオーナー判断事項として提示する。他市場はPHでの測定で最小項目の不足・不要を確認してから共通化を判断する。
+次は、B1〜B7をmainの実装・テスト・既存Evidenceへ読み取り専用で照合するPH Beta Minimum Feasibility Auditである。監査でBLOCKED、またはBeta成立を妨げるPARTIALと確認された不足だけを実装し、その後にPH Betaの実画面・実業務受入へ進む。structured REVIEW、API auto-resolution、Shipping、Category Batch、mandatory attribute、AI Shadow、Workflow等は、同監査でBeta成立に必要と確認された場合、またはBeta後の実利用で優先度が高いと確認された場合だけ着手判断する。mandatory attributeは現時点でconditionalである。
+
+Beta前に詳細なE2E人間作業時間測定、`CORE_INFO_READY ASIN / human hour`、Human Touch Rate、固定工数削減目標を必須Gateにしない。Beta後は実利用、オーナーによる実務ボトルネック報告、次versionでの改善を反復する。必要になったE2E時間測定はこのBeta後の改善手段候補とし、既存の件数、status、未解決理由等の自動出力を優先して、人間へ詳細な時間記録を常時要求しない。他市場への共通化はPH Betaの成立確認後に別途判断する。
 ## 正式完成済み
 
 - PH Category Mapper Ver0.1

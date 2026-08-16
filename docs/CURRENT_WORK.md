@@ -13,17 +13,17 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH End-to-End業務ボトルネック測定ゲート v0.1`
-- current_phase: `測定ゲート設計正本化済み・実測前`
-- working_branch: `codex/ph-e2e-bottleneck-measurement-formalization`
+- current_work_type: `PH出品支援ツール Beta Minimum Feasibility`
+- current_phase: `Beta Minimum Definition正本化完了・Feasibility Audit前`
+- working_branch: `codex/ph-beta-minimum-definition-formalization`
 - marketplace: `PH`
-- module: `出品支援ツール横断 / Candidate / Prelisting Guardrail / Category Mapper / Brand準備`
-- phase: `PH E2E業務ボトルネック測定 v0.1 / 実行前`
-- next_action: 既存Git外Excel実行記録を読み取り専用で確認し、E2E測定に流用可能な項目と不足項目を特定して、新規measurement logの要否と最小追加項目を確定する。
+- module: `出品支援ツール横断 / ASIN Expansion / ASIN Resolver / Prelisting Guardrail / Category Mapper / Brand準備 / Handoff`
+- phase: `PH Beta Minimum Definition / B1〜B7 Feasibility Audit前`
+- next_action: B1〜B7について、GitHub mainの実装・テスト・既存Evidenceを読み取り専用で照合し、READY / PARTIAL / BLOCKEDへ分類するBeta Minimum Feasibility Auditを行う。
 
 PR #24はmainへ統合済みで、formal main commitは`5ebd4270e516d199a8e592298a15723414d2da9a`です。DEC-0030で限定した13 Brand-exact PH_BLOCKはmain上の正式技術成果です。独立V2 rulesetとGuardrail層のdeterministic BLOCK evaluatorを既存`apply_guardrails()`内でV1結果へBLOCK vetoとして合成し、V2非該当時のV1完全互換、malformed rulesetのfail-closed、Gate public interface不変、PH限定有効化を技術検証しました。targeted pytestは`tests/test_guardrails.py`が323 passed、`tests/test_prelisting_gate.py`が58 passed、全pytestは761 passedです。実商品、実データ、実画面、実業務受入は未実施であり、Phase 1の技術受入と業務受入を混同しません。Bose、一般用医薬品、医療用針、その他711候補は対象外のままです。
 
-Phase 1後はPhase 2へ自動直進せず、PH End-to-End業務ボトルネック測定ゲート v0.1を先行する。対象はCandidate、Safety、Category、Brand、Preparationの5 Stageであり、実務担当者の人間介入、概算人間作業時間、停止理由、必要情報を揃えられたかを測る。`SAFETY_CLEARED`、`CORE_INFO_READY`、`CURRENT_PREPARATION_READY`を区別し、外部出品ツールの正式入力契約未確認のため、後者を実際の出品可能状態とは扱わない。中心指標は`CORE_INFO_READY ASIN / human hour`である。実データ測定、AI Shadow、外部API、Phase 2実装は未開始である。
+PH Beta Minimum DefinitionはB1〜B7を最小能力として定め、次はその成立可能性を読み取り専用で監査する。Beta前に詳細なE2E人間作業時間を測定せず、`CORE_INFO_READY ASIN / human hour`、Human Touch Rate、固定工数削減目標を必須Gateにしない。B1〜B7のREADY / PARTIAL / BLOCKED判定、実データ、実画面、実業務の受入はまだ行っていない。mandatory attributeはconditionalであり、structured REVIEW、API auto-resolution、Shipping、Category Batch、AI Shadow、Workflow、外部出品ツールへの自動投入、他市場展開はBeta MUSTではない。
 
 DEC-0028で、出品支援ツールV2の目的、責務、論理データ契約、実装順を承認済み方針として正本化しました。これは実装前の設計であり、コード、辞書CSV、Gateロジック、既存V1 schema、物理CSV列、API fieldは変更していません。DEC-0027の727候補とGit外監査成果物は正式辞書へ昇格していません。
 
@@ -157,6 +157,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 未完了事項
 
+- B1〜B7 Beta Minimum Feasibility Audit（未着手）
 - 出品支援ツールの完成定義
 - 出品支援ツールの残課題一覧
 - 出品支援ツールの利用者シナリオ
@@ -180,10 +181,17 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-既存Git外Excel実行記録を読み取り専用で実物確認し、今回のE2E測定に流用可能な項目と不足項目を特定して、新規measurement logの要否と最小追加項目を確定する。
+B1〜B7について、GitHub mainの実装・テスト・既存Evidenceを読み取り専用で照合し、READY / PARTIAL / BLOCKEDへ分類するPH Beta Minimum Feasibility Auditを行う。
 
 ## 停止条件
 
+- Feasibility Audit前に不足実装へ着手しない。
+- 人間作業時間measurement logを作らず、E2E時間測定を開始しない。
+- Phase 2へ自動直進しない。
+- AI Shadowを開始しない。
+- 外部API・実データを無承認使用しない。
+- mandatory attributeを自動的にBeta MUSTへ昇格しない。
+- SG / MY / THへ展開しない。
 - 実データによるE2E測定を今回開始しない。
 - Shopee、Keepa、AIその他の外部APIを今回呼ばない。
 - AI Shadowを今回開始しない。

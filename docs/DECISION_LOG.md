@@ -345,3 +345,17 @@
 - 理由: 想定した技術工程ではなく、実務担当者が実際に使う時間、介入、停止理由から、最上位目的を最も改善する次の開発対象を選ぶため。Safetyを弱めず、既存出力とGit外実行記録を優先して測定負荷と新規設計を最小に保つため。
 - 影響: 今回は管理文書だけを更新する。実データ測定、Shopee・Keepa・AI API、AI Shadow、Phase 2、Category Mapper、Brand resolution、Resolver、Expansion、Guardrail辞書、Shipping、他市場、physical measurement schema、新しいExcelまたはCSVを開始・変更しない。既存Git外Excel実行記録は次の単一作業で読み取り専用に確認する。
 - 再検討条件: 既存実行記録に流用可能な測定項目がない、Stage定義が現行出力と整合しない、Safety見逃しまたは重大な過剰な人間負荷が観測された、または測定結果が次の優先順位変更を示すとき。
+
+## DEC-0032 — PH Beta Minimum Definition B1〜B7の成立可能性をBeta前に先行確認する
+
+- 日付: 2026-08-16
+- 背景: DEC-0031では、Phase 1 deterministic BLOCKの技術受入後、Candidate、Safety、Category、Brand、PreparationのEnd-to-End人間作業時間を測り、`CORE_INFO_READY ASIN / human hour`等を次の優先順位のEvidenceにする方針を定めた。既存Git外Excel実行記録の読み取り専用監査までは実施したが、実データの測定やmeasurement logの設計・作成は開始していない。その後のオーナー検討により、Beta成立前は省力化の程度より、出品支援ツールとして最低限必要な能力自体が現実に成立するかを先に確認することを優先する。
+- 決定: PH出品支援ツールのBeta Minimum Coreを次のB1〜B7とする。(B1) ASIN ExpansionとASIN Resolverの両入口から実利用可能なAmazon ASIN候補を得る経路、(B2) PHを明示したSafety GateによりBLOCK / EXCLUDEを準備へ進めず、未解決REVIEWを準備完了に混ぜず、ELIGIBLEだけをCategory / Brand確認へ進める能力、(B3) 確認済みShopee Category IDへ到達する反復可能な経路、(B4) 確認済みShopee Brand IDまたは確認済みNo Brandへ到達する反復可能な経路、(B5) Category / Brandその他の未確定情報を推測で準備完了にせず停止する能力、(B6) Amazon ASIN・確認済みShopee Category ID・確認済みShopee Brand IDまたはNo Brandの揃い具合を候補ごとに一意に判別する能力、(B7) それらの確認済み情報を画面またはファイルで人間が取得・確認し、既存出品ツールへの手入力準備に利用できる能力。
+- 決定: Beta前の詳細なE2E時間測定、`CORE_INFO_READY ASIN / human hour`、Human Touch Rate、固定工数削減目標は必須Gateから外す。DEC-0031は削除・編集せず、Beta後に必要なら実利用の継続改善手法として再利用できる判断履歴として保持する。
+- 決定: 次工程は、B1〜B7をGitHub mainの実装・テスト・既存Evidenceに読み取り専用で照合するBeta Minimum Feasibility Auditとする。各MUSTをREADY / PARTIAL / BLOCKEDに分類し、現状・根拠・不足・最小対応を対応表で明示するが、このDecision自体はその監査または判定を行わない。Beta前の開発優先順位は、同監査で判明するBLOCKEDおよびBeta成立を妨げるPARTIALから決める。
+- 決定: mandatory attribute全面対応は現時点でBeta MUSTではなくconditionalとする。監査で既存出品ツールへの実務的な手入力準備に不可欠と確認された場合だけ、Beta MUSTへの昇格をオーナー判断事項として戻す。structured ReviewCase完成形、API auto-resolution完成形、Shipping / Operational Filter、Category Batch Builder完成形、AIによるCategory自動確定またはAI Shadow、自動Workflow、GateからCategoryへの自動接続、外部出品ツールへの自動投入・自動出品、SG / MY / TH、exception-only human confirmationはBeta MUSTに含めない。
+- 決定: Betaは完全自動化や固定工数削減KPIを要求しない。Beta受入ではB1〜B7にBeta成立を妨げるBLOCKEDがないこと、残るPARTIALの通常利用可能性をオーナーが実物で確認すること、少量の実商品で一連の導線を実画面・実業務として確認すること、EXCLUDE / 未解決REVIEWや未確認Category / Brandを準備完了に混ぜないこと、確認済みASIN / Category ID / Brand IDを人間が取得できることを条件とする。実画面、実データ、実業務の受入はオーナー確認前に完了扱いにしない。
+- 決定: Beta後は、実利用、オーナーによる実務ボトルネック報告、次versionでの改善、再利用の反復へ移行する。必要になった場合も、既存の件数、status、未解決理由等の自動出力を優先し、人間へ詳細な時間記録を常時要求しない。
+- 理由: 測定システムを先に整えるより、実際に使えるBetaの根本能力を最短で成立させることを優先する。不成立の能力があれば、作業時間を測るより先にその不足を解消する必要があり、実利用後の方が継続的な実務ボトルネックを発見しやすい。
+- 影響: DEC-0031のBeta前E2E測定必須GateをこのDecisionでsupersedeする。measurement log設計・実測は停止し、Phase 2等へは自動直進しない。今回の変更は正本文書のみであり、コード、Guardrail、tests、README、外部API、実データ、Git外成果物、外部サービスへの書込みを変更しない。
+- 再検討条件: Feasibility Auditで追加のBeta MUSTが判明したとき、mandatory attributeがBeta利用に不可欠と判明したとき、外部出品ツールの正式入力契約が判明してBetaのhandoff条件が変わるとき、またはBeta実利用で新しい重大な不足が確認されたとき。
