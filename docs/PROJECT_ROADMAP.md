@@ -29,7 +29,7 @@ Category Mapperは唯一の正しいleaf Categoryの完全自動確定ではな�
 
 PHではPhase 1 deterministic BLOCKのmain技術受入後、PH Beta Minimum Definitionを先に置く。Beta Minimum Coreは、(B1) ExpansionとResolverの両入口による候補ASIN取得、(B2) PH Safety、(B3) 確認済みShopee Category IDへの経路、(B4) 確認済みShopee Brand IDまたはNo Brandへの経路、(B5) 未確定を推測で準備完了にしない停止能力、(B6) ASIN・Category ID・Brand ID / No Brandの揃い具合の一意な判別、(B7) 人間が確認済み情報を取得して既存出品ツールへの手入力準備に利用できるhandoffとする。これは外部出品ツールへの自動投入や実際の出品可能を意味しない。
 
-次は、B1〜B7をmainの実装・テスト・既存Evidenceへ読み取り専用で照合するPH Beta Minimum Feasibility Auditである。監査でBLOCKED、またはBeta成立を妨げるPARTIALと確認された不足だけを実装し、その後にPH Betaの実画面・実業務受入へ進む。structured REVIEW、API auto-resolution、Shipping、Category Batch、mandatory attribute、AI Shadow、Workflow等は、同監査でBeta成立に必要と確認された場合、またはBeta後の実利用で優先度が高いと確認された場合だけ着手判断する。mandatory attributeは現時点でconditionalである。
+PH Beta Minimum Feasibility Auditは完了し、B1 CandidateだけがKeepa API契約の利用可能性未確認によりPARTIAL、B2〜B7は技術Feasibility上READYである。B1のAmazon Data Provider Test Bridge Design Gateでは、Keepaを本番標準として維持し、Canopyを明示設定時だけ用いるBeta開発・試験専用providerとして採用した（DEC-0033）。次はCanopy Test Provider v0.1の最小実装とmock testであり、live Canopy API試験は別途オーナー承認後に限る。CanopyはKeepa Product Finderと同等の性能を保証せず、Safety / Category / Brandの責務は変更しない。structured REVIEW、API auto-resolution、Shipping、Category Batch、mandatory attribute、AI Shadow、Workflow等は、Beta成立に必要と確認された場合、またはBeta後の実利用で優先度が高いと確認された場合だけ着手判断する。mandatory attributeは現時点でconditionalである。
 
 Beta前に詳細なE2E人間作業時間測定、`CORE_INFO_READY ASIN / human hour`、Human Touch Rate、固定工数削減目標を必須Gateにしない。Beta後は実利用、オーナーによる実務ボトルネック報告、次versionでの改善を反復する。必要になったE2E時間測定はこのBeta後の改善手段候補とし、既存の件数、status、未解決理由等の自動出力を優先して、人間へ詳細な時間記録を常時要求しない。他市場への共通化はPH Betaの成立確認後に別途判断する。
 ## 正式完成済み
