@@ -6,6 +6,8 @@ from io import StringIO
 import pytest
 
 from modules.prelisting_candidate_csv import (
+    CANOPY_RESOLVER_SOURCE,
+    CANOPY_RESOLVER_VERIFICATION,
     EXPANSION_SOURCE_TYPE,
     PRELISTING_CANDIDATE_COLUMNS,
     PRELISTING_CANDIDATE_SCHEMA_VERSION,
@@ -222,6 +224,44 @@ def test_resolver_conversion_filters_ineligible_rows_and_preserves_eligible_orde
     assert result.output_rows[0].source_verification == "KEEPA_VERIFIED"
     assert result.output_rows[1].source_id == ""
     assert result.output_rows[1].product_title == ""
+
+
+def test_canopy_resolver_conversion_preserves_v1_columns_and_distinct_provenance():
+    result = resolver_rows_to_prelisting_candidates(
+        [
+            _resolver_input_row(
+                verification=CANOPY_RESOLVER_VERIFICATION,
+                keepa_title="",
+                keepa_brand="",
+                keepa_category="",
+                keepa_fetched_at="",
+                canopy_title="Canopy title",
+                canopy_brand="Canopy brand",
+                canopy_category="",
+                canopy_fetched_at="2026-08-16T00:00:00+00:00",
+            ),
+            _resolver_input_row(
+                status="ERROR",
+                verification="ERROR",
+            ),
+        ]
+    )
+
+    assert len(PRELISTING_CANDIDATE_COLUMNS) == 15
+    assert result.input_row_count == 2
+    assert result.eligible_row_count == 1
+    row = result.output_rows[0]
+    assert row.source_verification == CANOPY_RESOLVER_VERIFICATION
+    assert row.source == CANOPY_RESOLVER_SOURCE
+    assert row.product_title == "Canopy title"
+    assert row.brand == "Canopy brand"
+
+    parsed = parse_prelisting_candidate_csv(
+        rows_to_prelisting_candidate_csv(result.output_rows),
+        filename="canopy-resolver.csv",
+    )
+    assert parsed.rows[0].source_verification == CANOPY_RESOLVER_VERIFICATION
+    assert parsed.rows[0].source == CANOPY_RESOLVER_SOURCE
 
 
 def test_serializer_rejects_zero_rows_and_mixed_source_types():

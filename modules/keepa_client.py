@@ -7,6 +7,7 @@ import re
 from typing import Any, Iterable
 
 from modules.cache import KeepaCache, utc_now_iso
+from modules.amazon_data_provider import AmazonDataProviderError, KEEPA_PROVIDER
 
 
 ASIN_PATTERN = re.compile(r"^[A-Z0-9]{10}$")
@@ -42,7 +43,7 @@ KEEPA_DOMAIN_CODES = {
 }
 
 
-class KeepaClientError(RuntimeError):
+class KeepaClientError(AmazonDataProviderError):
     pass
 
 
@@ -190,6 +191,11 @@ def estimate_token_usage(search_pages: int) -> int:
 
 
 class KeepaExpansionClient:
+    verification_label = "KEEPA_VERIFIED"
+    not_found_label = "KEEPA_NOT_FOUND"
+    product_field_prefix = "keepa"
+    provider_name = KEEPA_PROVIDER
+
     def __init__(
         self,
         api_key: str | None = None,

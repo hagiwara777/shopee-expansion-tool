@@ -36,6 +36,12 @@ ALLOWED_SOURCE_TYPES = {EXPANSION_SOURCE_TYPE, RESOLVER_SOURCE_TYPE}
 RESOLVER_SOURCE = "asin_resolver_keepa_verified"
 RESOLVER_FOUND_STATUS = "FOUND"
 RESOLVER_VERIFICATION = "KEEPA_VERIFIED"
+CANOPY_RESOLVER_SOURCE = "asin_resolver_canopy_verified"
+CANOPY_RESOLVER_VERIFICATION = "CANOPY_VERIFIED"
+RESOLVER_SOURCE_BY_VERIFICATION = {
+    RESOLVER_VERIFICATION: RESOLVER_SOURCE,
+    CANOPY_RESOLVER_VERIFICATION: CANOPY_RESOLVER_SOURCE,
+}
 _INPUT_ROW_KEYS = (
     "seed_asin",
     "candidate_asin",
@@ -55,6 +61,14 @@ _INPUT_ROW_KEYS = (
     "status",
     "verification",
     "keepa_fetched_at",
+    "canopy_title",
+    "canopy_brand",
+    "canopy_category",
+    "canopy_fetched_at",
+    "product_title",
+    "product_brand",
+    "product_category",
+    "product_fetched_at",
 )
 
 
@@ -140,7 +154,7 @@ def expansion_rows_to_prelisting_candidates(
 def resolver_rows_to_prelisting_candidates(
     rows: Iterable[Mapping[str, Any]],
 ) -> ResolverCandidateConversionResult:
-    """Convert only FOUND and KEEPA_VERIFIED Resolver rows without API access."""
+    """Convert only provider-verified FOUND Resolver rows without API access."""
 
     materialized_rows = list(rows)
     output_rows: list[PrelistingCandidateRow] = []
@@ -148,8 +162,14 @@ def resolver_rows_to_prelisting_candidates(
         values = _mapping_values(row, f"Resolver入力 {row_number}行目")
         status = values["status"].strip().upper()
         verification = values["verification"].strip().upper()
-        if status != RESOLVER_FOUND_STATUS or verification != RESOLVER_VERIFICATION:
+        if status != RESOLVER_FOUND_STATUS or verification not in RESOLVER_SOURCE_BY_VERIFICATION:
             continue
+
+        prefix = "keepa" if verification == RESOLVER_VERIFICATION else "canopy"
+        product_title = values["product_title"] or values[f"{prefix}_title"]
+        product_brand = values["product_brand"] or values[f"{prefix}_brand"]
+        product_category = values["product_category"] or values[f"{prefix}_category"]
+        product_fetched_at = values["product_fetched_at"] or values[f"{prefix}_fetched_at"]
 
         output_rows.append(
             _canonicalize_row(
@@ -160,14 +180,14 @@ def resolver_rows_to_prelisting_candidates(
                     source_asin="",
                     candidate_asin=values["asin"],
                     input_title=values["input_title"],
-                    product_title=values["keepa_title"],
-                    brand=values["keepa_brand"],
-                    category=values["keepa_category"],
+                    product_title=product_title,
+                    brand=product_brand,
+                    category=product_category,
                     amazon_url=values["amazon_url"],
                     source_status=RESOLVER_FOUND_STATUS,
-                    source_verification=RESOLVER_VERIFICATION,
-                    source=RESOLVER_SOURCE,
-                    fetched_at=values["keepa_fetched_at"],
+                    source_verification=verification,
+                    source=RESOLVER_SOURCE_BY_VERIFICATION[verification],
+                    fetched_at=product_fetched_at,
                     source_note=values["note"],
                 ),
                 f"Resolver入力 {row_number}行目",
@@ -320,13 +340,15 @@ def _canonicalize_row(row: PrelistingCandidateRow, context: str) -> PrelistingCa
     else:
         if values["source_status"] != RESOLVER_FOUND_STATUS:
             raise PrelistingCandidateCsvError(f"{context}: Resolverのsource_statusはFOUNDである必要があります。")
-        if values["source_verification"] != RESOLVER_VERIFICATION:
+        verification = values["source_verification"]
+        if verification not in RESOLVER_SOURCE_BY_VERIFICATION:
             raise PrelistingCandidateCsvError(
-                f"{context}: Resolverのsource_verificationはKEEPA_VERIFIEDである必要があります。"
+                f"{context}: Resolverのsource_verificationが未対応です。"
             )
-        if source != RESOLVER_SOURCE:
+        expected_source = RESOLVER_SOURCE_BY_VERIFICATION[verification]
+        if source != expected_source:
             raise PrelistingCandidateCsvError(
-                f"{context}: Resolverのsourceは{RESOLVER_SOURCE}である必要があります。"
+                f"{context}: Resolverのsourceは{expected_source}である必要があります。"
             )
 
     return PrelistingCandidateRow(

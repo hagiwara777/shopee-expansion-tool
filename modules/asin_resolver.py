@@ -9,7 +9,8 @@ from urllib.parse import urlparse
 import unicodedata
 
 from modules.asin_resolver_evidence import parse_source_input
-from modules.keepa_client import KeepaClientError, KeepaExpansionClient, normalize_asin
+from modules.amazon_data_provider import AmazonDataProviderError
+from modules.keepa_client import normalize_asin
 
 
 RESOLVER_CSV_COLUMNS = [
@@ -369,18 +370,28 @@ def summarize_preview(rows: Iterable[dict[str, Any]]) -> dict[str, int]:
 
 def verify_preview_rows(
     rows: Iterable[dict[str, Any]],
-    client: KeepaExpansionClient,
+    client: Any,
 ) -> list[dict[str, str]]:
     materialized = [dict(row) for row in rows]
     asins_to_check = _unique_asins_from_rows(materialized)
+    verification_label = str(getattr(client, "verification_label", KEEPA_VERIFIED))
+    not_found_label = str(getattr(client, "not_found_label", KEEPA_NOT_FOUND))
+    product_field_prefix = str(getattr(client, "product_field_prefix", "keepa"))
+    provider_name = str(getattr(client, "provider_name", "keepa"))
 
     verified_asins: set[str] = set()
     if asins_to_check:
         try:
             products_by_asin = client.verify_products_by_asin(asins_to_check)
-        except KeepaClientError as exc:
+        except AmazonDataProviderError as exc:
             return [
-                _verified_row(row, ERROR, ERROR, _join_notes(row.get("note", ""), str(exc)))
+                _verified_row(
+                    row,
+                    ERROR,
+                    ERROR,
+                    _join_notes(row.get("note", ""), str(exc)),
+                    product_field_prefix=product_field_prefix,
+                )
                 if row.get("asin") in asins_to_check
                 else row
                 for row in materialized
@@ -395,9 +406,10 @@ def verify_preview_rows(
                 _verified_row(
                     row,
                     FOUND,
-                    KEEPA_VERIFIED,
+                    verification_label,
                     row.get("note", ""),
                     products_by_asin.get(asin),
+                    product_field_prefix=product_field_prefix,
                 )
             )
         elif asin:
@@ -405,8 +417,12 @@ def verify_preview_rows(
                 _verified_row(
                     row,
                     UNKNOWN,
-                    KEEPA_NOT_FOUND,
-                    _join_notes(row.get("note", ""), "Keepa did not return product data"),
+                    not_found_label,
+                    _join_notes(
+                        row.get("note", ""),
+                        f"{provider_name} did not return product data",
+                    ),
+                    product_field_prefix=product_field_prefix,
                 )
             )
         else:
@@ -416,14 +432,14 @@ def verify_preview_rows(
 
 def verify_selected_rows(
     rows: Iterable[dict[str, Any]],
-    client: KeepaExpansionClient,
+    client: Any,
 ) -> list[dict[str, Any]]:
     return verify_preview_rows((row for row in rows if row.get("selected")), client)
 
 
 def resolve_candidates(
     response_text: str,
-    client: KeepaExpansionClient,
+    client: Any,
 ) -> list[dict[str, str]]:
     return verify_preview_rows(preview_candidates(response_text), client)
 
@@ -877,17 +893,27 @@ def _verified_row(
     verification: str,
     note: str,
     keepa_product: Any | None = None,
+    *,
+    product_field_prefix: str = "keepa",
 ) -> dict[str, Any]:
     verified = dict(row)
+    product_title = _keepa_display_text(keepa_product, "title")
+    product_brand = _keepa_display_text(keepa_product, "brand")
+    product_category = _keepa_display_text(keepa_product, "category")
+    product_fetched_at = _keepa_display_text(keepa_product, "fetched_at")
     verified.update(
         {
             "status": status,
             "verification": verification,
             "note": note,
-            "keepa_title": _keepa_display_text(keepa_product, "title"),
-            "keepa_brand": _keepa_display_text(keepa_product, "brand"),
-            "keepa_category": _keepa_display_text(keepa_product, "category"),
-            "keepa_fetched_at": _keepa_display_text(keepa_product, "fetched_at"),
+            "product_title": product_title,
+            "product_brand": product_brand,
+            "product_category": product_category,
+            "product_fetched_at": product_fetched_at,
+            f"{product_field_prefix}_title": product_title,
+            f"{product_field_prefix}_brand": product_brand,
+            f"{product_field_prefix}_category": product_category,
+            f"{product_field_prefix}_fetched_at": product_fetched_at,
         }
     )
     return verified
