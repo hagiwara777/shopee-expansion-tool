@@ -13,15 +13,15 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH出品支援ツール Beta Minimum Feasibility`
-- current_phase: `PH Beta Minimum Feasibility Audit完了・B1 Canopy Test Provider v0.1 live技術検証完了`
-- working_branch: `codex/canopy-test-provider-v0.1`
+- current_work_type: `出品支援ツール完成定義設計ゲート準備`
+- current_phase: `Canopy Test Provider v0.1 main統合完了・出品支援ツール完成定義設計ゲート前`
+- working_branch: `codex/listing-support-completion-definition-gate-prep`
 - marketplace: `PH`
-- module: `出品支援ツール横断 / ASIN Expansion / ASIN Resolver / Prelisting Candidate Contract / Amazon Data Provider / Prelisting Guardrail / Category Mapper / Brand準備 / Handoff`
-- phase: `PH Beta Minimum Definition / B1〜B7 Feasibility Audit完了・B1 Canopy Test Provider v0.1 live技術検証完了・長期品質／実業務未確認`
-- next_action: PR #29の差分を確認し、Ready化の可否を判断する。
+- module: `出品支援ツール横断`
+- phase: `Canopy Test Provider v0.1 main統合完了後 / 出品支援ツール完成定義設計ゲート前`
+- next_action: 出品支援ツールの完成定義、残課題、利用者シナリオ、受入条件の設計ゲート
 
-formal main / base `35b0c15e8816426306a4db695474789567778967`からCanopy Test Provider v0.1を最小実装した。`AMAZON_DATA_PROVIDER`は未設定時`keepa`、明示`canopy_test`時だけCanopy REST adapterを選択し、未知値はfail closedとする。Canopy Resolverは1回最大10 ASIN、`CANOPY_VERIFIED`をKeepaと区別し、Candidate CSV V1の15列を維持して`source=asin_resolver_canopy_verified`へ変換する。Canopy Expansionは起点商品、brandによるJP Search 1ページ、候補詳細最大5件のbrand exact matchに限定し、最大7 requests、retryなし、fallbackなし、Keepa SQLite cache no-writeとした。通常UIにprovider選択を追加せず、Canopy modeだけtest表示する。CanopyのHTTP transportはurllibからrequestsへ最小置換し、API-KEY / Accept / timeout、HTTP分類、retryなし、ASIN完全一致のfail-closedをmockで再検証した。targeted pytestは119 passed、全pytestは787 passed。オーナー承認済みのlive技術検証では、`B0CP4RLMDB`のProductとResolverがASIN完全一致・title / brandありで成立し、Resolverは1 requestで`FOUND` / `CANOPY_VERIFIED`を返した。Expansionはsource brand取得、Search 20件、有効候補5件、brand exact・ASIN完全一致・titleありの最終候補5件を合計7 requestsで返した。Keepaは本番標準のまま、Canopyは開発・試験専用であり、自動fallbackは行わない。Canopyの長期品質・安定性、実商品の網羅確認、実画面・実業務受入は未実施である。
+PR #29はmainへ統合済みで、formal main / current baseは`471c63ce0d2206f4ab74b1813f9522db121c331d`である。Canopy Test Provider v0.1はmain上の正式技術成果である。`AMAZON_DATA_PROVIDER`は未設定時`keepa`、明示`canopy_test`時だけCanopy REST adapterを選択し、未知値はfail closedとする。Canopy Resolverは1回最大10 ASIN、`CANOPY_VERIFIED`をKeepaと区別し、Candidate CSV V1の15列を維持して`source=asin_resolver_canopy_verified`へ変換する。Canopy Expansionは起点商品、brandによるJP Search 1ページ、候補詳細最大5件のbrand exact matchに限定し、最大7 requests、retryなし、fallbackなし、Keepa SQLite cache no-writeとした。通常UIにprovider選択を追加せず、Canopy modeだけtest表示する。CanopyのHTTP transportはrequestsを使い、API-KEY / Accept / timeout、HTTP分類、retryなし、ASIN完全一致のfail-closedをmockで検証済みである。targeted pytestは119 passed、全pytestは787 passed。オーナー承認済みのlive技術検証では、`B0CP4RLMDB`のProductとResolverがASIN完全一致・title / brandありで成立し、Resolverは1 requestで`FOUND` / `CANOPY_VERIFIED`を返した。Expansionはsource brand取得、Search 20件、有効候補5件、brand exact・ASIN完全一致・titleありの最終候補5件を合計7 requestsで返した。Keepaは本番標準のまま、Canopyは開発・試験専用であり、自動fallbackは行わない。Canopyの長期品質・安定性、実商品の網羅確認、実画面・実業務受入は未実施である。
 
 PR #24はmainへ統合済みで、formal main commitは`5ebd4270e516d199a8e592298a15723414d2da9a`です。DEC-0030で限定した13 Brand-exact PH_BLOCKはmain上の正式技術成果です。独立V2 rulesetとGuardrail層のdeterministic BLOCK evaluatorを既存`apply_guardrails()`内でV1結果へBLOCK vetoとして合成し、V2非該当時のV1完全互換、malformed rulesetのfail-closed、Gate public interface不変、PH限定有効化を技術検証しました。targeted pytestは`tests/test_guardrails.py`が323 passed、`tests/test_prelisting_gate.py`が58 passed、全pytestは761 passedです。実商品、実データ、実画面、実業務受入は未実施であり、Phase 1の技術受入と業務受入を混同しません。Bose、一般用医薬品、医療用針、その他711候補は対象外のままです。
 
@@ -37,7 +37,7 @@ PR #16はGate結果CSVのschema version再検証をmainへ統合し、formal mai
 
 ## 完了・受入済み
 
-- Canopy Test Provider v0.1のrequests transport置換・mock再検証・Resolver／Expansion live技術検証完了（全pytest 787件成功）
+- PR #29をmainへ統合。formal main / current base `471c63ce0d2206f4ab74b1813f9522db121c331d`上でCanopy Test Provider v0.1を正式技術成果として受入（全pytest 787件成功）
 - Resolverの読み取り専用仕様監査完了
 - 過去成果物の証拠回収監査完了
 - 候補なし21件の停止工程は過去証拠から復元不能
@@ -162,7 +162,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 未完了事項
 
-- Canopyの長期品質・安定性、実画面・実業務受入の確認
+- Canopyの長期品質・安定性、実商品の網羅確認、実画面・実業務受入の確認
 - 出品支援ツールの完成定義
 - 出品支援ツールの残課題一覧
 - 出品支援ツールの利用者シナリオ
@@ -186,11 +186,11 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-PR #29の差分を確認し、Ready化の可否を判断する。
+出品支援ツールの完成定義、残課題、利用者シナリオ、受入条件の設計ゲート
 
 ## 停止条件
 
-- Canopy Test Provider v0.1以外の不足実装へ拡張しない。
+- 完成定義設計ゲートを越えて、不足実装や既存仕様変更へ拡張しない。
 - 人間作業時間measurement logを作らず、E2E時間測定を開始しない。
 - Phase 2へ自動直進しない。
 - AI Shadowを開始しない。
@@ -303,4 +303,4 @@ PR #29の差分を確認し、Ready化の可否を判断する。
 
 ## 最終更新日
 
-2026-08-16
+2026-08-18
