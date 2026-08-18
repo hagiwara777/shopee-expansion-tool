@@ -83,6 +83,27 @@ def test_internal_evidence_batch_controls_are_hidden_by_default(monkeypatch, tmp
         button.label == "Evidence Manifestを検証して再開" for button in app.button
     )
 
+
+def test_canopy_test_mode_is_explicit_without_provider_selection_ui(monkeypatch, tmp_path):
+    monkeypatch.setenv("AMAZON_DATA_PROVIDER", "canopy_test")
+    monkeypatch.setenv("CANOPY_API_KEY", "synthetic-key")
+
+    app = _test_app(monkeypatch, tmp_path)
+
+    assert not app.exception
+    assert any("Amazon data provider: Canopy TEST" in str(item.value) for item in app.warning)
+    assert not any(selectbox.label == "Amazon data provider" for selectbox in app.selectbox)
+    assert not any(selectbox.label == "検索モード" for selectbox in app.selectbox)
+    assert not any(selectbox.label == "検索ページ数" for selectbox in app.selectbox)
+
+
+def test_unknown_provider_stops_without_keepa_fallback(monkeypatch, tmp_path):
+    monkeypatch.setenv("AMAZON_DATA_PROVIDER", "unknown")
+
+    app = _test_app(monkeypatch, tmp_path)
+
+    assert any("must be keepa or canopy_test" in str(item.value) for item in app.error)
+
 def test_resolver_ui_handles_30_synthetic_tsv_lines_and_malformed_url(monkeypatch, tmp_path):
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "localappdata"))
     monkeypatch.setattr(logging.Logger, "warning", _standard_logger_warning)

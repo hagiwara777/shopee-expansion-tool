@@ -39,13 +39,16 @@ from modules.asin_resolver_evidence import (
     resume_batch,
 )
 from modules.category_mapper_ui import render_category_mapper_tab
+from modules.amazon_data_provider import (
+    AmazonDataProviderConfigurationError,
+    AmazonDataProviderError,
+    CANOPY_TEST_PROVIDER,
+    KEEPA_PROVIDER,
+    create_amazon_data_client,
+)
 from modules.config import load_settings
 from modules.direct_chat_assist import build_copy_button_html, is_valid_chatgpt_project_url
 from modules.keepa_client import (
-    KeepaClientError,
-    KeepaConfigurationError,
-    KeepaDataError,
-    KeepaExpansionClient,
     SEARCH_MODE_LABELS,
     SEARCH_MODE_NOTES,
     estimate_token_usage,
@@ -522,6 +525,21 @@ st.set_page_config(page_title="Shopee Expansion Tool Ver1", layout="centered")
 
 st.title("Shopee Expansion Tool Ver1")
 
+try:
+    amazon_settings = load_settings()
+except AmazonDataProviderConfigurationError as exc:
+    st.error(str(exc))
+    st.stop()
+
+previous_provider = st.session_state.get("active_amazon_data_provider")
+if previous_provider and previous_provider != amazon_settings.amazon_data_provider:
+    st.session_state.pop("result", None)
+    st.session_state.pop("asin_resolver_rows", None)
+st.session_state["active_amazon_data_provider"] = amazon_settings.amazon_data_provider
+
+if amazon_settings.amazon_data_provider == CANOPY_TEST_PROVIDER:
+    st.warning("Amazon data provider: Canopy TEST")
+
 expansion_tab, resolver_tab, prelisting_gate_tab, category_mapper_tab = st.tabs(
     ["ASIN Expansion", "ASIN Resolver", "出品前保安ゲート", "Category Mapper"]
 )
@@ -529,23 +547,31 @@ expansion_tab, resolver_tab, prelisting_gate_tab, category_mapper_tab = st.tabs(
 with expansion_tab:
     with st.form("search_form", clear_on_submit=False):
         asin_input = st.text_input("ASIN", placeholder="B07TSC47PH")
-        search_mode = st.selectbox(
-            "検索モード",
-            SEARCH_MODE_OPTIONS,
-            index=0,
-            format_func=lambda value: SEARCH_MODE_LABELS[value],
-        )
-        st.caption(SEARCH_MODE_NOTES[search_mode])
-        search_pages = st.selectbox(
-            "検索ページ数",
-            PAGE_OPTIONS,
-            index=0,
-            format_func=lambda value: f"{value}ページ",
-        )
-        st.caption(
-            f"取得予定候補数: {planned_candidate_count(search_pages)}件 / "
-            f"推定消費トークン: 約{estimate_token_usage(search_pages)} tokens"
-        )
+        if amazon_settings.amazon_data_provider == KEEPA_PROVIDER:
+            search_mode = st.selectbox(
+                "検索モード",
+                SEARCH_MODE_OPTIONS,
+                index=0,
+                format_func=lambda value: SEARCH_MODE_LABELS[value],
+            )
+            st.caption(SEARCH_MODE_NOTES[search_mode])
+            search_pages = st.selectbox(
+                "検索ページ数",
+                PAGE_OPTIONS,
+                index=0,
+                format_func=lambda value: f"{value}ページ",
+            )
+            st.caption(
+                f"取得予定候補数: {planned_candidate_count(search_pages)}件 / "
+                f"推定消費トークン: 約{estimate_token_usage(search_pages)} tokens"
+            )
+        else:
+            search_mode = "canopy_test"
+            search_pages = 1
+            st.caption(
+                "Canopy TEST: 起点商品のbrandでJP検索し、1ページだけから"
+                "brand完全一致候補を最大5件確認します（最大7 requests、retryなし）。"
+            )
         search_clicked = st.form_submit_button(
             "検索開始",
             type="primary",
@@ -555,31 +581,27 @@ with expansion_tab:
     if search_clicked:
         st.session_state["result"] = None
 
-        settings = load_settings()
-
-        if not settings.keepa_api_key:
-            st.error(
-                "APIキーが未設定です。プロジェクト直下の .env に KEEPA_API_KEY を設定してください。"
-            )
-            st.stop()
-
         try:
             source_asin = normalize_asin(asin_input)
-            client = KeepaExpansionClient(
-                api_key=settings.keepa_api_key,
-                domain=settings.keepa_domain,
-            )
+            client = create_amazon_data_client(amazon_settings)
 
-            with st.spinner("Keepa APIから候補ASINを取得しています。トークン不足時は自動で回復待ちします..."):
-                result = client.find_related_products(
-                    source_asin=source_asin,
-                    search_pages=search_pages,
-                    search_mode=search_mode,
-                )
+            if amazon_settings.amazon_data_provider == KEEPA_PROVIDER:
+                with st.spinner(
+                    "Keepa APIから候補ASINを取得しています。"
+                    "トークン不足時は自動で回復待ちします..."
+                ):
+                    result = client.find_related_products(
+                        source_asin=source_asin,
+                        search_pages=search_pages,
+                        search_mode=search_mode,
+                    )
+            else:
+                with st.spinner("Canopy TESTで候補ASINを確認しています（retryなし）..."):
+                    result = client.find_related_products(source_asin=source_asin)
 
         except ValueError as exc:
             st.error(str(exc))
-        except (KeepaConfigurationError, KeepaDataError, KeepaClientError) as exc:
+        except AmazonDataProviderError as exc:
             st.error(str(exc))
         except Exception:
             st.error(
@@ -593,41 +615,54 @@ with expansion_tab:
     if result:
         if result.final_display_count:
             st.success(f"{result.final_display_count}件の候補ASINを取得しました。")
+        elif amazon_settings.amazon_data_provider == CANOPY_TEST_PROVIDER:
+            st.warning("候補ASINは0件でした。Canopy TESTのbrand完全一致候補はありません。")
         else:
             st.warning("候補ASINは0件でした。検索条件をstandardまたはbroadに広げて再検索してください。")
 
         st.write(f"取得したbrand: {result.brand}")
-        st.write(f"取得したcategory: {result.category}")
-        st.write(f"検索モード: {SEARCH_MODE_LABELS.get(result.search_mode, result.search_mode)}")
-        st.write(f"検索モードの注意: {result.search_mode_note}")
-        st.write(f"利用カテゴリ条件: {result.category_filter_note}")
-        st.write(f"検索ページ数: {result.search_pages}ページ")
-        st.write(f"取得予定候補数: {result.planned_candidates}件")
-        st.write(f"推定消費トークン: 約{result.token_estimate} tokens")
-        if result.total_results is not None:
-            st.write(f"Product Finder totalResults: {result.total_results}件")
-        st.write(f"Product Finder returned ASIN count: {result.raw_candidate_count}件")
-        st.write(f"詳細取得成功数: {result.detail_success_count}件")
-        st.write(f"詳細取得失敗数: {result.detail_failed_count}件")
-        st.write(f"重複除外数: {result.duplicate_removed_count}件")
-        st.write(f"自己ASIN除外数: {result.self_excluded_count}件")
-        st.write(f"既出品除外: {result.existing_listing_exclusion_status}")
-        st.write(f"削除済みASIN除外: {result.deleted_asin_exclusion_status}")
-        st.write(f"最終表示件数: {result.final_display_count}件")
-        st.write(f"キャッシュ利用: {'あり' if result.cache_hit else 'なし'}")
-        if result.total_results_note:
-            st.info(result.total_results_note)
-        if result.strict_low_count_suggestion:
-            st.warning(result.strict_low_count_suggestion)
-        st.info(result.token_status)
+        if amazon_settings.amazon_data_provider == KEEPA_PROVIDER:
+            st.write(f"取得したcategory: {result.category}")
+            st.write(f"検索モード: {SEARCH_MODE_LABELS.get(result.search_mode, result.search_mode)}")
+            st.write(f"検索モードの注意: {result.search_mode_note}")
+            st.write(f"利用カテゴリ条件: {result.category_filter_note}")
+            st.write(f"検索ページ数: {result.search_pages}ページ")
+            st.write(f"取得予定候補数: {result.planned_candidates}件")
+            st.write(f"推定消費トークン: 約{result.token_estimate} tokens")
+            if result.total_results is not None:
+                st.write(f"Product Finder totalResults: {result.total_results}件")
+            st.write(f"Product Finder returned ASIN count: {result.raw_candidate_count}件")
+            st.write(f"詳細取得成功数: {result.detail_success_count}件")
+            st.write(f"詳細取得失敗数: {result.detail_failed_count}件")
+            st.write(f"重複除外数: {result.duplicate_removed_count}件")
+            st.write(f"自己ASIN除外数: {result.self_excluded_count}件")
+            st.write(f"既出品除外: {result.existing_listing_exclusion_status}")
+            st.write(f"削除済みASIN除外: {result.deleted_asin_exclusion_status}")
+            st.write(f"最終表示件数: {result.final_display_count}件")
+            st.write(f"キャッシュ利用: {'あり' if result.cache_hit else 'なし'}")
+            if result.total_results_note:
+                st.info(result.total_results_note)
+            if result.strict_low_count_suggestion:
+                st.warning(result.strict_low_count_suggestion)
+            st.info(result.token_status)
 
-        if result.note:
-            st.warning(result.note)
+            if result.note:
+                st.warning(result.note)
 
-        if result.diagnostics:
-            with st.expander("Product Finder診断結果"):
-                for diagnostic in result.diagnostics:
-                    st.write(diagnostic)
+            if result.diagnostics:
+                with st.expander("Product Finder診断結果"):
+                    for diagnostic in result.diagnostics:
+                        st.write(diagnostic)
+        else:
+            st.write(f"JP検索結果ASIN数: {result.raw_candidate_count}件")
+            st.write(f"詳細取得失敗数: {result.detail_failed_count}件")
+            st.write(f"brand不一致除外数: {result.brand_mismatch_excluded_count}件")
+            st.write(f"重複除外数: {result.duplicate_removed_count}件")
+            st.write(f"自己ASIN除外数: {result.self_excluded_count}件")
+            st.write(f"不正ASIN除外数: {result.invalid_excluded_count}件")
+            st.write(f"最終表示件数: {result.final_display_count}件")
+            st.write(f"request数: {result.request_count} / 7")
+            st.caption("Canopy結果はKeepa SQLite cacheへ保存しません。")
 
         try:
             expansion_prelisting_rows = expansion_rows_to_prelisting_candidates(result.rows)
@@ -1024,9 +1059,9 @@ with resolver_tab:
             )
             st.caption(
                 f"解析対象入力行数: {input_line_count}件（空行・コードブロックを除く）。"
-                f"選択されたKeepa確認対象ASIN数: {preview_summary['selected_unique_asins']}件"
+                f"選択されたAmazon商品確認対象ASIN数: {preview_summary['selected_unique_asins']}件"
                 "（重複を除く）。"
-                "プレビューではKeepa APIを呼びません。"
+                "プレビューではAmazon data providerを呼びません。"
                 "AI返答を変更した場合は、もう一度解析してください。"
             )
             preview_cols = st.columns(3)
@@ -1037,10 +1072,10 @@ with resolver_tab:
             )
             preview_detail_cols = st.columns(2)
             preview_detail_cols[0].metric("選択解除件数", preview_summary["deselected_rows"])
-            preview_detail_cols[1].metric("Keepa確認済み件数", verified_count)
+            preview_detail_cols[1].metric("Amazon商品確認済み件数", verified_count)
 
             verify_clicked = st.button(
-                "選択したASINをKeepaで確認",
+                "選択したASINをAmazon商品として確認",
                 type="primary",
                 width="stretch",
                 disabled=(
@@ -1051,22 +1086,13 @@ with resolver_tab:
 
             if verify_clicked:
                 st.session_state["asin_resolver_rows"] = []
-                settings = load_settings()
-                if not settings.keepa_api_key:
-                    st.error(
-                        "Keepa APIキーが未設定です。プロジェクト直下の .env の KEEPA_API_KEY を確認してください。"
-                    )
-                else:
-                    try:
-                        client = KeepaExpansionClient(
-                            api_key=settings.keepa_api_key,
-                            domain="JP",
+                try:
+                    client = create_amazon_data_client(amazon_settings)
+                    with st.spinner("Amazon data providerでASINの実在確認をしています..."):
+                        verified_rows = verify_selected_rows(
+                            selected_preview_rows,
+                            client,
                         )
-                        with st.spinner("Keepa APIでASINの実在確認をしています..."):
-                            verified_rows = verify_selected_rows(
-                                selected_preview_rows,
-                                client,
-                            )
                         active_manifest_path = _active_evidence_manifest_path()
                         if active_manifest_path is not None:
                             response_phase = st.session_state.get(
@@ -1080,20 +1106,20 @@ with resolver_tab:
                             st.session_state["asin_resolver_evidence_next_action"] = (
                                 "complete_or_view"
                             )
-                        st.session_state["asin_resolver_rows"] = verified_rows
-                    except (KeepaConfigurationError, KeepaDataError, KeepaClientError) as exc:
-                        st.error(str(exc))
-                    except EvidenceValidationError as exc:
-                        st.error(f"Evidence Batchを変更せず停止しました: {exc}")
-                    except Exception:
-                        st.error(
-                            "想定外のエラーが発生しました。アプリを再起動し、同じ内容で再実行してください。"
-                        )
+                    st.session_state["asin_resolver_rows"] = verified_rows
+                except AmazonDataProviderError as exc:
+                    st.error(str(exc))
+                except EvidenceValidationError as exc:
+                    st.error(f"Evidence Batchを変更せず停止しました: {exc}")
+                except Exception:
+                    st.error(
+                        "想定外のエラーが発生しました。アプリを再起動し、同じ内容で再実行してください。"
+                    )
 
         resolver_rows = st.session_state.get("asin_resolver_rows", [])
         if resolver_rows:
             summary = summarize_statuses(resolver_rows)
-            st.success(f"{len(resolver_rows)}件のKeepa確認を完了しました。")
+            st.success(f"{len(resolver_rows)}件のAmazon商品確認を完了しました。")
             st.write(f"FOUND: {summary['FOUND']}件")
             st.write(f"UNKNOWN: {summary['UNKNOWN']}件")
             st.write(f"ERROR: {summary['ERROR']}件")
@@ -1145,8 +1171,8 @@ with resolver_tab:
             comparison_columns = [
                 "source_id",
                 "input_title",
-                "keepa_title",
-                "keepa_brand",
+                "product_title",
+                "product_brand",
                 "amazon_url",
                 "asin",
                 "status",
@@ -1157,14 +1183,14 @@ with resolver_tab:
                 {column: row.get(column, "") or "" for column in comparison_columns}
                 for row in resolver_rows
             ]
-            st.subheader("Keepa候補比較")
+            st.subheader("Amazon商品候補比較")
             st.dataframe(
                 pd.DataFrame(comparison_rows),
                 column_config={
                     "source_id": st.column_config.TextColumn("source_id", width="small", pinned=True),
                     "input_title": st.column_config.TextColumn("input_title", width="large"),
-                    "keepa_title": st.column_config.TextColumn("keepa_title", width="large"),
-                    "keepa_brand": st.column_config.TextColumn("keepa_brand", width="medium"),
+                    "product_title": st.column_config.TextColumn("product_title", width="large"),
+                    "product_brand": st.column_config.TextColumn("product_brand", width="medium"),
                     "amazon_url": st.column_config.TextColumn("amazon_url", width="large"),
                     "asin": st.column_config.TextColumn("asin", width="small"),
                     "status": st.column_config.TextColumn("status", width="small"),

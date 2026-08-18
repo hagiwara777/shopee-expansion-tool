@@ -26,6 +26,7 @@ from modules.asin_resolver import (
     verify_preview_rows,
 )
 from modules.cache import KeepaCache
+from modules.canopy_client import CANOPY_NOT_FOUND, CANOPY_VERIFIED, CanopyClientError
 from modules.keepa_client import KeepaClientError, KeepaExpansionClient
 
 
@@ -41,11 +42,25 @@ def test_evidence_batch_ui_requires_explicit_enablement_and_uses_only_the_indepe
 
 
 class FakeResolverClient:
-    def __init__(self, found_asins=None, error=None, products_by_asin=None):
+    def __init__(
+        self,
+        found_asins=None,
+        error=None,
+        products_by_asin=None,
+        *,
+        verification_label=KEEPA_VERIFIED,
+        not_found_label=KEEPA_NOT_FOUND,
+        product_field_prefix="keepa",
+        provider_name="Keepa",
+    ):
         self.found_asins = set(found_asins or [])
         self.error = error
         self.products_by_asin = products_by_asin
         self.calls = []
+        self.verification_label = verification_label
+        self.not_found_label = not_found_label
+        self.product_field_prefix = product_field_prefix
+        self.provider_name = provider_name
 
     def verify_products_by_asin(self, asins):
         self.calls.append(list(asins))
@@ -698,6 +713,56 @@ def test_verify_preview_rows_deduplicates_keepa_checks_but_keeps_rows():
     assert client.calls == [["B07TSC47PH"]]
     assert [row["status"] for row in rows] == ["FOUND", "FOUND"]
     assert [row["verification"] for row in rows] == [KEEPA_VERIFIED, KEEPA_VERIFIED]
+
+
+def test_verify_preview_rows_keeps_canopy_verification_and_product_fields_distinct():
+    client = FakeResolverClient(
+        products_by_asin={
+            "B07TSC47PH": {
+                "asin": "B07TSC47PH",
+                "title": "Canopy product title",
+                "brand": "Canopy brand",
+                "category": "",
+                "fetched_at": "2026-08-16T00:00:00+00:00",
+            }
+        },
+        verification_label=CANOPY_VERIFIED,
+        not_found_label=CANOPY_NOT_FOUND,
+        product_field_prefix="canopy",
+        provider_name="canopy_test",
+    )
+
+    rows = verify_preview_rows(
+        preview_candidates("A,https://www.amazon.co.jp/dp/B07TSC47PH"),
+        client,
+    )
+
+    assert rows[0]["status"] == "FOUND"
+    assert rows[0]["verification"] == CANOPY_VERIFIED
+    assert rows[0]["canopy_title"] == "Canopy product title"
+    assert rows[0]["canopy_brand"] == "Canopy brand"
+    assert rows[0]["product_title"] == "Canopy product title"
+    assert "keepa_title" not in rows[0]
+
+
+def test_verify_preview_rows_marks_canopy_error_without_keepa_fallback():
+    client = FakeResolverClient(
+        error=CanopyClientError("Canopy failed"),
+        verification_label=CANOPY_VERIFIED,
+        not_found_label=CANOPY_NOT_FOUND,
+        product_field_prefix="canopy",
+        provider_name="canopy_test",
+    )
+
+    rows = verify_preview_rows(
+        preview_candidates("A,https://www.amazon.co.jp/dp/B07TSC47PH"),
+        client,
+    )
+
+    assert rows[0]["status"] == "ERROR"
+    assert rows[0]["verification"] == "ERROR"
+    assert rows[0]["canopy_title"] == ""
+    assert "keepa_title" not in rows[0]
 
 
 def test_verify_preview_rows_copies_keepa_comparison_fields_to_duplicate_asin_rows():

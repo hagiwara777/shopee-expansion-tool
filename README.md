@@ -4,6 +4,27 @@ ASINを1件入力し、Keepa APIから `brand + category` 基準の候補ASINを
 
 KeepaのWeb画面操作、Amazonページ操作、Amazon/Keepaスクレイピングは行いません。
 
+## Amazon data provider
+
+通常・本番想定のAmazon data providerはKeepaです。`AMAZON_DATA_PROVIDER`が未設定または
+`keepa`の場合は、従来どおり`KEEPA_API_KEY`とKeepa経路を利用します。未知のprovider値を
+Keepaへ自動fallbackしません。
+
+Beta開発・試験時だけ、プロジェクト直下のGit管理外`.env`で次を明示するとCanopy TEST経路を
+利用できます。
+
+```dotenv
+AMAZON_DATA_PROVIDER=canopy_test
+CANOPY_API_KEY=your-local-key
+```
+
+Canopy TESTはResolver 1回最大10 ASIN、Expansion 1回最大7 requests・最大5候補です。
+retry、Keepaへのfallback、検索paginationの自動継続は行わず、結果をKeepa SQLite cacheへ
+保存しません。Resolverの確認値は`CANOPY_VERIFIED`、Candidate CSVのsourceは
+`asin_resolver_canopy_verified`となり、Keepaの`KEEPA_VERIFIED`と区別されます。
+`PRELISTING_CANDIDATE_V1`の15列schemaは変わりません。通常UIにprovider選択欄はなく、
+Canopy mode時だけ`Amazon data provider: Canopy TEST`と表示します。
+
 ## Ver1でできること
 
 - ASIN 1件を入力

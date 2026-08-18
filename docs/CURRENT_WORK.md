@@ -14,18 +14,20 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 ## 現在作業
 
 - current_work_type: `PH出品支援ツール Beta Minimum Feasibility`
-- current_phase: `PH Beta Minimum Feasibility Audit完了・B1 Canopy Test Provider設計ゲート完了`
-- working_branch: `codex/canopy-test-provider-design-formalization`
+- current_phase: `PH Beta Minimum Feasibility Audit完了・B1 Canopy Test Provider v0.1 live技術検証完了`
+- working_branch: `codex/canopy-test-provider-v0.1`
 - marketplace: `PH`
 - module: `出品支援ツール横断 / ASIN Expansion / ASIN Resolver / Prelisting Candidate Contract / Amazon Data Provider / Prelisting Guardrail / Category Mapper / Brand準備 / Handoff`
-- phase: `PH Beta Minimum Definition / B1〜B7 Feasibility Audit完了・B1 Canopy Test Provider v0.1最小実装前`
-- next_action: Keepaを本番標準として維持したまま、Canopy Test Provider v0.1を最小実装する。mock test完了後のlive Canopy API試験は別途オーナー承認を得る。
+- phase: `PH Beta Minimum Definition / B1〜B7 Feasibility Audit完了・B1 Canopy Test Provider v0.1 live技術検証完了・長期品質／実業務未確認`
+- next_action: PR #29の差分を確認し、Ready化の可否を判断する。
+
+formal main / base `35b0c15e8816426306a4db695474789567778967`からCanopy Test Provider v0.1を最小実装した。`AMAZON_DATA_PROVIDER`は未設定時`keepa`、明示`canopy_test`時だけCanopy REST adapterを選択し、未知値はfail closedとする。Canopy Resolverは1回最大10 ASIN、`CANOPY_VERIFIED`をKeepaと区別し、Candidate CSV V1の15列を維持して`source=asin_resolver_canopy_verified`へ変換する。Canopy Expansionは起点商品、brandによるJP Search 1ページ、候補詳細最大5件のbrand exact matchに限定し、最大7 requests、retryなし、fallbackなし、Keepa SQLite cache no-writeとした。通常UIにprovider選択を追加せず、Canopy modeだけtest表示する。CanopyのHTTP transportはurllibからrequestsへ最小置換し、API-KEY / Accept / timeout、HTTP分類、retryなし、ASIN完全一致のfail-closedをmockで再検証した。targeted pytestは119 passed、全pytestは787 passed。オーナー承認済みのlive技術検証では、`B0CP4RLMDB`のProductとResolverがASIN完全一致・title / brandありで成立し、Resolverは1 requestで`FOUND` / `CANOPY_VERIFIED`を返した。Expansionはsource brand取得、Search 20件、有効候補5件、brand exact・ASIN完全一致・titleありの最終候補5件を合計7 requestsで返した。Keepaは本番標準のまま、Canopyは開発・試験専用であり、自動fallbackは行わない。Canopyの長期品質・安定性、実商品の網羅確認、実画面・実業務受入は未実施である。
 
 PR #24はmainへ統合済みで、formal main commitは`5ebd4270e516d199a8e592298a15723414d2da9a`です。DEC-0030で限定した13 Brand-exact PH_BLOCKはmain上の正式技術成果です。独立V2 rulesetとGuardrail層のdeterministic BLOCK evaluatorを既存`apply_guardrails()`内でV1結果へBLOCK vetoとして合成し、V2非該当時のV1完全互換、malformed rulesetのfail-closed、Gate public interface不変、PH限定有効化を技術検証しました。targeted pytestは`tests/test_guardrails.py`が323 passed、`tests/test_prelisting_gate.py`が58 passed、全pytestは761 passedです。実商品、実データ、実画面、実業務受入は未実施であり、Phase 1の技術受入と業務受入を混同しません。Bose、一般用医薬品、医療用針、その他711候補は対象外のままです。
 
 PH Beta Minimum DefinitionのB1〜B7 Feasibility Auditは完了した。B1 CandidateはPARTIALである。Resolver / Expansionの既存コード経路、Python / Keepa client起動経路、Keepa credential sourceは存在するが、Keepa API契約が現在利用可能とは確認できず、live Resolver確認はERRORで終了したため、Keepa本番契約再開時のB1 live成立は未確認である。B2 PH Safety、B3 Category ID、B4 Brand ID / No Brand、B5 未確定停止、B6 準備状態判別、B7 Handoffは技術Feasibility上READYであり、BLOCKEDはない。B3はShopee PH Category APIのlive成功により2301 Categoryと有効ID / nameの取得を確認し、B4はCategory `100869` のShopee Brand API live成功によりBrand FactとNo Brand ID `0`を確認した。これらのREADYはBeta実画面・実商品・実業務受入の完了を意味しない。Beta前に詳細なE2E人間作業時間を測定せず、`CORE_INFO_READY ASIN / human hour`、Human Touch Rate、固定工数削減目標を必須Gateにしない。mandatory attributeはconditionalであり、structured REVIEW、API auto-resolution、Shipping、Category Batch、AI Shadow、Workflow、外部出品ツールへの自動投入、他市場展開はBeta MUSTではない。
 
-B1 Amazon Data Provider Test Bridge Design Gateは完了した（DEC-0033）。本番標準providerはKeepaのままとし、Canopyは明示設定 `AMAZON_DATA_PROVIDER=canopy_test` 時だけ使うBeta開発・試験専用providerとする。自動fallbackは行わず、Resolverの確認値は `KEEPA_VERIFIED` と `CANOPY_VERIFIED` を区別する。`PRELISTING_CANDIDATE_V1` の15列schemaは維持し、Canopy経路では既存列に `source_verification=CANOPY_VERIFIED`、`source=asin_resolver_canopy_verified` を記録する。Canopy v0.1はResolverを1回最大10 ASIN・retryなし、Expansionを1回最大7 requests・最大5候補・pagination継続なしとし、既存Keepa SQLite cacheへ書き込まない。Safety / Category / Brandの責務と既存の通常UI構造は変更しない。live Canopy API試験はmock test後の別途オーナー承認まで未実施である。
+B1 Amazon Data Provider Test Bridge Design Gateは完了した（DEC-0033）。本番標準providerはKeepaのままとし、Canopyは明示設定 `AMAZON_DATA_PROVIDER=canopy_test` 時だけ使うBeta開発・試験専用providerとする。自動fallbackは行わず、Resolverの確認値は `KEEPA_VERIFIED` と `CANOPY_VERIFIED` を区別する。`PRELISTING_CANDIDATE_V1` の15列schemaは維持し、Canopy経路では既存列に `source_verification=CANOPY_VERIFIED`、`source=asin_resolver_canopy_verified` を記録する。Canopy v0.1はResolverを1回最大10 ASIN・retryなし、Expansionを1回最大7 requests・最大5候補・pagination継続なしとし、既存Keepa SQLite cacheへ書き込まない。Safety / Category / Brandの責務と既存の通常UI構造は変更しない。オーナー承認済みのlive技術検証でProduct、Resolver、Expansionの通常経路はrequest上限内で成立した。これはCanopyを本番providerへ変更するものではなく、長期品質・安定性、実画面・実業務受入は未確認である。
 
 DEC-0028で、出品支援ツールV2の目的、責務、論理データ契約、実装順を承認済み方針として正本化しました。これは実装前の設計であり、コード、辞書CSV、Gateロジック、既存V1 schema、物理CSV列、API fieldは変更していません。DEC-0027の727候補とGit外監査成果物は正式辞書へ昇格していません。
 
@@ -35,6 +37,7 @@ PR #16はGate結果CSVのschema version再検証をmainへ統合し、formal mai
 
 ## 完了・受入済み
 
+- Canopy Test Provider v0.1のrequests transport置換・mock再検証・Resolver／Expansion live技術検証完了（全pytest 787件成功）
 - Resolverの読み取り専用仕様監査完了
 - 過去成果物の証拠回収監査完了
 - 候補なし21件の停止工程は過去証拠から復元不能
@@ -159,7 +162,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 未完了事項
 
-- B1〜B7 Beta Minimum Feasibility Audit（未着手）
+- Canopyの長期品質・安定性、実画面・実業務受入の確認
 - 出品支援ツールの完成定義
 - 出品支援ツールの残課題一覧
 - 出品支援ツールの利用者シナリオ
@@ -183,7 +186,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-Canopy Test Provider v0.1を最小実装し、mock testでprovider選択、Resolver verificationの区別、Candidate CSV V1互換、Expansion上限、no-write cache、Safety / Category / Brand非影響を確認する。live Canopy API試験は別途オーナー承認後に限る。
+PR #29の差分を確認し、Ready化の可否を判断する。
 
 ## 停止条件
 
@@ -202,7 +205,7 @@ Canopy Test Provider v0.1を最小実装し、mock testでprovider選択、Resol
 - AI Shadowを今回開始しない。
 - 新しいExcel、CSV、physical measurement schemaを作成または確定しない。
 - structured REVIEW、ReviewCase、API auto-resolutionを実装しない。
-- Category Mapper、Brand resolution、Resolver、Expansion、Guardrail辞書、Gateロジック、Phase 1の13 Brand rulesを変更しない。
+- Canopy provider境界を越えてCategory Mapper、Brand resolution、Guardrail辞書、Gateロジック、Phase 1の13 Brand rulesを変更しない。Resolver／ExpansionをCanopy v0.1契約外へ拡張しない。
 - Shipping / Operational Filter、Category Batch Builder、mandatory attribute Batchへ進まない。
 - SG / MY / THへ展開せず、Marketplace-neutral schemaを先行確定しない。
 - push、PR作成、merge、deployを行わない。

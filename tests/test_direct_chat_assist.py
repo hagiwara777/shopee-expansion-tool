@@ -59,6 +59,34 @@ def test_load_settings_reads_the_optional_project_url(monkeypatch, tmp_path):
     assert settings.amazon_search_project_url == project_url
 
 
+def test_load_settings_defaults_amazon_data_provider_to_keepa(monkeypatch, tmp_path):
+    monkeypatch.setattr(config, "ENV_PATH", tmp_path / ".env")
+    monkeypatch.delenv("AMAZON_DATA_PROVIDER", raising=False)
+
+    settings = config.load_settings()
+
+    assert settings.amazon_data_provider == "keepa"
+
+
+def test_load_settings_reads_explicit_canopy_provider_and_separate_key(monkeypatch, tmp_path):
+    monkeypatch.setattr(config, "ENV_PATH", tmp_path / ".env")
+    monkeypatch.setenv("AMAZON_DATA_PROVIDER", "canopy_test")
+    monkeypatch.setenv("CANOPY_API_KEY", "synthetic-canopy-key")
+
+    settings = config.load_settings()
+
+    assert settings.amazon_data_provider == "canopy_test"
+    assert settings.canopy_api_key == "synthetic-canopy-key"
+
+
+def test_load_settings_rejects_unknown_provider_without_keepa_fallback(monkeypatch, tmp_path):
+    monkeypatch.setattr(config, "ENV_PATH", tmp_path / ".env")
+    monkeypatch.setenv("AMAZON_DATA_PROVIDER", "unknown")
+
+    with pytest.raises(config.AmazonDataProviderConfigurationError):
+        config.load_settings()
+
+
 def test_prompt_base64_round_trip_preserves_unicode_whitespace():
     prompt = "R0001\tモンチッチ Key Chain\nR0002\tRefill 200ml\n"
 
