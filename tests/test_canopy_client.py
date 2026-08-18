@@ -2,6 +2,7 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 
+import modules.canopy_client as canopy_client
 from modules.canopy_client import (
     CANOPY_EXPANSION_MAX_REQUESTS,
     CANOPY_NOT_FOUND,
@@ -9,6 +10,7 @@ from modules.canopy_client import (
     CANOPY_VERIFIED,
     CanopyDataError,
     CanopyNetworkError,
+    CanopyNotFoundError,
     CanopyTestClient,
 )
 from modules.cache import KeepaCache
@@ -54,6 +56,98 @@ class RecordingTransport:
             return _search_payload(self.search_asins)
         asin = params["asin"][0]
         return _product_payload(asin, brand=self.brands.get(asin, "Acme"))
+
+
+class StubResponse:
+    def __init__(self, status_code, payload=None, *, json_error=None):
+        self.status_code = status_code
+        self.payload = payload
+        self.json_error = json_error
+
+    def json(self):
+        if self.json_error is not None:
+            raise self.json_error
+        return self.payload
+
+
+def test_default_transport_uses_requests_with_required_headers_and_timeout(monkeypatch):
+    calls = []
+
+    def fake_get(url, *, headers, timeout):
+        calls.append((url, headers, timeout))
+        return StubResponse(200, _product_payload("B000000001"))
+
+    monkeypatch.setattr(canopy_client.requests, "get", fake_get)
+
+    products = CanopyTestClient(api_key="secret").verify_products_by_asin(["B000000001"])
+
+    assert products["B000000001"]["asin"] == "B000000001"
+    assert len(calls) == 1
+    _, headers, timeout = calls[0]
+    assert headers == {"API-KEY": "secret", "Accept": "application/json"}
+    assert timeout == 20.0
+
+
+def test_default_transport_maps_404_to_not_found(monkeypatch):
+    monkeypatch.setattr(
+        canopy_client.requests,
+        "get",
+        lambda *args, **kwargs: StubResponse(404),
+    )
+
+    with pytest.raises(CanopyNotFoundError, match="not found"):
+        CanopyTestClient._default_transport(
+            "https://example.invalid/product",
+            {"API-KEY": "secret", "Accept": "application/json"},
+            20.0,
+        )
+
+
+def test_default_transport_maps_http_error_without_retry(monkeypatch):
+    calls = []
+
+    def fake_get(*args, **kwargs):
+        calls.append((args, kwargs))
+        return StubResponse(403)
+
+    monkeypatch.setattr(canopy_client.requests, "get", fake_get)
+
+    with pytest.raises(CanopyNetworkError, match="HTTP error: 403"):
+        CanopyTestClient(api_key="secret").verify_products_by_asin(["B000000001"])
+
+    assert len(calls) == 1
+
+
+def test_default_transport_maps_network_error(monkeypatch):
+    def fake_get(*args, **kwargs):
+        raise canopy_client.requests.Timeout("synthetic timeout")
+
+    monkeypatch.setattr(canopy_client.requests, "get", fake_get)
+
+    with pytest.raises(CanopyNetworkError, match="network request failed"):
+        CanopyTestClient(api_key="secret").verify_products_by_asin(["B000000001"])
+
+
+def test_default_transport_rejects_invalid_json(monkeypatch):
+    monkeypatch.setattr(
+        canopy_client.requests,
+        "get",
+        lambda *args, **kwargs: StubResponse(200, json_error=ValueError("invalid json")),
+    )
+
+    with pytest.raises(CanopyDataError, match="invalid JSON"):
+        CanopyTestClient(api_key="secret").verify_products_by_asin(["B000000001"])
+
+
+def test_default_transport_keeps_asin_mismatch_fail_closed(monkeypatch):
+    monkeypatch.setattr(
+        canopy_client.requests,
+        "get",
+        lambda *args, **kwargs: StubResponse(200, _product_payload("B000000002")),
+    )
+
+    with pytest.raises(CanopyDataError, match="different ASIN"):
+        CanopyTestClient(api_key="secret").verify_products_by_asin(["B000000001"])
 
 
 def test_canopy_resolver_verifies_at_most_ten_asins_with_one_request_each():

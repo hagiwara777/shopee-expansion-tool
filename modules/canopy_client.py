@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import json
 from typing import Any, Callable, Iterable, Mapping
-from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
-from urllib.request import Request, urlopen
 import unicodedata
+
+import requests
 
 from modules.amazon_data_provider import AmazonDataProviderError, CANOPY_TEST_PROVIDER
 from modules.cache import utc_now_iso
@@ -217,19 +216,23 @@ class CanopyTestClient:
         headers: Mapping[str, str],
         timeout_seconds: float,
     ) -> Mapping[str, Any]:
-        request = Request(url, headers=dict(headers), method="GET")
         try:
-            with urlopen(request, timeout=timeout_seconds) as response:  # noqa: S310
-                raw = response.read()
-        except HTTPError as exc:
-            if exc.code == 404:
-                raise CanopyNotFoundError("Canopy product was not found.") from exc
-            raise CanopyNetworkError(f"Canopy HTTP error: {exc.code}.") from exc
-        except URLError as exc:
+            response = requests.get(
+                url,
+                headers=dict(headers),
+                timeout=timeout_seconds,
+            )
+        except requests.RequestException as exc:
             raise CanopyNetworkError("Canopy network request failed.") from exc
+
+        if response.status_code == 404:
+            raise CanopyNotFoundError("Canopy product was not found.")
+        if response.status_code >= 400:
+            raise CanopyNetworkError(f"Canopy HTTP error: {response.status_code}.")
+
         try:
-            payload = json.loads(raw.decode("utf-8"))
-        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            payload = response.json()
+        except ValueError as exc:
             raise CanopyDataError("Canopy returned invalid JSON.") from exc
         if not isinstance(payload, Mapping):
             raise CanopyDataError("Canopy response must be a JSON object.")

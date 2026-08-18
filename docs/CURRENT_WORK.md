@@ -14,14 +14,14 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 ## 現在作業
 
 - current_work_type: `PH出品支援ツール Beta Minimum Feasibility`
-- current_phase: `PH Beta Minimum Feasibility Audit完了・B1 Canopy Test Provider v0.1 mock技術検収完了`
+- current_phase: `PH Beta Minimum Feasibility Audit完了・B1 Canopy Test Provider v0.1 requests transport mock再検証完了`
 - working_branch: `codex/canopy-test-provider-v0.1`
 - marketplace: `PH`
 - module: `出品支援ツール横断 / ASIN Expansion / ASIN Resolver / Prelisting Candidate Contract / Amazon Data Provider / Prelisting Guardrail / Category Mapper / Brand準備 / Handoff`
-- phase: `PH Beta Minimum Definition / B1〜B7 Feasibility Audit完了・B1 Canopy Test Provider v0.1 mock技術検収完了・live未確認`
-- next_action: Canopy live API最小確認を実施するか、オーナーが承認判断する。承認前はlive requestを行わない。
+- phase: `PH Beta Minimum Definition / B1〜B7 Feasibility Audit完了・B1 Canopy Test Provider v0.1 requests transport mock再検証完了・実adapterのlive再確認待ち`
+- next_action: requests transportを用いるCanopyTestClientのProduct API最小live再確認を実施するか、オーナーが承認判断する。承認前はlive requestを行わない。
 
-formal main / base `35b0c15e8816426306a4db695474789567778967`からCanopy Test Provider v0.1を最小実装した。`AMAZON_DATA_PROVIDER`は未設定時`keepa`、明示`canopy_test`時だけCanopy REST adapterを選択し、未知値はfail closedとする。Canopy Resolverは1回最大10 ASIN、`CANOPY_VERIFIED`をKeepaと区別し、Candidate CSV V1の15列を維持して`source=asin_resolver_canopy_verified`へ変換する。Canopy Expansionは起点商品、brandによるJP Search 1ページ、候補詳細最大5件のbrand exact matchに限定し、最大7 requests、retryなし、fallbackなし、Keepa SQLite cache no-writeとした。通常UIにprovider選択を追加せず、Canopy modeだけtest表示する。targeted pytestは165 passed、全pytestは781 passed。全試験はmockまたは既存ローカルfixtureであり、live Canopy / Keepa requestは0回、実商品・実画面・実業務受入は未実施である。
+formal main / base `35b0c15e8816426306a4db695474789567778967`からCanopy Test Provider v0.1を最小実装した。`AMAZON_DATA_PROVIDER`は未設定時`keepa`、明示`canopy_test`時だけCanopy REST adapterを選択し、未知値はfail closedとする。Canopy Resolverは1回最大10 ASIN、`CANOPY_VERIFIED`をKeepaと区別し、Candidate CSV V1の15列を維持して`source=asin_resolver_canopy_verified`へ変換する。Canopy Expansionは起点商品、brandによるJP Search 1ページ、候補詳細最大5件のbrand exact matchに限定し、最大7 requests、retryなし、fallbackなし、Keepa SQLite cache no-writeとした。通常UIにprovider選択を追加せず、Canopy modeだけtest表示する。CanopyのHTTP transportはurllibからrequestsへ最小置換し、API-KEY / Accept / timeout、HTTP分類、retryなし、ASIN完全一致のfail-closedをmockで再検証した。targeted pytestは119 passed、全pytestは787 passed。今回の修正でlive Canopy / Keepa requestは0回であり、実adapterのlive再確認、実商品・実画面・実業務受入は未実施である。
 
 PR #24はmainへ統合済みで、formal main commitは`5ebd4270e516d199a8e592298a15723414d2da9a`です。DEC-0030で限定した13 Brand-exact PH_BLOCKはmain上の正式技術成果です。独立V2 rulesetとGuardrail層のdeterministic BLOCK evaluatorを既存`apply_guardrails()`内でV1結果へBLOCK vetoとして合成し、V2非該当時のV1完全互換、malformed rulesetのfail-closed、Gate public interface不変、PH限定有効化を技術検証しました。targeted pytestは`tests/test_guardrails.py`が323 passed、`tests/test_prelisting_gate.py`が58 passed、全pytestは761 passedです。実商品、実データ、実画面、実業務受入は未実施であり、Phase 1の技術受入と業務受入を混同しません。Bose、一般用医薬品、医療用針、その他711候補は対象外のままです。
 
@@ -37,7 +37,7 @@ PR #16はGate結果CSVのschema version再検証をmainへ統合し、formal mai
 
 ## 完了・受入済み
 
-- Canopy Test Provider v0.1の最小実装・mock技術検収完了（全pytest 781件成功、live API 0回）
+- Canopy Test Provider v0.1のrequests transport置換・mock再検証完了（全pytest 787件成功、今回のlive API 0回）
 - Resolverの読み取り専用仕様監査完了
 - 過去成果物の証拠回収監査完了
 - 候補なし21件の停止工程は過去証拠から復元不能
