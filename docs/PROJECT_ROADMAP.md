@@ -84,11 +84,12 @@ ASIN到達性能とResolver成功は未評価であり、Evidence Persistenceの
 
 1. PH Minimum Beta完成定義・受入条件の正本化（完了）
 2. 完成定義と現行実装の差分監査（完了。確認済み`MISSING_IMPLEMENTATION`は0件）
-3. PH Minimum Beta実物受入プロトコルの定義（Keepa本番標準経路live技術確認を先行Gateとして含む）
-4. 承認後のKeepa本番標準経路live技術確認およびPH実商品・実画面・実業務受入
-5. 完成受入後、出品後商品改善ツールまたはAmazon仕入れ支援ツールの優先順位を判断
+3. PH Minimum Beta実物受入プロトコルの定義・正本化（完了）
+4. オーナー承認後のGate K — Keepa本番標準経路live技術確認
+5. Gate K PASS後のGate P — PH実商品・実画面・実業務受入
+6. Beta受入後の次ツール優先順位判断
 
-Resolver、Expansion、Prelisting Gate、Category Mapperの既存詳細工程は、上記の出品支援ツール配下で維持する。外部契約証拠回収は、自動投入またはE2E接続を検討する場合の保留事項とし、現在の最優先工程には置かない。
+Gate K / Gate Pの詳細手順は`docs/PH_MINIMUM_BETA_ACCEPTANCE_PROTOCOL.md`を参照する。Resolver、Expansion、Prelisting Gate、Category Mapperの既存詳細工程は、上記の出品支援ツール配下で維持する。外部契約証拠回収は、自動投入またはE2E接続を検討する場合の保留事項とし、現在の最優先工程には置かない。
 
 ## 保留
 

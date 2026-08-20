@@ -398,3 +398,12 @@
 - 理由: 実装差分の確認済み事実と、外部・実物によるオーナー受入を混同せず、未確認の外部契約や将来機能を先回りでBeta MUST化しないため。
 - 影響: 次工程は、Keepa本番標準経路のlive技術確認を先行Gateに含むPH Minimum Beta実物受入プロトコルの定義とする。今回の差分は正本文書のみであり、コード、tests仕様、provider、Guardrail、外部API、実商品、実画面、実業務、外部出品ツール、Phase 2、AI Shadowを変更・開始しない。
 - 再検討条件: Keepa本番標準経路のlive確認またはPH実物受入でBeta成立を妨げる事実が確認されたとき、mandatory attribute不足が実務的handoffを妨げると確認されたとき、または自動投入・正式E2E接続を別途検討するとき。
+
+## DEC-0036 — PH Minimum Beta実物受入プロトコルを採用する
+
+- 日付: 2026-08-20
+- 背景: DEC-0035で確認済み`MISSING_IMPLEMENTATION`が0件と正本化された後、Keepa本番経路の技術確認とPH実物受入を、API障害、サンプル不適合、実装blocker、オーナー受入NGと混同せずに実行・判定する必要がある。
+- 決定: `docs/PH_MINIMUM_BETA_ACCEPTANCE_PROTOCOL.md`を実物受入の正本とし、Gate K（Keepa本番標準経路live技術確認）をGate P（PH Minimum Beta実商品・実画面・実業務受入）より先行する二段Gateとして採用する。Gate KはKeepa利用・有料API利用について別のオーナー明示承認を得た後だけ実行する。CanopyでKeepa本番確認を代替しない。
+- 決定: Gate PはB1〜B7の実物受入基準に従う。PASS、INCONCLUSIVE、STOP、BETA_BLOCKER_CONFIRMEDを区別し、INCONCLUSIVEを実装FAILと確定しない。mandatory attribute全面対応はconditionalのままとし、既存出品ツールの正式入力契約はBeta MUSTへ追加しない。
+- 影響: Gate失敗またはblocker発見時も自動修正へ進まない。次工程はGate Kの実行条件確認とオーナー承認であり、今回、Keepa / Shopee API、実商品、実画面、実業務、外部書込みを開始しない。
+- 再検討条件: Gate KまたはGate PでB1〜B7の成立を妨げる具体的事実、承認範囲外の外部API、またはmandatory attribute不足による実務的handoff不能が確認されたとき。

@@ -13,13 +13,15 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `出品支援ツールMinimum Beta差分監査結果・最終Beta MUST残課題の正本化完了`
-- current_phase: `Minimum Beta差分監査完了後 / PH Minimum Beta実物受入プロトコル定義前`
-- working_branch: `codex/listing-support-gap-audit-formalization`
+- current_work_type: `PH Minimum Beta実物受入プロトコル正本化完了`
+- current_phase: `PH Minimum Beta実物受入プロトコル正本化後 / Gate K実行前`
+- working_branch: `codex/ph-minimum-beta-acceptance-protocol-formalization`
 - marketplace: `PH`
 - module: `出品支援ツール横断`
-- phase: `PH Minimum Beta差分監査完了後 / 実物受入プロトコル定義前`
-- next_action: PH Minimum Beta実物受入プロトコルの定義（Keepa本番標準経路live技術確認を先行Gateとして含む）
+- phase: `PH Minimum Beta実物受入プロトコル正本化後 / Keepa本番live技術確認前`
+- next_action: Gate K（Keepa本番標準経路live技術確認）の実行条件確認・オーナー承認
+
+DEC-0036で、Gate K（Keepa本番標準経路live技術確認）をGate P（PH Minimum Beta実物受入）より先行する二段Gateの実行プロトコルを正本化した。Gate K / Gate P、Keepa API、Shopee API、実商品、実画面、実業務の受入は開始していない。Gate Kは別途オーナーの明示承認後だけ開始する。詳細は`docs/PH_MINIMUM_BETA_ACCEPTANCE_PROTOCOL.md`を参照する。
 
 DEC-0035で、B1〜B7のMinimum Beta完成定義に対する確認済み`MISSING_IMPLEMENTATION`は0件と正本化した。これはBeta完成、Beta受入、実商品、実画面、実業務の受入完了を意味しない。残るBeta MUSTは、ASIN Expansion / ASIN ResolverのKeepa本番標準経路のlive技術確認と、PH Minimum Betaのオーナー実物受入である。Canopyは開発・試験専用providerのままとし、Keepa本番確認を代替しない。
 
