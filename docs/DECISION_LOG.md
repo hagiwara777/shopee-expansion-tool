@@ -372,3 +372,17 @@
 - 理由: Keepa本番標準と既存のSafety、Category、Brand責務を壊さず、無料枠の不用意な消費、確認出所の混同、cache混在を防ぎながら、B1の開発・mock試験を進めるため。
 - 影響: 次作業はCanopy Test Provider v0.1の最小実装となる。live Canopy API試験は実装・mock test後に別途オーナー承認を必要とする。Keepa本番廃止、Rainforest実装、自動fallback、Canopy本番標準化、provider性能比較、Safety / Category / Brandロジック変更、SG / MY / TH、外部出品ツール接続、deployは今回対象外である。
 - 再検討条件: live Canopy実データでAPI契約、request数、brand exact確認、category利用可能性、またはcache分離に追加設計が必要と判明したとき。Keepa本番契約が再開し、B1の本番経路を再確認するとき。Canopy以外のprovider追加が必要になったとき。
+
+## DEC-0034 — PH Minimum Beta完成定義・受入条件を正本化する
+
+- 日付: 2026-08-20
+- 背景: PH Beta Minimum Feasibility AuditとCanopy Test Provider v0.1のmain統合後、次の完成定義と現行実装の差分監査に先立ち、何をBeta成立条件として比較するかを一意にする必要がある。
+- 決定: Minimum Betaの目的は、provider最適化や完成度最大化ではなく、`候補生成 → PH Safety → Category / Brand確認 → 人間へのhandoff`までを実務上使い始められる状態にすることとする。Beta成立後は、実利用、ボトルネック発見、次Version改善を反復する。
+- 決定: Beta Minimum Coreは既存B1〜B7を維持し、B8等を追加しない。候補生成はmarketplace-neutralなASIN Expansion / ASIN Resolverが担当し、PH Safety、Category / Brand確認、人間へのhandoffと責務を混同しない。BLOCK / EXCLUDEと未解決REVIEWを準備完了に混ぜず、推測したCategory / Brand値を確認済みFactとして扱わない。
+- 決定: Feasibility Audit上BLOCKEDは0で、新規実装blockerは現時点で確認されていない。ただし、これは不足実装なし、Beta実装完成、または最終Beta MUST残課題の確定を意味しない。不足実装の有無、Beta blocker、最終Beta MUST残課題は次の完成定義と現行実装の差分監査で確定する。Keepa確認とPH実物受入だけが残課題だとは限定しない。
+- 決定: structured REVIEW完成形、API auto-resolution完成形、Shipping / Operational Filter、Category Batch完成形、mandatory attribute全面対応、AI Shadow、自動Workflow、自動投入、自動出品、SG / MY / TH、固定工数削減KPI、Beta前の詳細E2E人間作業時間測定はBeta MUSTへ自動追加しない。mandatory attributeはconditionalのままとする。
+- 決定: Canopy Test Provider v0.1はmain上の正式技術成果であり、Canopy Resolver / Expansionのlive正常系は技術確認済みである。B2〜B7のFeasibility Audit上READY、Gate / Category Mapper等の実装・testsの存在は、PH Minimum Beta全体、実商品、実画面、実業務、Keepa本番標準経路の最終実務確認のオーナー受入完了を意味しない。
+- 決定: Keepaを本番標準Amazon Data Provider / Expansion provider、Canopyを`AMAZON_DATA_PROVIDER=canopy_test`明示時だけ用いる開発・試験専用providerとして維持し、自動fallbackを追加しない。SP-APIによるKeepa Expansion全面代替調査はHOLDとする。SP-APIは将来のKeepa依存削減候補であり、Beta MUSTを追加せず、Minimum Beta完成前にExpansion providerとして新規開発しない。Beta実利用後にKeepaコスト、契約、障害、利用制限、運用負荷が実際のボトルネックになった場合だけ再検討する。
+- 理由: 技術成果とオーナー受入を混同せず、未検証の探索詳細を正式Factへ昇格させずに、次の差分監査が一意の基準で不足を確認できるようにするため。
+- 影響: 今回は既存正本文書と完成定義草案だけを最小更新する。コード、tests仕様、Guardrail辞書、Rule V2、Candidate / Gate schema、Category Mapper、Amazon provider、SP-API、外部出品ツール、外部API、実商品、実画面、実業務、Phase 2、AI Shadow、SG / MY / THは変更・開始しない。個別HTTPレスポンス、individual ASIN試験結果、similarItems件数、Catalog Search件数、variation偏り、Git外cacheのpath・件数・SHA-256は正式Factとして記録しない。
+- 再検討条件: 差分監査で追加のBeta MUSTまたは不足実装が確認されたとき、mandatory attributeが実務的handoffに不可欠と確認されたとき、Keepaのコスト・契約・障害・利用制限・運用負荷がBeta実利用で実際のボトルネックになったとき、またはオーナーがPHの実商品・実画面・実業務受入を行うとき。

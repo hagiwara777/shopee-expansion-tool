@@ -2,8 +2,8 @@
 
 ## 文書の状態
 
-候補生成 → 市場別Gate → Category / Brand準備という責務分離は、DEC-0021で決定済みである。DEC-0028はV2の論理責務と実装原則を追加したが、V2は実装前である。
-この文書は、現行V1の完成受入候補と評価条件を保持しつつ、V2の目標を整理する草案である。
+候補生成 → 市場別Gate → Category / Brand準備という責務分離は、DEC-0021で決定済みである。DEC-0028はV2の論理責務と実装原則を追加し、Phase 1 deterministic BLOCKとCanopy Test Provider v0.1はmain上の技術成果である。一方、V2のより先の完成目標は未実装である。
+この文書は、承認済みPH Minimum Beta完成定義・受入条件を基準にしつつ、V1のより広い完成受入候補とV2の将来目標を整理する草案である。
 決定済みの責務分離を変更する文書ではなく、DECISION_LOGの代替にもならない。
 
 ## 目的と背景
@@ -63,7 +63,7 @@ Category / Brand確認へ進める。確認済みのASIN、Category ID、Brand I
 
 不明、要確認、除外の候補は、出品準備済みとして混ぜず、理由が分かる状態で止める。
 
-## 現行V1の完成受入候補とV2目標
+## V1のより広い完成受入候補とV2目標
 
 次をすべて満たしたとき、出品支援ツールv1を完成受入の候補とする。
 
@@ -110,7 +110,7 @@ Expansion機能そのものやGate内部の市場別Guardrailは削除しない�
 
 ## PH Beta Minimum Definition
 
-この節はPHで実際に使い始められる最小Betaの定義であり、既存のV1完成受入候補および後述するV2の完成受入目標を置き換えない。Betaは完全自動化、外部出品ツールへの自動投入、実際の出品可能の保証、固定工数削減KPIを意味しない。
+この節はDEC-0034で承認された、PHで実際に使い始められる最小Betaの完成定義・受入条件である。上記のV1のより広い完成受入候補および後述するV2の完成受入目標とは別に扱う。Betaは完全自動化、外部出品ツールへの自動投入、実際の出品可能の保証、固定工数削減KPIを意味しない。
 
 Beta Minimum Coreは次のB1〜B7とする。
 
@@ -122,16 +122,24 @@ Beta Minimum Coreは次のB1〜B7とする。
 6. **B6 Beta準備状態の判別** — Amazon ASIN、確認済みShopee Category ID、確認済みShopee Brand IDまたは確認済みNo Brandが揃ったかを、候補ごとに一意に判別できる。これはShopeeへ実際に出品可能、または外部出品ツールへの完全入力準備済みという表現ではない。
 7. **B7 人間への引渡し** — 確認済みのAmazon ASIN、Shopee Category ID、Shopee Brand ID / No Brandを画面またはファイルで人間が取得・確認し、既存出品ツールへの手入力準備に利用できる。自動投入・自動接続はBeta MUSTではない。
 
+B8等の要件は追加しない。
+
 mandatory attribute全面対応は現時点でconditionalであり、Beta MUSTではない。後続のFeasibility Auditで、mandatory attributeがなければ既存出品ツールへの実務的な手入力準備が成立しないと確認された場合だけ、MUSTへの昇格をオーナー判断事項として戻す。
 
 Beta受入は、B1〜B7にBeta成立を妨げるBLOCKEDがなく、残るPARTIALの通常利用可能性をオーナーが実物で確認し、少量の実商品で一連の導線を実画面・実業務として確認した後に行う。EXCLUDE / 未解決REVIEWや未確認Category / Brandを準備完了に混ぜず、確認済みASIN / Category ID / Brand IDを取得できることを要する。実画面、実データ、実業務の受入はオーナー確認前に完了扱いにしない。
+
+Feasibility Audit上BLOCKEDは0で、新規実装blockerは現時点で確認されていない。これは不足実装なし、Beta実装完成、または最終Beta MUST残課題の確定を意味しない。次の完成定義と現行実装の差分監査で、不足実装の有無、Beta blocker、最終Beta MUST残課題を確定する。Keepa確認とPH実物受入だけが残課題だとは、この時点では限定しない。
+
+Canopy Test Provider v0.1とCanopy Resolver / Expansionのlive正常系は技術確認済みであり、B2〜B7はFeasibility Audit上READYである。ただし、PH Minimum Beta全体、実商品による一連の導線、実画面、実業務、Keepa本番標準経路の最終実務確認は、オーナー確認前に受入完了としない。Keepaは本番標準provider、Canopyは明示設定時だけ用いる開発・試験専用providerであり、自動fallbackは行わない。
+
+SP-APIによるKeepa Expansion全面代替調査はHOLDとする。SP-APIは将来のKeepa依存削減候補であり、Beta MUSTを追加せず、Minimum Beta完成前にExpansion providerとして新規開発しない。Beta実利用後にKeepaコスト、契約、障害、利用制限、運用負荷が実際のボトルネックになった場合だけ再検討する。
 
 Beta後は、実利用でオーナーが実務ボトルネックを報告し、次versionで改善して再利用する。詳細なE2E時間測定はBeta前の必須Gateではなく、必要になった場合のBeta後の改善手段候補とする。
 
 ## 次の推奨工程
 
-1. B1〜B7をmainの実装・テスト・既存Evidenceへ読み取り専用で照合し、READY / PARTIAL / BLOCKED、現状、根拠、不足、最小対応を整理するPH Beta Minimum Feasibility Auditを行う。
-2. 監査でBeta成立を妨げるBLOCKEDまたはPARTIALと確認された不足だけを、別途承認した範囲で実装する。
+1. 完成定義と現行実装の差分監査を行い、不足実装の有無、Beta blocker、最終Beta MUST残課題を確定する。
+2. 差分監査で不足実装が確認された場合だけ、別途承認した範囲で実装、テスト、技術検収を行う。
 3. その後、オーナーの明示承認後だけ、少量の実商品、必要な外部API、実画面でPH Betaの実業務受入を行う。
 
 画面導線のオーナー確認と、Category Mapper入力時のGate結果CSV schema version再検証は完了している。

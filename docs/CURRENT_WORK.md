@@ -13,13 +13,15 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `出品支援ツール完成定義設計ゲート準備`
-- current_phase: `Canopy Test Provider v0.1 main統合完了・出品支援ツール完成定義設計ゲート前`
-- working_branch: `codex/listing-support-completion-definition-gate-prep`
+- current_work_type: `出品支援ツールMinimum Beta完成定義・受入条件の正本化完了`
+- current_phase: `Minimum Beta完成定義・受入条件の正本化完了後 / 完成定義と現行実装の差分監査前`
+- working_branch: `codex/listing-support-minimum-beta-definition-formalization`
 - marketplace: `PH`
 - module: `出品支援ツール横断`
-- phase: `Canopy Test Provider v0.1 main統合完了後 / 出品支援ツール完成定義設計ゲート前`
-- next_action: 出品支援ツールの完成定義、残課題、利用者シナリオ、受入条件の設計ゲート
+- phase: `承認済みMinimum Beta完成定義・受入条件の正本化完了後 / 完成定義と現行実装の差分監査前`
+- next_action: 完成定義と現行実装の差分監査
+
+DEC-0034で、PH Minimum Betaの目的、B1〜B7、受入条件、provider境界、SP-API全面代替調査のHOLDを正本化した。これはBeta完成、Beta受入、不足実装なし、または最終Beta MUST残課題の確定を意味しない。Feasibility Audit上BLOCKEDは0で、新規実装blockerは現時点で確認されていない。次の差分監査で初めて、不足実装の有無、Beta blocker、最終Beta MUST残課題を確定する。
 
 PR #29はmainへ統合済みで、formal main / current baseは`471c63ce0d2206f4ab74b1813f9522db121c331d`である。Canopy Test Provider v0.1はmain上の正式技術成果である。`AMAZON_DATA_PROVIDER`は未設定時`keepa`、明示`canopy_test`時だけCanopy REST adapterを選択し、未知値はfail closedとする。Canopy Resolverは1回最大10 ASIN、`CANOPY_VERIFIED`をKeepaと区別し、Candidate CSV V1の15列を維持して`source=asin_resolver_canopy_verified`へ変換する。Canopy Expansionは起点商品、brandによるJP Search 1ページ、候補詳細最大5件のbrand exact matchに限定し、最大7 requests、retryなし、fallbackなし、Keepa SQLite cache no-writeとした。通常UIにprovider選択を追加せず、Canopy modeだけtest表示する。CanopyのHTTP transportはrequestsを使い、API-KEY / Accept / timeout、HTTP分類、retryなし、ASIN完全一致のfail-closedをmockで検証済みである。targeted pytestは119 passed、全pytestは787 passed。オーナー承認済みのlive技術検証では、`B0CP4RLMDB`のProductとResolverがASIN完全一致・title / brandありで成立し、Resolverは1 requestで`FOUND` / `CANOPY_VERIFIED`を返した。Expansionはsource brand取得、Search 20件、有効候補5件、brand exact・ASIN完全一致・titleありの最終候補5件を合計7 requestsで返した。Keepaは本番標準のまま、Canopyは開発・試験専用であり、自動fallbackは行わない。Canopyの長期品質・安定性、実商品の網羅確認、実画面・実業務受入は未実施である。
 
@@ -163,10 +165,6 @@ CI成果物で再確認された事実ではありません。コード機能の
 ## 未完了事項
 
 - Canopyの長期品質・安定性、実商品の網羅確認、実画面・実業務受入の確認
-- 出品支援ツールの完成定義
-- 出品支援ツールの残課題一覧
-- 出品支援ツールの利用者シナリオ
-- 出品支援ツールの受入条件
 - Category ID等を扱うGuardrail候補データ構造・判定単位・根拠種別の設計
 - 完成定義と現行実装の差分監査
 - ASIN到達性能の評価
@@ -186,11 +184,11 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-出品支援ツールの完成定義、残課題、利用者シナリオ、受入条件の設計ゲート
+完成定義と現行実装の差分監査
 
 ## 停止条件
 
-- 完成定義設計ゲートを越えて、不足実装や既存仕様変更へ拡張しない。
+- 完成定義と現行実装の差分監査を越えて、不足実装や既存仕様変更へ自動拡張しない。
 - 人間作業時間measurement logを作らず、E2E時間測定を開始しない。
 - Phase 2へ自動直進しない。
 - AI Shadowを開始しない。
@@ -303,4 +301,4 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 最終更新日
 
-2026-08-18
+2026-08-20
