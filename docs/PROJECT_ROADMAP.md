@@ -16,7 +16,7 @@ Shopee事業で開発する対象は、次の三つの独立ツールである�
 2. **出品後商品改善ツール** — Shopeeへ出品済みの商品リストの編集・改善を省力化する。
 3. **Amazon仕入れ支援ツール** — Amazonでの商品購入・仕入れを省力化する。
 
-現在は出品支援ツールの完成を最優先とする。この優先順位は開発順序であり、三ツール間の技術的依存関係を意味しない。出品後商品改善ツールとAmazon仕入れ支援ツールの本格設計・実装は、出品支援ツールの完成受入後に優先順位を再判断する。両ツールの詳細仕様は今回決めない。PH Minimum Betaの完成定義・受入条件はDEC-0034で正本化済みであり、次は完成定義と現行実装の差分監査である。
+現在は出品支援ツールの完成を最優先とする。この優先順位は開発順序であり、三ツール間の技術的依存関係を意味しない。出品後商品改善ツールとAmazon仕入れ支援ツールの本格設計・実装は、出品支援ツールの完成受入後に優先順位を再判断する。両ツールの詳細仕様は今回決めない。PH Minimum Betaの完成定義・受入条件はDEC-0034、B1〜B7に対する差分監査結果と残る受入GateはDEC-0035で正本化済みであり、次はPH Minimum Beta実物受入プロトコルの定義である。
 
 外部出品ツールへの自動接続・自動投入は出品支援ツールの中核目的と別の責務境界であり、別設計・別承認とする。外部契約未確認の事実は残すが、その未確認だけを理由にASIN、Shopee Category ID、Shopee Brand IDの取得・確認に関する中核開発全体を停止しない。
 
@@ -31,7 +31,7 @@ Category Mapperは唯一の正しいleaf Categoryの完全自動確定ではな�
 
 PHではPhase 1 deterministic BLOCKのmain技術受入後、PH Beta Minimum Definitionを先に置く。Beta Minimum Coreは、(B1) ExpansionとResolverの両入口による候補ASIN取得、(B2) PH Safety、(B3) 確認済みShopee Category IDへの経路、(B4) 確認済みShopee Brand IDまたはNo Brandへの経路、(B5) 未確定を推測で準備完了にしない停止能力、(B6) ASIN・Category ID・Brand ID / No Brandの揃い具合の一意な判別、(B7) 人間が確認済み情報を取得して既存出品ツールへの手入力準備に利用できるhandoffとする。これは外部出品ツールへの自動投入や実際の出品可能を意味しない。
 
-PH Beta Minimum Feasibility Auditは完了し、B1 CandidateだけがKeepa API契約の利用可能性未確認によりPARTIAL、B2〜B7は技術Feasibility上READYである。Feasibility Audit上BLOCKEDは0で、新規実装blockerは現時点で確認されていない。ただし、不足実装の有無、Beta blocker、最終Beta MUST残課題は次の差分監査で確定する。B1のAmazon Data Provider Test Bridge Design Gateでは、Keepaを本番標準として維持し、Canopyを明示設定時だけ用いるBeta開発・試験専用providerとして採用した（DEC-0033）。Canopy Test Provider v0.1はmain上の正式技術成果であり、CanopyはKeepa Product Finderと同等の性能を保証せず、Safety / Category / Brandの責務は変更しない。structured REVIEW、API auto-resolution、Shipping / Operational Filter、Category Batch、mandatory attribute全面対応、AI Shadow、Workflow、自動投入、自動出品、SG / MY / THはBeta MUSTへ自動追加しない。mandatory attributeは現時点でconditionalである。
+PH Beta Minimum Feasibility Auditと、B1〜B7完成定義に対する現行実装の差分監査は完了した。確認済み`MISSING_IMPLEMENTATION`は0件であり、これをBeta完成、Beta受入、実商品・実画面・実業務の受入完了とは扱わない。残るBeta MUSTは、ASIN Expansion / ASIN ResolverのKeepa本番標準経路のlive技術確認と、PH Minimum Betaのオーナー実物受入である。この差分監査結果により、Beta前の新規実装へ自動進行しない。B1のAmazon Data Provider Test Bridge Design Gateでは、Keepaを本番標準として維持し、Canopyを明示設定時だけ用いる開発・試験専用providerとして採用した（DEC-0033）。Canopy Test Provider v0.1はmain上の正式技術成果であり、CanopyはKeepa本番確認を代替せず、Safety / Category / Brandの責務は変更しない。外部出品ツールの正式入力契約はBeta MUSTではなく、mandatory attribute全面対応はconditionalのままとする。structured REVIEW、API auto-resolution、Shipping / Operational Filter、Category Batch、AI Shadow、Workflow、自動投入、自動出品、SG / MY / THはBeta MUSTへ自動追加しない。
 
 Beta前に詳細なE2E人間作業時間測定、`CORE_INFO_READY ASIN / human hour`、Human Touch Rate、固定工数削減目標を必須Gateにしない。Beta後は実利用、オーナーによる実務ボトルネック報告、次versionでの改善を反復する。必要になったE2E時間測定はこのBeta後の改善手段候補とし、既存の件数、status、未解決理由等の自動出力を優先して、人間へ詳細な時間記録を常時要求しない。他市場への共通化はPH Betaの成立確認後に別途判断する。
 ## 正式完成済み
@@ -83,9 +83,9 @@ ASIN到達性能とResolver成功は未評価であり、Evidence Persistenceの
 ## 現在から先の工程
 
 1. PH Minimum Beta完成定義・受入条件の正本化（完了）
-2. 完成定義と現行実装の差分監査
-3. 差分監査で不足実装が確認された場合だけ、不足実装、テスト、技術検収
-4. 出品支援ツールの実画面・実業務受入
+2. 完成定義と現行実装の差分監査（完了。確認済み`MISSING_IMPLEMENTATION`は0件）
+3. PH Minimum Beta実物受入プロトコルの定義（Keepa本番標準経路live技術確認を先行Gateとして含む）
+4. 承認後のKeepa本番標準経路live技術確認およびPH実商品・実画面・実業務受入
 5. 完成受入後、出品後商品改善ツールまたはAmazon仕入れ支援ツールの優先順位を判断
 
 Resolver、Expansion、Prelisting Gate、Category Mapperの既存詳細工程は、上記の出品支援ツール配下で維持する。外部契約証拠回収は、自動投入またはE2E接続を検討する場合の保留事項とし、現在の最優先工程には置かない。

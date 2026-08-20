@@ -386,3 +386,15 @@
 - 理由: 技術成果とオーナー受入を混同せず、未検証の探索詳細を正式Factへ昇格させずに、次の差分監査が一意の基準で不足を確認できるようにするため。
 - 影響: 今回は既存正本文書と完成定義草案だけを最小更新する。コード、tests仕様、Guardrail辞書、Rule V2、Candidate / Gate schema、Category Mapper、Amazon provider、SP-API、外部出品ツール、外部API、実商品、実画面、実業務、Phase 2、AI Shadow、SG / MY / THは変更・開始しない。個別HTTPレスポンス、individual ASIN試験結果、similarItems件数、Catalog Search件数、variation偏り、Git外cacheのpath・件数・SHA-256は正式Factとして記録しない。
 - 再検討条件: 差分監査で追加のBeta MUSTまたは不足実装が確認されたとき、mandatory attributeが実務的handoffに不可欠と確認されたとき、Keepaのコスト・契約・障害・利用制限・運用負荷がBeta実利用で実際のボトルネックになったとき、またはオーナーがPHの実商品・実画面・実業務受入を行うとき。
+
+## DEC-0035 — Minimum Beta差分監査結果と残る受入Gateを正本化する
+
+- 日付: 2026-08-20
+- 背景: DEC-0034のB1〜B7完成定義に対する読み取り専用の現行実装差分監査が完了し、次に新規実装を探索する段階か、Keepa本番経路とPH実物受入を確認する段階かを一意にする必要がある。
+- 決定: B1〜B7に対する確認済み`MISSING_IMPLEMENTATION`は0件とする。これはBeta完成、Beta受入完了、実商品確認完了、実画面確認完了、実業務確認完了を意味せず、実物受入で新たなblockerが判明する可能性は残る。
+- 決定: 残るBeta MUSTは、(1) ASIN ExpansionおよびASIN ResolverのKeepa本番標準経路のlive技術確認、(2) Candidate生成、PH Gate、EXCLUDE / REVIEW / ELIGIBLE、Category、Brand ID / 明示No Brand、`listing_ready`、人間向けhandoff、既存出品ツールへの手入力準備としての実用性を対象とするPH Minimum Betaのオーナー実物受入とする。Keepaを本番標準として維持し、Canopy結果で代替しない。
+- 決定: 外部出品ツールの正式入力契約はBeta MUSTへ追加しない。B7は、現行の人間による手入力準備として実際に利用できるかをオーナーが確認して受け入れる。自動投入または正式E2E接続を検討する場合のHOLD事項は維持する。
+- 決定: mandatory attribute全面対応はconditionalのままとし、実物受入で不足により実務的な手入力準備が成立しないと確認された場合だけ、Beta blocker候補としてオーナーへ戻す。structured REVIEW完成形、API auto-resolution完成形、Shipping / Operational Filter、Category Batch完成形、AI Shadow、自動Workflow、自動投入、自動出品、SG / MY / TH、SP-API Expansion代替、固定工数削減KPI、Beta前の詳細E2E時間測定はBeta MUSTへ追加しない。
+- 理由: 実装差分の確認済み事実と、外部・実物によるオーナー受入を混同せず、未確認の外部契約や将来機能を先回りでBeta MUST化しないため。
+- 影響: 次工程は、Keepa本番標準経路のlive技術確認を先行Gateに含むPH Minimum Beta実物受入プロトコルの定義とする。今回の差分は正本文書のみであり、コード、tests仕様、provider、Guardrail、外部API、実商品、実画面、実業務、外部出品ツール、Phase 2、AI Shadowを変更・開始しない。
+- 再検討条件: Keepa本番標準経路のlive確認またはPH実物受入でBeta成立を妨げる事実が確認されたとき、mandatory attribute不足が実務的handoffを妨げると確認されたとき、または自動投入・正式E2E接続を別途検討するとき。

@@ -124,13 +124,13 @@ Beta Minimum Coreは次のB1〜B7とする。
 
 B8等の要件は追加しない。
 
-mandatory attribute全面対応は現時点でconditionalであり、Beta MUSTではない。後続のFeasibility Auditで、mandatory attributeがなければ既存出品ツールへの実務的な手入力準備が成立しないと確認された場合だけ、MUSTへの昇格をオーナー判断事項として戻す。
+mandatory attribute全面対応は現時点でconditionalであり、Beta MUSTではない。PH実物受入で、mandatory attribute不足により既存出品ツールへの実務的な手入力準備が成立しないと確認された場合だけ、Beta blocker候補としてオーナー判断事項へ戻す。
 
 Beta受入は、B1〜B7にBeta成立を妨げるBLOCKEDがなく、残るPARTIALの通常利用可能性をオーナーが実物で確認し、少量の実商品で一連の導線を実画面・実業務として確認した後に行う。EXCLUDE / 未解決REVIEWや未確認Category / Brandを準備完了に混ぜず、確認済みASIN / Category ID / Brand IDを取得できることを要する。実画面、実データ、実業務の受入はオーナー確認前に完了扱いにしない。
 
-Feasibility Audit上BLOCKEDは0で、新規実装blockerは現時点で確認されていない。これは不足実装なし、Beta実装完成、または最終Beta MUST残課題の確定を意味しない。次の完成定義と現行実装の差分監査で、不足実装の有無、Beta blocker、最終Beta MUST残課題を確定する。Keepa確認とPH実物受入だけが残課題だとは、この時点では限定しない。
+完成定義と現行実装の差分監査は完了し、B1〜B7に対する確認済み`MISSING_IMPLEMENTATION`は0件である。これはBeta完成、Beta受入、実商品、実画面、実業務の受入完了を意味しない。残るBeta MUSTは、ASIN Expansion / ASIN ResolverのKeepa本番標準経路のlive技術確認と、PH Minimum Betaのオーナー実物受入である。実物受入で新たなblockerが判明する可能性は残る。
 
-Canopy Test Provider v0.1とCanopy Resolver / Expansionのlive正常系は技術確認済みであり、B2〜B7はFeasibility Audit上READYである。ただし、PH Minimum Beta全体、実商品による一連の導線、実画面、実業務、Keepa本番標準経路の最終実務確認は、オーナー確認前に受入完了としない。Keepaは本番標準provider、Canopyは明示設定時だけ用いる開発・試験専用providerであり、自動fallbackは行わない。
+Canopy Test Provider v0.1とCanopy Resolver / Expansionのlive正常系は技術確認済みであり、B2〜B7はFeasibility Audit上READYである。ただし、PH Minimum Beta全体、実商品による一連の導線、実画面、実業務、Keepa本番標準経路の最終実務確認は、オーナー確認前に受入完了としない。Keepaは本番標準provider、Canopyは明示設定時だけ用いる開発・試験専用providerであり、Canopy結果でKeepa本番確認を代替せず、自動fallbackは行わない。外部出品ツールの正式入力契約はBeta MUSTではなく、自動投入または正式E2E接続を検討する場合のHOLDとする。
 
 SP-APIによるKeepa Expansion全面代替調査はHOLDとする。SP-APIは将来のKeepa依存削減候補であり、Beta MUSTを追加せず、Minimum Beta完成前にExpansion providerとして新規開発しない。Beta実利用後にKeepaコスト、契約、障害、利用制限、運用負荷が実際のボトルネックになった場合だけ再検討する。
 
@@ -138,9 +138,9 @@ Beta後は、実利用でオーナーが実務ボトルネックを報告し、�
 
 ## 次の推奨工程
 
-1. 完成定義と現行実装の差分監査を行い、不足実装の有無、Beta blocker、最終Beta MUST残課題を確定する。
-2. 差分監査で不足実装が確認された場合だけ、別途承認した範囲で実装、テスト、技術検収を行う。
-3. その後、オーナーの明示承認後だけ、少量の実商品、必要な外部API、実画面でPH Betaの実業務受入を行う。
+1. PH Minimum Beta実物受入プロトコルを定義し、Keepa本番標準経路のlive技術確認を先行Gateとして明記する。
+2. オーナーの明示承認後だけ、Keepa本番標準経路のlive技術確認と、少量の実商品・必要な外部API・実画面によるPH Betaの実業務受入を行う。
+3. 実物受入でBeta成立を妨げる事実が確認された場合だけ、別途承認した範囲で対応を判断する。
 
 画面導線のオーナー確認と、Category Mapper入力時のGate結果CSV schema version再検証は完了している。
 
