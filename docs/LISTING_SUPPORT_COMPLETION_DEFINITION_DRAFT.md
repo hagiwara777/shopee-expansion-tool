@@ -112,6 +112,8 @@ Expansion機能そのものやGate内部の市場別Guardrailは削除しない�
 
 この節はDEC-0034で承認された、PHで実際に使い始められる最小Betaの完成定義・受入条件である。上記のV1のより広い完成受入候補および後述するV2の完成受入目標とは別に扱う。Betaは完全自動化、外部出品ツールへの自動投入、実際の出品可能の保証、固定工数削減KPIを意味しない。
 
+実物受入は`docs/PH_MINIMUM_BETA_ACCEPTANCE_PROTOCOL.md`に従う。Gate K（Keepa本番標準経路live技術確認）のPASS後だけ、Gate P（PH Minimum Beta実物受入）へ進む。
+
 Beta Minimum Coreは次のB1〜B7とする。
 
 1. **B1 Candidate取得** — ASIN ExpansionとASIN Resolverの両入口で、実利用可能なAmazon ASIN候補を得る経路がある。両入口は候補生成だけを担当し、PH出品可否、Category、Brandを決めない。
@@ -138,8 +140,8 @@ Beta後は、実利用でオーナーが実務ボトルネックを報告し、�
 
 ## 次の推奨工程
 
-1. PH Minimum Beta実物受入プロトコルを定義し、Keepa本番標準経路のlive技術確認を先行Gateとして明記する。
-2. オーナーの明示承認後だけ、Keepa本番標準経路のlive技術確認と、少量の実商品・必要な外部API・実画面によるPH Betaの実業務受入を行う。
+1. Gate Kの実行条件を確認し、Keepa利用・有料API利用についてオーナーの明示承認を得る。
+2. Gate K PASS後だけ、Gate Pで少量の実商品、必要な外部API、実画面によるPH Betaの実業務受入を行う。
 3. 実物受入でBeta成立を妨げる事実が確認された場合だけ、別途承認した範囲で対応を判断する。
 
 画面導線のオーナー確認と、Category Mapper入力時のGate結果CSV schema version再検証は完了している。
