@@ -417,3 +417,13 @@
 - 理由: PH Beta完成を遅らせず、実利用から得る事実を使いながら、将来の複数開発を安全かつ俯瞰的に並走できる状態を整えるため。
 - 影響: 現在のGate K / Gate P、B1〜B7、次の単一作業を変更しない。この工程をPH Minimum Betaの新しいBeta MUSTまたはPH実運用の開始条件にはしない。今回の変更はRoadmapとDecision Logのみであり、コード、README、`CURRENT_WORK.md`、tests仕様、Secret実装、credential操作、外部API、実商品、実画面、実業務を変更・開始しない。
 - 再検討条件: PH Beta完成時、複数プロジェクト並走開始前、またはPH実運用でcredential管理・進行管理の具体的なボトルネックが確認されたとき。
+
+## DEC-0038 — PH Minimum Beta完成候補にClaudeによる第三者独立レビューを置く
+
+- 日付: 2026-08-24
+- 背景: PH Minimum BetaのGate K / Gate Pとオーナー最終確認の間で、完成定義、安全境界、B1〜B7、Keepa / Guardrail / Category / Brand / handoff、tests / Evidence、重大リスク、Beta前の過剰実装要求を独立に確認する工程を、オーナーが採用した。DEC-0037のPost-Beta開発管理基盤整備には影響しない。
+- 決定: Gate P PASS後のPH Minimum Beta受入候補に対して、Claudeによる第三者独立レビューを行い、その後にオーナー最終確認を置く。Claudeは完成を決裁しない。レビューは、Minimum Beta完成定義との整合、安全境界の見落とし、B1〜B7との不整合、Keepa / Guardrail / Category / Brand / handoffの重大な抜け、tests / Evidenceの重大不足、Beta開始前に止めるべき重大リスク、Beta前に不要な過剰実装要求の混入を最低限確認対象とする。
+- 決定: 重大指摘はChatGPT / オーナーがBeta blocker候補として再確認する。軽微な改善はBeta後改善候補とし、理想論・追加完成度要求は自動的にBeta MUSTへ追加しない。Claudeの指摘だけで自動修正または自動不合格にしない。PH Minimum Beta完成の最終判断はオーナーが行う。
+- 理由: Gate実行結果と最終判断の間に独立した視点を置き、重大な見落としを確認しつつ、未検証の追加完成度要求でBeta開始を不必要に遅らせないため。
+- 影響: Gate K / Gate Pの定義と順序、B1〜B7、Keepa本番標準、Canopy試験専用、既存Beta MUSTを変更しない。Claudeレビューは完成判断の品質確認工程であり、PH Minimum Betaの機能MUSTを追加・置換しない。今回の変更はRoadmapとDecision Logのみであり、コード、tests仕様、`CURRENT_WORK.md`、README、credential、API、実商品、実画面、実業務を変更・開始しない。Claudeレビューのためにcredential、`.env`、API key、顧客情報、秘密情報を正本文書へ記録しない。
+- 再検討条件: ClaudeレビューでBeta blocker候補となる具体的事実、B1〜B7または安全境界の不整合、tests / Evidenceの重大不足、またはオーナー最終確認に追加判断が必要な事実が確認されたとき。
