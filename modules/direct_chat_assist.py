@@ -52,7 +52,7 @@ def build_copy_button_html(prompt: str, dom_id: str) -> str:
 
     return f"""
 <div id="{dom_id}">
-  <button type="button" id="{button_id}">プロンプトをコピー</button>
+  <button type="button" id="{button_id}">ChatGPTへ貼るプロンプトをコピー</button>
   <span id="{status_id}" role="status" aria-live="polite"></span>
 </div>
 <script>

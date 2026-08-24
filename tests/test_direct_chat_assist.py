@@ -100,6 +100,7 @@ def test_copy_button_html_uses_base64_and_clipboard_api_without_plaintext_prompt
 
     html = build_copy_button_html(prompt, "initial-copy")
 
+    assert "ChatGPTへ貼るプロンプトをコピー" in html
     assert prompt not in html
     assert encode_prompt_base64(prompt) in html
     assert "navigator.clipboard.writeText" in html
