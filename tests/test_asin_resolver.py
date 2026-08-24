@@ -463,6 +463,60 @@ def test_parses_tsv_with_comma_inside_title():
     assert rows[0].asin == "B07TSC47PH"
 
 
+def test_parses_inline_markdown_jp_url_in_tsv_as_one_selected_candidate():
+    rows = preview_candidates(
+        "source_id\tinput_title\tamazon_url\n"
+        "R0001\tAnua Heartleaf 77 Toner 250ml\t"
+        "[https://www.amazon.co.jp/dp/B0BK87QVSX]"
+        "(https://www.amazon.co.jp/dp/B0BK87QVSX)",
+        {"R0001": "Anua Heartleaf 77 Toner 250ml"},
+    )
+
+    assert len(rows) == 1
+    assert rows[0]["source_id"] == "R0001"
+    assert rows[0]["asin"] == "B0BK87QVSX"
+    assert rows[0]["amazon_url"] == "https://www.amazon.co.jp/dp/B0BK87QVSX"
+    assert rows[0]["selected"] is True
+    assert rows[0]["verification"] == NOT_CHECKED
+
+
+def test_parses_inline_markdown_jp_destination_with_text_label():
+    rows = parse_ai_response(
+        "input_title\tamazon_url\n"
+        "Anua Heartleaf 77 Toner 250ml\t"
+        "[Amazon商品](https://www.amazon.co.jp/dp/B0BK87QVSX)"
+    )
+
+    assert len(rows) == 1
+    assert rows[0].asin == "B0BK87QVSX"
+    assert rows[0].amazon_url == "https://www.amazon.co.jp/dp/B0BK87QVSX"
+
+
+@pytest.mark.parametrize("domain", ["amazon.com", "amazon.sg"])
+def test_rejects_inline_markdown_link_with_overseas_destination(domain):
+    rows = parse_ai_response(
+        "input_title\tamazon_url\n"
+        f"Anua Heartleaf 77 Toner 250ml\t[Amazon商品](https://www.{domain}/dp/B0BK87QVSX)"
+    )
+
+    assert len(rows) == 1
+    assert rows[0].asin == ""
+    assert rows[0].note == "Not Amazon.co.jp URL"
+
+
+def test_rejects_inline_markdown_link_with_conflicting_jp_asins():
+    rows = preview_candidates(
+        "input_title\tamazon_url\n"
+        "Anua Heartleaf 77 Toner 250ml\t"
+        "[https://www.amazon.co.jp/dp/B0BK87QVSX]"
+        "(https://www.amazon.co.jp/dp/B0C1P81W6W)"
+    )
+
+    assert len(rows) == 1
+    assert rows[0]["asin"] == ""
+    assert rows[0]["selected"] is False
+
+
 def test_parses_markdown_table_and_skips_header_and_separator():
     rows = parse_ai_response(
         "\n".join(

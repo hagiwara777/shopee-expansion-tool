@@ -46,6 +46,12 @@ AMAZON_JP_URL_PATTERN = re.compile(
     r"(?<![A-Z0-9.-])((?:https?://)?(?:www\.)?amazon\.co\.jp/[^\s\"'<>|]+)",
     re.IGNORECASE,
 )
+MARKDOWN_INLINE_LINK_PATTERN = re.compile(
+    r"\[(?P<label>[^\]]*)\]\(\s*<?(?P<destination>"
+    r"(?:(?:https?://|www\.)[^\s)>]+|(?:[A-Z0-9-]+\.)+[A-Z]{2,}/[^\s)>]+))"
+    r">?\s*\)",
+    re.IGNORECASE,
+)
 URL_LIKE_PATTERN = re.compile(
     r"(?<!@)(?:(?:https?://|www\.)[^\s\"'<>|]+|"
     r"(?:[A-Z0-9-]+\.)+[A-Z]{2,}/[^\s\"'<>|]+)",
@@ -786,6 +792,33 @@ def _finalize_candidate_source_id(
 
 
 def _extract_amazon_jp_url_and_asin(value: str) -> tuple[str, str]:
+    markdown_link = _extract_markdown_link_amazon_jp_url_and_asin(value)
+    if markdown_link is not None:
+        return markdown_link
+    return _extract_plain_amazon_jp_url_and_asin(value)
+
+
+def _extract_markdown_link_amazon_jp_url_and_asin(value: str) -> tuple[str, str] | None:
+    for match in MARKDOWN_INLINE_LINK_PATTERN.finditer(value):
+        label_url, label_asin = _extract_plain_amazon_jp_url_and_asin(match.group("label"))
+        destination = _normalize_url(match.group("destination"))
+        try:
+            destination_host = urlparse(destination).netloc.lower()
+        except ValueError:
+            continue
+        if destination_host not in {"amazon.co.jp", "www.amazon.co.jp"}:
+            if label_url:
+                return destination, ""
+            continue
+
+        destination_url, destination_asin = _extract_plain_amazon_jp_url_and_asin(destination)
+        if label_asin and destination_asin and label_asin != destination_asin:
+            return destination_url, ""
+        return destination_url, destination_asin
+    return None
+
+
+def _extract_plain_amazon_jp_url_and_asin(value: str) -> tuple[str, str]:
     first_amazon_url = ""
     for match in AMAZON_JP_URL_PATTERN.finditer(value):
         amazon_url = _normalize_url(match.group(1))
