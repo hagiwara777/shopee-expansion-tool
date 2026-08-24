@@ -13,13 +13,15 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH Minimum Beta実物受入プロトコル正本化完了`
-- current_phase: `PH Minimum Beta実物受入プロトコル正本化後 / Gate K実行前`
-- working_branch: `codex/ph-minimum-beta-acceptance-protocol-formalization`
+- current_work_type: `PH Minimum Beta Gate K再開準備`
+- current_phase: `Gate K branch同期済み / Keepa credential一時利用preflight前`
+- working_branch: `codex/ph-minimum-beta-gate-k-live`
 - marketplace: `PH`
 - module: `出品支援ツール横断`
-- phase: `PH Minimum Beta実物受入プロトコル正本化後 / Keepa本番live技術確認前`
-- next_action: Gate K（Keepa本番標準経路live技術確認）の実行条件確認・オーナー承認
+- phase: `PH Minimum Beta / Gate K Keepa本番live技術確認前`
+- next_action: 既存Keepa credentialを永続コピーせず、Gate K実行processへ安全に一時利用可能にする方法を確認し、Gate K再実行条件を成立させる
+
+PR #34統合後のlatest formal mainへGate K branchを同期済みであり、branch固有commitは0である。credential所在監査は完了し、Gate K標準読込先にはcredentialがなく、同一repositoryの別sourceにはnon-empty credentialがあることだけを確認した。credential値は確認・記録しておらず、永続コピーも行っていない。Keepa API、Gate K / Gate Pは未実行であり、次はcredential一時利用方法の確認とする。
 
 DEC-0036で、Gate K（Keepa本番標準経路live技術確認）をGate P（PH Minimum Beta実物受入）より先行する二段Gateの実行プロトコルを正本化した。Gate K / Gate P、Keepa API、Shopee API、実商品、実画面、実業務の受入は開始していない。Gate Kは別途オーナーの明示承認後だけ開始する。詳細は`docs/PH_MINIMUM_BETA_ACCEPTANCE_PROTOCOL.md`を参照する。
 
