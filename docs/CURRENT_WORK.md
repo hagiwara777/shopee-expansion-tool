@@ -14,22 +14,22 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 ## 現在作業
 
 - current_work_type: `PH Minimum Beta Gate P実物受入`
-- current_phase: `Gate P進行中 / Resolver入力耐性blocker対応前`
+- current_phase: `Gate P進行中 / Resolver実画面PASS / Keepa runtime安定化前`
 - working_branch: `codex/ph-minimum-beta-gate-k-live`
 - marketplace: `PH`
 - module: `出品支援ツール横断`
-- phase: `PH Minimum Beta / Gate P / Resolver入力耐性blocker対応前`
-- next_action: ASIN Resolverが一般的なMarkdownリンク形式のAmazon.co.jp URLを安全に1候補へ正規化できるよう局所修正し、オーナー実画面で再確認する。PASS後にGate P B2へ戻る。
+- phase: `PH Minimum Beta / Gate P進行中 / Resolver実画面PASS / Keepa runtime安定化前`
+- next_action: Gate P用通常runtimeからCanopy試験指定を外し、Keepa / JPを標準としてUIを完全再起動し、Canopy TEST表示が再発しないことを確認する。
 
-Gate Kの正式技術確認はPASS済みである。Gate Pの実物確認を開始し、B1の既存確認Evidenceはcarry-forward可能と確認した。Resolver実物操作で、AI返答の一般的なMarkdownリンク形式のAmazon.co.jp URLが`UNKNOWN / NOT_CHECKED`となり、候補化できない事実を確認した。商品名、ASIN、CSV本文はこの正本に記録しない。
+Gate Kの正式技術確認はPASS済みである。Resolver Markdownリンク入力耐性修正commit `545f48438ba6f908216d80ca91c6296058fd6d13`はbranch上の技術検収PASSである。オーナー実画面でMarkdownリンクを無編集貼付し、Amazon.co.jp URL / ASIN候補を正常に抽出した。通常フローで候補選択も成立した。Keepa商品確認は今回は未実行である。商品名、ASIN、CSV本文はこの正本に記録しない。
 
-これはResolver全体の失敗またはBeta FAILとは扱わない。Gate Pは、Resolver入力耐性の局所修正とオーナー実画面での再確認まで一時停止する。詳細なGate手順は`docs/PH_MINIMUM_BETA_ACCEPTANCE_PROTOCOL.md`を参照する。
+Gate Pは継続中である。UI完全再起動後に`Amazon data provider: Canopy TEST`表示が再発した。Resolverは現在のblockerではなく、通常runtimeがCanopy試験指定へ戻ることが現在のblockerである。Canopyは本番標準ではなく開発・試験専用とし、Keepa / JPを標準として維持する。詳細なGate手順は`docs/PH_MINIMUM_BETA_ACCEPTANCE_PROTOCOL.md`を参照する。
 
 DEC-0035で、B1〜B7のMinimum Beta完成定義に対する確認済み`MISSING_IMPLEMENTATION`は0件と正本化した。これはBeta完成、Beta受入、実商品、実画面、実業務の受入完了を意味しない。ASIN Expansion / ASIN ResolverのKeepa本番標準経路live技術確認はGate KでPASSし、残るBeta MUSTはPH Minimum Betaのオーナー実物受入である。Canopyは開発・試験専用providerのままとし、Keepa本番確認を代替しない。
 
-外部出品ツールの正式入力契約はBeta MUSTではなく、自動投入または正式E2E接続を検討する場合のHOLDとする。mandatory attribute全面対応もconditionalのままとし、実物受入で手入力準備の成立を妨げると確認された場合だけBeta blocker候補としてオーナーへ戻す。Gate P実物受入は開始済みだが、Resolver入力耐性の局所修正と再確認が済むまで先へ進めない。
+外部出品ツールの正式入力契約はBeta MUSTではなく、自動投入または正式E2E接続を検討する場合のHOLDとする。mandatory attribute全面対応もconditionalのままとし、実物受入で手入力準備の成立を妨げると確認された場合だけBeta blocker候補としてオーナーへ戻す。Gate P実物受入は継続中であり、通常runtimeからCanopy試験指定を外してKeepa / JPを再起動後も維持できることを確認するまで、Gate P B2以降へ進めない。
 
-PR #29はmainへ統合済みで、formal main / current baseは`471c63ce0d2206f4ab74b1813f9522db121c331d`である。Canopy Test Provider v0.1はmain上の正式技術成果である。`AMAZON_DATA_PROVIDER`は未設定時`keepa`、明示`canopy_test`時だけCanopy REST adapterを選択し、未知値はfail closedとする。Canopy Resolverは1回最大10 ASIN、`CANOPY_VERIFIED`をKeepaと区別し、Candidate CSV V1の15列を維持して`source=asin_resolver_canopy_verified`へ変換する。Canopy Expansionは起点商品、brandによるJP Search 1ページ、候補詳細最大5件のbrand exact matchに限定し、最大7 requests、retryなし、fallbackなし、Keepa SQLite cache no-writeとした。通常UIにprovider選択を追加せず、Canopy modeだけtest表示する。CanopyのHTTP transportはrequestsを使い、API-KEY / Accept / timeout、HTTP分類、retryなし、ASIN完全一致のfail-closedをmockで検証済みである。targeted pytestは119 passed、全pytestは787 passed。オーナー承認済みのlive技術検証では、`B0CP4RLMDB`のProductとResolverがASIN完全一致・title / brandありで成立し、Resolverは1 requestで`FOUND` / `CANOPY_VERIFIED`を返した。Expansionはsource brand取得、Search 20件、有効候補5件、brand exact・ASIN完全一致・titleありの最終候補5件を合計7 requestsで返した。Keepaは本番標準のまま、Canopyは開発・試験専用であり、自動fallbackは行わない。Canopyの長期品質・安定性、実商品の網羅確認、実画面・実業務受入は未実施である。
+PR #29はmainへ統合済みで、当該PRのformal main commitは`471c63ce0d2206f4ab74b1813f9522db121c331d`である。Canopy Test Provider v0.1はmain上の正式技術成果である。`AMAZON_DATA_PROVIDER`は未設定時`keepa`、明示`canopy_test`時だけCanopy REST adapterを選択し、未知値はfail closedとする。Canopy Resolverは1回最大10 ASIN、`CANOPY_VERIFIED`をKeepaと区別し、Candidate CSV V1の15列を維持して`source=asin_resolver_canopy_verified`へ変換する。Canopy Expansionは起点商品、brandによるJP Search 1ページ、候補詳細最大5件のbrand exact matchに限定し、最大7 requests、retryなし、fallbackなし、Keepa SQLite cache no-writeとした。通常UIにprovider選択を追加せず、Canopy modeだけtest表示する。CanopyのHTTP transportはrequestsを使い、API-KEY / Accept / timeout、HTTP分類、retryなし、ASIN完全一致のfail-closedをmockで検証済みである。targeted pytestは119 passed、全pytestは787 passed。オーナー承認済みのlive技術検証では、`B0CP4RLMDB`のProductとResolverがASIN完全一致・title / brandありで成立し、Resolverは1 requestで`FOUND` / `CANOPY_VERIFIED`を返した。Expansionはsource brand取得、Search 20件、有効候補5件、brand exact・ASIN完全一致・titleありの最終候補5件を合計7 requestsで返した。Keepaは本番標準のまま、Canopyは開発・試験専用であり、自動fallbackは行わない。Canopyの長期品質・安定性、実商品の網羅確認、Gate P全体の実画面・実業務受入は未実施である。
 
 PR #24はmainへ統合済みで、formal main commitは`5ebd4270e516d199a8e592298a15723414d2da9a`です。DEC-0030で限定した13 Brand-exact PH_BLOCKはmain上の正式技術成果です。独立V2 rulesetとGuardrail層のdeterministic BLOCK evaluatorを既存`apply_guardrails()`内でV1結果へBLOCK vetoとして合成し、V2非該当時のV1完全互換、malformed rulesetのfail-closed、Gate public interface不変、PH限定有効化を技術検証しました。targeted pytestは`tests/test_guardrails.py`が323 passed、`tests/test_prelisting_gate.py`が58 passed、全pytestは761 passedです。実商品、実データ、実画面、実業務受入は未実施であり、Phase 1の技術受入と業務受入を混同しません。Bose、一般用医薬品、医療用針、その他711候補は対象外のままです。
 
@@ -170,11 +170,9 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 未完了事項
 
-- Canopyの長期品質・安定性、実商品の網羅確認、実画面・実業務受入の確認
+- Canopyの長期品質・安定性、実商品の網羅確認、Gate P全体の実画面・実業務受入の確認
 - Category ID等を扱うGuardrail候補データ構造・判定単位・根拠種別の設計
-- Keepa本番標準経路のlive技術確認
 - PH Minimum Betaのオーナー実物受入
-- PH Minimum Beta実物受入プロトコルの定義
 - ASIN到達性能の評価
 - Expansion・Resolverの実商品テスト
 - Shopee Category ID・Shopee Brand ID確認工程の受入
@@ -192,11 +190,11 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-ASIN Resolverが一般的なMarkdownリンク形式のAmazon.co.jp URLを安全に1候補へ正規化できるよう局所修正し、オーナー実画面で再確認する。PASS後にGate P B2へ戻る。
+Gate P用通常runtimeからCanopy試験指定を外し、Keepa / JPを標準としてUIを完全再起動し、Canopy TEST表示が再発しないことを確認する。
 
 ## 停止条件
 
-- Markdownリンク入力耐性の局所修正とオーナー実画面での再確認を越えて、Gate P B2以降、live技術確認、実商品・実画面・実業務受入、不足実装や既存仕様変更へ自動拡張しない。
+- 通常runtimeからCanopy試験指定を外し、Keepa / JPを再起動後も維持できることの確認を越えて、Gate P B2以降、live技術確認、実商品・実画面・実業務受入、不足実装や既存仕様変更へ自動拡張しない。
 - 人間作業時間measurement logを作らず、E2E時間測定を開始しない。
 - Phase 2へ自動直進しない。
 - AI Shadowを開始しない。
@@ -309,4 +307,4 @@ ASIN Resolverが一般的なMarkdownリンク形式のAmazon.co.jp URLを安全�
 
 ## 最終更新日
 
-2026-08-20
+2026-08-24
