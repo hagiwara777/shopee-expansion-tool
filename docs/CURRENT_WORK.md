@@ -14,16 +14,16 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 ## 現在作業
 
 - current_work_type: `PH Minimum Beta Gate P実物受入`
-- current_phase: `Gate P進行中 / B1 Candidate PASS / B2 PH Safety前`
+- current_phase: `Gate P進行中 / B1 Candidate PASS / B2 shop_label UX blocker修正済み / オーナー実画面再確認前`
 - working_branch: `codex/ph-minimum-beta-gate-k-live`
 - marketplace: `PH`
 - module: `出品支援ツール横断`
-- phase: `PH Minimum Beta / Gate P / B1 Candidate PASS後 / B2 PH Safety前`
-- next_action: Keepa確認済みCandidate CSVを用いて、Gate P B2 — PH Safetyをオーナー実物確認する。
+- phase: `PH Minimum Beta / Gate P / B1 Candidate PASS後 / B2 shop_label UX blocker修正済み / オーナー実画面再確認前`
+- next_action: 修正版UIで、shop label入力なし・PH shop count=1・Candidate CSVと0件inventory CSVによるGate P B2 PH Safety preflightをオーナー実物確認する。
 
 Gate Kの正式技術確認はPASS済みである。Resolver Markdownリンク入力耐性修正commit `545f48438ba6f908216d80ca91c6296058fd6d13`はbranch上の技術検収PASSである。オーナー実画面でMarkdownリンクを無編集貼付し、Amazon.co.jp URL / ASIN候補を正常に抽出した。通常フローで候補選択も成立した。Resolver Markdown入力耐性は技術・オーナー実画面ともPASSである。Expansion入口のB1 Evidenceはcarry-forward PASSである。Resolverで選択した2候補をKeepa / JP read-onlyで1回確認し、両方が`FOUND` / `KEEPA_VERIFIED`となった。retryは0回で、Candidate CSVは対象2件・除外0件として生成可能である。よってB1 CandidateはPASSとする。B2以降は未実行である。商品名、ASIN、CSV本文、credentialはこの正本に記録しない。
 
-Gate Pは継続中である。Keepa / JP通常runtime安定化はPASSであり、UI完全再起動後も`Amazon data provider: Canopy TEST`表示は再発していない。Canopy TEST再発のblockerは解消済みである。既存承認済みKeepa credential recoveryはPASSであり、`KEEPA_CREDENTIAL_AVAILABLE=YES`を確認した。credentialはprocessメモリ内だけで扱い、永続コピーを作成していない。credential recovery工程でKeepa APIは0回である。Canopyは本番標準ではなく開発・試験専用とし、Keepa / JPを標準として維持する。詳細なGate手順は`docs/PH_MINIMUM_BETA_ACCEPTANCE_PROTOCOL.md`を参照する。
+Gate Pは継続中である。B2の実物受入で判明したshop_label人間入力は、内部証跡識別子へ戻してUIから外した。UIはupload順に`{marketplace}_SHOP_n`を内部生成し、全ショップ数と同数の既出品CSV提出、重複ファイル保護、全ショップ横断の既出品ASIN照合を維持する。B2結果、Category Mapper以降は未実行であり、修正版UIのオーナー実画面確認が次である。Keepa / JP通常runtime安定化はPASSであり、UI完全再起動後も`Amazon data provider: Canopy TEST`表示は再発していない。Canopy TEST再発のblockerは解消済みである。既存承認済みKeepa credential recoveryはPASSであり、`KEEPA_CREDENTIAL_AVAILABLE=YES`を確認した。credentialはprocessメモリ内だけで扱い、永続コピーを作成していない。credential recovery工程でKeepa APIは0回である。Canopyは本番標準ではなく開発・試験専用とし、Keepa / JPを標準として維持する。詳細なGate手順は`docs/PH_MINIMUM_BETA_ACCEPTANCE_PROTOCOL.md`を参照する。
 
 DEC-0035で、B1〜B7のMinimum Beta完成定義に対する確認済み`MISSING_IMPLEMENTATION`は0件と正本化した。これはBeta完成、Beta受入、実商品、実画面、実業務の受入完了を意味しない。ASIN Expansion / ASIN ResolverのKeepa本番標準経路live技術確認はGate KでPASSし、残るBeta MUSTはPH Minimum Betaのオーナー実物受入である。Canopyは開発・試験専用providerのままとし、Keepa本番確認を代替しない。
 

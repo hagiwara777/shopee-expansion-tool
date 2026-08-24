@@ -6,6 +6,7 @@ from modules.prelisting_gate import PrelistingGateResult, PrelistingGateRow
 from modules.prelisting_gate_ui import (
     PRELISTING_GATE_RESULT_STATE_KEYS,
     PRELISTING_GATE_PREVIEW_COLUMNS,
+    build_internal_shop_labels,
     build_prelisting_gate_preview_rows,
     build_prelisting_gate_fingerprint,
     clear_prelisting_gate_result,
@@ -205,6 +206,19 @@ def test_inventory_file_validation_rejects_duplicate_names_and_contents():
     )
 
 
+def test_internal_shop_labels_are_deterministic_and_not_user_supplied():
+    assert build_internal_shop_labels("PH", 0) == ()
+    assert build_internal_shop_labels("PH", 2) == ("PH_SHOP_1", "PH_SHOP_2")
+    assert build_internal_shop_labels("SG", 2) == ("SG_SHOP_1", "SG_SHOP_2")
+
+    with pytest.raises(ValueError):
+        build_internal_shop_labels("", 1)
+    with pytest.raises(ValueError):
+        build_internal_shop_labels("PH", -1)
+    with pytest.raises(ValueError):
+        build_internal_shop_labels("PH", True)
+
+
 def test_safe_error_summaries_never_include_source_values():
     raw_source_value = "RAW-PRODUCT-ID-DO-NOT-DISPLAY"
     candidate = safe_prelisting_gate_error_summary("candidate")
@@ -224,11 +238,11 @@ def test_safe_error_summaries_never_include_source_values():
     )
     assert configuration == (
         "入力条件が揃っていません。\n"
-        "全ショップ数、アップロード数、ファイル名、shop_labelを確認してください。"
+        "全ショップ数、アップロード数、ファイル名を確認してください。"
     )
     assert gate == (
         "出品前チェックを完了できませんでした。\n"
-        "対象国、全ショップ数、ファイル名、shop_label、Guardrail辞書を確認してください。"
+        "対象国、全ショップ数、ファイル名、Guardrail辞書を確認してください。"
     )
     assert export == (
         "判定結果CSVを作成できませんでした。\n"

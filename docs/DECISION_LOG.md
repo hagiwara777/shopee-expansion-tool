@@ -427,3 +427,13 @@
 - 理由: Gate実行結果と最終判断の間に独立した視点を置き、重大な見落としを確認しつつ、未検証の追加完成度要求でBeta開始を不必要に遅らせないため。
 - 影響: Gate K / Gate Pの定義と順序、B1〜B7、Keepa本番標準、Canopy試験専用、既存Beta MUSTを変更しない。Claudeレビューは完成判断の品質確認工程であり、PH Minimum Betaの機能MUSTを追加・置換しない。今回の変更はRoadmapとDecision Logのみであり、コード、tests仕様、`CURRENT_WORK.md`、README、credential、API、実商品、実画面、実業務を変更・開始しない。Claudeレビューのためにcredential、`.env`、API key、顧客情報、秘密情報を正本文書へ記録しない。
 - 再検討条件: ClaudeレビューでBeta blocker候補となる具体的事実、B1〜B7または安全境界の不整合、tests / Evidenceの重大不足、またはオーナー最終確認に追加判断が必要な事実が確認されたとき。
+
+## DEC-0039 — Prelisting Gateのshop_labelを内部証跡識別子へ限定する
+
+- 日付: 2026-08-25
+- 背景: Gate P B2の実物受入で、shop_labelが出品可否のFactではないにもかかわらず、利用者に実ショップ名の入力を求めるUIが不要な停止要因になった。
+- 決定: SG / PH共通のPrelisting Gate UIはshop_label入力を表示せず、既出品CSVのupload順に`{marketplace}_SHOP_n`を内部証跡識別子として決定的に生成する。同一marketplaceの全ショップ横断既出品ASIN照合を維持し、どこか1ショップに存在する候補は`EXISTING` / `EXISTING_ASIN` / `EXCLUDE`とする。全ショップ数と同数のinventory CSV提出義務、空inventory契約、重複ファイル保護を維持する。
+- 決定: `parse_listing_inventory_csv()`、ListingEvidence / ListingInventoryFileResult、`evaluate_prelisting_gate()`、Candidate / Gate CSV schema、既出品ASIN unionの公開契約と判定意味は変更しない。実ショップ名はB2判定Factではない。
+- 理由: 既存の全ショップ横断重複防止を弱めず、不要な人間入力だけを取り除くため。
+- 影響: 次工程は、shop label入力のない修正版UIでPH B2 preflightをオーナーが実画面確認することである。今回、Keepa、Canopy、Shopee、SP-API、AI API、外部書込み、Category Mapper、実データ判定、Roadmap工程は変更・開始しない。
+- 再検討条件: 実ショップ名が判定Factまたは外部出品ツール正式契約上の必須入力と確認されたとき、全ショップ数とCSV数の一致または横断重複照合を維持できないと判明したとき。

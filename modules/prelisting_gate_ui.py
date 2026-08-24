@@ -51,11 +51,11 @@ _SAFE_ERROR_SUMMARIES = {
     ),
     "configuration": (
         "入力条件が揃っていません。\n"
-        "全ショップ数、アップロード数、ファイル名、shop_labelを確認してください。"
+        "全ショップ数、アップロード数、ファイル名を確認してください。"
     ),
     "gate": (
         "出品前チェックを完了できませんでした。\n"
-        "対象国、全ショップ数、ファイル名、shop_label、Guardrail辞書を確認してください。"
+        "対象国、全ショップ数、ファイル名、Guardrail辞書を確認してください。"
     ),
     "export": (
         "判定結果CSVを作成できませんでした。\n"
@@ -163,6 +163,24 @@ def validate_inventory_file_duplicates(
     if len(set(content_hashes)) != len(content_hashes):
         errors.append("既出品CSVの内容が重複しています。")
     return InventoryFileValidationResult(errors=tuple(errors))
+
+
+def build_internal_shop_labels(marketplace: str, uploaded_file_count: int) -> tuple[str, ...]:
+    """Return deterministic evidence labels in inventory upload order.
+
+    The labels are internal parser and evidence identities, not user-entered
+    shop names.  The caller remains responsible for enforcing the required
+    number of all-shop inventory uploads.
+    """
+
+    if not isinstance(marketplace, str) or not marketplace:
+        raise ValueError("marketplace must be a non-empty string")
+    if type(uploaded_file_count) is not int or uploaded_file_count < 0:
+        raise ValueError("uploaded_file_count must be a non-negative int")
+    return tuple(
+        f"{marketplace}_SHOP_{index}"
+        for index in range(1, uploaded_file_count + 1)
+    )
 
 
 def shop_label_widget_key(filename: str, content: bytes) -> str:

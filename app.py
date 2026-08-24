@@ -73,11 +73,11 @@ from modules.prelisting_gate_csv import (
     build_prelisting_gate_exports,
 )
 from modules.prelisting_gate_ui import (
+    build_internal_shop_labels,
     build_prelisting_gate_preview_rows,
     build_prelisting_gate_fingerprint,
     clear_prelisting_gate_result,
     safe_prelisting_gate_error_summary,
-    shop_label_widget_key,
     summarize_prelisting_inventory,
     validate_inventory_file_duplicates,
     validate_shop_labels,
@@ -346,18 +346,9 @@ def _render_prelisting_gate_input_tab() -> None:
 
     file_validation = validate_inventory_file_duplicates(inventory_files)
     configuration_errors.extend(file_validation.errors)
-    labels = ["" for _ in inventory_files]
-    if inventory_files and file_validation.is_valid:
-        st.markdown("#### ショップラベル")
-        for index, (filename, file_bytes) in enumerate(inventory_files, start=1):
-            labels[index - 1] = st.text_input(
-                f"shop_label: {filename}",
-                value=f"{marketplace}_SHOP_{index}",
-                key=f"{marketplace}_{shop_label_widget_key(filename, file_bytes)}",
-            )
-
+    labels = build_internal_shop_labels(marketplace, len(inventory_files))
     label_validation = validate_shop_labels(labels)
-    if inventory_files and not label_validation.is_valid:
+    if not label_validation.is_valid:
         configuration_errors.extend(label_validation.errors)
 
     fingerprint_shop_count = expected_shop_count if expected_shop_count_is_valid else 0
