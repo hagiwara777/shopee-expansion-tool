@@ -92,12 +92,22 @@ class FakeKeepaApi:
         return []
 
 
-def test_build_ai_prompt_prefers_tsv_and_includes_source_ids():
+def test_build_ai_prompt_is_a_complete_chatgpt_tsv_instruction_and_includes_source_ids():
     prompt = build_ai_prompt("First\n\nSecond")
 
+    assert "このメッセージをそのまま実行してください" in prompt
+    assert "ASIN Resolverの「AI返答」欄へそのまま貼り付けて使用" in prompt
     assert "TSV形式" in prompt
     assert "source_id\tinput_title\tamazon_url" in prompt
-    assert "Markdown表にはしない" in prompt
+    assert "追加質問" in prompt
+    assert "説明" in prompt
+    assert "Markdown表" in prompt
+    assert "コードフェンス" in prompt
+    assert "すべてのsource_idについて、必ず1行以上" in prompt
+    assert "Amazon.co.jp以外のURLは返さない" in prompt
+    assert "推測URLを作らない" in prompt
+    assert "商品順" in prompt
+    assert "不明" in prompt
     assert "R0001\tFirst" in prompt
     assert "R0002\tSecond" in prompt
 
@@ -325,7 +335,15 @@ def test_retry_prompt_uses_two_column_product_input_and_three_column_output_form
         ]
     )
 
+    assert "このメッセージをそのまま実行してください" in prompt
+    assert "ASIN Resolverの「AI返答」欄へそのまま貼り付けて使用" in prompt
     assert "source_id\tinput_title\tamazon_url" in prompt
+    assert "追加質問" in prompt
+    assert "Markdown表" in prompt
+    assert "コードフェンス" in prompt
+    assert "Amazon.co.jp以外のURLは返さない" in prompt
+    assert "推測URLは作らず" in prompt
+    assert "すべてのsource_idについて、必ず1行以上" in prompt
     assert "商品名:\nR0012\tPampers Premium Care diapers" in prompt
     assert "R0012\tPampers Premium Care diapers\t" not in prompt
     assert "R0014\tExcluded title" not in prompt

@@ -72,6 +72,14 @@ def test_app_resolver_imports_match_public_resolver_functions():
     assert missing == []
 
 
+def test_resolver_copy_guidance_describes_the_unedited_chatgpt_round_trip():
+    app_source = (PROJECT_ROOT / "app.py").read_text(encoding="utf-8")
+
+    assert "ChatGPTへ貼るプロンプトをコピー" in app_source
+    assert "ChatGPTの新規チャットへそのまま貼り付けて送信" in app_source
+    assert "返答本文だけを「AI返答 → ASIN確認」へ貼り付け" in app_source
+
+
 def test_internal_evidence_batch_controls_are_hidden_by_default(monkeypatch, tmp_path):
     app = _test_app(monkeypatch, tmp_path)
 

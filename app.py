@@ -185,8 +185,8 @@ def _render_direct_chat_assist(prompt_state_key: str, dom_id: str) -> None:
     project_url_is_valid = is_valid_chatgpt_project_url(project_url)
 
     st.caption(
-        "1. プロンプトをコピー  2. 検索プロジェクトで新しいチャットへ貼り付けて送信  "
-        "3. 回答を「AI返答 → ASIN確認」へ貼り付け"
+        "1. 「ChatGPTへ貼るプロンプトをコピー」  2. コピーした全文をChatGPTの新規チャットへそのまま貼り付けて送信  "
+        "3. 返答本文だけを「AI返答 → ASIN確認」へ貼り付け"
     )
     copy_column, project_column = st.columns(2)
     with copy_column:
