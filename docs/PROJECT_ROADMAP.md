@@ -87,9 +87,18 @@ ASIN到達性能とResolver成功は未評価であり、Evidence Persistenceの
 3. PH Minimum Beta実物受入プロトコルの定義・正本化（完了）
 4. オーナー承認後のGate K — Keepa本番標準経路live技術確認
 5. Gate K PASS後のGate P — PH実商品・実画面・実業務受入
-6. Beta受入後の次ツール優先順位判断
+6. オーナー最終確認によるPH Minimum Beta完成
+7. PH実運用開始
+8. PH実運用と並行する開発管理基盤整備
+   - GPTプロジェクトの棚卸し・統合・整理
+   - Codexプロジェクト、task、branch、worktreeの棚卸し・整理
+   - Secrets / API Credential管理基盤の設計・一元化
+   - 複数開発を俯瞰するマスター工程表 / ガントチャート整備
+9. PH実利用結果と整備後の開発体制を踏まえた、他市場・出品後商品改善ツール・Amazon仕入れ支援ツール等の優先順位判断
 
 Gate K / Gate Pの詳細手順は`docs/PH_MINIMUM_BETA_ACCEPTANCE_PROTOCOL.md`を参照する。Resolver、Expansion、Prelisting Gate、Category Mapperの既存詳細工程は、上記の出品支援ツール配下で維持する。外部契約証拠回収は、自動投入またはE2E接続を検討する場合の保留事項とし、現在の最優先工程には置かない。
+
+Post-Betaの開発管理基盤整備は、PH実運用の開始条件でもPH Minimum Betaの新しいBeta MUSTでもない。PH実運用を止めずに並行する中長期工程とする。Secrets / API Credentialについては、「保管を集中し、利用権限を分離する」方向の設計ゲートを後日実施する。credential保管場所の一元化、project / processごとの最小権限、development / production credential分離、credential injection、rotation / revoke、Git / Evidence / logへの秘密情報混入防止、worktreeごとの`.env`乱立、移行・rollbackを検討対象とする。ただし、今回、特定製品、Secret方式、保存方式、credential実値、migration方式は決定せず、credential実値を正本文書またはGitへ記録しない。
 
 ## 保留
 

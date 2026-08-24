@@ -407,3 +407,13 @@
 - 決定: Gate PはB1〜B7の実物受入基準に従う。PASS、INCONCLUSIVE、STOP、BETA_BLOCKER_CONFIRMEDを区別し、INCONCLUSIVEを実装FAILと確定しない。mandatory attribute全面対応はconditionalのままとし、既存出品ツールの正式入力契約はBeta MUSTへ追加しない。
 - 影響: Gate失敗またはblocker発見時も自動修正へ進まない。次工程はGate Kの実行条件確認とオーナー承認であり、今回、Keepa / Shopee API、実商品、実画面、実業務、外部書込みを開始しない。
 - 再検討条件: Gate KまたはGate PでB1〜B7の成立を妨げる具体的事実、承認範囲外の外部API、またはmandatory attribute不足による実務的handoff不能が確認されたとき。
+
+## DEC-0037 — Post-Beta開発管理基盤整備をPH実運用と並行するRoadmap工程として追加する
+
+- 日付: 2026-08-24
+- 背景: GPT / Codexプロジェクトの増加とworktree単位の`.env`分散により、複数開発時の進行管理およびcredential管理が複雑化する可能性がある。一方、PH Minimum BetaのGate K / Gate Pと実物受入は未完了であり、開発管理基盤整備を理由にPH実運用の開始を遅らせない必要がある。
+- 決定: PH Minimum Betaのオーナー最終確認後、PH実運用を速やかに開始する。PH実運用と並行して、(1) GPTプロジェクトの棚卸し・統合・整理、(2) Codexプロジェクト / task / branch / worktreeの棚卸し・整理、(3) Secrets / API Credential管理基盤の設計・一元化、(4) 複数開発を俯瞰するマスター工程表 / ガントチャート整備を行う。
+- 決定: Secrets / API Credentialは、保管を集中し利用権限を分離する方向で、別の設計ゲートで検討する。credential保管場所、最小権限、development / production分離、injection、rotation / revoke、秘密情報混入防止、worktreeごとの`.env`整理、移行・rollbackを検討対象とする。今回、Secret Manager製品、Secret方式、保存方式、credential実値、migration方式は決定しない。credential実値をGitまたは正本文書へ記録しない。
+- 理由: PH Beta完成を遅らせず、実利用から得る事実を使いながら、将来の複数開発を安全かつ俯瞰的に並走できる状態を整えるため。
+- 影響: 現在のGate K / Gate P、B1〜B7、次の単一作業を変更しない。この工程をPH Minimum Betaの新しいBeta MUSTまたはPH実運用の開始条件にはしない。今回の変更はRoadmapとDecision Logのみであり、コード、README、`CURRENT_WORK.md`、tests仕様、Secret実装、credential操作、外部API、実商品、実画面、実業務を変更・開始しない。
+- 再検討条件: PH Beta完成時、複数プロジェクト並走開始前、またはPH実運用でcredential管理・進行管理の具体的なボトルネックが確認されたとき。
