@@ -14,20 +14,20 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 ## 現在作業
 
 - current_work_type: `PH Minimum Beta Gate P実物受入`
-- current_phase: `Gate P進行中 / Resolver実画面PASS / Keepa runtime安定化前`
+- current_phase: `Gate P進行中 / Resolver実画面PASS / Keepa runtime・credential準備完了 / Resolver Keepa live確認前`
 - working_branch: `codex/ph-minimum-beta-gate-k-live`
 - marketplace: `PH`
 - module: `出品支援ツール横断`
-- phase: `PH Minimum Beta / Gate P進行中 / Resolver実画面PASS / Keepa runtime安定化前`
-- next_action: Gate P用通常runtimeからCanopy試験指定を外し、Keepa / JPを標準としてUIを完全再起動し、Canopy TEST表示が再発しないことを確認する。
+- phase: `PH Minimum Beta / Gate P進行中 / Resolver実画面PASS / Keepa runtime・credential準備完了 / Resolver Keepa live確認前`
+- next_action: オーナー承認済み範囲で、現在Resolverで選択している候補だけをKeepa / JP read-onlyで1回確認する。retryは行わない。
 
-Gate Kの正式技術確認はPASS済みである。Resolver Markdownリンク入力耐性修正commit `545f48438ba6f908216d80ca91c6296058fd6d13`はbranch上の技術検収PASSである。オーナー実画面でMarkdownリンクを無編集貼付し、Amazon.co.jp URL / ASIN候補を正常に抽出した。通常フローで候補選択も成立した。Keepa商品確認は今回は未実行である。商品名、ASIN、CSV本文はこの正本に記録しない。
+Gate Kの正式技術確認はPASS済みである。Resolver Markdownリンク入力耐性修正commit `545f48438ba6f908216d80ca91c6296058fd6d13`はbranch上の技術検収PASSである。オーナー実画面でMarkdownリンクを無編集貼付し、Amazon.co.jp URL / ASIN候補を正常に抽出した。通常フローで候補選択も成立した。Resolver Markdown入力耐性は技術・オーナー実画面ともPASSである。Resolver Keepa live確認はまだ未実行である。商品名、ASIN、CSV本文はこの正本に記録しない。
 
-Gate Pは継続中である。UI完全再起動後に`Amazon data provider: Canopy TEST`表示が再発した。Resolverは現在のblockerではなく、通常runtimeがCanopy試験指定へ戻ることが現在のblockerである。Canopyは本番標準ではなく開発・試験専用とし、Keepa / JPを標準として維持する。詳細なGate手順は`docs/PH_MINIMUM_BETA_ACCEPTANCE_PROTOCOL.md`を参照する。
+Gate Pは継続中である。Keepa / JP通常runtime安定化はPASSであり、UI完全再起動後も`Amazon data provider: Canopy TEST`表示は再発していない。Canopy TEST再発のblockerは解消済みである。既存承認済みKeepa credential recoveryはPASSであり、`KEEPA_CREDENTIAL_AVAILABLE=YES`を確認した。credentialはprocessメモリ内だけで扱い、永続コピーを作成していない。credential recovery工程でKeepa APIは0回である。Canopyは本番標準ではなく開発・試験専用とし、Keepa / JPを標準として維持する。詳細なGate手順は`docs/PH_MINIMUM_BETA_ACCEPTANCE_PROTOCOL.md`を参照する。
 
 DEC-0035で、B1〜B7のMinimum Beta完成定義に対する確認済み`MISSING_IMPLEMENTATION`は0件と正本化した。これはBeta完成、Beta受入、実商品、実画面、実業務の受入完了を意味しない。ASIN Expansion / ASIN ResolverのKeepa本番標準経路live技術確認はGate KでPASSし、残るBeta MUSTはPH Minimum Betaのオーナー実物受入である。Canopyは開発・試験専用providerのままとし、Keepa本番確認を代替しない。
 
-外部出品ツールの正式入力契約はBeta MUSTではなく、自動投入または正式E2E接続を検討する場合のHOLDとする。mandatory attribute全面対応もconditionalのままとし、実物受入で手入力準備の成立を妨げると確認された場合だけBeta blocker候補としてオーナーへ戻す。Gate P実物受入は継続中であり、通常runtimeからCanopy試験指定を外してKeepa / JPを再起動後も維持できることを確認するまで、Gate P B2以降へ進めない。
+外部出品ツールの正式入力契約はBeta MUSTではなく、自動投入または正式E2E接続を検討する場合のHOLDとする。mandatory attribute全面対応もconditionalのままとし、実物受入で手入力準備の成立を妨げると確認された場合だけBeta blocker候補としてオーナーへ戻す。Gate P実物受入は継続中であり、runtime / credentialのblockerは解消済みである。オーナーは次のResolver Keepa確認を明示承認済みであり、現在Resolverで選択している候補だけをKeepa / JP read-onlyで1回確認し、retryは行わない。Keepa live確認自体とGate P B2以降はまだ未実行である。
 
 PR #29はmainへ統合済みで、当該PRのformal main commitは`471c63ce0d2206f4ab74b1813f9522db121c331d`である。Canopy Test Provider v0.1はmain上の正式技術成果である。`AMAZON_DATA_PROVIDER`は未設定時`keepa`、明示`canopy_test`時だけCanopy REST adapterを選択し、未知値はfail closedとする。Canopy Resolverは1回最大10 ASIN、`CANOPY_VERIFIED`をKeepaと区別し、Candidate CSV V1の15列を維持して`source=asin_resolver_canopy_verified`へ変換する。Canopy Expansionは起点商品、brandによるJP Search 1ページ、候補詳細最大5件のbrand exact matchに限定し、最大7 requests、retryなし、fallbackなし、Keepa SQLite cache no-writeとした。通常UIにprovider選択を追加せず、Canopy modeだけtest表示する。CanopyのHTTP transportはrequestsを使い、API-KEY / Accept / timeout、HTTP分類、retryなし、ASIN完全一致のfail-closedをmockで検証済みである。targeted pytestは119 passed、全pytestは787 passed。オーナー承認済みのlive技術検証では、`B0CP4RLMDB`のProductとResolverがASIN完全一致・title / brandありで成立し、Resolverは1 requestで`FOUND` / `CANOPY_VERIFIED`を返した。Expansionはsource brand取得、Search 20件、有効候補5件、brand exact・ASIN完全一致・titleありの最終候補5件を合計7 requestsで返した。Keepaは本番標準のまま、Canopyは開発・試験専用であり、自動fallbackは行わない。Canopyの長期品質・安定性、実商品の網羅確認、Gate P全体の実画面・実業務受入は未実施である。
 
@@ -190,11 +190,11 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-Gate P用通常runtimeからCanopy試験指定を外し、Keepa / JPを標準としてUIを完全再起動し、Canopy TEST表示が再発しないことを確認する。
+オーナー承認済み範囲で、現在Resolverで選択している候補だけをKeepa / JP read-onlyで1回確認する。retryは行わない。
 
 ## 停止条件
 
-- 通常runtimeからCanopy試験指定を外し、Keepa / JPを再起動後も維持できることの確認を越えて、Gate P B2以降、live技術確認、実商品・実画面・実業務受入、不足実装や既存仕様変更へ自動拡張しない。
+- 次のResolver Keepa確認は、オーナー承認済み範囲の現在選択候補だけをKeepa / JP read-onlyで1回確認することに限定し、retry、Gate P B2以降、実商品・実画面・実業務受入、不足実装や既存仕様変更へ自動拡張しない。
 - 人間作業時間measurement logを作らず、E2E時間測定を開始しない。
 - Phase 2へ自動直進しない。
 - AI Shadowを開始しない。
@@ -202,7 +202,7 @@ Gate P用通常runtimeからCanopy試験指定を外し、Keepa / JPを標準と
 - mandatory attributeを自動的にBeta MUSTへ昇格しない。
 - SG / MY / THへ展開しない。
 - 実データによるE2E測定を今回開始しない。
-- Shopee、Keepa、AIその他の外部APIを今回呼ばない。
+- 本同期作業では、Shopee、Keepa、AIその他の外部APIを呼ばない。次の単一作業のKeepa / JP read-only 1回確認だけは、オーナー承認済み範囲でretryなしに限定する。
 - live Canopy APIを、mock test完了後の別途オーナー承認なしに呼ばない。
 - Canopyを本番標準にせず、通常UIにprovider選択を追加せず、自動provider fallbackを実装しない。
 - Rainforestを実装せず、Canopy結果をKeepa SQLite cacheへ書き込まず、`PRELISTING_CANDIDATE_V1`の15列schemaを変更しない。
