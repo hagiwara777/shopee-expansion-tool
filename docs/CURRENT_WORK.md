@@ -13,19 +13,19 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH Minimum Beta Gate K再開準備`
-- current_phase: `Gate K branch同期済み / Keepa credential一時利用preflight前`
+- current_work_type: `PH Minimum Beta Gate K完了`
+- current_phase: `Gate K PASS / Gate P実物受入前`
 - working_branch: `codex/ph-minimum-beta-gate-k-live`
 - marketplace: `PH`
 - module: `出品支援ツール横断`
-- phase: `PH Minimum Beta / Gate K Keepa本番live技術確認前`
-- next_action: 既存Keepa credentialを永続コピーせず、Gate K実行processへ安全に一時利用可能にする方法を確認し、Gate K再実行条件を成立させる
+- phase: `PH Minimum Beta / Gate K完了後 / Gate P前`
+- next_action: Gate P — PH実商品・実画面・実業務でB1〜B7の実物受入を開始する
 
-PR #34統合後のlatest formal mainへGate K branchを同期済みであり、branch固有commitは0である。credential所在監査は完了し、Gate K標準読込先にはcredentialがなく、同一repositoryの別sourceにはnon-empty credentialがあることだけを確認した。credential値は確認・記録しておらず、永続コピーも行っていない。Keepa API、Gate K / Gate Pは未実行であり、次はcredential一時利用方法の確認とする。
+Gate Kの正式技術確認は完了した。Keepa provider / JP domainで`B0CP4RLMDB`を1件だけ用い、K1 Expansionはstrict通常route・cache hitなし・Candidate 49件・Candidate CSV変換/validation成立、K2 Resolverは`FOUND` / `KEEPA_VERIFIED`・Candidate CSV変換/validation成立となり、`GATE_K_PASS`と判定した。tokenは1200から1158へ推移し、実測deltaは42、retryは0回である。Canopy、Shopee API、SP-API、AI APIによる代替は行わず、credentialは子processのメモリ内だけで利用し永続保存していない。K1/K2完了後のOS一時cache cleanupで`PermissionError`が1件あったが、live結果、Git、credentialへの影響は確認されず、Gate K blockerとはしない。Gate Pは未開始であり、次はGate P実物受入である。
 
-DEC-0036で、Gate K（Keepa本番標準経路live技術確認）をGate P（PH Minimum Beta実物受入）より先行する二段Gateの実行プロトコルを正本化した。Gate K / Gate P、Keepa API、Shopee API、実商品、実画面、実業務の受入は開始していない。Gate Kは別途オーナーの明示承認後だけ開始する。詳細は`docs/PH_MINIMUM_BETA_ACCEPTANCE_PROTOCOL.md`を参照する。
+DEC-0036で、Gate K（Keepa本番標準経路live技術確認）をGate P（PH Minimum Beta実物受入）より先行する二段Gateの実行プロトコルを正本化した。Gate Kはオーナー明示承認の範囲内でPASSした。Gate P、実商品、実画面、実業務の受入は未開始であり、詳細は`docs/PH_MINIMUM_BETA_ACCEPTANCE_PROTOCOL.md`を参照する。
 
-DEC-0035で、B1〜B7のMinimum Beta完成定義に対する確認済み`MISSING_IMPLEMENTATION`は0件と正本化した。これはBeta完成、Beta受入、実商品、実画面、実業務の受入完了を意味しない。残るBeta MUSTは、ASIN Expansion / ASIN ResolverのKeepa本番標準経路のlive技術確認と、PH Minimum Betaのオーナー実物受入である。Canopyは開発・試験専用providerのままとし、Keepa本番確認を代替しない。
+DEC-0035で、B1〜B7のMinimum Beta完成定義に対する確認済み`MISSING_IMPLEMENTATION`は0件と正本化した。これはBeta完成、Beta受入、実商品、実画面、実業務の受入完了を意味しない。ASIN Expansion / ASIN ResolverのKeepa本番標準経路live技術確認はGate KでPASSし、残るBeta MUSTはPH Minimum Betaのオーナー実物受入である。Canopyは開発・試験専用providerのままとし、Keepa本番確認を代替しない。
 
 外部出品ツールの正式入力契約はBeta MUSTではなく、自動投入または正式E2E接続を検討する場合のHOLDとする。mandatory attribute全面対応もconditionalのままとし、実物受入で手入力準備の成立を妨げると確認された場合だけBeta blocker候補としてオーナーへ戻す。今回、実API、実商品、実画面、実業務の受入は開始していない。
 
@@ -33,7 +33,7 @@ PR #29はmainへ統合済みで、formal main / current baseは`471c63ce0d2206f4
 
 PR #24はmainへ統合済みで、formal main commitは`5ebd4270e516d199a8e592298a15723414d2da9a`です。DEC-0030で限定した13 Brand-exact PH_BLOCKはmain上の正式技術成果です。独立V2 rulesetとGuardrail層のdeterministic BLOCK evaluatorを既存`apply_guardrails()`内でV1結果へBLOCK vetoとして合成し、V2非該当時のV1完全互換、malformed rulesetのfail-closed、Gate public interface不変、PH限定有効化を技術検証しました。targeted pytestは`tests/test_guardrails.py`が323 passed、`tests/test_prelisting_gate.py`が58 passed、全pytestは761 passedです。実商品、実データ、実画面、実業務受入は未実施であり、Phase 1の技術受入と業務受入を混同しません。Bose、一般用医薬品、医療用針、その他711候補は対象外のままです。
 
-PH Beta Minimum DefinitionのB1〜B7 Feasibility Auditは完了した。B1 CandidateはPARTIALである。Resolver / Expansionの既存コード経路、Python / Keepa client起動経路、Keepa credential sourceは存在するが、Keepa API契約が現在利用可能とは確認できず、live Resolver確認はERRORで終了したため、Keepa本番契約再開時のB1 live成立は未確認である。B2 PH Safety、B3 Category ID、B4 Brand ID / No Brand、B5 未確定停止、B6 準備状態判別、B7 Handoffは技術Feasibility上READYであり、BLOCKEDはない。B3はShopee PH Category APIのlive成功により2301 Categoryと有効ID / nameの取得を確認し、B4はCategory `100869` のShopee Brand API live成功によりBrand FactとNo Brand ID `0`を確認した。これらのREADYはBeta実画面・実商品・実業務受入の完了を意味しない。Beta前に詳細なE2E人間作業時間を測定せず、`CORE_INFO_READY ASIN / human hour`、Human Touch Rate、固定工数削減目標を必須Gateにしない。mandatory attributeはconditionalであり、structured REVIEW、API auto-resolution、Shipping、Category Batch、AI Shadow、Workflow、外部出品ツールへの自動投入、他市場展開はBeta MUSTではない。
+PH Beta Minimum DefinitionのB1〜B7 Feasibility Auditは完了した。B1 CandidateのKeepa本番標準経路はGate Kで確認済みであり、Expansion / ResolverはともにPASSした。B2 PH Safety、B3 Category ID、B4 Brand ID / No Brand、B5 未確定停止、B6 準備状態判別、B7 Handoffは技術Feasibility上READYであり、BLOCKEDはない。これらはBeta実画面・実商品・実業務受入の完了を意味せず、Gate Pで確認する。Beta前に詳細なE2E人間作業時間を測定せず、`CORE_INFO_READY ASIN / human hour`、Human Touch Rate、固定工数削減目標を必須Gateにしない。mandatory attributeはconditionalであり、structured REVIEW、API auto-resolution、Shipping、Category Batch、AI Shadow、Workflow、外部出品ツールへの自動投入、他市場展開はBeta MUSTではない。
 
 B1 Amazon Data Provider Test Bridge Design Gateは完了した（DEC-0033）。本番標準providerはKeepaのままとし、Canopyは明示設定 `AMAZON_DATA_PROVIDER=canopy_test` 時だけ使うBeta開発・試験専用providerとする。自動fallbackは行わず、Resolverの確認値は `KEEPA_VERIFIED` と `CANOPY_VERIFIED` を区別する。`PRELISTING_CANDIDATE_V1` の15列schemaは維持し、Canopy経路では既存列に `source_verification=CANOPY_VERIFIED`、`source=asin_resolver_canopy_verified` を記録する。Canopy v0.1はResolverを1回最大10 ASIN・retryなし、Expansionを1回最大7 requests・最大5候補・pagination継続なしとし、既存Keepa SQLite cacheへ書き込まない。Safety / Category / Brandの責務と既存の通常UI構造は変更しない。オーナー承認済みのlive技術検証でProduct、Resolver、Expansionの通常経路はrequest上限内で成立した。これはCanopyを本番providerへ変更するものではなく、長期品質・安定性、実画面・実業務受入は未確認である。
 
