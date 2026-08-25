@@ -81,6 +81,10 @@ PH対応は、PH専用Guardrail辞書、入力契約、ローカルテストで�
 
 ELIGIBLEはShopee規約上の安全を保証するものではなく、出力CSVは外部出品ツールへ直接投入する形式ではありません。入力が変わった場合は古い判定結果を破棄し、判定時に外部APIを追加で呼び出しません。
 
+## Category Mapper
+
+Category Mapperの「Shopee ACCESS_TOKEN（一時利用）」には、既存管理シートで更新済みのtokenを伏字で貼り付けられます。入力値はそのブラウザsessionのCategory / Brand / Attribute参照だけに使い、設定ファイルやローカルDBへ保存しません。空欄の場合は既存の認証設定を使用します。token更新、refresh、OAuthはCategory Mapperの責務に含みません。
+
 ## 出品前保安ゲートのGuardrail
 
 Guardrailは候補生成の結果を直接出品候補にするための機能ではなく、出品前保安ゲートが

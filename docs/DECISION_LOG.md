@@ -437,3 +437,13 @@
 - 理由: 既存の全ショップ横断重複防止を弱めず、不要な人間入力だけを取り除くため。
 - 影響: 次工程は、shop label入力のない修正版UIでPH B2 preflightをオーナーが実画面確認することである。今回、Keepa、Canopy、Shopee、SP-API、AI API、外部書込み、Category Mapper、実データ判定、Roadmap工程は変更・開始しない。
 - 再検討条件: 実ショップ名が判定Factまたは外部出品ツール正式契約上の必須入力と確認されたとき、全ショップ数とCSV数の一致または横断重複照合を維持できないと判明したとき。
+
+## DEC-0040 — Category Mapperの認証情報を一時利用に限定する
+
+- 日付: 2026-08-25
+- 背景: Gate P B4のShopee Brand取得で、既存ローカル認証情報が無効となり、管理シート側の更新済み認証情報を設定ファイル変更なしで安全に利用する必要が生じた。
+- 決定: Category Mapperはオーナーが画面へ入力するShopee ACCESS_TOKENをブラウザsession内だけで利用し、空欄時は既存ローカル設定を維持する。入力値を設定ファイル、SQLite、その他ファイル、Git、ログへ保存しない。REFRESH_TOKENの入力・読込・保存・更新、OAuth、token refresh、管理シート連携をCategory Mapperへ追加しない。
+- 決定: Category / Brand / Attributeの既存read-only取得経路とCatalog FactのローカルDB保存は維持し、認証情報の更新責務は既存のCategory Mapper外の仕組みに残す。
+- 理由: Catalog Factの取得責務と認証管理責務を分離し、既存のtoken更新経路を重複実装せず、無効な固定認証情報によるB4停止を安全に解消できるようにするため。
+- 影響: B4 Brand取得は再実行せず、Brand未確定停止を維持する。今回、外部API、外部書込み、認証情報更新、Roadmap、Resolver、Expansion、Prelisting Gateは変更・実行しない。
+- 再検討条件: 外部の認証情報更新経路が変更されたとき、session内一時利用で安全なCatalog参照を維持できないとき、または別途承認されたSecrets管理基盤へ移行するとき。

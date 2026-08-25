@@ -14,16 +14,16 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 ## 現在作業
 
 - current_work_type: `PH Minimum Beta Gate P実物受入`
-- current_phase: `Gate P進行中 / B3 Category PASS / B4 Brand取得STOP / 原因診断前`
+- current_phase: `Gate P進行中 / B3 Category PASS / B4 Brand取得STOP / 一時認証入力実装後 / security review前`
 - working_branch: `codex/ph-minimum-beta-gate-k-live`
 - marketplace: `PH`
 - module: `出品支援ツール横断`
-- phase: `PH Minimum Beta / Gate P / B3 Category PASS / B4 Brand取得STOP / 原因診断前`
-- next_action: Shopee Brand List取得失敗の原因を、外部API再実行なしの読み取り専用監査で特定する。
+- phase: `PH Minimum Beta / Gate P / B3 Category PASS / B4 Brand取得STOP / 一時認証入力実装後 / security review前`
+- next_action: Category Mapper一時認証入力commitの読み取り専用diff/security reviewを行う。
 
 Gate Kの正式技術確認はPASS済みである。Resolver Markdownリンク入力耐性修正commit `545f48438ba6f908216d80ca91c6296058fd6d13`はbranch上の技術検収PASSである。オーナー実画面でMarkdownリンクを無編集貼付し、Amazon.co.jp URL / ASIN候補を正常に抽出した。通常フローで候補選択も成立した。Resolver Markdown入力耐性は技術・オーナー実画面ともPASSである。Expansion入口のB1 Evidenceはcarry-forward PASSである。Resolverで選択した2候補をKeepa / JP read-onlyで1回確認し、両方が`FOUND` / `KEEPA_VERIFIED`となった。retryは0回で、Candidate CSVは対象2件・除外0件として生成可能である。よってB1 CandidateはPASSとする。B2 PH Safetyはオーナー実画面でPASSした。PH、Candidate 2件、ELIGIBLE 2件、REVIEW 0件、EXCLUDE 0件を確認し、shop label UX修正も実画面PASSである。B3 Categoryはオーナー実画面でPASSし、Category PathはBeauty > Skincare > Toner、Category IDは100892として採用した。B4 Brand取得は、承認済みのPH / Category 100892 / 先頭100件 / 1回 / retry 0のShopee Brand List read-only取得で失敗し、Brand List未取得・Brand ID未推測のまま安全停止した。B4以降は未実行である。商品名、ASIN、CSV本文、credentialはこの正本に記録しない。
 
-Gate Pは継続中である。B2の実物受入で判明したshop_label人間入力は、内部証跡識別子へ戻してUIから外した。UIはupload順に`{marketplace}_SHOP_n`を内部生成し、全ショップ数と同数の既出品CSV提出、重複ファイル保護、全ショップ横断の既出品ASIN照合を維持する。修正版UIによるB2 PH SafetyとB3 Categoryはオーナー実画面でPASSした。B4 Brand取得は承認範囲のread-only 1回で失敗し、Brand List未取得・Brand ID未推測のまま停止した。B4以降は未実行であり、次は外部API再実行なしの読み取り専用原因診断である。Keepa / JP通常runtime安定化はPASSであり、UI完全再起動後も`Amazon data provider: Canopy TEST`表示は再発していない。Canopy TEST再発のblockerは解消済みである。既存承認済みKeepa credential recoveryはPASSであり、`KEEPA_CREDENTIAL_AVAILABLE=YES`を確認した。credentialはprocessメモリ内だけで扱い、永続コピーを作成していない。credential recovery工程でKeepa APIは0回である。Canopyは本番標準ではなく開発・試験専用とし、Keepa / JPを標準として維持する。詳細なGate手順は`docs/PH_MINIMUM_BETA_ACCEPTANCE_PROTOCOL.md`を参照する。
+Gate Pは継続中である。B2の実物受入で判明したshop_label人間入力は、内部証跡識別子へ戻してUIから外した。UIはupload順に`{marketplace}_SHOP_n`を内部生成し、全ショップ数と同数の既出品CSV提出、重複ファイル保護、全ショップ横断の既出品ASIN照合を維持する。修正版UIによるB2 PH SafetyとB3 Categoryはオーナー実画面でPASSした。B4 Brand取得は承認範囲のread-only 1回で失敗し、Brand List未取得・Brand ID未推測のまま停止した。原因は無効なShopee認証情報であり、Category Mapperへブラウザsession内だけの一時認証入力を追加した。認証情報の更新と永続保存はCategory Mapperの責務に含めず、B4の再実行は未実施である。次は実装commitの読み取り専用diff/security reviewである。Keepa / JP通常runtime安定化はPASSであり、UI完全再起動後も`Amazon data provider: Canopy TEST`表示は再発していない。Canopy TEST再発のblockerは解消済みである。既存承認済みKeepa credential recoveryはPASSであり、`KEEPA_CREDENTIAL_AVAILABLE=YES`を確認した。credentialはprocessメモリ内だけで扱い、永続コピーを作成していない。credential recovery工程でKeepa APIは0回である。Canopyは本番標準ではなく開発・試験専用とし、Keepa / JPを標準として維持する。詳細なGate手順は`docs/PH_MINIMUM_BETA_ACCEPTANCE_PROTOCOL.md`を参照する。
 
 DEC-0035で、B1〜B7のMinimum Beta完成定義に対する確認済み`MISSING_IMPLEMENTATION`は0件と正本化した。これはBeta完成、Beta受入、実商品、実画面、実業務の受入完了を意味しない。ASIN Expansion / ASIN ResolverのKeepa本番標準経路live技術確認はGate KでPASSし、残るBeta MUSTはPH Minimum Betaのオーナー実物受入である。Canopyは開発・試験専用providerのままとし、Keepa本番確認を代替しない。
 
@@ -190,11 +190,11 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-オーナー承認済み範囲で、現在Resolverで選択している候補だけをKeepa / JP read-onlyで1回確認する。retryは行わない。
+Category Mapper一時認証入力commitの読み取り専用diff/security reviewを行う。
 
 ## 停止条件
 
-- 次のResolver Keepa確認は、オーナー承認済み範囲の現在選択候補だけをKeepa / JP read-onlyで1回確認することに限定し、retry、Gate P B2以降、実商品・実画面・実業務受入、不足実装や既存仕様変更へ自動拡張しない。
+- 次の単一作業は一時認証入力commitの読み取り専用diff/security reviewに限定し、外部API実行、認証更新、B4再実行へ自動拡張しない。
 - 人間作業時間measurement logを作らず、E2E時間測定を開始しない。
 - Phase 2へ自動直進しない。
 - AI Shadowを開始しない。
@@ -202,14 +202,14 @@ CI成果物で再確認された事実ではありません。コード機能の
 - mandatory attributeを自動的にBeta MUSTへ昇格しない。
 - SG / MY / THへ展開しない。
 - 実データによるE2E測定を今回開始しない。
-- 本同期作業では、Shopee、Keepa、AIその他の外部APIを呼ばない。次の単一作業のKeepa / JP read-only 1回確認だけは、オーナー承認済み範囲でretryなしに限定する。
+- 本実装と次の読み取り専用reviewでは、Shopee、Keepa、AIその他の外部APIを呼ばない。
 - live Canopy APIを、mock test完了後の別途オーナー承認なしに呼ばない。
 - Canopyを本番標準にせず、通常UIにprovider選択を追加せず、自動provider fallbackを実装しない。
 - Rainforestを実装せず、Canopy結果をKeepa SQLite cacheへ書き込まず、`PRELISTING_CANDIDATE_V1`の15列schemaを変更しない。
 - AI Shadowを今回開始しない。
 - 新しいExcel、CSV、physical measurement schemaを作成または確定しない。
 - structured REVIEW、ReviewCase、API auto-resolutionを実装しない。
-- Canopy provider境界を越えてCategory Mapper、Brand resolution、Guardrail辞書、Gateロジック、Phase 1の13 Brand rulesを変更しない。Resolver／ExpansionをCanopy v0.1契約外へ拡張しない。
+- 承認済みのCategory Mapper一時認証入力範囲を越えてBrand resolution、Guardrail辞書、Gateロジック、Phase 1の13 Brand rulesを変更しない。Resolver／ExpansionをCanopy v0.1契約外へ拡張しない。
 - Shipping / Operational Filter、Category Batch Builder、mandatory attribute Batchへ進まない。
 - SG / MY / THへ展開せず、Marketplace-neutral schemaを先行確定しない。
 - push、PR作成、merge、deployを行わない。
@@ -307,4 +307,4 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 最終更新日
 
-2026-08-24
+2026-08-25
