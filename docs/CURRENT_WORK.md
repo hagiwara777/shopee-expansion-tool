@@ -13,23 +13,23 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH Minimum Beta Gate P実物受入`
-- current_phase: `Gate P進行中 / B3 Category PASS / B4 Brand取得STOP / 一時認証入力実装後 / security review前`
+- current_work_type: `PH Minimum Beta Gate P PASS後の第三者検収準備`
+- current_phase: `Gate P PASS / 第三者独立レビュー前`
 - working_branch: `codex/ph-minimum-beta-gate-k-live`
 - marketplace: `PH`
 - module: `出品支援ツール横断`
-- phase: `PH Minimum Beta / Gate P / B3 Category PASS / B4 Brand取得STOP / 一時認証入力実装後 / security review前`
-- next_action: Category Mapper一時認証入力commitの読み取り専用diff/security reviewを行う。
+- phase: `PH Minimum Beta / Gate P PASS / 第三者独立レビュー前`
+- next_action: Gate P branch全体について第三者読み取り専用検収を行う。
 
-Gate Kの正式技術確認はPASS済みである。Resolver Markdownリンク入力耐性修正commit `545f48438ba6f908216d80ca91c6296058fd6d13`はbranch上の技術検収PASSである。オーナー実画面でMarkdownリンクを無編集貼付し、Amazon.co.jp URL / ASIN候補を正常に抽出した。通常フローで候補選択も成立した。Resolver Markdown入力耐性は技術・オーナー実画面ともPASSである。Expansion入口のB1 Evidenceはcarry-forward PASSである。Resolverで選択した2候補をKeepa / JP read-onlyで1回確認し、両方が`FOUND` / `KEEPA_VERIFIED`となった。retryは0回で、Candidate CSVは対象2件・除外0件として生成可能である。よってB1 CandidateはPASSとする。B2 PH Safetyはオーナー実画面でPASSした。PH、Candidate 2件、ELIGIBLE 2件、REVIEW 0件、EXCLUDE 0件を確認し、shop label UX修正も実画面PASSである。B3 Categoryはオーナー実画面でPASSし、Category PathはBeauty > Skincare > Toner、Category IDは100892として採用した。B4 Brand取得は、承認済みのPH / Category 100892 / 先頭100件 / 1回 / retry 0のShopee Brand List read-only取得で失敗し、Brand List未取得・Brand ID未推測のまま安全停止した。B4以降は未実行である。商品名、ASIN、CSV本文、credentialはこの正本に記録しない。
+Gate Kの正式技術確認はPASS済みである。Gate PはB1 Candidate、B2 PH Safety、B3 Category、B4 Brand / No Brand、B5 Safe Stop、B6 listing_ready、B7 Human Handoffの全項目を実画面で確認し、B1〜B7をPASSとする。B2ではPH、Candidate 2件、ELIGIBLE 2件、REVIEW 0件、EXCLUDE 0件とshop label UX修正を確認した。B3ではCategory Path `Beauty > Skincare > Toner`、Category ID `100892`を採用した。B4ではCategory Mapper一時認証入力のsecurity reviewをPASS後、承認済みのShopee Brand List read-only取得を1回・retry 0で実行し、No BrandをBrand ID `0`としてオーナーが確定した。B5ではBrand未確定時に出力対象がなく次工程へ進めないこと、B6では2件がlisting_readyになること、B7では2件・1グループのCSV / text handoffを取得できることを確認した。商品名、ASIN、CSV本文、credentialはこの正本に記録しない。
 
-Gate Pは継続中である。B2の実物受入で判明したshop_label人間入力は、内部証跡識別子へ戻してUIから外した。UIはupload順に`{marketplace}_SHOP_n`を内部生成し、全ショップ数と同数の既出品CSV提出、重複ファイル保護、全ショップ横断の既出品ASIN照合を維持する。修正版UIによるB2 PH SafetyとB3 Categoryはオーナー実画面でPASSした。B4 Brand取得は承認範囲のread-only 1回で失敗し、Brand List未取得・Brand ID未推測のまま停止した。原因は無効なShopee認証情報であり、Category Mapperへブラウザsession内だけの一時認証入力を追加した。認証情報の更新と永続保存はCategory Mapperの責務に含めず、B4の再実行は未実施である。次は実装commitの読み取り専用diff/security reviewである。Keepa / JP通常runtime安定化はPASSであり、UI完全再起動後も`Amazon data provider: Canopy TEST`表示は再発していない。Canopy TEST再発のblockerは解消済みである。既存承認済みKeepa credential recoveryはPASSであり、`KEEPA_CREDENTIAL_AVAILABLE=YES`を確認した。credentialはprocessメモリ内だけで扱い、永続コピーを作成していない。credential recovery工程でKeepa APIは0回である。Canopyは本番標準ではなく開発・試験専用とし、Keepa / JPを標準として維持する。詳細なGate手順は`docs/PH_MINIMUM_BETA_ACCEPTANCE_PROTOCOL.md`を参照する。
+オーナーはGate Pの結果画面を実物確認し、問題なしとして受入した。よってGate PはPASSであり、PH Minimum Betaは第三者独立レビュー前の受入候補である。第三者独立レビュー、main統合、Beta正式技術判定、Beta最終事業決裁は未実施であり、Gate P PASSをBeta正式完成またはmain統合済みと扱わない。Category Mapperは認証情報を更新・永続保存せず、Category / Brand等のread-only取得が必要なときだけオーナー入力のACCESS_TOKENをブラウザsession内で一時利用する。Canopyは開発・試験専用とし、Keepa / JPを本番標準として維持する。詳細なGate手順は`docs/PH_MINIMUM_BETA_ACCEPTANCE_PROTOCOL.md`、第三者レビュー工程はDEC-0038を参照する。
 
-DEC-0035で、B1〜B7のMinimum Beta完成定義に対する確認済み`MISSING_IMPLEMENTATION`は0件と正本化した。これはBeta完成、Beta受入、実商品、実画面、実業務の受入完了を意味しない。ASIN Expansion / ASIN ResolverのKeepa本番標準経路live技術確認はGate KでPASSし、残るBeta MUSTはPH Minimum Betaのオーナー実物受入である。Canopyは開発・試験専用providerのままとし、Keepa本番確認を代替しない。
+DEC-0035で、B1〜B7のMinimum Beta完成定義に対する確認済み`MISSING_IMPLEMENTATION`は0件と正本化した。その後、Gate KとGate Pの実物受入がPASSした。次はDEC-0038に従い、Gate P branch全体の第三者独立レビューを行う。Canopyは開発・試験専用providerのままとし、Keepa本番確認を代替しない。
 
-外部出品ツールの正式入力契約はBeta MUSTではなく、自動投入または正式E2E接続を検討する場合のHOLDとする。mandatory attribute全面対応もconditionalのままとし、実物受入で手入力準備の成立を妨げると確認された場合だけBeta blocker候補としてオーナーへ戻す。Gate P実物受入は継続中であり、runtime / credentialのblockerは解消済みである。B1 Candidate、B2 PH Safety、B3 CategoryはPASSであり、B4 Brand取得はBrand List未取得・Brand ID未推測のままSTOPである。Gate P B4以降は未実行である。
+外部出品ツールの正式入力契約はBeta MUSTではなく、自動投入または正式E2E接続を検討する場合のHOLDとする。mandatory attribute全面対応もconditionalのままとし、実物受入で手入力準備の成立を妨げると確認された場合だけBeta blocker候補としてオーナーへ戻す。
 
-PR #29はmainへ統合済みで、当該PRのformal main commitは`471c63ce0d2206f4ab74b1813f9522db121c331d`である。Canopy Test Provider v0.1はmain上の正式技術成果である。`AMAZON_DATA_PROVIDER`は未設定時`keepa`、明示`canopy_test`時だけCanopy REST adapterを選択し、未知値はfail closedとする。Canopy Resolverは1回最大10 ASIN、`CANOPY_VERIFIED`をKeepaと区別し、Candidate CSV V1の15列を維持して`source=asin_resolver_canopy_verified`へ変換する。Canopy Expansionは起点商品、brandによるJP Search 1ページ、候補詳細最大5件のbrand exact matchに限定し、最大7 requests、retryなし、fallbackなし、Keepa SQLite cache no-writeとした。通常UIにprovider選択を追加せず、Canopy modeだけtest表示する。CanopyのHTTP transportはrequestsを使い、API-KEY / Accept / timeout、HTTP分類、retryなし、ASIN完全一致のfail-closedをmockで検証済みである。targeted pytestは119 passed、全pytestは787 passed。オーナー承認済みのlive技術検証では、`B0CP4RLMDB`のProductとResolverがASIN完全一致・title / brandありで成立し、Resolverは1 requestで`FOUND` / `CANOPY_VERIFIED`を返した。Expansionはsource brand取得、Search 20件、有効候補5件、brand exact・ASIN完全一致・titleありの最終候補5件を合計7 requestsで返した。Keepaは本番標準のまま、Canopyは開発・試験専用であり、自動fallbackは行わない。Canopyの長期品質・安定性、実商品の網羅確認、Gate P全体の実画面・実業務受入は未実施である。
+PR #29はmainへ統合済みで、当該PRのformal main commitは`471c63ce0d2206f4ab74b1813f9522db121c331d`である。Canopy Test Provider v0.1はmain上の正式技術成果である。`AMAZON_DATA_PROVIDER`は未設定時`keepa`、明示`canopy_test`時だけCanopy REST adapterを選択し、未知値はfail closedとする。Canopy Resolverは1回最大10 ASIN、`CANOPY_VERIFIED`をKeepaと区別し、Candidate CSV V1の15列を維持して`source=asin_resolver_canopy_verified`へ変換する。Canopy Expansionは起点商品、brandによるJP Search 1ページ、候補詳細最大5件のbrand exact matchに限定し、最大7 requests、retryなし、fallbackなし、Keepa SQLite cache no-writeとした。通常UIにprovider選択を追加せず、Canopy modeだけtest表示する。CanopyのHTTP transportはrequestsを使い、API-KEY / Accept / timeout、HTTP分類、retryなし、ASIN完全一致のfail-closedをmockで検証済みである。targeted pytestは119 passed、全pytestは787 passed。オーナー承認済みのlive技術検証では、`B0CP4RLMDB`のProductとResolverがASIN完全一致・title / brandありで成立し、Resolverは1 requestで`FOUND` / `CANOPY_VERIFIED`を返した。Expansionはsource brand取得、Search 20件、有効候補5件、brand exact・ASIN完全一致・titleありの最終候補5件を合計7 requestsで返した。Keepaは本番標準のまま、Canopyは開発・試験専用であり、自動fallbackは行わない。Canopy経路の長期品質・安定性と実商品の網羅確認は未実施である。
 
 PR #24はmainへ統合済みで、formal main commitは`5ebd4270e516d199a8e592298a15723414d2da9a`です。DEC-0030で限定した13 Brand-exact PH_BLOCKはmain上の正式技術成果です。独立V2 rulesetとGuardrail層のdeterministic BLOCK evaluatorを既存`apply_guardrails()`内でV1結果へBLOCK vetoとして合成し、V2非該当時のV1完全互換、malformed rulesetのfail-closed、Gate public interface不変、PH限定有効化を技術検証しました。targeted pytestは`tests/test_guardrails.py`が323 passed、`tests/test_prelisting_gate.py`が58 passed、全pytestは761 passedです。実商品、実データ、実画面、実業務受入は未実施であり、Phase 1の技術受入と業務受入を混同しません。Bose、一般用医薬品、医療用針、その他711候補は対象外のままです。
 
@@ -45,6 +45,10 @@ PR #16はGate結果CSVのschema version再検証をmainへ統合し、formal mai
 
 ## 完了・受入済み
 
+- Gate Kの正式技術確認PASS
+- Gate P B1〜B7の実物受入PASS
+- Gate P結果画面のオーナー実物確認PASS
+- Gate P PASS。PH Minimum Betaは第三者独立レビュー前の受入候補
 - PR #29をmainへ統合。formal main / current base `471c63ce0d2206f4ab74b1813f9522db121c331d`上でCanopy Test Provider v0.1を正式技術成果として受入（全pytest 787件成功）
 - Resolverの読み取り専用仕様監査完了
 - 過去成果物の証拠回収監査完了
@@ -170,13 +174,13 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 未完了事項
 
-- Canopyの長期品質・安定性、実商品の網羅確認、Gate P全体の実画面・実業務受入の確認
+- Canopyの長期品質・安定性、実商品の網羅確認
 - Category ID等を扱うGuardrail候補データ構造・判定単位・根拠種別の設計
-- PH Minimum Betaのオーナー実物受入
+- Gate P branch全体の第三者独立レビュー
+- PH Minimum Betaの正式技術判定とオーナー最終事業決裁
+- Gate P branchのmain統合
 - ASIN到達性能の評価
 - Expansion・Resolverの実商品テスト
-- Shopee Category ID・Shopee Brand ID確認工程の受入
-- オーナーによるPHでの実画面・実業務受入
 - 出品後商品改善ツールの将来優先順位判断
 - Amazon仕入れ支援ツールの将来優先順位判断
 - 外部既存出品ツールの正式入力テンプレートまたは仕様書の読み取り専用証拠回収（自動投入またはE2E接続を検討する場合）
@@ -190,11 +194,12 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-Category Mapper一時認証入力commitの読み取り専用diff/security reviewを行う。
+Gate P branch全体について第三者読み取り専用検収を行う。
 
 ## 停止条件
 
-- 次の単一作業は一時認証入力commitの読み取り専用diff/security reviewに限定し、外部API実行、認証更新、B4再実行へ自動拡張しない。
+- 次の単一作業はGate P branch全体の第三者読み取り専用検収に限定し、外部API、UI操作、認証更新、コード修正、main統合、Beta最終判定へ自動拡張しない。
+- Gate P PASSをPH Minimum Beta正式完成またはmain統合済みと扱わない。
 - 人間作業時間measurement logを作らず、E2E時間測定を開始しない。
 - Phase 2へ自動直進しない。
 - AI Shadowを開始しない。
@@ -307,4 +312,4 @@ Category Mapper一時認証入力commitの読み取り専用diff/security review
 
 ## 最終更新日
 
-2026-08-25
+2026-08-26
