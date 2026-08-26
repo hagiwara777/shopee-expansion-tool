@@ -62,13 +62,14 @@ MARKETPLACE_DICTIONARY_FILES = {
     "PH": ("prohibited_brands_ph.csv", "risk_keywords_ph.csv"),
 }
 V2_RULESET_FILE = "deterministic_block_rules_v2.csv"
-V2_RULESET_SCHEMA_VERSION = "GUARDRAIL_RULE_V2_V1"
+V2_RULESET_SCHEMA_VERSION = "GUARDRAIL_RULE_V2_V2"
 V2_REQUIRED_COLUMNS = {
     "schema_version",
     "rule_id",
     "scope",
     "fact_field",
     "operator",
+    "canonical_term",
     "value",
     "action",
     "risk_category",
@@ -117,6 +118,8 @@ class DeterministicBlockRuleV2:
     scope: str
     fact_field: str
     operator: str
+    canonical_term: str
+    normalized_canonical_term: str
     value: str
     normalized_value: str
     action: str
@@ -132,6 +135,8 @@ class DeterministicBlockRuleV2:
 @dataclass(frozen=True)
 class DeterministicBlockMatchV2:
     rule: DeterministicBlockRuleV2
+    actual_fact_field: str
+    matched_value: str
 
 
 def apply_guardrails(
@@ -298,16 +303,38 @@ def evaluate_deterministic_blocks_v2(
     if normalized_marketplace != "PH":
         return []
 
-    normalized_brand = normalize_text(row.get("brand"))
-    if not normalized_brand:
-        return []
-
     applicable_scopes = {"COMMON_BLOCK", "PH_BLOCK"}
-    return [
-        DeterministicBlockMatchV2(rule=rule)
-        for rule in rules
-        if rule.scope in applicable_scopes and normalized_brand == rule.normalized_value
-    ]
+    matches: list[DeterministicBlockMatchV2] = []
+    for rule in rules:
+        if rule.scope not in applicable_scopes:
+            continue
+        if rule.fact_field == "brand" and rule.operator == "exact":
+            brand = normalize_v2_text(row.get("brand"))
+            if brand and brand == rule.normalized_value:
+                matches.append(
+                    DeterministicBlockMatchV2(
+                        rule=rule,
+                        actual_fact_field="brand",
+                        matched_value=str(row.get("brand") or "").strip(),
+                    )
+                )
+            continue
+        if rule.fact_field == "ingredient_safety" and rule.operator == "contains_term":
+            for actual_field, value in _ingredient_safety_values(row):
+                if _contains_v2_term(normalize_v2_text(value), rule.normalized_value):
+                    matches.append(
+                        DeterministicBlockMatchV2(
+                            rule=rule,
+                            actual_fact_field=actual_field,
+                            matched_value=rule.value,
+                        )
+                    )
+                    break
+            continue
+        raise GuardrailDictionaryError(
+            f"unsupported V2 evaluator pair: {rule.fact_field}/{rule.operator}"
+        )
+    return matches
 
 
 def _normalize_marketplace(marketplace: Any) -> str:
@@ -328,6 +355,17 @@ def normalize_text(value: Any) -> str:
 
     text = unicodedata.normalize("NFKC", str(value))
     text = text.strip().lower()
+    return re.sub(r"\s+", " ", text)
+
+
+def normalize_v2_text(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, float) and math.isnan(value):
+        return ""
+
+    text = unicodedata.normalize("NFKC", str(value))
+    text = text.strip().casefold()
     return re.sub(r"\s+", " ", text)
 
 
@@ -509,14 +547,18 @@ def _parse_v2_rule(
             f"許可値: {allowed}、現在値: {scope or '空欄'}"
         )
 
-    fact_field = normalize_text(row.get("fact_field"))
-    if fact_field != "brand":
+    fact_field = normalize_v2_text(row.get("fact_field"))
+    if fact_field not in {"brand", "ingredient_safety"}:
         raise GuardrailDictionaryError(
             f"{file_name} {row_number}行目: unsupported fact_fieldです: "
             f"{fact_field or '空欄'}"
         )
-    operator = normalize_text(row.get("operator"))
-    if operator != "exact":
+    operator = normalize_v2_text(row.get("operator"))
+    allowed_pair = (fact_field, operator) in {
+        ("brand", "exact"),
+        ("ingredient_safety", "contains_term"),
+    }
+    if not allowed_pair:
         raise GuardrailDictionaryError(
             f"{file_name} {row_number}行目: unsupported operatorです: "
             f"{operator or '空欄'}"
@@ -529,29 +571,51 @@ def _parse_v2_rule(
         )
 
     value = str(row.get("value") or "").strip()
-    normalized_value = normalize_text(value)
+    normalized_value = normalize_v2_text(value)
     if not normalized_value:
         raise GuardrailDictionaryError(f"{file_name} {row_number}行目: valueが空です。")
 
-    risk_category = normalize_text(row.get("risk_category"))
-    if risk_category != "community_report":
+    canonical_term = str(row.get("canonical_term") or "").strip()
+    normalized_canonical_term = normalize_v2_text(canonical_term)
+    if not normalized_canonical_term:
         raise GuardrailDictionaryError(
-            f"{file_name} {row_number}行目: risk_categoryはcommunity_reportにしてください。"
+            f"{file_name} {row_number}行目: canonical_termが空です。"
         )
-    source_type = normalize_text(row.get("source_type"))
-    if source_type != "community_report":
+
+    risk_category = normalize_v2_text(row.get("risk_category"))
+    if risk_category not in ALLOWED_RISK_CATEGORIES:
         raise GuardrailDictionaryError(
-            f"{file_name} {row_number}行目: source_typeはcommunity_reportにしてください。"
+            f"{file_name} {row_number}行目: risk_categoryが不正です。"
+        )
+    source_type = normalize_v2_text(row.get("source_type"))
+    if source_type not in ALLOWED_SOURCE_TYPES:
+        raise GuardrailDictionaryError(
+            f"{file_name} {row_number}行目: source_typeが不正です。"
         )
     decision_ref = str(row.get("decision_ref") or "").strip()
-    if decision_ref != "DEC-0030":
+    if re.fullmatch(r"DEC-\d{4}", decision_ref) is None:
         raise GuardrailDictionaryError(
-            f"{file_name} {row_number}行目: decision_refはDEC-0030にしてください。"
+            f"{file_name} {row_number}行目: decision_refが不正です。"
         )
     evidence_ref = str(row.get("evidence_ref") or "").strip()
-    if evidence_ref != "OWNER_SOURCE_COMMUNITY_NG_LIST":
+    if not evidence_ref:
         raise GuardrailDictionaryError(
-            f"{file_name} {row_number}行目: evidence_refが不正です。"
+            f"{file_name} {row_number}行目: evidence_refが空です。"
+        )
+    if fact_field == "brand" and (
+        risk_category != "community_report"
+        or source_type != "community_report"
+        or decision_ref != "DEC-0030"
+        or evidence_ref != "OWNER_SOURCE_COMMUNITY_NG_LIST"
+    ):
+        raise GuardrailDictionaryError(
+            f"{file_name} {row_number}行目: Brand exact canonical evidenceの"
+            "risk_category/source_type/decision_ref/evidence_refが不正です。"
+        )
+    if fact_field == "ingredient_safety" and risk_category != "regulated_ingredient":
+        raise GuardrailDictionaryError(
+            f"{file_name} {row_number}行目: Ingredient Safety ruleの"
+            "risk_categoryはregulated_ingredientにしてください。"
         )
     note = str(row.get("note") or "").strip()
     if not note:
@@ -563,6 +627,8 @@ def _parse_v2_rule(
         scope=scope,
         fact_field=fact_field,
         operator=operator,
+        canonical_term=canonical_term,
+        normalized_canonical_term=normalized_canonical_term,
         value=value,
         normalized_value=normalized_value,
         action=action,
@@ -640,8 +706,43 @@ def _contains_term(target: str, term: str) -> bool:
     return term in target
 
 
+def _contains_v2_term(target: str, term: str) -> bool:
+    if not term:
+        return False
+    if re.search(r"[a-z0-9]", term):
+        pattern = rf"(?<![a-z0-9]){re.escape(term)}(?![a-z0-9])"
+        return re.search(pattern, target) is not None
+    return term in target
+
+
 def _is_ascii_token_phrase(term: str) -> bool:
     return re.fullmatch(r"[a-z0-9]+(?: [a-z0-9]+)*", term) is not None
+
+
+def _ingredient_safety_values(row: dict[str, Any]) -> list[tuple[str, str]]:
+    values: list[tuple[str, str]] = []
+    title = row.get("product_title")
+    if title is not None and not isinstance(title, str):
+        raise GuardrailDictionaryError("product_title Ingredient Safety Fact must be a string")
+    if isinstance(title, str) and title.strip():
+        values.append(("product_title", title))
+
+    for field in ("ingredients", "activeIngredients", "specialIngredients"):
+        raw_value = row.get(field)
+        if raw_value is None:
+            continue
+        if isinstance(raw_value, str):
+            if raw_value.strip():
+                values.append((field, raw_value))
+            continue
+        if not isinstance(raw_value, (list, tuple)):
+            raise GuardrailDictionaryError(f"{field} Ingredient Safety Fact is malformed")
+        for item in raw_value:
+            if not isinstance(item, str):
+                raise GuardrailDictionaryError(f"{field} Ingredient Safety Fact is malformed")
+            if item.strip():
+                values.append((field, item))
+    return values
 
 
 def _apply_matches_to_row(
@@ -689,7 +790,7 @@ def _apply_v2_matches_to_row(
     v1_status = guarded_row.get("guardrail_status", "")
     if v1_status == "SAFE":
         risk_values: Iterable[str] = (match.rule.risk_category for match in matches)
-        term_values: Iterable[str] = (match.rule.value for match in matches)
+        term_values: Iterable[str] = (match.rule.canonical_term for match in matches)
         source_values: Iterable[str] = (match.rule.source_type for match in matches)
         note_values: Iterable[str] = (_v2_match_note(match) for match in matches)
     else:
@@ -699,7 +800,7 @@ def _apply_v2_matches_to_row(
         )
         term_values = (
             guarded_row.get("guardrail_matched_terms", ""),
-            *(match.rule.value for match in matches),
+            *(match.rule.canonical_term for match in matches),
         )
         source_values = (
             guarded_row.get("guardrail_source", ""),
@@ -733,7 +834,10 @@ def _match_note(match: GuardrailMatch) -> str:
 def _v2_match_note(match: DeterministicBlockMatchV2) -> str:
     return (
         f"V2 Rule matched: {match.rule.rule_id} "
-        f"(Brand exact: {match.rule.value}; {match.rule.note})"
+        f"(canonical_term={match.rule.canonical_term}; "
+        f"matched_value={match.rule.value}; "
+        f"fact_field={match.actual_fact_field}; "
+        f"evidence_ref={match.rule.evidence_ref}; {match.rule.note})"
     )
 
 

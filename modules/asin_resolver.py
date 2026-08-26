@@ -10,6 +10,12 @@ import unicodedata
 
 from modules.asin_resolver_evidence import parse_source_input
 from modules.amazon_data_provider import AmazonDataProviderError
+from modules.amazon_data_provider import CANOPY_TEST_PROVIDER, KEEPA_PROVIDER
+from modules.ingredient_safety import (
+    ingredient_safety_fact_from_product_data,
+    ingredient_safety_fact_from_transport,
+    ingredient_safety_fact_to_payload,
+)
 from modules.keepa_client import normalize_asin
 
 
@@ -938,6 +944,29 @@ def _verified_row(
     product_brand = _keepa_display_text(keepa_product, "brand")
     product_category = _keepa_display_text(keepa_product, "category")
     product_fetched_at = _keepa_display_text(keepa_product, "fetched_at")
+    ingredient_payload = None
+    if status == FOUND:
+        provider = CANOPY_TEST_PROVIDER if product_field_prefix == "canopy" else KEEPA_PROVIDER
+        source_payload = (
+            keepa_product.get("ingredient_safety_fact")
+            if isinstance(keepa_product, dict)
+            else None
+        )
+        if source_payload is None:
+            ingredient_fact = ingredient_safety_fact_from_product_data(
+                keepa_product if isinstance(keepa_product, dict) else None,
+                candidate_asin=str(row.get("asin") or ""),
+                provider=provider,
+                fetched_at=product_fetched_at,
+            )
+        else:
+            ingredient_fact = ingredient_safety_fact_from_transport(
+                source_payload,
+                candidate_asin=str(row.get("asin") or ""),
+                provider=provider,
+                fetched_at=product_fetched_at,
+            )
+        ingredient_payload = ingredient_safety_fact_to_payload(ingredient_fact)
     verified.update(
         {
             "status": status,
@@ -951,6 +980,7 @@ def _verified_row(
             f"{product_field_prefix}_brand": product_brand,
             f"{product_field_prefix}_category": product_category,
             f"{product_field_prefix}_fetched_at": product_fetched_at,
+            "ingredient_safety_fact": ingredient_payload,
         }
     )
     return verified

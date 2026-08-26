@@ -28,6 +28,8 @@ PRELISTING_GATE_PREVIEW_COLUMNS = (
     "brand",
     "category",
     "guardrail_status",
+    "guardrail_matched_terms",
+    "guardrail_note",
     "existing_listing_status",
     "metadata_status",
     "final_eligibility",
@@ -201,6 +203,8 @@ def build_prelisting_gate_fingerprint(
     candidate_filename: str | None,
     candidate_content: bytes | None,
     inventory_files: Iterable[tuple[str, bytes, object]],
+    ingredient_safety_filename: str | None = None,
+    ingredient_safety_content: bytes | None = None,
 ) -> str:
     """Build a deterministic, non-reversible fingerprint of current inputs."""
 
@@ -224,10 +228,19 @@ def build_prelisting_gate_fingerprint(
         }
         for filename, content, shop_label in inventory_files
     ]
+    ingredient_safety = None
+    if ingredient_safety_filename is not None or ingredient_safety_content is not None:
+        if ingredient_safety_filename is None or ingredient_safety_content is None:
+            raise ValueError("Ingredient Safety filename and content must be provided together")
+        ingredient_safety = {
+            "filename": str(ingredient_safety_filename),
+            "content_sha256": content_sha256(ingredient_safety_content),
+        }
     payload = {
         "marketplace": str(marketplace),
         "expected_shop_count": expected_shop_count,
         "candidate": candidate,
+        "ingredient_safety": ingredient_safety,
         "inventories": inventories,
     }
     encoded = json.dumps(
@@ -290,6 +303,8 @@ def build_prelisting_gate_preview_rows(
                 "brand": row.candidate.brand,
                 "category": row.candidate.category,
                 "guardrail_status": row.guardrail_status,
+                "guardrail_matched_terms": row.guardrail_matched_terms,
+                "guardrail_note": row.guardrail_note,
                 "existing_listing_status": row.existing_listing_status,
                 "metadata_status": row.metadata_status,
                 "final_eligibility": row.final_eligibility,

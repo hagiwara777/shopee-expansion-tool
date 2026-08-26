@@ -14,18 +14,20 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 ## 現在作業
 
 - current_work_type: `PH Minimum Beta Safety blocker対応`
-- current_phase: `Ingredient Safety技術設計・GABA Evidence正本化完了 / 実装WORK_BRIEF前`
+- current_phase: `Ingredient Safety実装・local technical validation完了 / 読み取り専用review前`
 - working_branch: `codex/ph-minimum-beta-gate-k-live`
 - marketplace: `PH`
-- module: `Guardrail / Ingredient Safety Evidence`
-- phase: `PH Minimum Beta / Ingredient Safety blocker対応 / 実装WORK_BRIEF前`
-- next_action: GABA evidence_refを使ったIngredient Safety実装WORK_BRIEFを確定する。
+- module: `Amazon Fact取得 / Ingredient Safety Fact transport / Guardrail Rule V2 / Prelisting Gate`
+- phase: `PH Minimum Beta / Ingredient Safety実装完了 / security・compatibility review前`
+- next_action: Ingredient Safety実装差分の読み取り専用security / compatibility reviewを行う。
 
 Gate Kの正式技術確認はPASS済みである。Gate PはB1 Candidate、B2 PH Safety、B3 Category、B4 Brand / No Brand、B5 Safe Stop、B6 listing_ready、B7 Human Handoffの全項目を実画面で確認し、B1〜B7をPASSとする。B2ではPH、Candidate 2件、ELIGIBLE 2件、REVIEW 0件、EXCLUDE 0件とshop label UX修正を確認した。B3ではCategory Path `Beauty > Skincare > Toner`、Category ID `100892`を採用した。B4ではCategory Mapper一時認証入力のsecurity reviewをPASS後、承認済みのShopee Brand List read-only取得を1回・retry 0で実行し、No BrandをBrand ID `0`としてオーナーが確定した。B5ではBrand未確定時に出力対象がなく次工程へ進めないこと、B6では2件がlisting_readyになること、B7では2件・1グループのCSV / text handoffを取得できることを確認した。商品名、ASIN、CSV本文、credentialはこの正本に記録しない。
 
 オーナーはGate Pの結果画面を実物確認し、問題なしとして受入した。これは旧仕様におけるGate P PASSの受入履歴である。新たにオーナーが確認したPHのGABA成分に関するアカウント凍結報告を、Shopee公式禁止物質の断定ではない運用上のSafety evidenceとして扱い、DEC-0041により第三者独立レビューを一旦保留した。Beta正式技術判定、Beta最終事業決裁、main統合は未実施であり、Gate P PASSをBeta正式完成またはmain統合済みと扱わない。Category Mapperは認証情報を更新・永続保存せず、Category / Brand等のread-only取得が必要なときだけオーナー入力のACCESS_TOKENをブラウザsession内で一時利用する。Canopyは開発・試験専用とし、Keepa / JPを本番標準として維持する。
 
-DEC-0035で、B1〜B7のMinimum Beta完成定義に対する確認済み`MISSING_IMPLEMENTATION`は0件と正本化した。その後、Gate KとGate Pの実物受入がPASSした。DEC-0041で保留した第三者独立レビューより先に、DEC-0042でIngredient Safety Factと市場別BLOCK成分辞書の設計原則を正本化し、repo-grounded技術設計を完了した。GABAのowner attestationはGit外Evidenceとして正本化し、Rule V2の`evidence_ref`を`ART-PH-GABA-FREEZE-OWNER-ATTESTATION-V1`、`source_type`を`community_report`、`decision_ref`を`DEC-0042`と一意に確定した。これはGABA RuleまたはIngredient Safety実装の完了を意味しない。Canopyは開発・試験専用providerのままとし、Keepa本番確認を代替しない。
+DEC-0035で、B1〜B7のMinimum Beta完成定義に対する確認済み`MISSING_IMPLEMENTATION`は0件と正本化した。その後、Gate KとGate Pの実物受入がPASSした。DEC-0041で保留した第三者独立レビューより先に、DEC-0042でIngredient Safety Factと市場別BLOCK成分辞書の設計原則を正本化し、repo-grounded技術設計を完了した。GABAのowner attestationはGit外Evidenceとして正本化し、Rule V2の`evidence_ref`を`ART-PH-GABA-FREEZE-OWNER-ATTESTATION-V1`、`source_type`を`community_report`、`decision_ref`を`DEC-0042`と一意に確定した。この設計正本化だけではGABA RuleまたはIngredient Safety実装の完了を意味しなかった。Canopyは開発・試験専用providerのままとし、Keepa本番確認を代替しない。
+
+承認済みWORK_BRIEFに基づくIngredient Safety実装とlocal technical validationをbranch上で完了した。`PRELISTING_CANDIDATE_V1`の固定15列と`PRELISTING_GATE_RESULT_V1`を維持し、Keepa既存responseから3成分Factを通常処理の追加request 0で保持する。Candidate最終bytesのSHA-256に結び付く`INGREDIENT_SAFETY_FACT_V1` sidecar、Rule schema `GUARDRAIL_RULE_V2_V2`、既存13 Brand exact ruleの移行、PH GABA 6 alias、Expansion / Resolver / optional Gate uploadを実装した。旧cache markerなしは`NOT_CAPTURED`、Canopyは`PROVIDER_UNSUPPORTED`とし、Fact欠損だけではREVIEW / BLOCKにしない。targeted pytestは695件、全pytestは868件成功した。外部API、live Keepa Fact確認、B2再受入、第三者独立レビュー、push / PR / merge / deployは実施していない。
 
 外部出品ツールの正式入力契約はBeta MUSTではなく、自動投入または正式E2E接続を検討する場合のHOLDとする。mandatory attribute全面対応もconditionalのままとし、実物受入で手入力準備の成立を妨げると確認された場合だけBeta blocker候補としてオーナーへ戻す。
 
@@ -50,6 +52,7 @@ PR #16はGate結果CSVのschema version再検証をmainへ統合し、formal mai
 - Gate P結果画面のオーナー実物確認PASS
 - Gate P PASS（旧仕様の受入履歴。PH Minimum Beta正式完成ではない）
 - Ingredient Safety Factと市場別BLOCK成分辞書の設計正本化（DEC-0042）
+- Ingredient Safety Fact transport、SHA-bound sidecar、Rule V2 V2、PH GABA deterministic BLOCK、Expansion / Resolver / Gate / UIのbranch実装とlocal technical validation完了（targeted 695件、全pytest 868件、外部API 0）
 - PR #29をmainへ統合。formal main / current base `471c63ce0d2206f4ab74b1813f9522db121c331d`上でCanopy Test Provider v0.1を正式技術成果として受入（全pytest 787件成功）
 - Resolverの読み取り専用仕様監査完了
 - 過去成果物の証拠回収監査完了
@@ -176,10 +179,12 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 未完了事項
 
-- GABA evidence_refを使用するIngredient Safety実装WORK_BRIEFの確定
+- Ingredient Safety実装差分の読み取り専用security / compatibility review
+- live Keepa responseでの3成分Fact確認
+- Ingredient Safety追加後のGate P B2再受入
 - Canopyの長期品質・安定性、実商品の網羅確認
 - Category ID等を扱うGuardrail候補データ構造・判定単位・根拠種別の設計
-- Gate P branch全体の第三者独立レビュー（Ingredient Safety設計ゲート完了まで保留）
+- Gate P branch全体の第三者独立レビュー（Ingredient Safety差分reviewとB2再受入まで保留）
 - PH Minimum Betaの正式技術判定とオーナー最終事業決裁
 - Gate P branchのmain統合
 - ASIN到達性能の評価
@@ -197,11 +202,11 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-GABA evidence_refを使ったIngredient Safety実装WORK_BRIEFを確定する。
+Ingredient Safety実装差分の読み取り専用security / compatibility reviewを行う。
 
 ## 停止条件
 
-- 実装WORK_BRIEF確定前にコード、tests、Guardrail辞書、Gateロジック、UIを変更しない。
+- 読み取り専用security / compatibility review中は、指摘を確認する前にコード、tests、Guardrail辞書、Gateロジック、UIを追加変更しない。
 - Keepa APIその他の外部APIを実行しない。
 - GABAを含む市場別BLOCK成分辞書を変更しない。
 - Candidate物理schemaを推測で変更しない。
@@ -294,10 +299,7 @@ GABA evidence_refを使ったIngredient Safety実装WORK_BRIEFを確定する。
 
 ## 既知の文書不整合
 
-- `README.md` にはPrelisting Gateが「現在SGのみ対応」と記載されています。
-- 一方、読み取り専用監査では、実装、PH Guardrail辞書、PH v2 fixture、テストソースにより
-  SG／PH対応を確認しました。テストは実行していません。
-- README修正は未承認であり、修正要否は後続判断とします。
+- 現時点で、この作業に関する既知のREADME / 実装間不整合はない。
 
 ## 情報の根拠・確認レベル
 
@@ -314,9 +316,9 @@ GABA evidence_refを使ったIngredient Safety実装WORK_BRIEFを確定する。
 | 回収TSVの今後の正式基準入力としての採用 | 新規基準入力専用としてオーナー受入済み |
 | Resolver証拠永続化改修、テスト、実画面 | branch技術検収、オーナー実画面確認、PR #7 main統合およびformal main確認済み |
 | 実データ | 未確認 |
-| PH対応のコード上の事実 | 読み取り専用監査で実装、PH Guardrail辞書、PH v2 fixture、テストソースを確認。テストは未実行 |
+| PH対応のコード上の事実 | Ingredient Safety実装を含むtargeted pytest 695件、全pytest 868件でlocal technical validation済み。実商品・live Keepa Fact・B2再受入は未実施 |
 | 新batchで確定する再検索対象件数・source_id、再評価の実行日・担当者・使用外部AI、Resolver成功基準、改善対象と改善方法 | 未確認 |
 
 ## 最終更新日
 
-2026-08-26
+2026-08-27

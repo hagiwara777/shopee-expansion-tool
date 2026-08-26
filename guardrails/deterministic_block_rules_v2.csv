@@ -1,14 +1,20 @@
-schema_version,rule_id,scope,fact_field,operator,value,action,risk_category,source_type,decision_ref,evidence_ref,note
-GUARDRAIL_RULE_V2_V1,PH-V2-BRAND-001,PH_BLOCK,brand,exact,グルマンディーズ,BLOCK,community_report,community_report,DEC-0030,OWNER_SOURCE_COMMUNITY_NG_LIST,Canonical Phase 1 Brand exact PH_BLOCK
-GUARDRAIL_RULE_V2_V1,PH-V2-BRAND-002,PH_BLOCK,brand,exact,Gourmandise,BLOCK,community_report,community_report,DEC-0030,OWNER_SOURCE_COMMUNITY_NG_LIST,Canonical Phase 1 Brand exact PH_BLOCK
-GUARDRAIL_RULE_V2_V1,PH-V2-BRAND-003,PH_BLOCK,brand,exact,OXO,BLOCK,community_report,community_report,DEC-0030,OWNER_SOURCE_COMMUNITY_NG_LIST,Canonical Phase 1 Brand exact PH_BLOCK
-GUARDRAIL_RULE_V2_V1,PH-V2-BRAND-004,PH_BLOCK,brand,exact,ZOJIRUSHI,BLOCK,community_report,community_report,DEC-0030,OWNER_SOURCE_COMMUNITY_NG_LIST,Canonical Phase 1 Brand exact PH_BLOCK
-GUARDRAIL_RULE_V2_V1,PH-V2-BRAND-005,PH_BLOCK,brand,exact,Schleich,BLOCK,community_report,community_report,DEC-0030,OWNER_SOURCE_COMMUNITY_NG_LIST,Canonical Phase 1 Brand exact PH_BLOCK
-GUARDRAIL_RULE_V2_V1,PH-V2-BRAND-006,PH_BLOCK,brand,exact,L'OREAL,BLOCK,community_report,community_report,DEC-0030,OWNER_SOURCE_COMMUNITY_NG_LIST,Canonical Phase 1 Brand exact PH_BLOCK
-GUARDRAIL_RULE_V2_V1,PH-V2-BRAND-007,PH_BLOCK,brand,exact,nivea,BLOCK,community_report,community_report,DEC-0030,OWNER_SOURCE_COMMUNITY_NG_LIST,Canonical Phase 1 Brand exact PH_BLOCK
-GUARDRAIL_RULE_V2_V1,PH-V2-BRAND-008,PH_BLOCK,brand,exact,LEGO,BLOCK,community_report,community_report,DEC-0030,OWNER_SOURCE_COMMUNITY_NG_LIST,Canonical Phase 1 Brand exact PH_BLOCK
-GUARDRAIL_RULE_V2_V1,PH-V2-BRAND-009,PH_BLOCK,brand,exact,Shu Uemura,BLOCK,community_report,community_report,DEC-0030,OWNER_SOURCE_COMMUNITY_NG_LIST,Canonical Phase 1 Brand exact PH_BLOCK
-GUARDRAIL_RULE_V2_V1,PH-V2-BRAND-010,PH_BLOCK,brand,exact,ロート製薬,BLOCK,community_report,community_report,DEC-0030,OWNER_SOURCE_COMMUNITY_NG_LIST,Canonical Phase 1 Brand exact PH_BLOCK
-GUARDRAIL_RULE_V2_V1,PH-V2-BRAND-011,PH_BLOCK,brand,exact,Endgame Gear,BLOCK,community_report,community_report,DEC-0030,OWNER_SOURCE_COMMUNITY_NG_LIST,Canonical Phase 1 Brand exact PH_BLOCK
-GUARDRAIL_RULE_V2_V1,PH-V2-BRAND-012,PH_BLOCK,brand,exact,エーザイ,BLOCK,community_report,community_report,DEC-0030,OWNER_SOURCE_COMMUNITY_NG_LIST,Canonical Phase 1 Brand exact PH_BLOCK
-GUARDRAIL_RULE_V2_V1,PH-V2-BRAND-013,PH_BLOCK,brand,exact,ゼンハイザー,BLOCK,community_report,community_report,DEC-0030,OWNER_SOURCE_COMMUNITY_NG_LIST,Canonical Phase 1 Brand exact PH_BLOCK
+schema_version,rule_id,scope,fact_field,operator,canonical_term,value,action,risk_category,source_type,decision_ref,evidence_ref,note
+GUARDRAIL_RULE_V2_V2,PH-V2-BRAND-001,PH_BLOCK,brand,exact,グルマンディーズ,グルマンディーズ,BLOCK,community_report,community_report,DEC-0030,OWNER_SOURCE_COMMUNITY_NG_LIST,Canonical Phase 1 Brand exact PH_BLOCK
+GUARDRAIL_RULE_V2_V2,PH-V2-BRAND-002,PH_BLOCK,brand,exact,Gourmandise,Gourmandise,BLOCK,community_report,community_report,DEC-0030,OWNER_SOURCE_COMMUNITY_NG_LIST,Canonical Phase 1 Brand exact PH_BLOCK
+GUARDRAIL_RULE_V2_V2,PH-V2-BRAND-003,PH_BLOCK,brand,exact,OXO,OXO,BLOCK,community_report,community_report,DEC-0030,OWNER_SOURCE_COMMUNITY_NG_LIST,Canonical Phase 1 Brand exact PH_BLOCK
+GUARDRAIL_RULE_V2_V2,PH-V2-BRAND-004,PH_BLOCK,brand,exact,ZOJIRUSHI,ZOJIRUSHI,BLOCK,community_report,community_report,DEC-0030,OWNER_SOURCE_COMMUNITY_NG_LIST,Canonical Phase 1 Brand exact PH_BLOCK
+GUARDRAIL_RULE_V2_V2,PH-V2-BRAND-005,PH_BLOCK,brand,exact,Schleich,Schleich,BLOCK,community_report,community_report,DEC-0030,OWNER_SOURCE_COMMUNITY_NG_LIST,Canonical Phase 1 Brand exact PH_BLOCK
+GUARDRAIL_RULE_V2_V2,PH-V2-BRAND-006,PH_BLOCK,brand,exact,L'OREAL,L'OREAL,BLOCK,community_report,community_report,DEC-0030,OWNER_SOURCE_COMMUNITY_NG_LIST,Canonical Phase 1 Brand exact PH_BLOCK
+GUARDRAIL_RULE_V2_V2,PH-V2-BRAND-007,PH_BLOCK,brand,exact,nivea,nivea,BLOCK,community_report,community_report,DEC-0030,OWNER_SOURCE_COMMUNITY_NG_LIST,Canonical Phase 1 Brand exact PH_BLOCK
+GUARDRAIL_RULE_V2_V2,PH-V2-BRAND-008,PH_BLOCK,brand,exact,LEGO,LEGO,BLOCK,community_report,community_report,DEC-0030,OWNER_SOURCE_COMMUNITY_NG_LIST,Canonical Phase 1 Brand exact PH_BLOCK
+GUARDRAIL_RULE_V2_V2,PH-V2-BRAND-009,PH_BLOCK,brand,exact,Shu Uemura,Shu Uemura,BLOCK,community_report,community_report,DEC-0030,OWNER_SOURCE_COMMUNITY_NG_LIST,Canonical Phase 1 Brand exact PH_BLOCK
+GUARDRAIL_RULE_V2_V2,PH-V2-BRAND-010,PH_BLOCK,brand,exact,ロート製薬,ロート製薬,BLOCK,community_report,community_report,DEC-0030,OWNER_SOURCE_COMMUNITY_NG_LIST,Canonical Phase 1 Brand exact PH_BLOCK
+GUARDRAIL_RULE_V2_V2,PH-V2-BRAND-011,PH_BLOCK,brand,exact,Endgame Gear,Endgame Gear,BLOCK,community_report,community_report,DEC-0030,OWNER_SOURCE_COMMUNITY_NG_LIST,Canonical Phase 1 Brand exact PH_BLOCK
+GUARDRAIL_RULE_V2_V2,PH-V2-BRAND-012,PH_BLOCK,brand,exact,エーザイ,エーザイ,BLOCK,community_report,community_report,DEC-0030,OWNER_SOURCE_COMMUNITY_NG_LIST,Canonical Phase 1 Brand exact PH_BLOCK
+GUARDRAIL_RULE_V2_V2,PH-V2-BRAND-013,PH_BLOCK,brand,exact,ゼンハイザー,ゼンハイザー,BLOCK,community_report,community_report,DEC-0030,OWNER_SOURCE_COMMUNITY_NG_LIST,Canonical Phase 1 Brand exact PH_BLOCK
+GUARDRAIL_RULE_V2_V2,PH-V2-INGREDIENT-GABA-001,PH_BLOCK,ingredient_safety,contains_term,GABA,GABA,BLOCK,regulated_ingredient,community_report,DEC-0042,ART-PH-GABA-FREEZE-OWNER-ATTESTATION-V1,Owner operational BLOCK; not a Shopee official prohibition claim
+GUARDRAIL_RULE_V2_V2,PH-V2-INGREDIENT-GABA-002,PH_BLOCK,ingredient_safety,contains_term,GABA,gamma-aminobutyric acid,BLOCK,regulated_ingredient,community_report,DEC-0042,ART-PH-GABA-FREEZE-OWNER-ATTESTATION-V1,Owner operational BLOCK; not a Shopee official prohibition claim
+GUARDRAIL_RULE_V2_V2,PH-V2-INGREDIENT-GABA-003,PH_BLOCK,ingredient_safety,contains_term,GABA,gamma aminobutyric acid,BLOCK,regulated_ingredient,community_report,DEC-0042,ART-PH-GABA-FREEZE-OWNER-ATTESTATION-V1,Owner operational BLOCK; not a Shopee official prohibition claim
+GUARDRAIL_RULE_V2_V2,PH-V2-INGREDIENT-GABA-004,PH_BLOCK,ingredient_safety,contains_term,GABA,γ-アミノ酪酸,BLOCK,regulated_ingredient,community_report,DEC-0042,ART-PH-GABA-FREEZE-OWNER-ATTESTATION-V1,Owner operational BLOCK; not a Shopee official prohibition claim
+GUARDRAIL_RULE_V2_V2,PH-V2-INGREDIENT-GABA-005,PH_BLOCK,ingredient_safety,contains_term,GABA,ガンマアミノ酪酸,BLOCK,regulated_ingredient,community_report,DEC-0042,ART-PH-GABA-FREEZE-OWNER-ATTESTATION-V1,Owner operational BLOCK; not a Shopee official prohibition claim
+GUARDRAIL_RULE_V2_V2,PH-V2-INGREDIENT-GABA-006,PH_BLOCK,ingredient_safety,contains_term,GABA,ギャバ,BLOCK,regulated_ingredient,community_report,DEC-0042,ART-PH-GABA-FREEZE-OWNER-ATTESTATION-V1,Owner operational BLOCK; not a Shopee official prohibition claim

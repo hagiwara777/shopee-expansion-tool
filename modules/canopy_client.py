@@ -12,6 +12,10 @@ import requests
 from modules.amazon_data_provider import AmazonDataProviderError, CANOPY_TEST_PROVIDER
 from modules.cache import utc_now_iso
 from modules.keepa_client import normalize_asin
+from modules.ingredient_safety import (
+    ingredient_safety_fact_to_payload,
+    unsupported_ingredient_safety_fact,
+)
 
 
 CANOPY_BASE_URL = "https://rest.canopyapi.co"
@@ -154,6 +158,7 @@ class CanopyTestClient:
                     "source": CANOPY_EXPANSION_SOURCE,
                     "fetched_at": _text(product.get("fetched_at")) or fetched_at,
                     "note": "Canopy TEST brand exact match; category mapping not applied",
+                    "ingredient_safety_fact": product["ingredient_safety_fact"],
                 }
             )
 
@@ -185,12 +190,19 @@ class CanopyTestClient:
         returned_asin = normalize_asin(_required_text(product.get("asin"), "product ASIN"))
         if returned_asin != asin:
             raise CanopyDataError("Canopy returned a different ASIN than requested.")
+        fetched_at = utc_now_iso()
+        ingredient_fact = unsupported_ingredient_safety_fact(
+            candidate_asin=returned_asin,
+            provider=CANOPY_TEST_PROVIDER,
+            fetched_at=fetched_at,
+        )
         return {
             "asin": returned_asin,
             "title": _text(product.get("title")),
             "brand": _text(product.get("brand")),
             "category": "",
-            "fetched_at": utc_now_iso(),
+            "fetched_at": fetched_at,
+            "ingredient_safety_fact": ingredient_safety_fact_to_payload(ingredient_fact),
         }
 
     def _request_json(self, path: str, params: Mapping[str, str]) -> Mapping[str, Any]:

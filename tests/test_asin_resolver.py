@@ -27,6 +27,11 @@ from modules.asin_resolver import (
 )
 from modules.cache import KeepaCache
 from modules.canopy_client import CANOPY_NOT_FOUND, CANOPY_VERIFIED, CanopyClientError
+from modules.ingredient_safety import (
+    CAPTURED,
+    INGREDIENT_SAFETY_PAYLOAD_VERSION,
+    PROVIDER_UNSUPPORTED,
+)
 from modules.keepa_client import KeepaClientError, KeepaExpansionClient
 
 
@@ -814,6 +819,7 @@ def test_verify_preview_rows_keeps_canopy_verification_and_product_fields_distin
     assert rows[0]["canopy_title"] == "Canopy product title"
     assert rows[0]["canopy_brand"] == "Canopy brand"
     assert rows[0]["product_title"] == "Canopy product title"
+    assert rows[0]["ingredient_safety_fact"]["capture_status"] == PROVIDER_UNSUPPORTED
     assert "keepa_title" not in rows[0]
 
 
@@ -876,6 +882,36 @@ def test_verify_preview_rows_copies_keepa_comparison_fields_to_duplicate_asin_ro
         "2026-07-16T00:00:00+00:00",
     ]
     assert [row["asin"] for row in rows] == ["B07TSC47PH", "B07TSC47PH"]
+
+
+def test_verify_preview_rows_transports_captured_keepa_ingredient_facts():
+    client = FakeResolverClient(
+        products_by_asin={
+            "B07TSC47PH": {
+                "asin": "B07TSC47PH",
+                "title": "Keepa Product Title",
+                "brand": "Keepa Brand",
+                "category": "Keepa Category",
+                "fetched_at": "2026-08-27T00:00:00+00:00",
+                "ingredient_safety_payload_version": INGREDIENT_SAFETY_PAYLOAD_VERSION,
+                "ingredient_safety_capture_status": CAPTURED,
+                "ingredients": ["one"],
+                "activeIngredients": ["two"],
+                "specialIngredients": ["three"],
+            }
+        }
+    )
+
+    rows = verify_preview_rows(
+        preview_candidates("A,https://www.amazon.co.jp/dp/B07TSC47PH"),
+        client,
+    )
+
+    payload = rows[0]["ingredient_safety_fact"]
+    assert payload["capture_status"] == CAPTURED
+    assert payload["ingredients"] == ["one"]
+    assert payload["activeIngredients"] == ["two"]
+    assert payload["specialIngredients"] == ["three"]
 
 
 @pytest.mark.parametrize(

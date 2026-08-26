@@ -7,6 +7,7 @@ import unicodedata
 from typing import Any, Iterable, Mapping
 
 from modules.guardrails import GuardrailDictionaryError, apply_guardrails
+from modules.ingredient_safety import IngredientSafetySidecarResult
 from modules.keepa_client import normalize_asin
 from modules.listing_inventory_parser import (
     ListingEvidence,
@@ -97,6 +98,7 @@ def evaluate_prelisting_gate(
     *,
     marketplace: str,
     expected_shop_count: int,
+    ingredient_safety: IngredientSafetySidecarResult | None = None,
 ) -> PrelistingGateResult:
     """Return final eligibility for validated SG or PH candidates and inventory evidence.
 
@@ -119,6 +121,7 @@ def evaluate_prelisting_gate(
         guarded_rows = _apply_and_validate_guardrails(
             candidate_rows,
             marketplace=normalized_marketplace,
+            ingredient_safety=ingredient_safety,
         )
         result_rows = _evaluate_rows(
             candidate_rows,
@@ -293,17 +296,31 @@ def _apply_and_validate_guardrails(
     candidate_rows: tuple[_ValidatedCandidate, ...],
     *,
     marketplace: str,
+    ingredient_safety: IngredientSafetySidecarResult | None,
 ) -> tuple[dict[str, str], ...]:
-    guardrail_inputs = [
-        {
+    facts_by_asin = _validate_ingredient_safety_for_gate(
+        candidate_rows,
+        ingredient_safety,
+    )
+    guardrail_inputs = []
+    for row_number, row in enumerate(candidate_rows, 1):
+        guardrail_input = {
             "gate_row_id": f"G{row_number:04d}",
             "candidate_asin": row.candidate_asin,
             "brand": row.candidate.brand,
             "product_title": row.candidate.product_title,
             "category": row.candidate.category,
         }
-        for row_number, row in enumerate(candidate_rows, 1)
-    ]
+        fact = facts_by_asin.get(row.candidate_asin)
+        if fact is not None:
+            guardrail_input.update(
+                {
+                    "ingredients": fact.ingredients,
+                    "activeIngredients": fact.active_ingredients,
+                    "specialIngredients": fact.special_ingredients,
+                }
+            )
+        guardrail_inputs.append(guardrail_input)
     try:
         guarded_rows = tuple(apply_guardrails(guardrail_inputs, marketplace=marketplace))
     except GuardrailDictionaryError as exc:
@@ -342,6 +359,25 @@ def _apply_and_validate_guardrails(
             }
         )
     return tuple(validated_rows)
+
+
+def _validate_ingredient_safety_for_gate(
+    candidate_rows: tuple[_ValidatedCandidate, ...],
+    ingredient_safety: IngredientSafetySidecarResult | None,
+) -> dict[str, Any]:
+    if ingredient_safety is None:
+        return {}
+    if not isinstance(ingredient_safety, IngredientSafetySidecarResult):
+        raise PrelistingGateError("Ingredient Safety sidecarの型が不正です。")
+    facts_by_asin = ingredient_safety.facts_by_asin
+    candidate_asins = {row.candidate_asin for row in candidate_rows}
+    if (
+        len(ingredient_safety.rows) != len(facts_by_asin)
+        or set(facts_by_asin) != candidate_asins
+        or len(facts_by_asin) != len(candidate_rows)
+    ):
+        raise PrelistingGateError("Ingredient Safety sidecarのASIN集合が候補と一致しません。")
+    return facts_by_asin
 
 
 def _evaluate_rows(
