@@ -14,18 +14,18 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 ## 現在作業
 
 - current_work_type: `PH Minimum Beta Safety blocker対応`
-- current_phase: `Ingredient Safety Fact設計正本化完了 / repo-grounded技術設計前`
+- current_phase: `Ingredient Safety技術設計・GABA Evidence正本化完了 / 実装WORK_BRIEF前`
 - working_branch: `codex/ph-minimum-beta-gate-k-live`
 - marketplace: `PH`
-- module: `Amazon Fact取得 / Candidate Fact搬送 / Guardrail / Prelisting Gate`
-- phase: `PH Minimum Beta / Ingredient Safety blocker対応 / repo-grounded技術設計前`
-- next_action: Sol・高推論でIngredient Safety Factのrepo-grounded技術設計確認を行う。
+- module: `Guardrail / Ingredient Safety Evidence`
+- phase: `PH Minimum Beta / Ingredient Safety blocker対応 / 実装WORK_BRIEF前`
+- next_action: GABA evidence_refを使ったIngredient Safety実装WORK_BRIEFを確定する。
 
 Gate Kの正式技術確認はPASS済みである。Gate PはB1 Candidate、B2 PH Safety、B3 Category、B4 Brand / No Brand、B5 Safe Stop、B6 listing_ready、B7 Human Handoffの全項目を実画面で確認し、B1〜B7をPASSとする。B2ではPH、Candidate 2件、ELIGIBLE 2件、REVIEW 0件、EXCLUDE 0件とshop label UX修正を確認した。B3ではCategory Path `Beauty > Skincare > Toner`、Category ID `100892`を採用した。B4ではCategory Mapper一時認証入力のsecurity reviewをPASS後、承認済みのShopee Brand List read-only取得を1回・retry 0で実行し、No BrandをBrand ID `0`としてオーナーが確定した。B5ではBrand未確定時に出力対象がなく次工程へ進めないこと、B6では2件がlisting_readyになること、B7では2件・1グループのCSV / text handoffを取得できることを確認した。商品名、ASIN、CSV本文、credentialはこの正本に記録しない。
 
 オーナーはGate Pの結果画面を実物確認し、問題なしとして受入した。これは旧仕様におけるGate P PASSの受入履歴である。新たにオーナーが確認したPHのGABA成分に関するアカウント凍結報告を、Shopee公式禁止物質の断定ではない運用上のSafety evidenceとして扱い、DEC-0041により第三者独立レビューを一旦保留した。Beta正式技術判定、Beta最終事業決裁、main統合は未実施であり、Gate P PASSをBeta正式完成またはmain統合済みと扱わない。Category Mapperは認証情報を更新・永続保存せず、Category / Brand等のread-only取得が必要なときだけオーナー入力のACCESS_TOKENをブラウザsession内で一時利用する。Canopyは開発・試験専用とし、Keepa / JPを本番標準として維持する。
 
-DEC-0035で、B1〜B7のMinimum Beta完成定義に対する確認済み`MISSING_IMPLEMENTATION`は0件と正本化した。その後、Gate KとGate Pの実物受入がPASSした。DEC-0041で保留した第三者独立レビューより先に、DEC-0042でIngredient Safety Factと市場別BLOCK成分辞書の設計原則を正本化した。次は物理搬送方式・辞書表現・実装要否をrepo-grounded技術設計で確認する。Canopyは開発・試験専用providerのままとし、Keepa本番確認を代替しない。
+DEC-0035で、B1〜B7のMinimum Beta完成定義に対する確認済み`MISSING_IMPLEMENTATION`は0件と正本化した。その後、Gate KとGate Pの実物受入がPASSした。DEC-0041で保留した第三者独立レビューより先に、DEC-0042でIngredient Safety Factと市場別BLOCK成分辞書の設計原則を正本化し、repo-grounded技術設計を完了した。GABAのowner attestationはGit外Evidenceとして正本化し、Rule V2の`evidence_ref`を`ART-PH-GABA-FREEZE-OWNER-ATTESTATION-V1`、`source_type`を`community_report`、`decision_ref`を`DEC-0042`と一意に確定した。これはGABA RuleまたはIngredient Safety実装の完了を意味しない。Canopyは開発・試験専用providerのままとし、Keepa本番確認を代替しない。
 
 外部出品ツールの正式入力契約はBeta MUSTではなく、自動投入または正式E2E接続を検討する場合のHOLDとする。mandatory attribute全面対応もconditionalのままとし、実物受入で手入力準備の成立を妨げると確認された場合だけBeta blocker候補としてオーナーへ戻す。
 
@@ -165,6 +165,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 | ART-PH-ASIN-EXEC-GUIDE-V0.1.2-CANDIDATE-REV2 | 非エンジニア向け実行Guide v0.1.2 candidate rev2 | `PH_ASIN_Resolver_Execution_Record_v0.1.2_Guide_candidate_rev2.txt` | `7e55527e6eee6288b679db37937954be1cb8ccd23b51a327eea2171aa6e59540` | `PH ASIN Resolver 証拠永続化実装` | `OWNER_ACCEPTED` | `LOCAL_ARTIFACT_ROOT/HANDOFF_EXECUTION_RECORD/candidate/v0.1.2/` | 非エンジニア向け実行Guide |
 | OWNER_SOURCE_SLS_PROHIBITED_CATEGORY | SLS出品可否確認表・2025年3月17日適用 | `【SLS対象マーケット】SLS出品可否確認表（Prohibited Category List）2025年3月17日適用.xlsx` | `ee68151aa951921dfb7c8a5ea76ea67441342b5be5511d4b18905591e4c621c2` | オーナー提供（producer metadata独立確認未実施） | `OWNER_PROVIDED_SOURCE / NOT_CANONICAL` | `OWNER_SOURCE_SLS_PROHIBITED_2025_03_17` | 将来のBLOCK／REVIEW辞書具体化の根拠資料。具体化前に実物照合必須 |
 | OWNER_SOURCE_COMMUNITY_NG_LIST | コミュニティNGリスト・版指定なし | `ＮＧリスト.xlsx` | `82a4b72cfdfa53fdfec87f00685ea3f81ced6bde747e54a71155e56ef92312d1` | オーナー提供（producer metadata独立確認未実施） | `OWNER_PROVIDED_SOURCE / NOT_CANONICAL` | `OWNER_SOURCE_COMMUNITY_NG_LIST` | 当社BLOCK候補の実務資料。無条件移植せず、具体化前に実物照合必須 |
+| ART-PH-GABA-FREEZE-OWNER-ATTESTATION-V1 | Owner Attestation v1 | `PH_GABA_Freeze_Community_Report_Owner_Attestation_v1.md` | `cc6b369250bedb0a99c9731e438e420ee1e2bccd14721e75546aa2f191919a88` | `Owner attestation recorded by Codex` | `OWNER_ATTESTATION_RECORDED_NOT_INDEPENDENTLY_VERIFIED` | `LOCAL_GITEXCLUDED_PH_GABA_EVIDENCE_V1` | PH GABA deterministic BLOCK Rule V2の`evidence_ref`。Rule実装時はartifact ID / SHA / index照合のみ必須で、原コミュニティ投稿の実物アクセスは不要 |
 | OWNER_SOURCE_PH_RESTRICTION_IMAGE | PH制限参考画像・元資料版未確認 | `2026-08-13_121116.png` | `7df6f6196b7ad4ac7a63a380f3eb3c03a3b6ab661bd4941152b6a4484196a681` | オーナー提供（producer metadata独立確認未実施） | `OWNER_PROVIDED_SOURCE / NOT_CANONICAL` | `OWNER_SOURCE_PH_RESTRICTION_IMAGE_2026_08_13` | PH禁止・輸入禁止・ライセンス条件の参考一次資料。PH辞書具体化前に実物照合必須 |
 | GAR-AUD-CLASSIFICATION-CANDIDATES | 727候補詳細分類・版指定なし | `classification_candidates.csv` | `b6c0329e1d5d63a38507c34588ca95e0c8483a05614c4bb711f27ea0a4dc2832` | Guardrail 3資料監査 | `GENERATED_AUDIT_CANDIDATE / NOT_CANONICAL` | `LOCAL_GITEXCLUDED_GUARDRAIL_AUDIT_CLASSIFICATION_CANDIDATES` | 727候補の詳細分類。実物アクセス確認済み |
 | GAR-AUD-SUMMARY | 監査要約・版指定なし | `audit_summary.md` | `0f76e38904c6f4eeaa6be3338f75dbb15c10725260b5e0ba2451a431d14efeb1` | Guardrail 3資料監査 | `GENERATED_AUDIT_CANDIDATE / NOT_CANONICAL` | `LOCAL_GITEXCLUDED_GUARDRAIL_AUDIT_SUMMARY` | 監査要約。実物アクセス確認済み |
@@ -175,7 +176,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 未完了事項
 
-- Ingredient Safety Factのrepo-grounded技術設計確認
+- GABA evidence_refを使用するIngredient Safety実装WORK_BRIEFの確定
 - Canopyの長期品質・安定性、実商品の網羅確認
 - Category ID等を扱うGuardrail候補データ構造・判定単位・根拠種別の設計
 - Gate P branch全体の第三者独立レビュー（Ingredient Safety設計ゲート完了まで保留）
@@ -196,11 +197,11 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-Sol・高推論でIngredient Safety Factのrepo-grounded技術設計確認を行う。
+GABA evidence_refを使ったIngredient Safety実装WORK_BRIEFを確定する。
 
 ## 停止条件
 
-- repo-grounded技術設計前にコード、tests、Guardrail辞書、Gateロジック、UIを変更しない。
+- 実装WORK_BRIEF確定前にコード、tests、Guardrail辞書、Gateロジック、UIを変更しない。
 - Keepa APIその他の外部APIを実行しない。
 - GABAを含む市場別BLOCK成分辞書を変更しない。
 - Candidate物理schemaを推測で変更しない。
