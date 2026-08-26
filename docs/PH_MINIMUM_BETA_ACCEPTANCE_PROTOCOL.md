@@ -79,6 +79,10 @@ Expansion / Resolver双方を実物操作でき、Keepa確認済み候補をGate
 
 marketplace PHを明示する。EXCLUDEと未解決REVIEWをreadyへ進めず、ELIGIBLEだけをCategory / Brand確認へ進める。
 
+- 選択市場で正式に有効なBLOCK ruleが、取得済みproduct titleまたはIngredient Safety Factに一致した候補をreadyへ進めない。
+- Ingredient Safety Factが未取得であることだけを理由に、REVIEWまたはBLOCKへ自動昇格しない。
+- Ingredient Safety Factの非一致は、危険成分の不存在または安全を保証しない。
+
 ### B3 Category
 
 ELIGIBLE候補が実在する確認済みShopee Category IDへ到達する。推測だけでconfirmedにしない。
@@ -125,6 +129,7 @@ blocker確認後も自動修正しない。最小対応が必要な場合は、�
 少なくとも次では停止する。
 
 - EXCLUDEまたは未解決REVIEWが`listing_ready`になる。
+- 正式BLOCK成分が取得済みSafety Factに確認された候補が、`listing_ready`または後工程へ進む。
 - 未確認Categoryまたは未確認Brandがreadyになる。
 - PH以外として処理される、またはCanopyがKeepa確認を代替する。
 - 未承認API、有料処理の承認範囲外、外部サービスへの書込みが必要になる。

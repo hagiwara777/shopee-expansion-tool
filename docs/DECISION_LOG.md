@@ -458,3 +458,17 @@
 - 理由: 新たに提示されたSafetyリスクを、未確認の公式根拠や実装方式へ早期に飛躍させず、Beta完成判断より先に設計上の扱いを明確化するため。
 - 影響: `CURRENT_WORK.md` の現在地、次の単一作業、停止条件だけを更新する。`PH_MINIMUM_BETA_ACCEPTANCE_PROTOCOL.md`、`PROJECT_ROADMAP.md`、README、source、tests、Guardrail辞書、Candidate schema、API、UI、外部サービスは変更・実行しない。
 - 再検討条件: Ingredient Safety設計ゲートで必要Fact、Evidenceの扱い、市場別BLOCK辞書の管理境界、実装要否が確認されたとき、またはオーナーが追加の運用Safety evidenceもしくは公式根拠を提示したとき。
+
+## DEC-0042 — Ingredient Safety Factと市場別BLOCK成分辞書の設計を承認する
+
+- 日付: 2026-08-26
+- 背景: DEC-0041で、PHのGABA成分に関連するとされたアカウント凍結報告をowner/community operational evidenceとして扱い、第三者独立レビューを保留した。titleに現れない危険成分を既存Safetyだけでは検知できないため、API = Fact、Rule = Decision、Human = Exceptionの責務分離を維持したIngredient Safetyの設計原則を先に確定する。
+- 決定: Amazon Data Providerは取得済みproduct Factから`ingredients`、`activeIngredients`、`specialIngredients`をSafety Factとして保持・供給する。Candidate / Fact transportはこれらの意味を変えずGuardrailまで搬送し、既存`PRELISTING_CANDIDATE_V1`の後方互換を必須とする。Candidate V2、sidecar、内部Fact objectその他の物理搬送方式は今回確定しない。
+- 決定: Guardrail / Prelisting GateはIngredient SafetyのためにKeepaその他の外部APIを呼ばない。Guardrailは取得済みproduct titleまたはIngredient Safety Factと、選択市場の正式BLOCK ruleだけを照合する。正式BLOCK成分が確認された場合はdeterministicにBLOCKし、後工程でREVIEWまたはSAFEへ降格しない。Prelisting Gateは既存どおりGuardrail BLOCKを出品候補から除外し、成分取得・推測を担当しない。
+- 決定: 対象成分が取得済みFactのいずれにも確認されない場合、その成分を理由にはBLOCKしない。成分3 Factがすべて欠損しても、欠損だけではREVIEWまたはBLOCKへ昇格しない。いずれも成分不存在または安全の保証を意味せず、残余リスクとして受容する。
+- 決定: 初期Ingredient SafetyのBLOCK根拠はproduct title、`ingredients`、`activeIngredients`、`specialIngredients`に限定する。description、features、shortDescription、safetyWarning、itemHighlights、画像、OCR、Amazonページscraping、AIによる成分推測をSafety BLOCK Factへ入れない。
+- 決定: 市場別BLOCK成分はowner-maintained deterministic ruleとして管理し、少なくともmarketplace、canonical ingredient / term、aliases、action = BLOCK、evidence reference / evidence typeを表現できるものとする。物理CSV列、exact / contains表現、正規化、alias格納方式、辞書編集UIは次のrepo-grounded技術設計で確定する。新成分は原則としてsource code変更ではなく辞書追加で扱える構造を目指し、GABA専用コードは追加しない。
+- 決定: PHのGABAは、オーナーが確認したアカウント凍結報告に基づく`OWNER / COMMUNITY OPERATIONAL EVIDENCE`として当社運用上のBLOCK対象にする設計方針を採用する。これはShopeeがGABAを全面禁止物質として明示しているという公式ポリシー上の断定ではない。取得済みproduct title、`ingredients`、`activeIngredients`、`specialIngredients`でGABAが確認された場合はPH BLOCK対象とし、aliasesの完全セットと誤検知境界は次の技術設計で確定する。
+- 理由: 未確認のFactをAIやGuardrailの逆方向API接続で補完せず、成分に現れた明確な運用上のSafetyリスクだけを市場別の決定論的BLOCKとして扱い、Candidate契約を壊さず拡張可能にするため。
+- 影響: B2は正式BLOCK ruleが取得済みSafety Factに一致した候補をreadyへ進めず、Fact未取得だけではREVIEW / BLOCKへ昇格しない受入条件を持つ。今回、source、tests、Guardrail辞書、Candidate schema実装、Keepa / Canopy / Shopee / AI API、UI、README、`PROJECT_ROADMAP.md`、外部書込み、push、PR、merge、deployを変更・実行しない。GABA ruleはこの設計だけでは有効化しない。
+- 再検討条件: repo-grounded技術設計でKeepa戻り値の型・実際のFact搬送経路・後方互換方式・辞書表現・正規化・誤検知境界を確認するとき、追加の市場別Evidenceまたは公式根拠が提示されたとき、または成分Factの欠損率や実務上の見逃しが確認されたとき。
