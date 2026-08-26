@@ -447,3 +447,14 @@
 - 理由: Catalog Factの取得責務と認証管理責務を分離し、既存のtoken更新経路を重複実装せず、無効な固定認証情報によるB4停止を安全に解消できるようにするため。
 - 影響: B4 Brand取得は再実行せず、Brand未確定停止を維持する。今回、外部API、外部書込み、認証情報更新、Roadmap、Resolver、Expansion、Prelisting Gateは変更・実行しない。
 - 再検討条件: 外部の認証情報更新経路が変更されたとき、session内一時利用で安全なCatalog参照を維持できないとき、または別途承認されたSecrets管理基盤へ移行するとき。
+
+## DEC-0041 — PH Ingredient Safety blockerにより第三者独立レビューを保留する
+
+- 日付: 2026-08-26
+- 背景: Gate P旧仕様のB1〜B7受入PASS後、オーナーはPHでGABA成分に関連するとされたアカウント凍結報告を確認した。現行Guardrailは成分Factを確認しておらず、この報告をBeta正式完成判定前に扱う必要がある。
+- 決定: この報告はShopee公式の禁止物質または規約違反の断定ではなく、owner/community operational evidenceとして扱う。アカウント保護を優先し、DEC-0038で予定した第三者独立レビューを一旦保留し、次の単一作業をIngredient Safety Factと市場別BLOCK成分辞書の設計正本化へ切り替える。
+- 決定: 旧B1〜B7 PASSは当時の仕様に対する受入履歴として保持する。ただし、PH Minimum Betaを正式完成とは扱わず、Ingredient Safety設計ゲートの結論を待つ。
+- 決定: 今回の現在地切替だけでは、GABA rule、Keepaによる成分取得、Candidate schema、Guardrail辞書、Guardrail / Prelisting Gate実装方式、外部API利用を確定または変更しない。
+- 理由: 新たに提示されたSafetyリスクを、未確認の公式根拠や実装方式へ早期に飛躍させず、Beta完成判断より先に設計上の扱いを明確化するため。
+- 影響: `CURRENT_WORK.md` の現在地、次の単一作業、停止条件だけを更新する。`PH_MINIMUM_BETA_ACCEPTANCE_PROTOCOL.md`、`PROJECT_ROADMAP.md`、README、source、tests、Guardrail辞書、Candidate schema、API、UI、外部サービスは変更・実行しない。
+- 再検討条件: Ingredient Safety設計ゲートで必要Fact、Evidenceの扱い、市場別BLOCK辞書の管理境界、実装要否が確認されたとき、またはオーナーが追加の運用Safety evidenceもしくは公式根拠を提示したとき。

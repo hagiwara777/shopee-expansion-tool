@@ -13,19 +13,19 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH Minimum Beta Gate P PASS後の第三者検収準備`
-- current_phase: `Gate P PASS / 第三者独立レビュー前`
+- current_work_type: `PH Minimum Beta Safety blocker対応`
+- current_phase: `Gate P旧仕様PASS / 新規Ingredient Safety blocker確認 / 設計ゲート前`
 - working_branch: `codex/ph-minimum-beta-gate-k-live`
 - marketplace: `PH`
 - module: `出品支援ツール横断`
-- phase: `PH Minimum Beta / Gate P PASS / 第三者独立レビュー前`
-- next_action: Gate P branch全体について第三者読み取り専用検収を行う。
+- phase: `PH Minimum Beta / Gate P旧仕様PASS / Ingredient Safety設計ゲート前`
+- next_action: Ingredient Safety Factと市場別BLOCK成分辞書の設計正本化を行う。
 
 Gate Kの正式技術確認はPASS済みである。Gate PはB1 Candidate、B2 PH Safety、B3 Category、B4 Brand / No Brand、B5 Safe Stop、B6 listing_ready、B7 Human Handoffの全項目を実画面で確認し、B1〜B7をPASSとする。B2ではPH、Candidate 2件、ELIGIBLE 2件、REVIEW 0件、EXCLUDE 0件とshop label UX修正を確認した。B3ではCategory Path `Beauty > Skincare > Toner`、Category ID `100892`を採用した。B4ではCategory Mapper一時認証入力のsecurity reviewをPASS後、承認済みのShopee Brand List read-only取得を1回・retry 0で実行し、No BrandをBrand ID `0`としてオーナーが確定した。B5ではBrand未確定時に出力対象がなく次工程へ進めないこと、B6では2件がlisting_readyになること、B7では2件・1グループのCSV / text handoffを取得できることを確認した。商品名、ASIN、CSV本文、credentialはこの正本に記録しない。
 
-オーナーはGate Pの結果画面を実物確認し、問題なしとして受入した。よってGate PはPASSであり、PH Minimum Betaは第三者独立レビュー前の受入候補である。第三者独立レビュー、main統合、Beta正式技術判定、Beta最終事業決裁は未実施であり、Gate P PASSをBeta正式完成またはmain統合済みと扱わない。Category Mapperは認証情報を更新・永続保存せず、Category / Brand等のread-only取得が必要なときだけオーナー入力のACCESS_TOKENをブラウザsession内で一時利用する。Canopyは開発・試験専用とし、Keepa / JPを本番標準として維持する。詳細なGate手順は`docs/PH_MINIMUM_BETA_ACCEPTANCE_PROTOCOL.md`、第三者レビュー工程はDEC-0038を参照する。
+オーナーはGate Pの結果画面を実物確認し、問題なしとして受入した。これは旧仕様におけるGate P PASSの受入履歴である。新たにオーナーが確認したPHのGABA成分に関するアカウント凍結報告を、Shopee公式禁止物質の断定ではない運用上のSafety evidenceとして扱い、DEC-0041により第三者独立レビューを一旦保留した。Beta正式技術判定、Beta最終事業決裁、main統合は未実施であり、Gate P PASSをBeta正式完成またはmain統合済みと扱わない。Category Mapperは認証情報を更新・永続保存せず、Category / Brand等のread-only取得が必要なときだけオーナー入力のACCESS_TOKENをブラウザsession内で一時利用する。Canopyは開発・試験専用とし、Keepa / JPを本番標準として維持する。
 
-DEC-0035で、B1〜B7のMinimum Beta完成定義に対する確認済み`MISSING_IMPLEMENTATION`は0件と正本化した。その後、Gate KとGate Pの実物受入がPASSした。次はDEC-0038に従い、Gate P branch全体の第三者独立レビューを行う。Canopyは開発・試験専用providerのままとし、Keepa本番確認を代替しない。
+DEC-0035で、B1〜B7のMinimum Beta完成定義に対する確認済み`MISSING_IMPLEMENTATION`は0件と正本化した。その後、Gate KとGate Pの実物受入がPASSした。DEC-0041により、予定していたDEC-0038の第三者独立レビューより先にIngredient Safety Factと市場別BLOCK成分辞書の設計正本化を行う。Canopyは開発・試験専用providerのままとし、Keepa本番確認を代替しない。
 
 外部出品ツールの正式入力契約はBeta MUSTではなく、自動投入または正式E2E接続を検討する場合のHOLDとする。mandatory attribute全面対応もconditionalのままとし、実物受入で手入力準備の成立を妨げると確認された場合だけBeta blocker候補としてオーナーへ戻す。
 
@@ -48,7 +48,7 @@ PR #16はGate結果CSVのschema version再検証をmainへ統合し、formal mai
 - Gate Kの正式技術確認PASS
 - Gate P B1〜B7の実物受入PASS
 - Gate P結果画面のオーナー実物確認PASS
-- Gate P PASS。PH Minimum Betaは第三者独立レビュー前の受入候補
+- Gate P PASS（旧仕様の受入履歴。PH Minimum Beta正式完成ではない）
 - PR #29をmainへ統合。formal main / current base `471c63ce0d2206f4ab74b1813f9522db121c331d`上でCanopy Test Provider v0.1を正式技術成果として受入（全pytest 787件成功）
 - Resolverの読み取り専用仕様監査完了
 - 過去成果物の証拠回収監査完了
@@ -174,9 +174,10 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 未完了事項
 
+- Ingredient Safety Factと市場別BLOCK成分辞書の設計正本化
 - Canopyの長期品質・安定性、実商品の網羅確認
 - Category ID等を扱うGuardrail候補データ構造・判定単位・根拠種別の設計
-- Gate P branch全体の第三者独立レビュー
+- Gate P branch全体の第三者独立レビュー（Ingredient Safety設計ゲート完了まで保留）
 - PH Minimum Betaの正式技術判定とオーナー最終事業決裁
 - Gate P branchのmain統合
 - ASIN到達性能の評価
@@ -194,11 +195,15 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-Gate P branch全体について第三者読み取り専用検収を行う。
+Ingredient Safety Factと市場別BLOCK成分辞書の設計正本化を行う。
 
 ## 停止条件
 
-- 次の単一作業はGate P branch全体の第三者読み取り専用検収に限定し、外部API、UI操作、認証更新、コード修正、main統合、Beta最終判定へ自動拡張しない。
+- 第三者独立レビューへ進まない。Ingredient Safety設計ゲート完了後に再開要否を判断する。
+- Ingredient Safety設計前にコード実装、Guardrail辞書変更、Gateロジック変更、UI変更を行わない。
+- Keepa APIその他の外部APIを実行しない。
+- GABAを含む市場別BLOCK成分辞書を変更しない。
+- Candidate schemaを変更しない。
 - Gate P PASSをPH Minimum Beta正式完成またはmain統合済みと扱わない。
 - 人間作業時間measurement logを作らず、E2E時間測定を開始しない。
 - Phase 2へ自動直進しない。
