@@ -487,7 +487,7 @@
 ## DEC-0044 — PH Guardrail P1bの判断基準と依存工程前の正本化順序を明確化する
 
 - 日付: 2026-08-27
-- 背景: DEC-0043によりP1aのEvidence棚卸しは完了し、P1bで各Evidenceをdispositionする前段階にある。DEC-0024、DEC-0026、DEC-0027、DEC-0030はそれぞれ一発アウト遮断、BLOCK / REVIEW境界、市場別Evidence、13 Brand-exact PH_BLOCKを定めているが、SLSの市場別表、owner提供のNG・制限資料、community operational evidence、許認可、既存確定事項の正本化順序を、P1b開始前に一意に参照できるようにする必要がある。
+- 背景: DEC-0043でP1a〜P1d工程を定義し、その後P1aのEvidence棚卸しはPR #38のmain統合により完了した。P1bで各Evidenceをdispositionする前段階において、DEC-0024、DEC-0026、DEC-0027、DEC-0030はそれぞれ一発アウト遮断、BLOCK / REVIEW境界、市場別Evidence、13 Brand-exact PH_BLOCKを定めているが、SLSの市場別表、owner提供のNG・制限資料、community operational evidence、許認可、既存確定事項の正本化順序を、P1b開始前に一意に参照できるようにする必要がある。
 - 決定: SLS出品可否確認表は市場別資料として扱う。PHのdispositionではPH欄とPH条件だけを用い、SG / MY / TH / TW等のNGまたは条件をPHへ推測適用しない。他市場NGまたは複数市場NGだけを理由に、PH_BLOCKまたはCOMMON_BLOCKへ自動昇格しない。
 - 決定: SLS出品可否確認表、`ＮＧリスト.xlsx`、PH制限参考画像は、中立なカタログではなくNG・禁止・制限のEvidence sourceとして扱う。ただし全行を無条件にBLOCKせず、P1bで市場、適用条件、NG理由を確認し、BLOCK、REVIEW、非対象・根拠不足へ整理する。
 - 決定: community operational evidenceは公式Evidenceと区別する。ただし、第三者販売で実際に生じた警告、削除、違反、ペナルティ、制限または凍結を示し、市場、ブランドまたは商品、具体的理由を確認できる場合は、当社内部のリスク回避BLOCK根拠になり得る。DEC-0027のPHコミュニティ14項目に関する採用方針を維持する。
