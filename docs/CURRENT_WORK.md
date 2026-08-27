@@ -13,17 +13,19 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `P1b policy canonicalization complete on branch / main integration pending / Gate P HOLD`
-- current_phase: `P1b開始前 / Guardrail判断基準正本化 complete on branch / main integration pending / Gate P HOLD`
-- working_branch: `codex/ph-guardrail-p1b-policy-canonicalization`
+- current_work_type: `PH Guardrail Baseline P1b Evidence disposition / Gate P HOLD`
+- current_phase: `P1b Evidence disposition開始前 / DEC-0044 main統合済み / Gate P HOLD`
+- working_branch: `再開時にGit状態を確認して確定`
 - marketplace: `PH`
 - module: `出品支援ツール / PH Guardrail`
-- phase: `PH Guardrail Baseline / P1b開始前 / Guardrail判断基準正本化 complete on branch / main integration pending / Gate P HOLD`
-- next_action: 正本化差分の技術検収とmain統合。main統合前にP1b dispositionを開始しない。
+- phase: `PH Guardrail Baseline / P1b Evidence disposition / Gate P HOLD`
+- next_action: P1a棚卸し済みEvidenceを、DEC-0026 / DEC-0027 / DEC-0030 / DEC-0044の現行基準に従い、BLOCK / REVIEW / 非対象・根拠不足へdispositionする。
+
+P1b Evidence disposition用の作業branchは未作成であり、本同期branch `codex/ph-guardrail-p1b-current-work-sync` はP1b作業branchとして固定しない。
 
 DEC-0043により、PH Guardrail BaselineをBeta MUSTとしてP0に置いた。PR #37のmain統合（formal main commit `0626a6504af15ebc0a1723a13dcac613aef7e676`）を確認し、P1aを開始した。P1a〜P1dでPH Guardrail Baselineを受入するまでGate PをHOLDする。P0〜P2はGate Pの新しい前提であり、過去のGate P結果をPH Minimum Betaの最終受入またはmain統合済みと扱わない。
 
-P1aの棚卸し後、P1bを始める前にDEC-0044でPH Guardrailの市場別Evidence、community operational evidence、ブランド・IP、許認可、REVIEWの境界と、依存工程前の確定判断の正本化順序を明確化した。このbranch上の正本化差分はmain統合待ちであり、main統合前にP1bの個別Evidence dispositionを開始しない。Gate PはHOLDを維持する。
+P1aの棚卸し後、P1bを始める前にDEC-0044でPH Guardrailの市場別Evidence、community operational evidence、ブランド・IP、許認可、REVIEWの境界と、依存工程前の確定判断の正本化順序を明確化した。PR #39はmainへ統合済みで、formal main commitは`98a16ff12f131912688c9a1885edfbbc605f9f33`である。次の単一作業はP1bの個別Evidence dispositionであり、Gate PはHOLDを維持する。
 
 Gate Kの正式技術確認はPASS済みである。Gate PはB1 Candidate、B2 PH Safety、B3 Category、B4 Brand / No Brand、B5 Safe Stop、B6 listing_ready、B7 Human Handoffの全項目を実画面で確認し、B1〜B7をPASSとする。B2ではPH、Candidate 2件、ELIGIBLE 2件、REVIEW 0件、EXCLUDE 0件とshop label UX修正を確認した。B3ではCategory Path `Beauty > Skincare > Toner`、Category ID `100892`を採用した。B4ではCategory Mapper一時認証入力のsecurity reviewをPASS後、承認済みのShopee Brand List read-only取得を1回・retry 0で実行し、No BrandをBrand ID `0`としてオーナーが確定した。B5ではBrand未確定時に出力対象がなく次工程へ進めないこと、B6では2件がlisting_readyになること、B7では2件・1グループのCSV / text handoffを取得できることを確認した。これらは旧優先順位における受入履歴である。商品名、ASIN、CSV本文、credentialはこの正本に記録しない。
 
@@ -53,6 +55,7 @@ PR #16はGate結果CSVのschema version再検証をmainへ統合し、formal mai
 
 ## 完了・受入済み
 
+- DEC-0044 PH Guardrail P1b判断基準の正本化とPR #39のmain統合（formal main commit `98a16ff12f131912688c9a1885edfbbc605f9f33`）
 - P0 PH Guardrail BaselineのBeta MUST正本化とPR #37のmain統合（formal main commit `0626a6504af15ebc0a1723a13dcac613aef7e676`）
 - P1a PH Guardrail Evidence Coverage Inventory。Git外一次Evidence 3件の実物SHA-256が正本索引と完全一致し、固定storage aliasを解決した。P1b dispositionは未実施
 - Gate Kの正式技術確認PASS
@@ -189,7 +192,6 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 
 ## 未完了事項
 
-- P1b policy canonicalizationの技術検収とmain統合（P1b開始前）
 - P1b EvidenceごとのBLOCK / REVIEW / 非対象・根拠不足 disposition
 - P1c 確定BLOCKのCOMMON_BLOCK / PH_BLOCK登録と関連test
 - P1d PH_GUARDRAIL_BASELINE_COMPLETEの受入
@@ -218,11 +220,10 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 
 ## 次の単一作業
 
-正本化差分の技術検収とmain統合。main統合前にP1b dispositionを開始しない。
+P1a棚卸し済みEvidenceを、DEC-0026 / DEC-0027 / DEC-0030 / DEC-0044の現行基準に従い、BLOCK / REVIEW / 非対象・根拠不足へdispositionする。
 
 ## 停止条件
 
-- DEC-0044を含む正本化差分のmain統合前に、P1bの個別Evidence dispositionを開始しない。
 - Gate P B2 PH Safetyのオーナー実物再受入までは、Gate P PASS、Minimum Beta PASS、B2受入PASSとして扱わない。
 - P1d `PH_GUARDRAIL_BASELINE_COMPLETE`受入前に、Gate Pを再開しない。
 - P1bのEvidence disposition前に、新規BLOCK / REVIEWを確定しない。P1cの辞書登録はP1bで確定したBLOCKだけに限定する。
