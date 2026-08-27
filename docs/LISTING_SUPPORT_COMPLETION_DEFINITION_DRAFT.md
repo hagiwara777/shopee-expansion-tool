@@ -112,7 +112,9 @@ Expansion機能そのものやGate内部の市場別Guardrailは削除しない�
 
 この節はDEC-0034で承認された、PHで実際に使い始められる最小Betaの完成定義・受入条件である。上記のV1のより広い完成受入候補および後述するV2の完成受入目標とは別に扱う。Betaは完全自動化、外部出品ツールへの自動投入、実際の出品可能の保証、固定工数削減KPIを意味しない。
 
-実物受入は`docs/PH_MINIMUM_BETA_ACCEPTANCE_PROTOCOL.md`に従う。Gate K（Keepa本番標準経路live技術確認）のPASS後だけ、Gate P（PH Minimum Beta実物受入）へ進む。
+実物受入は`docs/PH_MINIMUM_BETA_ACCEPTANCE_PROTOCOL.md`に従う。Gate K（Keepa本番標準経路live技術確認）の`GATE_K_PASS`だけではGate Pへ進まない。P0のmain統合後にP1a〜P1dを完了して`PH_GUARDRAIL_BASELINE_COMPLETE`を受入し、P2の通常利用導線を受入した後だけ、P3のGate P B2およびP4のGate P B1〜B7全体受入へ進む。
+
+`PH_GUARDRAIL_BASELINE_COMPLETE`はB1〜B7とは別のBeta MUSTである。P1aではPH向け禁止根拠を全件棚卸しし、P1bでは各Evidenceを`BLOCK`、`REVIEW`、`非対象・根拠不足`へdispositionする。P1cでは確定BLOCKだけを`COMMON_BLOCK` / `PH_BLOCK`に区別してGuardrailへ登録し、関連testを行う。B1〜B7のSafety、Category、Brand、Safe Stop、Ready、Handoffの責務はこのBaseline追加で変更しない。
 
 Beta Minimum Coreは次のB1〜B7とする。
 
@@ -124,15 +126,17 @@ Beta Minimum Coreは次のB1〜B7とする。
 6. **B6 Beta準備状態の判別** — Amazon ASIN、確認済みShopee Category ID、確認済みShopee Brand IDまたは確認済みNo Brandが揃ったかを、候補ごとに一意に判別できる。これはShopeeへ実際に出品可能、または外部出品ツールへの完全入力準備済みという表現ではない。
 7. **B7 人間への引渡し** — 確認済みのAmazon ASIN、Shopee Category ID、Shopee Brand ID / No Brandを画面またはファイルで人間が取得・確認し、既存出品ツールへの手入力準備に利用できる。自動投入・自動接続はBeta MUSTではない。
 
-B8等の要件は追加しない。
+B8等の要件は追加しない。`PH_GUARDRAIL_BASELINE_COMPLETE`はB1〜B7に追加するB8ではなく、Gate P開始前に満たす別のBeta MUSTである。
 
 mandatory attribute全面対応は現時点でconditionalであり、Beta MUSTではない。PH実物受入で、mandatory attribute不足により既存出品ツールへの実務的な手入力準備が成立しないと確認された場合だけ、Beta blocker候補としてオーナー判断事項へ戻す。
 
 Beta受入は、B1〜B7にBeta成立を妨げるBLOCKEDがなく、残るPARTIALの通常利用可能性をオーナーが実物で確認し、少量の実商品で一連の導線を実画面・実業務として確認した後に行う。EXCLUDE / 未解決REVIEWや未確認Category / Brandを準備完了に混ぜず、確認済みASIN / Category ID / Brand IDを取得できることを要する。実画面、実データ、実業務の受入はオーナー確認前に完了扱いにしない。
 
-完成定義と現行実装の差分監査は完了し、B1〜B7に対する確認済み`MISSING_IMPLEMENTATION`は0件である。これはBeta完成、Beta受入、実商品、実画面、実業務の受入完了を意味しない。残るBeta MUSTは、ASIN Expansion / ASIN ResolverのKeepa本番標準経路のlive技術確認と、PH Minimum Betaのオーナー実物受入である。実物受入で新たなblockerが判明する可能性は残る。
+完成定義と現行実装の差分監査は完了し、B1〜B7に対する確認済み`MISSING_IMPLEMENTATION`は0件である。これはBeta完成、Beta受入、実商品、実画面、実業務の受入完了を意味しない。現在のBeta MUSTは、`GATE_K_PASS`、P0 main統合後のP1a〜P1dによる`PH_GUARDRAIL_BASELINE_COMPLETE`、P2の通常利用導線受入、P3のGate P B2再受入、P4のGate P B1〜B7全体受入、P5のIngredient Safetyと最新Guardrailを含むEvidence Packageによる第三者独立レビュー、P6のオーナー最終受入である。実物受入またはBaselineで新たなblockerが判明する可能性は残る。
 
-Canopy Test Provider v0.1とCanopy Resolver / Expansionのlive正常系は技術確認済みであり、B2〜B7はFeasibility Audit上READYである。ただし、PH Minimum Beta全体、実商品による一連の導線、実画面、実業務、Keepa本番標準経路の最終実務確認は、オーナー確認前に受入完了としない。Keepaは本番標準provider、Canopyは明示設定時だけ用いる開発・試験専用providerであり、Canopy結果でKeepa本番確認を代替せず、自動fallbackは行わない。外部出品ツールの正式入力契約はBeta MUSTではなく、自動投入または正式E2E接続を検討する場合のHOLDとする。
+Canopy Test Provider v0.1とCanopy Resolver / Expansionのlive正常系は技術確認済みであり、B2〜B7はFeasibility Audit上READYである。Ingredient Safetyの既存技術検証結果も維持する。ただし、PH Minimum Beta全体、PH Guardrail Baseline、実商品による一連の導線、実画面、実業務、Keepa本番標準経路の最終実務確認は、オーナー確認前に受入完了としない。Keepaは本番標準provider、Canopyは明示設定時だけ用いる開発・試験専用providerであり、Canopy結果でKeepa本番確認を代替せず、自動fallbackは行わない。外部出品ツールの正式入力契約はBeta MUSTではなく、自動投入または正式E2E接続を検討する場合のHOLDとする。
+
+P2の通常利用導線は`Expansion / Resolver → Candidate CSV → 市場別Gate → ELIGIBLE / REVIEW / EXCLUDE`とする。Ingredient Safety sidecar、Rule CSV、SHA binding等の内部安全機構は必要に応じて維持し、通常利用者に不要な操作は極力隠す。具体的な実装方式およびDB化はこの完成定義で確定せず、DB化をBeta MUSTへ自動追加しない。
 
 SP-APIによるKeepa Expansion全面代替調査はHOLDとする。SP-APIは将来のKeepa依存削減候補であり、Beta MUSTを追加せず、Minimum Beta完成前にExpansion providerとして新規開発しない。Beta実利用後にKeepaコスト、契約、障害、利用制限、運用負荷が実際のボトルネックになった場合だけ再検討する。
 
@@ -140,9 +144,12 @@ Beta後は、実利用でオーナーが実務ボトルネックを報告し、�
 
 ## 次の推奨工程
 
-1. Gate Kの実行条件を確認し、Keepa利用・有料API利用についてオーナーの明示承認を得る。
-2. Gate K PASS後だけ、Gate Pで少量の実商品、必要な外部API、実画面によるPH Betaの実業務受入を行う。
-3. 実物受入でBeta成立を妨げる事実が確認された場合だけ、別途承認した範囲で対応を判断する。
+1. P0 PH Guardrail Baselineをmain統合し、P1a〜P1dで`PH_GUARDRAIL_BASELINE_COMPLETE`を受入する。
+2. P2の通常利用導線を受入する。内部安全機構の維持方法やDB化の具体方式は別設計で決定する。
+3. `GATE_K_PASS`、`PH_GUARDRAIL_BASELINE_COMPLETE`、P2受入がそろった後だけ、P3でGate P B2 — PH Safetyを再受入する。
+4. P4でGate P B1〜B7全体を実商品・実画面・実業務で受入する。
+5. P5でIngredient Safetyと最新Guardrailを含むEvidence Packageを再生成して第三者独立レビューを行い、P6でオーナーがPH Minimum Beta最終受入を判断する。
+6. Baselineまたは実物受入でBeta成立を妨げる事実が確認された場合だけ、別途承認した範囲で対応を判断する。
 
 画面導線のオーナー確認と、Category Mapper入力時のGate結果CSV schema version再検証は完了している。
 
