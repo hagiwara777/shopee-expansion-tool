@@ -472,3 +472,14 @@
 - 理由: 未確認のFactをAIやGuardrailの逆方向API接続で補完せず、成分に現れた明確な運用上のSafetyリスクだけを市場別の決定論的BLOCKとして扱い、Candidate契約を壊さず拡張可能にするため。
 - 影響: B2は正式BLOCK ruleが取得済みSafety Factに一致した候補をreadyへ進めず、Fact未取得だけではREVIEW / BLOCKへ昇格しない受入条件を持つ。今回、source、tests、Guardrail辞書、Candidate schema実装、Keepa / Canopy / Shopee / AI API、UI、README、`PROJECT_ROADMAP.md`、外部書込み、push、PR、merge、deployを変更・実行しない。GABA ruleはこの設計だけでは有効化しない。
 - 再検討条件: repo-grounded技術設計でKeepa戻り値の型・実際のFact搬送経路・後方互換方式・辞書表現・正規化・誤検知境界を確認するとき、追加の市場別Evidenceまたは公式根拠が提示されたとき、または成分Factの欠損率や実務上の見逃しが確認されたとき。
+
+## DEC-0043 — PH Guardrail BaselineをBeta MUSTとしてGate Pより先行させる
+
+- 日付: 2026-08-27
+- 背景: Ingredient Safetyの技術検証は完了した一方、PH向け禁止根拠の全件カバレッジ、各根拠のdisposition、`COMMON_BLOCK` / `PH_BLOCK`への登録境界、およびその受入は未完了である。Gate Pを再開する前に、PH Guardrail Baselineを明確なBeta MUSTとして完成させる必要がある。
+- 決定: P0でPH Guardrail BaselineをBeta MUSTとして正本化し、Gate PをHOLDする。P0はmain統合後にP1へ進む。P1aでPH向け禁止根拠を全件棚卸しし、P1bで各Evidenceを`BLOCK`、`REVIEW`、`非対象・根拠不足`へdispositionして未判断を残さない。P1cで確定BLOCKだけを`COMMON_BLOCK` / `PH_BLOCK`に区別してGuardrailへ登録し、関連testを行う。P1dで`PH_GUARDRAIL_BASELINE_COMPLETE`を受入する。
+- 決定: P2で通常フローを`Expansion / Resolver → Candidate CSV → 市場別Gate → ELIGIBLE / REVIEW / EXCLUDE`へ簡素化する。Ingredient Safety sidecar、Rule CSV、SHA binding等の内部安全機構は必要に応じて維持するが、通常利用者に不要な操作は極力隠す。DB化はこのBeta MUSTへ自動追加せず、具体方式は別設計で決定する。
+- 決定: P3で最新PH Guardrailを含むGate P B2 — PH Safetyをオーナー再受入し、P4でGate P B1〜B7全体を実商品・実画面・実業務で受入する。P5でIngredient Safetyと最新Guardrailを含むEvidence Packageを再生成して第三者独立レビューを行い、P6でその結果を確認したオーナーだけがPH Minimum Beta最終受入とPH実運用開始を判断する。
+- 理由: 実装済みの個別Safety機構と、PH向け禁止根拠の全体的なカバレッジ・正式運用ルールを混同せず、最新のGuardrailを前提にGate Pと最終受入を行うため。
+- 影響: `PROJECT_ROADMAP.md`の「現在から先の工程」と`CURRENT_WORK.md`の現在地・次の単一作業・停止条件を更新する。旧Gate P受入履歴は保持するが、P0〜P2の新しい前提を満たすまで再受入またはPH Minimum Beta PASSの根拠にしない。今回、source、Guardrail辞書、tests、UI、Candidate schema、DB、外部API、外部書込み、push、PR、merge、deployは変更・実行しない。
+- 再検討条件: P1aで利用可能・確認可能なEvidenceの範囲が確定できないとき、P1bでdisposition不能な根拠が残るとき、P1cで既存Guardrail契約を保てないとき、P2で内部安全機構の維持と通常導線の簡素化を両立できないとき、またはP3〜P5でBeta blocker候補が確認されたとき。

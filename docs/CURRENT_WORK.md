@@ -13,15 +13,17 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH Minimum Beta Ingredient Safety対応完了 / Gate P B2再受入前`
-- current_phase: `Ingredient Safety implementation PASS / independent security review PASS / Keepa Ingredient live PASS / Gate P B2 owner re-acceptance pending`
+- current_work_type: `PH Guardrail Baseline P0正本化・main統合前 / Gate P HOLD`
+- current_phase: `P0 PH Guardrail Baseline Beta MUST正本化 / Gate P HOLD / P0 main統合後にP1へ進行`
 - working_branch: `codex/ph-minimum-beta-gate-k-live`
 - marketplace: `PH`
 - module: `出品支援ツール横断（Amazon Fact取得 / Ingredient Safety Fact transport / Guardrail Rule V2 / Prelisting Gate）`
-- phase: `PH Minimum Beta / Ingredient Safety technical verification完了 / Gate P B2 PH Safety再受入前`
-- next_action: Ingredient Safetyを含めたGate P B2 — PH Safetyのオーナー実物再受入を行う。
+- phase: `PH Minimum Beta / P0 PH Guardrail Baseline正本化・main統合前 / Gate P HOLD`
+- next_action: P0 PH Guardrail Baselineの正本化差分をlocal validationし、main統合へ進める条件を整える。
 
-Gate Kの正式技術確認はPASS済みである。Gate PはB1 Candidate、B2 PH Safety、B3 Category、B4 Brand / No Brand、B5 Safe Stop、B6 listing_ready、B7 Human Handoffの全項目を実画面で確認し、B1〜B7をPASSとする。B2ではPH、Candidate 2件、ELIGIBLE 2件、REVIEW 0件、EXCLUDE 0件とshop label UX修正を確認した。B3ではCategory Path `Beauty > Skincare > Toner`、Category ID `100892`を採用した。B4ではCategory Mapper一時認証入力のsecurity reviewをPASS後、承認済みのShopee Brand List read-only取得を1回・retry 0で実行し、No BrandをBrand ID `0`としてオーナーが確定した。B5ではBrand未確定時に出力対象がなく次工程へ進めないこと、B6では2件がlisting_readyになること、B7では2件・1グループのCSV / text handoffを取得できることを確認した。商品名、ASIN、CSV本文、credentialはこの正本に記録しない。
+DEC-0043により、PH Guardrail BaselineをBeta MUSTとしてP0に置く。P0をmainへ統合するまでP1へ進まず、P1a〜P1dでPH Guardrail Baselineを受入するまでGate PをHOLDする。P0〜P2はGate Pの新しい前提であり、過去のGate P結果をPH Minimum Betaの最終受入またはmain統合済みと扱わない。
+
+Gate Kの正式技術確認はPASS済みである。Gate PはB1 Candidate、B2 PH Safety、B3 Category、B4 Brand / No Brand、B5 Safe Stop、B6 listing_ready、B7 Human Handoffの全項目を実画面で確認し、B1〜B7をPASSとする。B2ではPH、Candidate 2件、ELIGIBLE 2件、REVIEW 0件、EXCLUDE 0件とshop label UX修正を確認した。B3ではCategory Path `Beauty > Skincare > Toner`、Category ID `100892`を採用した。B4ではCategory Mapper一時認証入力のsecurity reviewをPASS後、承認済みのShopee Brand List read-only取得を1回・retry 0で実行し、No BrandをBrand ID `0`としてオーナーが確定した。B5ではBrand未確定時に出力対象がなく次工程へ進めないこと、B6では2件がlisting_readyになること、B7では2件・1グループのCSV / text handoffを取得できることを確認した。これらは旧優先順位における受入履歴である。商品名、ASIN、CSV本文、credentialはこの正本に記録しない。
 
 オーナーはGate Pの結果画面を実物確認し、問題なしとして受入した。これは旧仕様におけるGate P PASSの受入履歴である。新たにオーナーが確認したPHのGABA成分に関するアカウント凍結報告を、Shopee公式禁止物質の断定ではない運用上のSafety evidenceとして扱い、DEC-0041により第三者独立レビューを一旦保留した。Beta正式技術判定、Beta最終事業決裁、main統合は未実施であり、Gate P PASSをBeta正式完成またはmain統合済みと扱わない。Category Mapperは認証情報を更新・永続保存せず、Category / Brand等のread-only取得が必要なときだけオーナー入力のACCESS_TOKENをブラウザsession内で一時利用する。Canopyは開発・試験専用とし、Keepa / JPを本番標準として維持する。
 
@@ -183,13 +185,21 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 未完了事項
 
-- Ingredient Safety追加後のGate P B2再受入
+- P0 PH Guardrail BaselineのBeta MUST正本化とmain統合
+- P1a PH Guardrail Evidence Coverage Inventory
+- P1b EvidenceごとのBLOCK / REVIEW / 非対象・根拠不足 disposition
+- P1c 確定BLOCKのCOMMON_BLOCK / PH_BLOCK登録と関連test
+- P1d PH_GUARDRAIL_BASELINE_COMPLETEの受入
+- P2 Gate通常利用導線の簡素化
+- P3 Ingredient Safetyと最新Guardrailを含むGate P B2 — PH Safetyのオーナー実物再受入
+- P4 Gate P B1〜B7全体の実商品・実画面・実業務受入
+- P5 Evidence Package再生成と第三者独立レビュー
+- P6 オーナーによるPH Minimum Beta最終受入判断
 - GABAを含む実商品によるlive BLOCK確認
 - Canopyの長期品質・安定性、実商品の網羅確認
 - Category ID等を扱うGuardrail候補データ構造・判定単位・根拠種別の設計
-- Gate P branch全体の第三者独立レビュー（Ingredient Safety差分reviewは完了。B2再受入まで保留し、実装前の古いClaude Evidence Packageは使用しない）
-- PH Minimum Betaの正式技術判定とオーナー最終事業決裁
-- Gate P branchのmain統合
+- Gate P branch全体の第三者独立レビュー（P5で、Ingredient Safetyと最新Guardrailを含むEvidence Packageを再生成した後に実施する。実装前の古いClaude Evidence Packageは使用しない）
+- PH Minimum Betaの正式技術判定とオーナー最終事業決裁（P6）
 - ASIN到達性能の評価
 - Expansion・Resolverの実商品テスト
 - 出品後商品改善ツールの将来優先順位判断
@@ -205,18 +215,21 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-Ingredient Safetyを含めたGate P B2 — PH Safetyのオーナー実物再受入を行う。
+P0 PH Guardrail BaselineのBeta MUST正本化をmain統合へ進める。
 
 ## 停止条件
 
 - Gate P B2 PH Safetyのオーナー実物再受入までは、Gate P PASS、Minimum Beta PASS、B2受入PASSとして扱わない。
+- P0のmain統合およびP1d `PH_GUARDRAIL_BASELINE_COMPLETE`受入前に、Gate Pを再開しない。
+- P1a / P1bのEvidence棚卸しとdisposition前に、新規BLOCK / REVIEWを確定しない。P1cの辞書登録はP1bで確定したBLOCKだけに限定する。
+- P2前に通常利用導線、P3前にGate P B2、P4前にGate P B1〜B7全体、P5前に第三者独立レビュー、P6前にPH実運用を開始しない。
 - 今回のKeepa Ingredient Safety live技術確認を、オーナー実物受入またはGABA実商品live BLOCK確認として扱わない。
 - GABAを含む実商品によるlive BLOCK確認を、既存unit testsおよび独立security reviewのPASSから推測しない。
 - 実装前の古いClaude Evidence Packageを第三者レビュー用に再利用しない。
 - Keepa APIその他の外部APIを実行しない。
-- GABAを含む市場別BLOCK成分辞書を変更しない。
+- P1a / P1b完了前に、GABAを含む市場別BLOCK成分辞書を変更しない。P1cでは確定BLOCKを`COMMON_BLOCK` / `PH_BLOCK`へ区別して登録する。
 - Candidate物理schemaを推測で変更しない。
-- 第三者独立レビューへ戻らない。
+- P5のEvidence Package再生成前に第三者独立レビューへ戻らない。
 - Gate P PASSをPH Minimum Beta正式完成またはmain統合済みと扱わない。
 - 人間作業時間measurement logを作らず、E2E時間測定を開始しない。
 - Phase 2へ自動直進しない。

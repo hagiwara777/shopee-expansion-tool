@@ -82,27 +82,53 @@ ASIN到達性能とResolver成功は未評価であり、Evidence Persistenceの
 
 ## 現在から先の工程
 
-1. PH Minimum Beta完成定義・受入条件の正本化（完了）
-2. 完成定義と現行実装の差分監査（完了。確認済み`MISSING_IMPLEMENTATION`は0件）
-3. PH Minimum Beta実物受入プロトコルの定義・正本化（完了）
-4. オーナー承認後のGate K — Keepa本番標準経路live技術確認
-5. Gate K PASS後のGate P — PH実商品・実画面・実業務受入
-6. Gate P PASS後のPH Minimum Beta受入候補
-7. Claudeによる第三者独立レビュー
-8. オーナー最終確認によるPH Minimum Beta完成
-9. PH実運用開始
-10. PH実運用と並行する開発管理基盤整備
-   - GPTプロジェクトの棚卸し・統合・整理
-   - Codexプロジェクト、task、branch、worktreeの棚卸し・整理
-   - Secrets / API Credential管理基盤の設計・一元化
-   - 複数開発を俯瞰するマスター工程表 / ガントチャート整備
-11. PH実利用結果と整備後の開発体制を踏まえた、他市場・出品後商品改善ツール・Amazon仕入れ支援ツール等の優先順位判断
+### P0 — PH Guardrail BaselineをBeta MUSTとして正本化する
 
-Gate K / Gate Pの詳細手順は`docs/PH_MINIMUM_BETA_ACCEPTANCE_PROTOCOL.md`を参照する。Resolver、Expansion、Prelisting Gate、Category Mapperの既存詳細工程は、上記の出品支援ツール配下で維持する。外部契約証拠回収は、自動投入またはE2E接続を検討する場合の保留事項とし、現在の最優先工程には置かない。
+PH Guardrail BaselineをPH Minimum BetaのMUSTとして正本化し、Gate PをHOLDする。P0はmain統合後にP1へ進む。既存のGate P結果は履歴として保持するが、P0〜P2を経るまで新しい受入根拠として使わない。
 
-Claudeによる第三者独立レビューは、Gate P PASS後のPH Minimum Beta受入候補について、Minimum Beta完成定義との整合、安全境界の見落とし、B1〜B7との不整合、Keepa / Guardrail / Category / Brand / handoffの重大な抜け、tests / Evidenceの重大不足、Beta開始前に止めるべき重大リスク、Beta前に不要な過剰実装要求の混入を確認する工程とする。Claudeは完成を決裁しない。重大指摘はChatGPT / オーナーがBeta blocker候補として再確認し、軽微な改善はBeta後改善候補とし、理想論・追加完成度要求は自動的にBeta MUSTへ追加しない。Claudeの指摘だけで自動修正または自動不合格にせず、PH Minimum Beta完成の最終判断はオーナーが行う。
+### P1a — PH Guardrail Evidence Coverage Inventory
 
-Post-Betaの開発管理基盤整備は、PH実運用の開始条件でもPH Minimum Betaの新しいBeta MUSTでもない。PH実運用を止めずに並行する中長期工程とする。Secrets / API Credentialについては、「保管を集中し、利用権限を分離する」方向の設計ゲートを後日実施する。credential保管場所の一元化、project / processごとの最小権限、development / production credential分離、credential injection、rotation / revoke、Git / Evidence / logへの秘密情報混入防止、worktreeごとの`.env`乱立、移行・rollbackを検討対象とする。ただし、今回、特定製品、Secret方式、保存方式、credential実値、migration方式は決定せず、credential実値を正本文書またはGitへ記録しない。
+現時点で利用可能・確認可能なPH向け禁止根拠を全件棚卸しする。
+
+### P1b — Evidence disposition
+
+各Evidence項目を`BLOCK`、`REVIEW`、`非対象・根拠不足`へdispositionし、未判断を残さない。
+
+### P1c — 確定BLOCKのGuardrail登録
+
+P1bで確定したBLOCKを`COMMON_BLOCK`と`PH_BLOCK`に区別してGuardrailへ登録し、関連testを行う。
+
+### P1d — PH Guardrail Baseline受入
+
+`PH_GUARDRAIL_BASELINE_COMPLETE`を受入する。P1d受入までGate PはHOLDを維持する。
+
+### P2 — Gate通常利用導線の簡素化
+
+通常利用の目標フローを次に固定する。
+
+`Expansion / Resolver → Candidate CSV → 市場別Gate → ELIGIBLE / REVIEW / EXCLUDE`
+
+Ingredient Safety sidecar、Rule CSV、SHA binding等の内部安全機構は必要に応じて維持する。ただし、通常利用者に不要な操作は極力隠す。DB化はこのBeta MUSTへ自動追加せず、具体方式は別設計で決定する。
+
+### P3 — Gate P B2 — PH Safety再受入
+
+完成したPH Guardrailを使い、Ingredient Safetyと最新Guardrailを含むGate P B2 — PH Safetyをオーナー実物再受入する。
+
+### P4 — Gate P B1〜B7全体受入
+
+Gate P B1〜B7全体を、実商品・実画面・実業務で受入する。
+
+### P5 — Evidence Packageと第三者独立レビュー
+
+Ingredient Safetyおよび最新Guardrailを含むEvidence Packageを再生成し、第三者独立レビューを行う。実装前の古いEvidence Packageは使用しない。
+
+### P6 — PH Minimum Beta最終受入
+
+第三者レビュー結果を確認後、オーナーがPH Minimum Betaの最終受入を判断する。受入時のみPH実運用へ進む。
+
+### Post-Beta
+
+DB化、他市場展開、出品後商品改善ツール、Amazon仕入れ支援ツール等の優先順位を再判断する。Post-Betaの開発管理基盤整備はPH実運用の開始条件でも、新しいBeta MUSTでもない。
 
 ## 保留
 
