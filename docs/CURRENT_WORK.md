@@ -13,19 +13,19 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH Guardrail Baseline P0正本化・main統合前 / Gate P HOLD`
-- current_phase: `P0 PH Guardrail Baseline Beta MUST正本化 / Gate P HOLD / P0 main統合後にP1へ進行`
-- working_branch: `codex/ph-minimum-beta-gate-k-live`
+- current_work_type: `PH Guardrail Baseline P1a Evidence Coverage Inventory / Gate P HOLD`
+- current_phase: `P1a PH Guardrail Evidence Coverage Inventory / Gate P HOLD`
+- working_branch: `codex/ph-guardrail-baseline-p1a-inventory`
 - marketplace: `PH`
-- module: `出品支援ツール横断（Amazon Fact取得 / Ingredient Safety Fact transport / Guardrail Rule V2 / Prelisting Gate）`
-- phase: `PH Minimum Beta / P0 PH Guardrail Baseline正本化・main統合前 / Gate P HOLD`
-- next_action: P0 PH Guardrail Baselineの正本化差分をlocal validationし、main統合へ進める条件を整える。
+- module: `出品支援ツール / PH Guardrail`
+- phase: `PH Guardrail Baseline / P1a Evidence Coverage Inventory / Gate P HOLD`
+- next_action: Git外一次Evidence（SLS、Community NG、PH restriction image）の実物をstorage alias解決または再添付で取得し、SHA-256を照合してP1a棚卸しを完了する。
 
-DEC-0043により、PH Guardrail BaselineをBeta MUSTとしてP0に置く。P0をmainへ統合するまでP1へ進まず、P1a〜P1dでPH Guardrail Baselineを受入するまでGate PをHOLDする。P0〜P2はGate Pの新しい前提であり、過去のGate P結果をPH Minimum Betaの最終受入またはmain統合済みと扱わない。
+DEC-0043により、PH Guardrail BaselineをBeta MUSTとしてP0に置いた。PR #37のmain統合（formal main commit `0626a6504af15ebc0a1723a13dcac613aef7e676`）を確認し、P1aを開始した。P1a〜P1dでPH Guardrail Baselineを受入するまでGate PをHOLDする。P0〜P2はGate Pの新しい前提であり、過去のGate P結果をPH Minimum Betaの最終受入またはmain統合済みと扱わない。
 
 Gate Kの正式技術確認はPASS済みである。Gate PはB1 Candidate、B2 PH Safety、B3 Category、B4 Brand / No Brand、B5 Safe Stop、B6 listing_ready、B7 Human Handoffの全項目を実画面で確認し、B1〜B7をPASSとする。B2ではPH、Candidate 2件、ELIGIBLE 2件、REVIEW 0件、EXCLUDE 0件とshop label UX修正を確認した。B3ではCategory Path `Beauty > Skincare > Toner`、Category ID `100892`を採用した。B4ではCategory Mapper一時認証入力のsecurity reviewをPASS後、承認済みのShopee Brand List read-only取得を1回・retry 0で実行し、No BrandをBrand ID `0`としてオーナーが確定した。B5ではBrand未確定時に出力対象がなく次工程へ進めないこと、B6では2件がlisting_readyになること、B7では2件・1グループのCSV / text handoffを取得できることを確認した。これらは旧優先順位における受入履歴である。商品名、ASIN、CSV本文、credentialはこの正本に記録しない。
 
-オーナーはGate Pの結果画面を実物確認し、問題なしとして受入した。これは旧仕様におけるGate P PASSの受入履歴である。新たにオーナーが確認したPHのGABA成分に関するアカウント凍結報告を、Shopee公式禁止物質の断定ではない運用上のSafety evidenceとして扱い、DEC-0041により第三者独立レビューを一旦保留した。Beta正式技術判定、Beta最終事業決裁、main統合は未実施であり、Gate P PASSをBeta正式完成またはmain統合済みと扱わない。Category Mapperは認証情報を更新・永続保存せず、Category / Brand等のread-only取得が必要なときだけオーナー入力のACCESS_TOKENをブラウザsession内で一時利用する。Canopyは開発・試験専用とし、Keepa / JPを本番標準として維持する。
+オーナーはGate Pの結果画面を実物確認し、問題なしとして受入した。これは旧仕様におけるGate P PASSの受入履歴である。新たにオーナーが確認したPHのGABA成分に関するアカウント凍結報告を、Shopee公式禁止物質の断定ではない運用上のSafety evidenceとして扱い、DEC-0041により第三者独立レビューを一旦保留した。PH Minimum Betaの正式技術判定と最終事業決裁は未実施であり、Gate P PASSをPH Minimum Betaの正式完成と扱わない。Category Mapperは認証情報を更新・永続保存せず、Category / Brand等のread-only取得が必要なときだけオーナー入力のACCESS_TOKENをブラウザsession内で一時利用する。Canopyは開発・試験専用とし、Keepa / JPを本番標準として維持する。
 
 DEC-0035で、B1〜B7のMinimum Beta完成定義に対する確認済み`MISSING_IMPLEMENTATION`は0件と正本化した。その後、Gate KとGate Pの実物受入がPASSした。DEC-0041で保留した第三者独立レビューより先に、DEC-0042でIngredient Safety Factと市場別BLOCK成分辞書の設計原則を正本化し、repo-grounded技術設計を完了した。GABAのowner attestationはGit外Evidenceとして正本化し、Rule V2の`evidence_ref`を`ART-PH-GABA-FREEZE-OWNER-ATTESTATION-V1`、`source_type`を`community_report`、`decision_ref`を`DEC-0042`と一意に確定した。この設計正本化だけではGABA RuleまたはIngredient Safety実装の完了を意味しなかった。Canopyは開発・試験専用providerのままとし、Keepa本番確認を代替しない。
 
@@ -51,6 +51,7 @@ PR #16はGate結果CSVのschema version再検証をmainへ統合し、formal mai
 
 ## 完了・受入済み
 
+- P0 PH Guardrail BaselineのBeta MUST正本化とPR #37のmain統合（formal main commit `0626a6504af15ebc0a1723a13dcac613aef7e676`）
 - Gate Kの正式技術確認PASS
 - Gate P B1〜B7の実物受入PASS
 - Gate P結果画面のオーナー実物確認PASS
@@ -185,8 +186,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 未完了事項
 
-- P0 PH Guardrail BaselineのBeta MUST正本化とmain統合
-- P1a PH Guardrail Evidence Coverage Inventory
+- P1a PH Guardrail Evidence Coverage Inventory（Git外一次Evidence 3件の実物アクセス・SHA-256照合待ち）
 - P1b EvidenceごとのBLOCK / REVIEW / 非対象・根拠不足 disposition
 - P1c 確定BLOCKのCOMMON_BLOCK / PH_BLOCK登録と関連test
 - P1d PH_GUARDRAIL_BASELINE_COMPLETEの受入
@@ -215,12 +215,12 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-P0 PH Guardrail BaselineのBeta MUST正本化をmain統合へ進める。
+Git外一次Evidence（SLS、Community NG、PH restriction image）の実物をstorage alias解決または再添付で取得し、SHA-256を照合してP1a棚卸しを完了する。
 
 ## 停止条件
 
 - Gate P B2 PH Safetyのオーナー実物再受入までは、Gate P PASS、Minimum Beta PASS、B2受入PASSとして扱わない。
-- P0のmain統合およびP1d `PH_GUARDRAIL_BASELINE_COMPLETE`受入前に、Gate Pを再開しない。
+- P1d `PH_GUARDRAIL_BASELINE_COMPLETE`受入前に、Gate Pを再開しない。
 - P1a / P1bのEvidence棚卸しとdisposition前に、新規BLOCK / REVIEWを確定しない。P1cの辞書登録はP1bで確定したBLOCKだけに限定する。
 - P2前に通常利用導線、P3前にGate P B2、P4前にGate P B1〜B7全体、P5前に第三者独立レビュー、P6前にPH実運用を開始しない。
 - 今回のKeepa Ingredient Safety live技術確認を、オーナー実物受入またはGABA実商品live BLOCK確認として扱わない。
