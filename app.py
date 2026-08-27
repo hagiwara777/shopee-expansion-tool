@@ -59,6 +59,13 @@ from modules.listing_inventory_parser import (
     ListingInventoryParseError,
     parse_listing_inventory_csv,
 )
+from modules.ingredient_safety import (
+    IngredientSafetyError,
+    facts_for_candidate_rows,
+    parse_ingredient_safety_sidecar,
+    rows_to_ingredient_safety_sidecar,
+    summarize_capture_statuses,
+)
 from modules.prelisting_candidate_csv import (
     PrelistingCandidateCsvError,
     expansion_rows_to_prelisting_candidates,
@@ -73,11 +80,11 @@ from modules.prelisting_gate_csv import (
     build_prelisting_gate_exports,
 )
 from modules.prelisting_gate_ui import (
+    build_internal_shop_labels,
     build_prelisting_gate_preview_rows,
     build_prelisting_gate_fingerprint,
     clear_prelisting_gate_result,
     safe_prelisting_gate_error_summary,
-    shop_label_widget_key,
     summarize_prelisting_inventory,
     validate_inventory_file_duplicates,
     validate_shop_labels,
@@ -325,6 +332,19 @@ def _render_prelisting_gate_input_tab() -> None:
     )
     candidate_bytes = candidate_file.getvalue() if candidate_file is not None else None
 
+    ingredient_safety_file = st.file_uploader(
+        "Ingredient Safety Fact sidecar（任意）",
+        type=["csv"],
+        accept_multiple_files=False,
+        key="prelisting_gate_ingredient_safety_file",
+    )
+    ingredient_safety_bytes = (
+        ingredient_safety_file.getvalue() if ingredient_safety_file is not None else None
+    )
+    st.caption(
+        "sidecar未指定でも従来どおり判定できます。Fact欠損はSafety PASSや成分不存在を意味しません。"
+    )
+
     uploaded_inventory_files = st.file_uploader(
         f"{marketplace}全ショップの既出品CSV",
         type=["csv"],
@@ -346,18 +366,9 @@ def _render_prelisting_gate_input_tab() -> None:
 
     file_validation = validate_inventory_file_duplicates(inventory_files)
     configuration_errors.extend(file_validation.errors)
-    labels = ["" for _ in inventory_files]
-    if inventory_files and file_validation.is_valid:
-        st.markdown("#### ショップラベル")
-        for index, (filename, file_bytes) in enumerate(inventory_files, start=1):
-            labels[index - 1] = st.text_input(
-                f"shop_label: {filename}",
-                value=f"{marketplace}_SHOP_{index}",
-                key=f"{marketplace}_{shop_label_widget_key(filename, file_bytes)}",
-            )
-
+    labels = build_internal_shop_labels(marketplace, len(inventory_files))
     label_validation = validate_shop_labels(labels)
-    if inventory_files and not label_validation.is_valid:
+    if not label_validation.is_valid:
         configuration_errors.extend(label_validation.errors)
 
     fingerprint_shop_count = expected_shop_count if expected_shop_count_is_valid else 0
@@ -366,6 +377,10 @@ def _render_prelisting_gate_input_tab() -> None:
         expected_shop_count=fingerprint_shop_count,
         candidate_filename=candidate_file.name if candidate_file is not None else None,
         candidate_content=candidate_bytes,
+        ingredient_safety_filename=(
+            ingredient_safety_file.name if ingredient_safety_file is not None else None
+        ),
+        ingredient_safety_content=ingredient_safety_bytes,
         inventory_files=(
             (filename, content, label)
             for (filename, content), label in zip(inventory_files, labels, strict=True)
@@ -393,6 +408,21 @@ def _render_prelisting_gate_input_tab() -> None:
         except PrelistingCandidateCsvError:
             candidate_parse_error = True
 
+    ingredient_safety_result = None
+    ingredient_safety_parse_error = False
+    if ingredient_safety_file is not None and candidate_result is not None:
+        try:
+            ingredient_safety_result = parse_ingredient_safety_sidecar(
+                ingredient_safety_bytes,
+                filename=ingredient_safety_file.name,
+                candidate_content=candidate_bytes,
+                candidates=candidate_result,
+            )
+        except IngredientSafetyError:
+            ingredient_safety_parse_error = True
+    elif ingredient_safety_file is not None:
+        ingredient_safety_parse_error = True
+
     inventory_results = []
     inventory_parse_error = False
     if inventory_files and file_validation.is_valid and label_validation.is_valid:
@@ -418,6 +448,7 @@ def _render_prelisting_gate_input_tab() -> None:
         not configuration_errors
         and not candidate_parse_error
         and not inventory_parse_error
+        and not ingredient_safety_parse_error
         and candidate_result is not None
         and len(inventory_results) == len(inventory_files)
         and len(inventory_files) == expected_shop_count
@@ -433,6 +464,10 @@ def _render_prelisting_gate_input_tab() -> None:
         st.error(safe_prelisting_gate_error_summary("candidate"))
     if inventory_parse_error:
         st.error(safe_prelisting_gate_error_summary("inventory"))
+    if ingredient_safety_parse_error:
+        st.error(
+            "Ingredient Safety sidecarを検証できません。Candidate SHA、ASIN集合、schema、JSONを確認してください。"
+        )
 
     input_ready = preflight_ready
     if input_ready:
@@ -462,6 +497,16 @@ def _render_prelisting_gate_input_tab() -> None:
             "入力準備が完了しました。\n"
             "出品前チェックを実行できます。"
         )
+        if ingredient_safety_result is None:
+            st.info("Ingredient Safety sidecar: 未指定（legacy互換判定）")
+        else:
+            capture_summary = summarize_capture_statuses(ingredient_safety_result)
+            st.caption(
+                "Ingredient Safety sidecar: "
+                f"CAPTURED {capture_summary['CAPTURED']} / "
+                f"NOT_CAPTURED {capture_summary['NOT_CAPTURED']} / "
+                f"PROVIDER_UNSUPPORTED {capture_summary['PROVIDER_UNSUPPORTED']}"
+            )
 
     run_gate_clicked = st.button(
         "出品前チェックを実行",
@@ -478,6 +523,7 @@ def _render_prelisting_gate_input_tab() -> None:
                     inventory_results,
                     marketplace=marketplace,
                     expected_shop_count=expected_shop_count,
+                    ingredient_safety=ingredient_safety_result,
                 )
                 exports = build_prelisting_gate_exports(gate_result)
         except PrelistingGateError:
@@ -667,7 +713,20 @@ with expansion_tab:
         try:
             expansion_prelisting_rows = expansion_rows_to_prelisting_candidates(result.rows)
             expansion_prelisting_csv = rows_to_prelisting_candidate_csv(expansion_prelisting_rows)
+            expansion_safety_facts = facts_for_candidate_rows(
+                expansion_prelisting_rows,
+                result.rows,
+            )
+            expansion_safety_sidecar = rows_to_ingredient_safety_sidecar(
+                expansion_prelisting_csv,
+                expansion_prelisting_rows,
+                expansion_safety_facts,
+            )
         except PrelistingCandidateCsvError:
+            st.error(
+                "出品前保安ゲート用CSVを生成できませんでした。候補データを確認してください。"
+            )
+        except IngredientSafetyError:
             st.error(
                 "出品前保安ゲート用CSVを生成できませんでした。候補データを確認してください。"
             )
@@ -681,6 +740,14 @@ with expansion_tab:
                 file_name=f"prelisting_candidates_expansion_{result.source_asin}.csv",
                 mime="text/csv",
                 key="prelisting-expansion-download",
+                width="stretch",
+            )
+            st.download_button(
+                label="Ingredient Safety Fact sidecarダウンロード",
+                data=expansion_safety_sidecar,
+                file_name=f"ingredient_safety_facts_expansion_{result.source_asin}.csv",
+                mime="text/csv",
+                key="ingredient-safety-expansion-download",
                 width="stretch",
             )
         st.dataframe(pd.DataFrame(result.rows), width="stretch", hide_index=True)
@@ -1141,7 +1208,20 @@ with resolver_tab:
                     resolver_prelisting_csv = rows_to_prelisting_candidate_csv(
                         resolver_prelisting.output_rows
                     )
+                    resolver_safety_facts = facts_for_candidate_rows(
+                        resolver_prelisting.output_rows,
+                        resolver_rows,
+                    )
+                    resolver_safety_sidecar = rows_to_ingredient_safety_sidecar(
+                        resolver_prelisting_csv,
+                        resolver_prelisting.output_rows,
+                        resolver_safety_facts,
+                    )
             except PrelistingCandidateCsvError:
+                st.error(
+                    "出品前保安ゲート用CSVを生成できませんでした。確認結果を確認してください。"
+                )
+            except IngredientSafetyError:
                 st.error(
                     "出品前保安ゲート用CSVを生成できませんでした。確認結果を確認してください。"
                 )
@@ -1166,6 +1246,14 @@ with resolver_tab:
                         file_name="prelisting_candidates_resolver.csv",
                         mime="text/csv",
                         key="prelisting-resolver-download",
+                        width="stretch",
+                    )
+                    st.download_button(
+                        label="Ingredient Safety Fact sidecarダウンロード",
+                        data=resolver_safety_sidecar,
+                        file_name="ingredient_safety_facts_resolver.csv",
+                        mime="text/csv",
+                        key="ingredient-safety-resolver-download",
                         width="stretch",
                     )
             comparison_columns = [

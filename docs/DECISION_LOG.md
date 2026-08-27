@@ -427,3 +427,59 @@
 - 理由: Gate実行結果と最終判断の間に独立した視点を置き、重大な見落としを確認しつつ、未検証の追加完成度要求でBeta開始を不必要に遅らせないため。
 - 影響: Gate K / Gate Pの定義と順序、B1〜B7、Keepa本番標準、Canopy試験専用、既存Beta MUSTを変更しない。Claudeレビューは完成判断の品質確認工程であり、PH Minimum Betaの機能MUSTを追加・置換しない。今回の変更はRoadmapとDecision Logのみであり、コード、tests仕様、`CURRENT_WORK.md`、README、credential、API、実商品、実画面、実業務を変更・開始しない。Claudeレビューのためにcredential、`.env`、API key、顧客情報、秘密情報を正本文書へ記録しない。
 - 再検討条件: ClaudeレビューでBeta blocker候補となる具体的事実、B1〜B7または安全境界の不整合、tests / Evidenceの重大不足、またはオーナー最終確認に追加判断が必要な事実が確認されたとき。
+
+## DEC-0039 — Prelisting Gateのshop_labelを内部証跡識別子へ限定する
+
+- 日付: 2026-08-25
+- 背景: Gate P B2の実物受入で、shop_labelが出品可否のFactではないにもかかわらず、利用者に実ショップ名の入力を求めるUIが不要な停止要因になった。
+- 決定: SG / PH共通のPrelisting Gate UIはshop_label入力を表示せず、既出品CSVのupload順に`{marketplace}_SHOP_n`を内部証跡識別子として決定的に生成する。同一marketplaceの全ショップ横断既出品ASIN照合を維持し、どこか1ショップに存在する候補は`EXISTING` / `EXISTING_ASIN` / `EXCLUDE`とする。全ショップ数と同数のinventory CSV提出義務、空inventory契約、重複ファイル保護を維持する。
+- 決定: `parse_listing_inventory_csv()`、ListingEvidence / ListingInventoryFileResult、`evaluate_prelisting_gate()`、Candidate / Gate CSV schema、既出品ASIN unionの公開契約と判定意味は変更しない。実ショップ名はB2判定Factではない。
+- 理由: 既存の全ショップ横断重複防止を弱めず、不要な人間入力だけを取り除くため。
+- 影響: 次工程は、shop label入力のない修正版UIでPH B2 preflightをオーナーが実画面確認することである。今回、Keepa、Canopy、Shopee、SP-API、AI API、外部書込み、Category Mapper、実データ判定、Roadmap工程は変更・開始しない。
+- 再検討条件: 実ショップ名が判定Factまたは外部出品ツール正式契約上の必須入力と確認されたとき、全ショップ数とCSV数の一致または横断重複照合を維持できないと判明したとき。
+
+## DEC-0040 — Category Mapperの認証情報を一時利用に限定する
+
+- 日付: 2026-08-25
+- 背景: Gate P B4のShopee Brand取得で、既存ローカル認証情報が無効となり、管理シート側の更新済み認証情報を設定ファイル変更なしで安全に利用する必要が生じた。
+- 決定: Category Mapperはオーナーが画面へ入力するShopee ACCESS_TOKENをブラウザsession内だけで利用し、空欄時は既存ローカル設定を維持する。入力値を設定ファイル、SQLite、その他ファイル、Git、ログへ保存しない。REFRESH_TOKENの入力・読込・保存・更新、OAuth、token refresh、管理シート連携をCategory Mapperへ追加しない。
+- 決定: Category / Brand / Attributeの既存read-only取得経路とCatalog FactのローカルDB保存は維持し、認証情報の更新責務は既存のCategory Mapper外の仕組みに残す。
+- 理由: Catalog Factの取得責務と認証管理責務を分離し、既存のtoken更新経路を重複実装せず、無効な固定認証情報によるB4停止を安全に解消できるようにするため。
+- 影響: B4 Brand取得は再実行せず、Brand未確定停止を維持する。今回、外部API、外部書込み、認証情報更新、Roadmap、Resolver、Expansion、Prelisting Gateは変更・実行しない。
+- 再検討条件: 外部の認証情報更新経路が変更されたとき、session内一時利用で安全なCatalog参照を維持できないとき、または別途承認されたSecrets管理基盤へ移行するとき。
+
+## DEC-0041 — PH Ingredient Safety blockerにより第三者独立レビューを保留する
+
+- 日付: 2026-08-26
+- 背景: Gate P旧仕様のB1〜B7受入PASS後、オーナーはPHでGABA成分に関連するとされたアカウント凍結報告を確認した。現行Guardrailは成分Factを確認しておらず、この報告をBeta正式完成判定前に扱う必要がある。
+- 決定: この報告はShopee公式の禁止物質または規約違反の断定ではなく、owner/community operational evidenceとして扱う。アカウント保護を優先し、DEC-0038で予定した第三者独立レビューを一旦保留し、次の単一作業をIngredient Safety Factと市場別BLOCK成分辞書の設計正本化へ切り替える。
+- 決定: 旧B1〜B7 PASSは当時の仕様に対する受入履歴として保持する。ただし、PH Minimum Betaを正式完成とは扱わず、Ingredient Safety設計ゲートの結論を待つ。
+- 決定: 今回の現在地切替だけでは、GABA rule、Keepaによる成分取得、Candidate schema、Guardrail辞書、Guardrail / Prelisting Gate実装方式、外部API利用を確定または変更しない。
+- 理由: 新たに提示されたSafetyリスクを、未確認の公式根拠や実装方式へ早期に飛躍させず、Beta完成判断より先に設計上の扱いを明確化するため。
+- 影響: `CURRENT_WORK.md` の現在地、次の単一作業、停止条件だけを更新する。`PH_MINIMUM_BETA_ACCEPTANCE_PROTOCOL.md`、`PROJECT_ROADMAP.md`、README、source、tests、Guardrail辞書、Candidate schema、API、UI、外部サービスは変更・実行しない。
+- 再検討条件: Ingredient Safety設計ゲートで必要Fact、Evidenceの扱い、市場別BLOCK辞書の管理境界、実装要否が確認されたとき、またはオーナーが追加の運用Safety evidenceもしくは公式根拠を提示したとき。
+
+## DEC-0042 — Ingredient Safety Factと市場別BLOCK成分辞書の設計を承認する
+
+- 日付: 2026-08-26
+- 背景: DEC-0041で、PHのGABA成分に関連するとされたアカウント凍結報告をowner/community operational evidenceとして扱い、第三者独立レビューを保留した。titleに現れない危険成分を既存Safetyだけでは検知できないため、API = Fact、Rule = Decision、Human = Exceptionの責務分離を維持したIngredient Safetyの設計原則を先に確定する。
+- 決定: Amazon Data Providerは取得済みproduct Factから`ingredients`、`activeIngredients`、`specialIngredients`をSafety Factとして保持・供給する。Candidate / Fact transportはこれらの意味を変えずGuardrailまで搬送し、既存`PRELISTING_CANDIDATE_V1`の後方互換を必須とする。Candidate V2、sidecar、内部Fact objectその他の物理搬送方式は今回確定しない。
+- 決定: Guardrail / Prelisting GateはIngredient SafetyのためにKeepaその他の外部APIを呼ばない。Guardrailは取得済みproduct titleまたはIngredient Safety Factと、選択市場の正式BLOCK ruleだけを照合する。正式BLOCK成分が確認された場合はdeterministicにBLOCKし、後工程でREVIEWまたはSAFEへ降格しない。Prelisting Gateは既存どおりGuardrail BLOCKを出品候補から除外し、成分取得・推測を担当しない。
+- 決定: 対象成分が取得済みFactのいずれにも確認されない場合、その成分を理由にはBLOCKしない。成分3 Factがすべて欠損しても、欠損だけではREVIEWまたはBLOCKへ昇格しない。いずれも成分不存在または安全の保証を意味せず、残余リスクとして受容する。
+- 決定: 初期Ingredient SafetyのBLOCK根拠はproduct title、`ingredients`、`activeIngredients`、`specialIngredients`に限定する。description、features、shortDescription、safetyWarning、itemHighlights、画像、OCR、Amazonページscraping、AIによる成分推測をSafety BLOCK Factへ入れない。
+- 決定: 市場別BLOCK成分はowner-maintained deterministic ruleとして管理し、少なくともmarketplace、canonical ingredient / term、aliases、action = BLOCK、evidence reference / evidence typeを表現できるものとする。物理CSV列、exact / contains表現、正規化、alias格納方式、辞書編集UIは次のrepo-grounded技術設計で確定する。新成分は原則としてsource code変更ではなく辞書追加で扱える構造を目指し、GABA専用コードは追加しない。
+- 決定: PHのGABAは、オーナーが確認したアカウント凍結報告に基づく`OWNER / COMMUNITY OPERATIONAL EVIDENCE`として当社運用上のBLOCK対象にする設計方針を採用する。これはShopeeがGABAを全面禁止物質として明示しているという公式ポリシー上の断定ではない。取得済みproduct title、`ingredients`、`activeIngredients`、`specialIngredients`でGABAが確認された場合はPH BLOCK対象とし、aliasesの完全セットと誤検知境界は次の技術設計で確定する。
+- 理由: 未確認のFactをAIやGuardrailの逆方向API接続で補完せず、成分に現れた明確な運用上のSafetyリスクだけを市場別の決定論的BLOCKとして扱い、Candidate契約を壊さず拡張可能にするため。
+- 影響: B2は正式BLOCK ruleが取得済みSafety Factに一致した候補をreadyへ進めず、Fact未取得だけではREVIEW / BLOCKへ昇格しない受入条件を持つ。今回、source、tests、Guardrail辞書、Candidate schema実装、Keepa / Canopy / Shopee / AI API、UI、README、`PROJECT_ROADMAP.md`、外部書込み、push、PR、merge、deployを変更・実行しない。GABA ruleはこの設計だけでは有効化しない。
+- 再検討条件: repo-grounded技術設計でKeepa戻り値の型・実際のFact搬送経路・後方互換方式・辞書表現・正規化・誤検知境界を確認するとき、追加の市場別Evidenceまたは公式根拠が提示されたとき、または成分Factの欠損率や実務上の見逃しが確認されたとき。
+
+## DEC-0043 — PH Guardrail BaselineをBeta MUSTとしてGate Pより先行させる
+
+- 日付: 2026-08-27
+- 背景: Ingredient Safetyの技術検証は完了した一方、PH向け禁止根拠の全件カバレッジ、各根拠のdisposition、`COMMON_BLOCK` / `PH_BLOCK`への登録境界、およびその受入は未完了である。Gate Pを再開する前に、PH Guardrail Baselineを明確なBeta MUSTとして完成させる必要がある。
+- 決定: P0でPH Guardrail BaselineをBeta MUSTとして正本化し、Gate PをHOLDする。P0はmain統合後にP1へ進む。P1aでPH向け禁止根拠を全件棚卸しし、P1bで各Evidenceを`BLOCK`、`REVIEW`、`非対象・根拠不足`へdispositionして未判断を残さない。P1cで確定BLOCKだけを`COMMON_BLOCK` / `PH_BLOCK`に区別してGuardrailへ登録し、関連testを行う。P1dで`PH_GUARDRAIL_BASELINE_COMPLETE`を受入する。
+- 決定: P2で通常フローを`Expansion / Resolver → Candidate CSV → 市場別Gate → ELIGIBLE / REVIEW / EXCLUDE`へ簡素化する。Ingredient Safety sidecar、Rule CSV、SHA binding等の内部安全機構は必要に応じて維持するが、通常利用者に不要な操作は極力隠す。DB化はこのBeta MUSTへ自動追加せず、具体方式は別設計で決定する。
+- 決定: P3で最新PH Guardrailを含むGate P B2 — PH Safetyをオーナー再受入し、P4でGate P B1〜B7全体を実商品・実画面・実業務で受入する。P5でIngredient Safetyと最新Guardrailを含むEvidence Packageを再生成して第三者独立レビューを行い、P6でその結果を確認したオーナーだけがPH Minimum Beta最終受入とPH実運用開始を判断する。
+- 理由: 実装済みの個別Safety機構と、PH向け禁止根拠の全体的なカバレッジ・正式運用ルールを混同せず、最新のGuardrailを前提にGate Pと最終受入を行うため。
+- 影響: `PROJECT_ROADMAP.md`の「現在から先の工程」と`CURRENT_WORK.md`の現在地・次の単一作業・停止条件を更新する。旧Gate P受入履歴は保持するが、P0〜P2の新しい前提を満たすまで再受入またはPH Minimum Beta PASSの根拠にしない。今回、source、Guardrail辞書、tests、UI、Candidate schema、DB、外部API、外部書込み、push、PR、merge、deployは変更・実行しない。
+- 再検討条件: P1aで利用可能・確認可能なEvidenceの範囲が確定できないとき、P1bでdisposition不能な根拠が残るとき、P1cで既存Guardrail契約を保てないとき、P2で内部安全機構の維持と通常導線の簡素化を両立できないとき、またはP3〜P5でBeta blocker候補が確認されたとき。

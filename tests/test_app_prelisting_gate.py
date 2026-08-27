@@ -144,8 +144,10 @@ def test_gate_tab_has_sg_ph_marketplace_controls_and_dynamic_labels():
     assert ast.literal_eval(_keyword(inventory_uploader, "accept_multiple_files")) is True
     assert "candidate_file.getvalue()" in source
     assert "uploaded_file.getvalue()" in source
-    assert "value=f\"{marketplace}_SHOP_{index}\"" in source
-    assert 'key=f"{marketplace}_{shop_label_widget_key(filename, file_bytes)}"' in source
+    assert not _attribute_calls(function, "text_input")
+    assert "ショップラベル" not in source
+    assert "build_internal_shop_labels(marketplace, len(inventory_files))" in source
+    assert "shop_label_widget_key" not in source
 
 
 def test_gate_tab_uses_formal_parsers_and_gate_public_functions_only():
@@ -466,12 +468,7 @@ def test_prelisting_gate_marketplace_switches_run_ph_empty_inventory_and_clear_r
     app.run()
     assert len(app.exception) == 0
     assert _run_gate_button(app).disabled is False
-    shop_label = next(
-        control
-        for control in app.text_input
-        if control.label == "shop_label: Shopee 更新_PH.csv"
-    )
-    assert shop_label.value == "PH_SHOP_1"
+    assert not any(control.label.startswith("shop_label:") for control in app.text_input)
 
     _run_gate_button(app).click().run()
     assert len(app.exception) == 0

@@ -6,6 +6,7 @@ from modules.prelisting_gate import PrelistingGateResult, PrelistingGateRow
 from modules.prelisting_gate_ui import (
     PRELISTING_GATE_RESULT_STATE_KEYS,
     PRELISTING_GATE_PREVIEW_COLUMNS,
+    build_internal_shop_labels,
     build_prelisting_gate_preview_rows,
     build_prelisting_gate_fingerprint,
     clear_prelisting_gate_result,
@@ -112,9 +113,13 @@ def _gate_result(
                 marketplace="SG",
                 guardrail_status=guardrail_status,
                 guardrail_risk_category="",
-                guardrail_matched_terms="",
+                guardrail_matched_terms=(
+                    "Synthetic term" if guardrail_status != "SAFE" else ""
+                ),
                 guardrail_source="synthetic",
-                guardrail_note="",
+                guardrail_note=(
+                    "Synthetic guardrail note" if guardrail_status != "SAFE" else ""
+                ),
                 existing_listing_status="EXISTING" if evidence else "CLEAR",
                 existing_evidence=evidence,
                 input_duplicate_status="UNIQUE",
@@ -205,6 +210,19 @@ def test_inventory_file_validation_rejects_duplicate_names_and_contents():
     )
 
 
+def test_internal_shop_labels_are_deterministic_and_not_user_supplied():
+    assert build_internal_shop_labels("PH", 0) == ()
+    assert build_internal_shop_labels("PH", 2) == ("PH_SHOP_1", "PH_SHOP_2")
+    assert build_internal_shop_labels("SG", 2) == ("SG_SHOP_1", "SG_SHOP_2")
+
+    with pytest.raises(ValueError):
+        build_internal_shop_labels("", 1)
+    with pytest.raises(ValueError):
+        build_internal_shop_labels("PH", -1)
+    with pytest.raises(ValueError):
+        build_internal_shop_labels("PH", True)
+
+
 def test_safe_error_summaries_never_include_source_values():
     raw_source_value = "RAW-PRODUCT-ID-DO-NOT-DISPLAY"
     candidate = safe_prelisting_gate_error_summary("candidate")
@@ -224,11 +242,11 @@ def test_safe_error_summaries_never_include_source_values():
     )
     assert configuration == (
         "入力条件が揃っていません。\n"
-        "全ショップ数、アップロード数、ファイル名、shop_labelを確認してください。"
+        "全ショップ数、アップロード数、ファイル名を確認してください。"
     )
     assert gate == (
         "出品前チェックを完了できませんでした。\n"
-        "対象国、全ショップ数、ファイル名、shop_label、Guardrail辞書を確認してください。"
+        "対象国、全ショップ数、ファイル名、Guardrail辞書を確認してください。"
     )
     assert export == (
         "判定結果CSVを作成できませんでした。\n"
@@ -296,14 +314,16 @@ def test_preview_rows_filter_each_eligibility_in_input_order_and_keep_duplicates
     assert [row["candidate_asin"] for row in exclude] == ["B000000003"]
 
 
-def test_preview_rows_are_fixed_to_ten_safe_columns_without_mutating_result():
+def test_preview_rows_include_guardrail_reason_without_mutating_result():
     result = _gate_result((("REVIEW", "B000000002"),))
     original_rows = result.rows
 
     preview = build_prelisting_gate_preview_rows(result, final_eligibility="REVIEW")
 
     assert tuple(preview[0]) == PRELISTING_GATE_PREVIEW_COLUMNS
-    assert len(preview[0]) == 10
+    assert len(preview[0]) == 12
+    assert preview[0]["guardrail_matched_terms"] == "Synthetic term"
+    assert "Synthetic guardrail note" in preview[0]["guardrail_note"]
     assert preview[0]["reason_codes"] == "GUARDRAIL_REVIEW"
     assert preview[0]["existing_evidence_count"] == 0
     assert not {"existing_evidence_json", "product_id", "model_id", "source_file"} & set(
@@ -322,6 +342,28 @@ def test_preview_rows_limit_to_first_hundred_records():
     assert len(preview) == 100
     assert preview[0]["candidate_asin"] == "B000000001"
     assert preview[-1]["candidate_asin"] == "B000000100"
+
+
+def test_gate_fingerprint_changes_when_optional_ingredient_sidecar_changes():
+    base = {
+        "marketplace": "PH",
+        "expected_shop_count": 1,
+        "candidate_filename": "candidate.csv",
+        "candidate_content": b"candidate",
+        "inventory_files": (("existing_PH.csv", b"inventory", "PH_SHOP_1"),),
+        "ingredient_safety_filename": "safety.csv",
+    }
+
+    first = build_prelisting_gate_fingerprint(
+        **base,
+        ingredient_safety_content=b"first",
+    )
+    second = build_prelisting_gate_fingerprint(
+        **base,
+        ingredient_safety_content=b"second",
+    )
+
+    assert first != second
 
 
 @pytest.mark.parametrize("final_eligibility", ["SAFE", "", None])

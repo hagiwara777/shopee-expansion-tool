@@ -9,6 +9,12 @@ import pytest
 import modules.guardrails as guardrails_module
 import modules.prelisting_gate as gate
 from modules.guardrails import GuardrailDictionaryError
+from modules.ingredient_safety import (
+    CAPTURED,
+    INGREDIENT_SAFETY_SIDECAR_SCHEMA_VERSION,
+    IngredientSafetyFact,
+    IngredientSafetySidecarResult,
+)
 from modules.listing_inventory_parser import ListingEvidence, ListingInventoryFileResult
 from modules.prelisting_candidate_csv import (
     EXPANSION_SOURCE_TYPE,
@@ -723,6 +729,72 @@ def test_phase1_v2_keeps_candidate_gate_schema_and_gate_public_interface_v1():
         "inventories",
         "marketplace",
         "expected_shop_count",
+        "ingredient_safety",
     )
+    assert parameters["ingredient_safety"].default is None
     assert PRELISTING_CANDIDATE_SCHEMA_VERSION == "PRELISTING_CANDIDATE_V1"
     assert GATE_RESULT_SCHEMA_VERSION == "PRELISTING_GATE_RESULT_V1"
+
+
+def test_ingredient_sidecar_gaba_blocks_and_gate_excludes_without_metadata_review():
+    row = candidate(product_title="ordinary supplement", brand="Other")
+    sidecar = IngredientSafetySidecarResult(
+        schema_version=INGREDIENT_SAFETY_SIDECAR_SCHEMA_VERSION,
+        candidate_schema_version=PRELISTING_CANDIDATE_SCHEMA_VERSION,
+        candidate_sha256="0" * 64,
+        rows=(
+            IngredientSafetyFact(
+                candidate_asin=row.candidate_asin,
+                provider="keepa",
+                capture_status=CAPTURED,
+                ingredients=("GABA",),
+                active_ingredients=(),
+                special_ingredients=(),
+                fetched_at="2026-08-27T00:00:00+00:00",
+            ),
+        ),
+    )
+    ph_inventory = inventory(
+        (),
+        marketplace="PH",
+        shop_label="PH_SHOP_1",
+        source_file="empty_PH.csv",
+        data_row_count=0,
+    )
+
+    result = gate.evaluate_prelisting_gate(
+        candidate_file((row,)),
+        (ph_inventory,),
+        marketplace="PH",
+        expected_shop_count=1,
+        ingredient_safety=sidecar,
+    )
+
+    assert result.rows[0].guardrail_status == "BLOCK"
+    assert result.rows[0].final_eligibility == "EXCLUDE"
+    assert result.rows[0].metadata_status == "COMPLETE"
+    assert result.rows[0].guardrail_matched_terms == "GABA"
+
+
+def test_missing_ingredient_sidecar_does_not_create_review_but_title_still_blocks():
+    ordinary = candidate(product_title="ordinary supplement", brand="Other")
+    title_gaba = candidate("B000000002", product_title="GABA supplement", brand="Other")
+    ph_inventory = inventory(
+        (),
+        marketplace="PH",
+        shop_label="PH_SHOP_1",
+        source_file="empty_PH.csv",
+        data_row_count=0,
+    )
+
+    result = gate.evaluate_prelisting_gate(
+        candidate_file((ordinary, title_gaba)),
+        (ph_inventory,),
+        marketplace="PH",
+        expected_shop_count=1,
+    )
+
+    assert result.rows[0].guardrail_status == "SAFE"
+    assert result.rows[0].final_eligibility == "ELIGIBLE"
+    assert result.rows[1].guardrail_status == "BLOCK"
+    assert result.rows[1].final_eligibility == "EXCLUDE"

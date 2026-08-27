@@ -28,6 +28,8 @@ PRELISTING_GATE_PREVIEW_COLUMNS = (
     "brand",
     "category",
     "guardrail_status",
+    "guardrail_matched_terms",
+    "guardrail_note",
     "existing_listing_status",
     "metadata_status",
     "final_eligibility",
@@ -51,11 +53,11 @@ _SAFE_ERROR_SUMMARIES = {
     ),
     "configuration": (
         "入力条件が揃っていません。\n"
-        "全ショップ数、アップロード数、ファイル名、shop_labelを確認してください。"
+        "全ショップ数、アップロード数、ファイル名を確認してください。"
     ),
     "gate": (
         "出品前チェックを完了できませんでした。\n"
-        "対象国、全ショップ数、ファイル名、shop_label、Guardrail辞書を確認してください。"
+        "対象国、全ショップ数、ファイル名、Guardrail辞書を確認してください。"
     ),
     "export": (
         "判定結果CSVを作成できませんでした。\n"
@@ -165,6 +167,24 @@ def validate_inventory_file_duplicates(
     return InventoryFileValidationResult(errors=tuple(errors))
 
 
+def build_internal_shop_labels(marketplace: str, uploaded_file_count: int) -> tuple[str, ...]:
+    """Return deterministic evidence labels in inventory upload order.
+
+    The labels are internal parser and evidence identities, not user-entered
+    shop names.  The caller remains responsible for enforcing the required
+    number of all-shop inventory uploads.
+    """
+
+    if not isinstance(marketplace, str) or not marketplace:
+        raise ValueError("marketplace must be a non-empty string")
+    if type(uploaded_file_count) is not int or uploaded_file_count < 0:
+        raise ValueError("uploaded_file_count must be a non-negative int")
+    return tuple(
+        f"{marketplace}_SHOP_{index}"
+        for index in range(1, uploaded_file_count + 1)
+    )
+
+
 def shop_label_widget_key(filename: str, content: bytes) -> str:
     """Create a deterministic widget key from both filename and byte content."""
 
@@ -183,6 +203,8 @@ def build_prelisting_gate_fingerprint(
     candidate_filename: str | None,
     candidate_content: bytes | None,
     inventory_files: Iterable[tuple[str, bytes, object]],
+    ingredient_safety_filename: str | None = None,
+    ingredient_safety_content: bytes | None = None,
 ) -> str:
     """Build a deterministic, non-reversible fingerprint of current inputs."""
 
@@ -206,10 +228,19 @@ def build_prelisting_gate_fingerprint(
         }
         for filename, content, shop_label in inventory_files
     ]
+    ingredient_safety = None
+    if ingredient_safety_filename is not None or ingredient_safety_content is not None:
+        if ingredient_safety_filename is None or ingredient_safety_content is None:
+            raise ValueError("Ingredient Safety filename and content must be provided together")
+        ingredient_safety = {
+            "filename": str(ingredient_safety_filename),
+            "content_sha256": content_sha256(ingredient_safety_content),
+        }
     payload = {
         "marketplace": str(marketplace),
         "expected_shop_count": expected_shop_count,
         "candidate": candidate,
+        "ingredient_safety": ingredient_safety,
         "inventories": inventories,
     }
     encoded = json.dumps(
@@ -272,6 +303,8 @@ def build_prelisting_gate_preview_rows(
                 "brand": row.candidate.brand,
                 "category": row.candidate.category,
                 "guardrail_status": row.guardrail_status,
+                "guardrail_matched_terms": row.guardrail_matched_terms,
+                "guardrail_note": row.guardrail_note,
                 "existing_listing_status": row.existing_listing_status,
                 "metadata_status": row.metadata_status,
                 "final_eligibility": row.final_eligibility,

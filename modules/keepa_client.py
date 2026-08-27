@@ -8,6 +8,13 @@ from typing import Any, Iterable
 
 from modules.cache import KeepaCache, utc_now_iso
 from modules.amazon_data_provider import AmazonDataProviderError, KEEPA_PROVIDER
+from modules.ingredient_safety import (
+    INGREDIENT_SAFETY_PAYLOAD_VERSION,
+    IngredientSafetyError,
+    extract_keepa_ingredient_safety_fact,
+    ingredient_safety_fact_from_product_data,
+    ingredient_safety_fact_to_payload,
+)
 
 
 ASIN_PATTERN = re.compile(r"^[A-Z0-9]{10}$")
@@ -671,6 +678,15 @@ class KeepaExpansionClient:
         row_note = note
         if category_filter_note:
             row_note = f"{row_note} {category_filter_note}".strip()
+        try:
+            ingredient_fact = ingredient_safety_fact_from_product_data(
+                product,
+                candidate_asin=candidate_asin,
+                provider=KEEPA_PROVIDER,
+                fetched_at=str(product.get("fetched_at") or fetched_at),
+            )
+        except IngredientSafetyError as exc:
+            raise KeepaDataError("Ingredient Safety Factを安全に復元できません。") from exc
         return {
             "seed_asin": source.asin,
             "candidate_asin": candidate_asin,
@@ -682,6 +698,7 @@ class KeepaExpansionClient:
             "fetched_at": fetched_at,
             "duplicate_flag": "false",
             "note": row_note,
+            "ingredient_safety_fact": ingredient_safety_fact_to_payload(ingredient_fact),
         }
 
     def _token_status(self) -> str:
@@ -846,6 +863,16 @@ def _product_to_cache_data(product: Any, fallback_asin: str = "") -> dict[str, A
     category_id = leaf_category_id or root_category_id
     category = _extract_category_name(product)
     category_path = _category_path(category_tree)
+    fetched_at = utc_now_iso()
+    try:
+        ingredient_fact = extract_keepa_ingredient_safety_fact(
+            product,
+            candidate_asin=asin,
+            fetched_at=fetched_at,
+        )
+    except IngredientSafetyError as exc:
+        raise KeepaDataError("Keepa Ingredient Safety Factの構造が不正です。") from exc
+    ingredient_payload = ingredient_safety_fact_to_payload(ingredient_fact)
     return {
         "asin": asin,
         "title": _get_text(product, "title"),
@@ -857,7 +884,12 @@ def _product_to_cache_data(product: Any, fallback_asin: str = "") -> dict[str, A
         "root_category_id": root_category_id,
         "category_path": category_path,
         "category_tree": category_tree,
-        "fetched_at": utc_now_iso(),
+        "fetched_at": fetched_at,
+        "ingredient_safety_payload_version": INGREDIENT_SAFETY_PAYLOAD_VERSION,
+        "ingredient_safety_capture_status": ingredient_fact.capture_status,
+        "ingredients": list(ingredient_fact.ingredients),
+        "activeIngredients": list(ingredient_fact.active_ingredients),
+        "specialIngredients": list(ingredient_fact.special_ingredients),
         "response": {
             "asin": asin,
             "title": _get_text(product, "title"),
@@ -868,6 +900,11 @@ def _product_to_cache_data(product: Any, fallback_asin: str = "") -> dict[str, A
             "parent_category_id": parent_category_id,
             "root_category_id": root_category_id,
             "category_path": category_path,
+            "ingredient_safety_payload_version": INGREDIENT_SAFETY_PAYLOAD_VERSION,
+            "ingredient_safety_capture_status": ingredient_fact.capture_status,
+            "ingredients": ingredient_payload["ingredients"],
+            "activeIngredients": ingredient_payload["activeIngredients"],
+            "specialIngredients": ingredient_payload["specialIngredients"],
         },
     }
 

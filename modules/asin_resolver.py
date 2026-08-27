@@ -10,6 +10,12 @@ import unicodedata
 
 from modules.asin_resolver_evidence import parse_source_input
 from modules.amazon_data_provider import AmazonDataProviderError
+from modules.amazon_data_provider import CANOPY_TEST_PROVIDER, KEEPA_PROVIDER
+from modules.ingredient_safety import (
+    ingredient_safety_fact_from_product_data,
+    ingredient_safety_fact_from_transport,
+    ingredient_safety_fact_to_payload,
+)
 from modules.keepa_client import normalize_asin
 
 
@@ -44,6 +50,12 @@ EMBEDDED_ASIN_PATTERN = re.compile(
 )
 AMAZON_JP_URL_PATTERN = re.compile(
     r"(?<![A-Z0-9.-])((?:https?://)?(?:www\.)?amazon\.co\.jp/[^\s\"'<>|]+)",
+    re.IGNORECASE,
+)
+MARKDOWN_INLINE_LINK_PATTERN = re.compile(
+    r"\[(?P<label>[^\]]*)\]\(\s*<?(?P<destination>"
+    r"(?:(?:https?://|www\.)[^\s)>]+|(?:[A-Z0-9-]+\.)+[A-Z]{2,}/[^\s)>]+))"
+    r">?\s*\)",
     re.IGNORECASE,
 )
 URL_LIKE_PATTERN = re.compile(
@@ -786,6 +798,33 @@ def _finalize_candidate_source_id(
 
 
 def _extract_amazon_jp_url_and_asin(value: str) -> tuple[str, str]:
+    markdown_link = _extract_markdown_link_amazon_jp_url_and_asin(value)
+    if markdown_link is not None:
+        return markdown_link
+    return _extract_plain_amazon_jp_url_and_asin(value)
+
+
+def _extract_markdown_link_amazon_jp_url_and_asin(value: str) -> tuple[str, str] | None:
+    for match in MARKDOWN_INLINE_LINK_PATTERN.finditer(value):
+        label_url, label_asin = _extract_plain_amazon_jp_url_and_asin(match.group("label"))
+        destination = _normalize_url(match.group("destination"))
+        try:
+            destination_host = urlparse(destination).netloc.lower()
+        except ValueError:
+            continue
+        if destination_host not in {"amazon.co.jp", "www.amazon.co.jp"}:
+            if label_url:
+                return destination, ""
+            continue
+
+        destination_url, destination_asin = _extract_plain_amazon_jp_url_and_asin(destination)
+        if label_asin and destination_asin and label_asin != destination_asin:
+            return destination_url, ""
+        return destination_url, destination_asin
+    return None
+
+
+def _extract_plain_amazon_jp_url_and_asin(value: str) -> tuple[str, str]:
     first_amazon_url = ""
     for match in AMAZON_JP_URL_PATTERN.finditer(value):
         amazon_url = _normalize_url(match.group(1))
@@ -905,6 +944,29 @@ def _verified_row(
     product_brand = _keepa_display_text(keepa_product, "brand")
     product_category = _keepa_display_text(keepa_product, "category")
     product_fetched_at = _keepa_display_text(keepa_product, "fetched_at")
+    ingredient_payload = None
+    if status == FOUND:
+        provider = CANOPY_TEST_PROVIDER if product_field_prefix == "canopy" else KEEPA_PROVIDER
+        source_payload = (
+            keepa_product.get("ingredient_safety_fact")
+            if isinstance(keepa_product, dict)
+            else None
+        )
+        if source_payload is None:
+            ingredient_fact = ingredient_safety_fact_from_product_data(
+                keepa_product if isinstance(keepa_product, dict) else None,
+                candidate_asin=str(row.get("asin") or ""),
+                provider=provider,
+                fetched_at=product_fetched_at,
+            )
+        else:
+            ingredient_fact = ingredient_safety_fact_from_transport(
+                source_payload,
+                candidate_asin=str(row.get("asin") or ""),
+                provider=provider,
+                fetched_at=product_fetched_at,
+            )
+        ingredient_payload = ingredient_safety_fact_to_payload(ingredient_fact)
     verified.update(
         {
             "status": status,
@@ -918,6 +980,7 @@ def _verified_row(
             f"{product_field_prefix}_brand": product_brand,
             f"{product_field_prefix}_category": product_category,
             f"{product_field_prefix}_fetched_at": product_fetched_at,
+            "ingredient_safety_fact": ingredient_payload,
         }
     )
     return verified

@@ -10,6 +10,7 @@ from modules.keepa_client import (
     normalize_asin,
     planned_candidate_count,
 )
+from modules.ingredient_safety import CAPTURED
 
 
 SOURCE_ASIN = "B07TSC47PH"
@@ -138,6 +139,58 @@ def test_find_related_products_uses_brand_category_and_excludes_duplicates(tmp_p
     assert result.deleted_asin_exclusion_status == "未適用（Ver1では未連携）"
     assert result.final_display_count == 2
     assert "standardまたはbroad" in result.strict_low_count_suggestion
+    assert rows[0]["ingredient_safety_fact"]["capture_status"] == CAPTURED
+
+
+def test_keepa_detail_response_transports_three_ingredient_facts_without_extra_query(tmp_path):
+    api = FakeKeepaApi(
+        finder_asins=["B000000001"],
+        detail_products=[
+            {
+                "asin": "B000000001",
+                "title": "First",
+                "brand": "SampleBrand",
+                "ingredients": " GABA ",
+                "activeIngredients": ["active one"],
+                "specialIngredients": ("special one",),
+            }
+        ],
+    )
+    client = KeepaExpansionClient(
+        domain="JP",
+        api=api,
+        cache=KeepaCache(tmp_path / "cache.sqlite3"),
+    )
+
+    result = client.find_related_products(SOURCE_ASIN, 1)
+
+    payload = result.rows[0]["ingredient_safety_fact"]
+    assert payload["capture_status"] == CAPTURED
+    assert payload["ingredients"] == ["GABA"]
+    assert payload["activeIngredients"] == ["active one"]
+    assert payload["specialIngredients"] == ["special one"]
+    assert len(api.query_calls) == 2
+
+
+def test_old_product_cache_hit_is_not_captured_and_does_not_refresh(tmp_path):
+    cache = KeepaCache(tmp_path / "cache.sqlite3")
+    cache.save_product(
+        {
+            "asin": "B000000001",
+            "title": "Legacy cached product",
+            "brand": "SampleBrand",
+            "category": "Leaf",
+            "category_id": 12345,
+        }
+    )
+    api = FakeKeepaApi()
+    client = KeepaExpansionClient(domain="JP", api=api, cache=cache)
+
+    products = client.verify_products_by_asin(["B000000001"])
+    fact = products["B000000001"]
+
+    assert "ingredient_safety_payload_version" not in fact
+    assert api.query_calls == []
 
 
 def test_find_related_products_deduplicates_repeated_candidates(tmp_path):

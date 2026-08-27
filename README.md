@@ -75,11 +75,15 @@ Ver0.4.3では、Keepa確認後に元Shopeeタイトル、Keepa商品タイト�
 
 ## 出品前保安ゲート Phase 4A-2
 
-出品前保安ゲートは、画面上でSGまたはPHを選択できます。Expansion ToolまたはASIN Resolver Toolで出力した候補CSVと、対象市場の各ショップの既出品CSVを入力し、Guardrail、既出品ASIN、入力内重複、起点ASIN自身、メタデータ不足を判定します。最終判定は `ELIGIBLE / REVIEW / EXCLUDE` とし、ELIGIBLE CSV、REVIEW CSV、全件の監査用CSVを出力します。
+出品前保安ゲートは、画面上でSGまたはPHを選択できます。Expansion ToolまたはASIN Resolver Toolで出力した候補CSVと、対象市場の各ショップの既出品CSVを入力し、Guardrail、既出品ASIN、入力内重複、起点ASIN自身、メタデータ不足を判定します。最終判定は `ELIGIBLE / REVIEW / EXCLUDE` とし、ELIGIBLE CSV、REVIEW CSV、全件の監査用CSVを出力します。利用者は対象市場、全ショップ数、Candidate CSV、全ショップ分の既出品CSVだけを入力します。アップロード順に内部証跡labelを自動生成し、実ショップ名は入力しません。全ショップ数とCSV数が一致しない場合は停止し、既出品ASINは全アップロードCSVを横断して照合します。
 
 PH対応は、PH専用Guardrail辞書、入力契約、ローカルテストで確認済みです。実データを使ったPHの実画面・実業務受入と、出品支援ツール全体の完成判定はまだ完了していません。
 
 ELIGIBLEはShopee規約上の安全を保証するものではなく、出力CSVは外部出品ツールへ直接投入する形式ではありません。入力が変わった場合は古い判定結果を破棄し、判定時に外部APIを追加で呼び出しません。
+
+## Category Mapper
+
+Category Mapperの「Shopee ACCESS_TOKEN（一時利用）」には、既存管理シートで更新済みのtokenを伏字で貼り付けられます。入力値はそのブラウザsessionのCategory / Brand / Attribute参照だけに使い、設定ファイルやローカルDBへ保存しません。空欄の場合は既存の認証設定を使用します。token更新、refresh、OAuthはCategory Mapperの責務に含みません。
 
 ## 出品前保安ゲートのGuardrail
 
@@ -88,9 +92,10 @@ Guardrailは候補生成の結果を直接出品候補にするための機能�
 入力内重複、起点ASIN自身、メタデータ不足も確認し、最終結果を `ELIGIBLE / REVIEW /
 EXCLUDE` とします。
 
-Guardrailは、Keepa APIですでに取得した `product_title`、`brand`、`category` だけを使う
-CSV辞書ベースの確認です。AI判定、Web検索、Shopee API連携、Keepa APIの追加呼び出しは
-行いません。
+Guardrailは、候補生成時に取得済みの `product_title`、`brand`、`category` と、任意の
+Ingredient Safety Fact sidecarに含まれる `ingredients`、`activeIngredients`、
+`specialIngredients`だけを使うCSV辞書ベースの確認です。AI判定、Web検索、Shopee API連携、
+Keepa APIの追加呼び出しは行いません。
 
 Guardrail内部のステータスは次の3種類です。これらはGateの最終結果ではありません。
 
@@ -284,6 +289,20 @@ schema_version,source_type,source_id,source_asin,candidate_asin,input_title,prod
 - Guardrailの `SAFE / REVIEW / BLOCK`、既出品照合、最終の `ELIGIBLE / REVIEW / EXCLUDE` は、この候補CSVの出力ではなく、対象市場を選んだ出品前保安ゲートで確認する。
 
 GateはELIGIBLE CSV、REVIEW CSV、全件監査CSVを別途出力する。これらは外部出品ツールへの直接投入形式ではない。
+
+### Ingredient Safety Fact sidecar
+
+ExpansionとResolverは、固定15列の`PRELISTING_CANDIDATE_V1`を変更せず、対応する
+`INGREDIENT_SAFETY_FACT_V1` sidecarを別CSVとして出力する。sidecarはCandidate CSVの最終bytesの
+SHA-256と候補ASIN集合に結び付いており、Gateでは任意入力である。SHA、schema、ASIN集合、JSON cellが
+一致しないsidecarは使用せず停止する。sidecarを指定しない場合は従来のCandidate V1だけで処理する。
+
+PH Gateでは、取得済みの商品titleまたは成分Factに当社の正式BLOCK成分が確認された場合だけ、
+Rule V2によりdeterministic BLOCKする。成分Factが`NOT_CAPTURED`または
+`PROVIDER_UNSUPPORTED`であることは、成分不存在やSafety PASSを意味せず、その欠損だけでは
+REVIEWまたはBLOCKにしない。PHのGABA ruleはアカウント保護のための当社運用上のBLOCKであり、
+Shopee公式禁止物質であるという断定ではない。Keepaを本番標準、Canopyを明示設定時だけの
+開発・試験専用providerとする方針は変わらない。
 
 ## 注意
 

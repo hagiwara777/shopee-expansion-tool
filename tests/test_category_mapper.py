@@ -31,8 +31,10 @@ from modules.shopee_catalog_client import (
     BRAND_STATUS_NORMAL,
     BRAND_STATUS_PENDING,
     BrandPage,
+    ShopeeCatalogConfigurationError,
     ShopeeCatalogError,
     ShopeeRateLimitError,
+    _read_env_values,
 )
 from modules.shopee_catalog_client import ShopeeCatalogClient, ShopeeCatalogCredentials
 
@@ -948,6 +950,58 @@ def test_default_store_path_is_under_local_appdata(monkeypatch, tmp_path: Path):
     assert default_category_mapper_db_path() == (
         tmp_path / "appdata" / "ShopeeCategoryMapper" / "category_mapper.sqlite3"
     )
+
+
+@pytest.mark.parametrize(
+    ("temporary_token", "expected_token"),
+    (
+        ("DUMMY_TEMPORARY_ACCESS_TOKEN_FOR_TEST", "DUMMY_TEMPORARY_ACCESS_TOKEN_FOR_TEST"),
+        ("", "DUMMY_EXISTING_ACCESS_TOKEN_FOR_TEST"),
+        ("   ", "DUMMY_EXISTING_ACCESS_TOKEN_FOR_TEST"),
+        (None, "DUMMY_EXISTING_ACCESS_TOKEN_FOR_TEST"),
+    ),
+)
+def test_catalog_client_temporary_access_token_override_is_memory_only(
+    tmp_path: Path, temporary_token: str | None, expected_token: str
+):
+    audit_env = tmp_path / "audit.env"
+    original_content = (
+        "SHOPEE_PARTNER_ID=123\n"
+        "SHOPEE_PARTNER_KEY=DUMMY_PARTNER_KEY_FOR_TEST\n"
+        "SHOPEE_PH_SHOP_ID=456\n"
+        "SHOPEE_PH_ACCESS_TOKEN=DUMMY_EXISTING_ACCESS_TOKEN_FOR_TEST\n"
+        "SHOPEE_PH_REFRESH_TOKEN=DUMMY_REFRESH_TOKEN_MUST_NOT_BE_READ\n"
+    )
+    audit_env.write_text(original_content, encoding="utf-8")
+
+    client = ShopeeCatalogClient.from_local_audit_env(
+        audit_env,
+        access_token_override=temporary_token,
+    )
+
+    assert client.credentials.partner_id == 123
+    assert client.credentials.shop_id == 456
+    assert client.credentials.partner_key == "DUMMY_PARTNER_KEY_FOR_TEST"
+    assert client.credentials.access_token == expected_token
+    assert audit_env.read_text(encoding="utf-8") == original_content
+    assert "SHOPEE_PH_REFRESH_TOKEN" not in _read_env_values(audit_env)
+    assert sorted(path.name for path in tmp_path.iterdir()) == ["audit.env"]
+
+
+def test_catalog_client_temporary_token_still_requires_existing_shop_credentials(tmp_path: Path):
+    audit_env = tmp_path / "audit.env"
+    audit_env.write_text(
+        "SHOPEE_PARTNER_ID=123\n"
+        "SHOPEE_PARTNER_KEY=DUMMY_PARTNER_KEY_FOR_TEST\n"
+        "SHOPEE_PH_ACCESS_TOKEN=DUMMY_EXISTING_ACCESS_TOKEN_FOR_TEST\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ShopeeCatalogConfigurationError):
+        ShopeeCatalogClient.from_local_audit_env(
+            audit_env,
+            access_token_override="DUMMY_TEMPORARY_ACCESS_TOKEN_FOR_TEST",
+        )
 
 
 def test_catalog_client_is_ph_only_and_never_exposes_request_values():

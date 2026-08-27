@@ -13,9 +13,11 @@
 - formal main上で、B1〜B7の確認済み`MISSING_IMPLEMENTATION`は0件である。
 - 本番標準providerはKeepa、Canopyは開発・試験専用である。
 - providerの自動fallbackは行わない。Canopy結果をKeepa本番確認の根拠にしない。
-- 残るBeta MUSTはKeepa live確認とPH実物受入である。これらは未実施のままである。
+- `PH_GUARDRAIL_BASELINE_COMPLETE`はB1〜B7とは別のBeta MUSTである。P0のmain統合後、P1a〜P1dでPH向け禁止根拠の棚卸し、disposition、確定BLOCKの`COMMON_BLOCK` / `PH_BLOCK`登録、Baseline受入を完了する。
+- `GATE_K_PASS`だけではGate Pへ進まない。`PH_GUARDRAIL_BASELINE_COMPLETE`とP2の通常利用導線受入が成立した後だけ、P3のGate P B2、P4のGate P B1〜B7全体受入へ進む。P2の具体実装方式やDB化はこのプロトコルで確定しない。
+- Ingredient Safetyの既存技術検証結果は維持する。ただし、PH Guardrail Baseline、P2、Gate P、P5のEvidence Packageと第三者独立レビュー、P6のオーナー最終受入を代替しない。DB化はBeta MUSTへ自動追加しない。
 
-## 3. 二段Gate
+## 3. Gate K、PH Guardrail Baseline、Gate P
 
 ### Gate K — Keepa本番標準経路live技術確認
 
@@ -23,7 +25,11 @@ Gate KはGate Pより先に行う。対象はASIN ExpansionとASIN Resolverで�
 
 ### Gate P — PH Minimum Beta実物受入
 
-Gate PはGate Kが`GATE_K_PASS`のときだけ行う。対象はCandidate、PH Gate、Category、Brand / No Brand、安全な停止、`listing_ready`、人間へのhandoffである。
+Gate Pは`GATE_K_PASS`、`PH_GUARDRAIL_BASELINE_COMPLETE`、P2の通常利用導線受入がそろったときだけ行う。対象はCandidate、PH Gate、Category、Brand / No Brand、安全な停止、`listing_ready`、人間へのhandoffである。
+
+### PH Guardrail Baseline
+
+P0のmain統合後、P1aでPH向け禁止根拠のEvidence Coverage Inventoryを全件棚卸しし、P1bで各Evidenceを`BLOCK`、`REVIEW`、`非対象・根拠不足`へdispositionする。P1cでは確定BLOCKだけを`COMMON_BLOCK` / `PH_BLOCK`へ登録して関連testを行い、P1dで`PH_GUARDRAIL_BASELINE_COMPLETE`を受入する。Baseline受入までGate PはHOLDする。
 
 ## 4. Gate Kの実行前条件
 
@@ -61,7 +67,7 @@ Canopy確認結果をPASS根拠にしない。
 - 片方でも未判定またはINCONCLUSIVE: `GATE_K_INCONCLUSIVE`
 - Keepa本番経路自体が成立しない: `GATE_K_STOP`
 
-`GATE_K_PASS`以外ではGate Pへ進まない。STOP後、またはINCONCLUSIVE後に、自動実装・自動修正・自動再試行へ進まない。
+`GATE_K_PASS`以外ではGate Pへ進まない。さらに、`GATE_K_PASS`だけでもGate Pへ進まない。P0のmain統合、`PH_GUARDRAIL_BASELINE_COMPLETE`、P2の通常利用導線受入がそろうまでGate PはHOLDする。STOP後、またはINCONCLUSIVE後に、自動実装・自動修正・自動再試行へ進まない。
 
 ## 8. Gate Pのサンプル方針
 
@@ -78,6 +84,10 @@ Expansion / Resolver双方を実物操作でき、Keepa確認済み候補をGate
 ### B2 PH Safety
 
 marketplace PHを明示する。EXCLUDEと未解決REVIEWをreadyへ進めず、ELIGIBLEだけをCategory / Brand確認へ進める。
+
+- 選択市場で正式に有効なBLOCK ruleが、取得済みproduct titleまたはIngredient Safety Factに一致した候補をreadyへ進めない。
+- Ingredient Safety Factが未取得であることだけを理由に、REVIEWまたはBLOCKへ自動昇格しない。
+- Ingredient Safety Factの非一致は、危険成分の不存在または安全を保証しない。
 
 ### B3 Category
 
@@ -125,6 +135,7 @@ blocker確認後も自動修正しない。最小対応が必要な場合は、�
 少なくとも次では停止する。
 
 - EXCLUDEまたは未解決REVIEWが`listing_ready`になる。
+- 正式BLOCK成分が取得済みSafety Factに確認された候補が、`listing_ready`または後工程へ進む。
 - 未確認Categoryまたは未確認Brandがreadyになる。
 - PH以外として処理される、またはCanopyがKeepa確認を代替する。
 - 未承認API、有料処理の承認範囲外、外部サービスへの書込みが必要になる。
@@ -134,10 +145,10 @@ STOP後に自動実装・自動修正へ進まない。
 
 ## 15. Evidence
 
-Gate実行時には最低限、formal main commit、実行branch / HEAD、provider、Gate K1結果、Gate K2結果、Gate K全体判定、Gate Pの入口種別、B1〜B7各判定、実施した外部API、実施していないAPI / 書込み、blocker / inconclusive理由、オーナー実物確認結果、次の単一作業を記録する。
+Gate実行時には最低限、formal main commit、実行branch / HEAD、provider、Gate K1結果、Gate K2結果、Gate K全体判定、P0 main統合結果、`PH_GUARDRAIL_BASELINE_COMPLETE`の受入結果、P2通常利用導線受入結果、Gate Pの入口種別、B1〜B7各判定、実施した外部API、実施していないAPI / 書込み、blocker / inconclusive理由、オーナー実物確認結果、次の単一作業を記録する。
 
 商品CSV本文、credential、秘密情報をGitへ記録しない。スクリーンショットまたはraw結果を正式Git外Evidenceとして保存する必要がある場合だけ、artifact ID、ファイル名 / 版、完全SHA-256、producer、受入状態、storage alias、用途、実物アクセス要否を正式索引に記録する。
 
 ## 16. Beta最終判定
 
-`GATE_K_PASS`、Gate PでのB1〜B7実物受入成立、オーナーが実務で使い始められるとの確認がそろった場合だけ、Minimum Beta受入候補とする。最終的な事業上のBeta受入はオーナーが決裁する。
+`GATE_K_PASS`、`PH_GUARDRAIL_BASELINE_COMPLETE`、P2通常利用導線受入、Gate P B2およびB1〜B7全体の実物受入成立、Ingredient Safetyと最新Guardrailを含むEvidence Packageによる第三者独立レビューがそろった場合だけ、Minimum Beta受入候補とする。最終的な事業上のBeta受入とPH実運用への進行は、P6でオーナーが決裁する。

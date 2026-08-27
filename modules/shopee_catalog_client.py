@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import hashlib
 import hmac
 import json
@@ -75,8 +75,17 @@ class ShopeeCatalogClient:
         self._request_json = request_json or _urlopen_json
 
     @classmethod
-    def from_local_audit_env(cls, env_path: str | Path | None = None) -> "ShopeeCatalogClient":
-        return cls(load_shopee_catalog_credentials(env_path))
+    def from_local_audit_env(
+        cls,
+        env_path: str | Path | None = None,
+        *,
+        access_token_override: str | None = None,
+    ) -> "ShopeeCatalogClient":
+        credentials = load_shopee_catalog_credentials(env_path)
+        temporary_token = (access_token_override or "").strip()
+        if temporary_token:
+            credentials = replace(credentials, access_token=temporary_token)
+        return cls(credentials)
 
     def get_categories(self, marketplace: str, *, language: str = "en") -> tuple[dict[str, Any], ...]:
         self._require_ph(marketplace)

@@ -13,23 +13,29 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH Minimum Beta Gate K完了`
-- current_phase: `Gate K PASS / Gate P実物受入前`
+- current_work_type: `PH Guardrail Baseline P0正本化・main統合前 / Gate P HOLD`
+- current_phase: `P0 PH Guardrail Baseline Beta MUST正本化 / Gate P HOLD / P0 main統合後にP1へ進行`
 - working_branch: `codex/ph-minimum-beta-gate-k-live`
 - marketplace: `PH`
-- module: `出品支援ツール横断`
-- phase: `PH Minimum Beta / Gate K完了後 / Gate P前`
-- next_action: Gate P — PH実商品・実画面・実業務でB1〜B7の実物受入を開始する
+- module: `出品支援ツール横断（Amazon Fact取得 / Ingredient Safety Fact transport / Guardrail Rule V2 / Prelisting Gate）`
+- phase: `PH Minimum Beta / P0 PH Guardrail Baseline正本化・main統合前 / Gate P HOLD`
+- next_action: P0 PH Guardrail Baselineの正本化差分をlocal validationし、main統合へ進める条件を整える。
 
-Gate Kの正式技術確認は完了した。Keepa provider / JP domainで`B0CP4RLMDB`を1件だけ用い、K1 Expansionはstrict通常route・cache hitなし・Candidate 49件・Candidate CSV変換/validation成立、K2 Resolverは`FOUND` / `KEEPA_VERIFIED`・Candidate CSV変換/validation成立となり、`GATE_K_PASS`と判定した。tokenは1200から1158へ推移し、実測deltaは42、retryは0回である。Canopy、Shopee API、SP-API、AI APIによる代替は行わず、credentialは子processのメモリ内だけで利用し永続保存していない。K1/K2完了後のOS一時cache cleanupで`PermissionError`が1件あったが、live結果、Git、credentialへの影響は確認されず、Gate K blockerとはしない。Gate Pは未開始であり、次はGate P実物受入である。
+DEC-0043により、PH Guardrail BaselineをBeta MUSTとしてP0に置く。P0をmainへ統合するまでP1へ進まず、P1a〜P1dでPH Guardrail Baselineを受入するまでGate PをHOLDする。P0〜P2はGate Pの新しい前提であり、過去のGate P結果をPH Minimum Betaの最終受入またはmain統合済みと扱わない。
 
-DEC-0036で、Gate K（Keepa本番標準経路live技術確認）をGate P（PH Minimum Beta実物受入）より先行する二段Gateの実行プロトコルを正本化した。Gate Kはオーナー明示承認の範囲内でPASSした。Gate P、実商品、実画面、実業務の受入は未開始であり、詳細は`docs/PH_MINIMUM_BETA_ACCEPTANCE_PROTOCOL.md`を参照する。
+Gate Kの正式技術確認はPASS済みである。Gate PはB1 Candidate、B2 PH Safety、B3 Category、B4 Brand / No Brand、B5 Safe Stop、B6 listing_ready、B7 Human Handoffの全項目を実画面で確認し、B1〜B7をPASSとする。B2ではPH、Candidate 2件、ELIGIBLE 2件、REVIEW 0件、EXCLUDE 0件とshop label UX修正を確認した。B3ではCategory Path `Beauty > Skincare > Toner`、Category ID `100892`を採用した。B4ではCategory Mapper一時認証入力のsecurity reviewをPASS後、承認済みのShopee Brand List read-only取得を1回・retry 0で実行し、No BrandをBrand ID `0`としてオーナーが確定した。B5ではBrand未確定時に出力対象がなく次工程へ進めないこと、B6では2件がlisting_readyになること、B7では2件・1グループのCSV / text handoffを取得できることを確認した。これらは旧優先順位における受入履歴である。商品名、ASIN、CSV本文、credentialはこの正本に記録しない。
 
-DEC-0035で、B1〜B7のMinimum Beta完成定義に対する確認済み`MISSING_IMPLEMENTATION`は0件と正本化した。これはBeta完成、Beta受入、実商品、実画面、実業務の受入完了を意味しない。ASIN Expansion / ASIN ResolverのKeepa本番標準経路live技術確認はGate KでPASSし、残るBeta MUSTはPH Minimum Betaのオーナー実物受入である。Canopyは開発・試験専用providerのままとし、Keepa本番確認を代替しない。
+オーナーはGate Pの結果画面を実物確認し、問題なしとして受入した。これは旧仕様におけるGate P PASSの受入履歴である。新たにオーナーが確認したPHのGABA成分に関するアカウント凍結報告を、Shopee公式禁止物質の断定ではない運用上のSafety evidenceとして扱い、DEC-0041により第三者独立レビューを一旦保留した。Beta正式技術判定、Beta最終事業決裁、main統合は未実施であり、Gate P PASSをBeta正式完成またはmain統合済みと扱わない。Category Mapperは認証情報を更新・永続保存せず、Category / Brand等のread-only取得が必要なときだけオーナー入力のACCESS_TOKENをブラウザsession内で一時利用する。Canopyは開発・試験専用とし、Keepa / JPを本番標準として維持する。
 
-外部出品ツールの正式入力契約はBeta MUSTではなく、自動投入または正式E2E接続を検討する場合のHOLDとする。mandatory attribute全面対応もconditionalのままとし、実物受入で手入力準備の成立を妨げると確認された場合だけBeta blocker候補としてオーナーへ戻す。今回、実API、実商品、実画面、実業務の受入は開始していない。
+DEC-0035で、B1〜B7のMinimum Beta完成定義に対する確認済み`MISSING_IMPLEMENTATION`は0件と正本化した。その後、Gate KとGate Pの実物受入がPASSした。DEC-0041で保留した第三者独立レビューより先に、DEC-0042でIngredient Safety Factと市場別BLOCK成分辞書の設計原則を正本化し、repo-grounded技術設計を完了した。GABAのowner attestationはGit外Evidenceとして正本化し、Rule V2の`evidence_ref`を`ART-PH-GABA-FREEZE-OWNER-ATTESTATION-V1`、`source_type`を`community_report`、`decision_ref`を`DEC-0042`と一意に確定した。この設計正本化だけではGABA RuleまたはIngredient Safety実装の完了を意味しなかった。Canopyは開発・試験専用providerのままとし、Keepa本番確認を代替しない。
 
-PR #29はmainへ統合済みで、formal main / current baseは`471c63ce0d2206f4ab74b1813f9522db121c331d`である。Canopy Test Provider v0.1はmain上の正式技術成果である。`AMAZON_DATA_PROVIDER`は未設定時`keepa`、明示`canopy_test`時だけCanopy REST adapterを選択し、未知値はfail closedとする。Canopy Resolverは1回最大10 ASIN、`CANOPY_VERIFIED`をKeepaと区別し、Candidate CSV V1の15列を維持して`source=asin_resolver_canopy_verified`へ変換する。Canopy Expansionは起点商品、brandによるJP Search 1ページ、候補詳細最大5件のbrand exact matchに限定し、最大7 requests、retryなし、fallbackなし、Keepa SQLite cache no-writeとした。通常UIにprovider選択を追加せず、Canopy modeだけtest表示する。CanopyのHTTP transportはrequestsを使い、API-KEY / Accept / timeout、HTTP分類、retryなし、ASIN完全一致のfail-closedをmockで検証済みである。targeted pytestは119 passed、全pytestは787 passed。オーナー承認済みのlive技術検証では、`B0CP4RLMDB`のProductとResolverがASIN完全一致・title / brandありで成立し、Resolverは1 requestで`FOUND` / `CANOPY_VERIFIED`を返した。Expansionはsource brand取得、Search 20件、有効候補5件、brand exact・ASIN完全一致・titleありの最終候補5件を合計7 requestsで返した。Keepaは本番標準のまま、Canopyは開発・試験専用であり、自動fallbackは行わない。Canopyの長期品質・安定性、実商品の網羅確認、実画面・実業務受入は未実施である。
+承認済みWORK_BRIEFに基づくIngredient Safety実装とlocal technical validationをbranch上で完了した。`PRELISTING_CANDIDATE_V1`の固定15列と`PRELISTING_GATE_RESULT_V1`を維持し、Keepa既存responseから3成分Factを通常処理の追加request 0で保持する。Candidate最終bytesのSHA-256に結び付く`INGREDIENT_SAFETY_FACT_V1` sidecar、Rule schema `GUARDRAIL_RULE_V2_V2`、既存13 Brand exact ruleの移行、PH GABA 6 alias、Expansion / Resolver / optional Gate uploadを実装した。旧cache markerなしは`NOT_CAPTURED`、Canopyは`PROVIDER_UNSUPPORTED`とし、Fact欠損だけではREVIEW / BLOCKにしない。local technical validationはtargeted pytest 695件、全pytest 868件成功である。
+
+Ingredient Safety実装差分の独立security / compatibility reviewはPASSした。review再実行ではtargeted pytest 579件、全pytest 868件が成功した。Keepa Ingredient Safetyのlive技術確認もPASSした。production / JP / read-onlyのKeepaで実商品2 ASINについてIngredient Safety Fact取得経路、`IngredientSafetyFact`変換、sidecar生成・parser、Candidate SHA binding、ASIN集合、Gate到達を確認した。これらは空のin-memory PH inventoryによる技術確認であり、Gate P B2 PH Safetyのオーナー実物再受入ではない。GABAを含む実商品でのlive BLOCK確認は未実施である。GABA matching / marketplace boundary / BLOCK vetoのPASSは、既存unit testsおよび独立security reviewによるものであり、live BLOCK確認とは区別する。これらは作業branch上の技術検証事実であって、PH Minimum Beta PASS、Gate P PASS、またはB2受入PASSを意味しない。実装前の古いClaude Evidence PackageはSTALEであり、第三者レビュー用に使用しない。
+
+外部出品ツールの正式入力契約はBeta MUSTではなく、自動投入または正式E2E接続を検討する場合のHOLDとする。mandatory attribute全面対応もconditionalのままとし、実物受入で手入力準備の成立を妨げると確認された場合だけBeta blocker候補としてオーナーへ戻す。
+
+PR #29はmainへ統合済みで、当該PRのformal main commitは`471c63ce0d2206f4ab74b1813f9522db121c331d`である。Canopy Test Provider v0.1はmain上の正式技術成果である。`AMAZON_DATA_PROVIDER`は未設定時`keepa`、明示`canopy_test`時だけCanopy REST adapterを選択し、未知値はfail closedとする。Canopy Resolverは1回最大10 ASIN、`CANOPY_VERIFIED`をKeepaと区別し、Candidate CSV V1の15列を維持して`source=asin_resolver_canopy_verified`へ変換する。Canopy Expansionは起点商品、brandによるJP Search 1ページ、候補詳細最大5件のbrand exact matchに限定し、最大7 requests、retryなし、fallbackなし、Keepa SQLite cache no-writeとした。通常UIにprovider選択を追加せず、Canopy modeだけtest表示する。CanopyのHTTP transportはrequestsを使い、API-KEY / Accept / timeout、HTTP分類、retryなし、ASIN完全一致のfail-closedをmockで検証済みである。targeted pytestは119 passed、全pytestは787 passed。オーナー承認済みのlive技術検証では、`B0CP4RLMDB`のProductとResolverがASIN完全一致・title / brandありで成立し、Resolverは1 requestで`FOUND` / `CANOPY_VERIFIED`を返した。Expansionはsource brand取得、Search 20件、有効候補5件、brand exact・ASIN完全一致・titleありの最終候補5件を合計7 requestsで返した。Keepaは本番標準のまま、Canopyは開発・試験専用であり、自動fallbackは行わない。Canopy経路の長期品質・安定性と実商品の網羅確認は未実施である。
 
 PR #24はmainへ統合済みで、formal main commitは`5ebd4270e516d199a8e592298a15723414d2da9a`です。DEC-0030で限定した13 Brand-exact PH_BLOCKはmain上の正式技術成果です。独立V2 rulesetとGuardrail層のdeterministic BLOCK evaluatorを既存`apply_guardrails()`内でV1結果へBLOCK vetoとして合成し、V2非該当時のV1完全互換、malformed rulesetのfail-closed、Gate public interface不変、PH限定有効化を技術検証しました。targeted pytestは`tests/test_guardrails.py`が323 passed、`tests/test_prelisting_gate.py`が58 passed、全pytestは761 passedです。実商品、実データ、実画面、実業務受入は未実施であり、Phase 1の技術受入と業務受入を混同しません。Bose、一般用医薬品、医療用針、その他711候補は対象外のままです。
 
@@ -45,6 +51,14 @@ PR #16はGate結果CSVのschema version再検証をmainへ統合し、formal mai
 
 ## 完了・受入済み
 
+- Gate Kの正式技術確認PASS
+- Gate P B1〜B7の実物受入PASS
+- Gate P結果画面のオーナー実物確認PASS
+- Gate P PASS（旧仕様の受入履歴。PH Minimum Beta正式完成ではない）
+- Ingredient Safety Factと市場別BLOCK成分辞書の設計正本化（DEC-0042）
+- Ingredient Safety Fact transport、SHA-bound sidecar、Rule V2 V2、PH GABA deterministic BLOCK、Expansion / Resolver / Gate / UIのbranch実装とlocal technical validation完了（targeted 695件、全pytest 868件、外部API 0）
+- Ingredient Safety実装差分の独立security / compatibility review PASS（再実行: targeted 579件、全pytest 868件）
+- Keepa Ingredient Safety live technical verification PASS（production / JP / read-only、実商品2 ASIN、空のin-memory PH inventoryによる技術確認）。これはGate P B2 PH Safetyのオーナー実物再受入ではない
 - PR #29をmainへ統合。formal main / current base `471c63ce0d2206f4ab74b1813f9522db121c331d`上でCanopy Test Provider v0.1を正式技術成果として受入（全pytest 787件成功）
 - Resolverの読み取り専用仕様監査完了
 - 過去成果物の証拠回収監査完了
@@ -160,6 +174,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 | ART-PH-ASIN-EXEC-GUIDE-V0.1.2-CANDIDATE-REV2 | 非エンジニア向け実行Guide v0.1.2 candidate rev2 | `PH_ASIN_Resolver_Execution_Record_v0.1.2_Guide_candidate_rev2.txt` | `7e55527e6eee6288b679db37937954be1cb8ccd23b51a327eea2171aa6e59540` | `PH ASIN Resolver 証拠永続化実装` | `OWNER_ACCEPTED` | `LOCAL_ARTIFACT_ROOT/HANDOFF_EXECUTION_RECORD/candidate/v0.1.2/` | 非エンジニア向け実行Guide |
 | OWNER_SOURCE_SLS_PROHIBITED_CATEGORY | SLS出品可否確認表・2025年3月17日適用 | `【SLS対象マーケット】SLS出品可否確認表（Prohibited Category List）2025年3月17日適用.xlsx` | `ee68151aa951921dfb7c8a5ea76ea67441342b5be5511d4b18905591e4c621c2` | オーナー提供（producer metadata独立確認未実施） | `OWNER_PROVIDED_SOURCE / NOT_CANONICAL` | `OWNER_SOURCE_SLS_PROHIBITED_2025_03_17` | 将来のBLOCK／REVIEW辞書具体化の根拠資料。具体化前に実物照合必須 |
 | OWNER_SOURCE_COMMUNITY_NG_LIST | コミュニティNGリスト・版指定なし | `ＮＧリスト.xlsx` | `82a4b72cfdfa53fdfec87f00685ea3f81ced6bde747e54a71155e56ef92312d1` | オーナー提供（producer metadata独立確認未実施） | `OWNER_PROVIDED_SOURCE / NOT_CANONICAL` | `OWNER_SOURCE_COMMUNITY_NG_LIST` | 当社BLOCK候補の実務資料。無条件移植せず、具体化前に実物照合必須 |
+| ART-PH-GABA-FREEZE-OWNER-ATTESTATION-V1 | Owner Attestation v1 | `PH_GABA_Freeze_Community_Report_Owner_Attestation_v1.md` | `cc6b369250bedb0a99c9731e438e420ee1e2bccd14721e75546aa2f191919a88` | `Owner attestation recorded by Codex` | `OWNER_ATTESTATION_RECORDED_NOT_INDEPENDENTLY_VERIFIED` | `LOCAL_GITEXCLUDED_PH_GABA_EVIDENCE_V1` | PH GABA deterministic BLOCK Rule V2の`evidence_ref`。Rule実装時はartifact ID / SHA / index照合のみ必須で、原コミュニティ投稿の実物アクセスは不要 |
 | OWNER_SOURCE_PH_RESTRICTION_IMAGE | PH制限参考画像・元資料版未確認 | `2026-08-13_121116.png` | `7df6f6196b7ad4ac7a63a380f3eb3c03a3b6ab661bd4941152b6a4484196a681` | オーナー提供（producer metadata独立確認未実施） | `OWNER_PROVIDED_SOURCE / NOT_CANONICAL` | `OWNER_SOURCE_PH_RESTRICTION_IMAGE_2026_08_13` | PH禁止・輸入禁止・ライセンス条件の参考一次資料。PH辞書具体化前に実物照合必須 |
 | GAR-AUD-CLASSIFICATION-CANDIDATES | 727候補詳細分類・版指定なし | `classification_candidates.csv` | `b6c0329e1d5d63a38507c34588ca95e0c8483a05614c4bb711f27ea0a4dc2832` | Guardrail 3資料監査 | `GENERATED_AUDIT_CANDIDATE / NOT_CANONICAL` | `LOCAL_GITEXCLUDED_GUARDRAIL_AUDIT_CLASSIFICATION_CANDIDATES` | 727候補の詳細分類。実物アクセス確認済み |
 | GAR-AUD-SUMMARY | 監査要約・版指定なし | `audit_summary.md` | `0f76e38904c6f4eeaa6be3338f75dbb15c10725260b5e0ba2451a431d14efeb1` | Guardrail 3資料監査 | `GENERATED_AUDIT_CANDIDATE / NOT_CANONICAL` | `LOCAL_GITEXCLUDED_GUARDRAIL_AUDIT_SUMMARY` | 監査要約。実物アクセス確認済み |
@@ -170,15 +185,23 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 未完了事項
 
-- Canopyの長期品質・安定性、実商品の網羅確認、実画面・実業務受入の確認
+- P0 PH Guardrail BaselineのBeta MUST正本化とmain統合
+- P1a PH Guardrail Evidence Coverage Inventory
+- P1b EvidenceごとのBLOCK / REVIEW / 非対象・根拠不足 disposition
+- P1c 確定BLOCKのCOMMON_BLOCK / PH_BLOCK登録と関連test
+- P1d PH_GUARDRAIL_BASELINE_COMPLETEの受入
+- P2 Gate通常利用導線の簡素化
+- P3 Ingredient Safetyと最新Guardrailを含むGate P B2 — PH Safetyのオーナー実物再受入
+- P4 Gate P B1〜B7全体の実商品・実画面・実業務受入
+- P5 Evidence Package再生成と第三者独立レビュー
+- P6 オーナーによるPH Minimum Beta最終受入判断
+- GABAを含む実商品によるlive BLOCK確認
+- Canopyの長期品質・安定性、実商品の網羅確認
 - Category ID等を扱うGuardrail候補データ構造・判定単位・根拠種別の設計
-- Keepa本番標準経路のlive技術確認
-- PH Minimum Betaのオーナー実物受入
-- PH Minimum Beta実物受入プロトコルの定義
+- Gate P branch全体の第三者独立レビュー（P5で、Ingredient Safetyと最新Guardrailを含むEvidence Packageを再生成した後に実施する。実装前の古いClaude Evidence Packageは使用しない）
+- PH Minimum Betaの正式技術判定とオーナー最終事業決裁（P6）
 - ASIN到達性能の評価
 - Expansion・Resolverの実商品テスト
-- Shopee Category ID・Shopee Brand ID確認工程の受入
-- オーナーによるPHでの実画面・実業務受入
 - 出品後商品改善ツールの将来優先順位判断
 - Amazon仕入れ支援ツールの将来優先順位判断
 - 外部既存出品ツールの正式入力テンプレートまたは仕様書の読み取り専用証拠回収（自動投入またはE2E接続を検討する場合）
@@ -192,11 +215,22 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-PH Minimum Beta実物受入プロトコルの定義（Keepa本番標準経路live技術確認を先行Gateとして含む）
+P0 PH Guardrail BaselineのBeta MUST正本化をmain統合へ進める。
 
 ## 停止条件
 
-- 実物受入プロトコル定義を越えて、live技術確認、実商品・実画面・実業務受入、不足実装や既存仕様変更へ自動拡張しない。
+- Gate P B2 PH Safetyのオーナー実物再受入までは、Gate P PASS、Minimum Beta PASS、B2受入PASSとして扱わない。
+- P0のmain統合およびP1d `PH_GUARDRAIL_BASELINE_COMPLETE`受入前に、Gate Pを再開しない。
+- P1a / P1bのEvidence棚卸しとdisposition前に、新規BLOCK / REVIEWを確定しない。P1cの辞書登録はP1bで確定したBLOCKだけに限定する。
+- P2前に通常利用導線、P3前にGate P B2、P4前にGate P B1〜B7全体、P5前に第三者独立レビュー、P6前にPH実運用を開始しない。
+- 今回のKeepa Ingredient Safety live技術確認を、オーナー実物受入またはGABA実商品live BLOCK確認として扱わない。
+- GABAを含む実商品によるlive BLOCK確認を、既存unit testsおよび独立security reviewのPASSから推測しない。
+- 実装前の古いClaude Evidence Packageを第三者レビュー用に再利用しない。
+- Keepa APIその他の外部APIを実行しない。
+- P1a / P1b完了前に、GABAを含む市場別BLOCK成分辞書を変更しない。P1cでは確定BLOCKを`COMMON_BLOCK` / `PH_BLOCK`へ区別して登録する。
+- Candidate物理schemaを推測で変更しない。
+- P5のEvidence Package再生成前に第三者独立レビューへ戻らない。
+- Gate P PASSをPH Minimum Beta正式完成またはmain統合済みと扱わない。
 - 人間作業時間measurement logを作らず、E2E時間測定を開始しない。
 - Phase 2へ自動直進しない。
 - AI Shadowを開始しない。
@@ -204,14 +238,14 @@ PH Minimum Beta実物受入プロトコルの定義（Keepa本番標準経路liv
 - mandatory attributeを自動的にBeta MUSTへ昇格しない。
 - SG / MY / THへ展開しない。
 - 実データによるE2E測定を今回開始しない。
-- Shopee、Keepa、AIその他の外部APIを今回呼ばない。
+- 本実装と次の読み取り専用reviewでは、Shopee、Keepa、AIその他の外部APIを呼ばない。
 - live Canopy APIを、mock test完了後の別途オーナー承認なしに呼ばない。
 - Canopyを本番標準にせず、通常UIにprovider選択を追加せず、自動provider fallbackを実装しない。
 - Rainforestを実装せず、Canopy結果をKeepa SQLite cacheへ書き込まず、`PRELISTING_CANDIDATE_V1`の15列schemaを変更しない。
 - AI Shadowを今回開始しない。
 - 新しいExcel、CSV、physical measurement schemaを作成または確定しない。
 - structured REVIEW、ReviewCase、API auto-resolutionを実装しない。
-- Canopy provider境界を越えてCategory Mapper、Brand resolution、Guardrail辞書、Gateロジック、Phase 1の13 Brand rulesを変更しない。Resolver／ExpansionをCanopy v0.1契約外へ拡張しない。
+- 承認済みのCategory Mapper一時認証入力範囲を越えてBrand resolution、Guardrail辞書、Gateロジック、Phase 1の13 Brand rulesを変更しない。Resolver／ExpansionをCanopy v0.1契約外へ拡張しない。
 - Shipping / Operational Filter、Category Batch Builder、mandatory attribute Batchへ進まない。
 - SG / MY / THへ展開せず、Marketplace-neutral schemaを先行確定しない。
 - push、PR作成、merge、deployを行わない。
@@ -284,10 +318,7 @@ PH Minimum Beta実物受入プロトコルの定義（Keepa本番標準経路liv
 
 ## 既知の文書不整合
 
-- `README.md` にはPrelisting Gateが「現在SGのみ対応」と記載されています。
-- 一方、読み取り専用監査では、実装、PH Guardrail辞書、PH v2 fixture、テストソースにより
-  SG／PH対応を確認しました。テストは実行していません。
-- README修正は未承認であり、修正要否は後続判断とします。
+- 現時点で、この作業に関する既知のREADME / 実装間不整合はない。
 
 ## 情報の根拠・確認レベル
 
@@ -304,9 +335,9 @@ PH Minimum Beta実物受入プロトコルの定義（Keepa本番標準経路liv
 | 回収TSVの今後の正式基準入力としての採用 | 新規基準入力専用としてオーナー受入済み |
 | Resolver証拠永続化改修、テスト、実画面 | branch技術検収、オーナー実画面確認、PR #7 main統合およびformal main確認済み |
 | 実データ | 未確認 |
-| PH対応のコード上の事実 | 読み取り専用監査で実装、PH Guardrail辞書、PH v2 fixture、テストソースを確認。テストは未実行 |
+| PH対応のコード上の事実 | Ingredient Safety実装を含むtargeted pytest 695件、全pytest 868件でlocal technical validation済み。独立security / compatibility review再実行はtargeted pytest 579件、全pytest 868件成功。Keepa Ingredient Safetyのproduction / JP / read-only live技術確認は実商品2 ASIN・空のin-memory PH inventoryでPASS。GABA実商品live BLOCK確認とB2再受入は未実施 |
 | 新batchで確定する再検索対象件数・source_id、再評価の実行日・担当者・使用外部AI、Resolver成功基準、改善対象と改善方法 | 未確認 |
 
 ## 最終更新日
 
-2026-08-20
+2026-08-27

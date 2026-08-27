@@ -112,6 +112,28 @@ def test_resolver_adapter_uses_conversion_result_for_counts_and_conditional_down
     _download_call("起点ASIN候補CSVダウンロード")
 
 
+def test_candidate_downloads_have_paired_safety_sidecars_and_gate_upload_is_optional():
+    safety_downloads = [
+        call
+        for call in ast.walk(APP_TREE)
+        if isinstance(call, ast.Call)
+        and isinstance(call.func, ast.Attribute)
+        and call.func.attr == "download_button"
+        and any(
+            keyword.arg == "label"
+            and isinstance(keyword.value, ast.Constant)
+            and keyword.value.value == "Ingredient Safety Fact sidecarダウンロード"
+            for keyword in call.keywords
+        )
+    ]
+
+    assert len(safety_downloads) == 2
+    assert len(_function_calls("rows_to_ingredient_safety_sidecar")) == 2
+    assert len(_function_calls("parse_ingredient_safety_sidecar")) == 1
+    assert '"Ingredient Safety Fact sidecar（任意）"' in APP_SOURCE
+    assert "ingredient_safety=ingredient_safety_result" in APP_SOURCE
+
+
 def test_prelisting_errors_hide_new_downloads_and_existing_state_clear_contracts_remain():
     error_handlers = [
         handler

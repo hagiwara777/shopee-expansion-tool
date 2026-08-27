@@ -781,6 +781,7 @@ V2_COLUMNS = [
     "scope",
     "fact_field",
     "operator",
+    "canonical_term",
     "value",
     "action",
     "risk_category",
@@ -798,6 +799,7 @@ def v2_rule(**overrides):
         "scope": "PH_BLOCK",
         "fact_field": "brand",
         "operator": "exact",
+        "canonical_term": "Synthetic Brand",
         "value": "Synthetic Brand",
         "action": "BLOCK",
         "risk_category": "community_report",
@@ -819,22 +821,33 @@ def render_v2_rules(*rows, columns=V2_COLUMNS):
     return output.getvalue()
 
 
-def test_production_v2_ruleset_contains_only_the_13_canonical_ph_brand_rules():
+def test_production_v2_ruleset_preserves_13_brands_and_adds_six_gaba_aliases():
     rules = load_deterministic_block_rules_v2()
+    brand_rules = [rule for rule in rules if rule.fact_field == "brand"]
+    ingredient_rules = [rule for rule in rules if rule.fact_field == "ingredient_safety"]
 
-    assert [rule.rule_id for rule in rules] == [rule_id for rule_id, _ in PHASE1_V2_BRAND_RULES]
-    assert [rule.value for rule in rules] == [brand for _, brand in PHASE1_V2_BRAND_RULES]
-    assert len(rules) == 13
+    assert [rule.rule_id for rule in brand_rules] == [rule_id for rule_id, _ in PHASE1_V2_BRAND_RULES]
+    assert [rule.value for rule in brand_rules] == [brand for _, brand in PHASE1_V2_BRAND_RULES]
+    assert len(rules) == 19
+    assert len(brand_rules) == 13
+    assert len(ingredient_rules) == 6
     assert sum(rule.scope == "COMMON_BLOCK" for rule in rules) == 0
-    assert sum(rule.scope == "PH_BLOCK" for rule in rules) == 13
+    assert sum(rule.scope == "PH_BLOCK" for rule in rules) == 19
     assert {rule.schema_version for rule in rules} == {guardrails_module.V2_RULESET_SCHEMA_VERSION}
-    assert all(rule.fact_field == "brand" for rule in rules)
-    assert all(rule.operator == "exact" for rule in rules)
+    assert all(rule.operator == "exact" for rule in brand_rules)
     assert all(rule.action == "BLOCK" for rule in rules)
-    assert all(rule.risk_category == "community_report" for rule in rules)
+    assert all(rule.risk_category == "community_report" for rule in brand_rules)
     assert all(rule.source_type == "community_report" for rule in rules)
-    assert all(rule.decision_ref == "DEC-0030" for rule in rules)
-    assert all(rule.evidence_ref == "OWNER_SOURCE_COMMUNITY_NG_LIST" for rule in rules)
+    assert all(rule.decision_ref == "DEC-0030" for rule in brand_rules)
+    assert all(rule.evidence_ref == "OWNER_SOURCE_COMMUNITY_NG_LIST" for rule in brand_rules)
+    assert {rule.canonical_term for rule in ingredient_rules} == {"GABA"}
+    assert all(rule.operator == "contains_term" for rule in ingredient_rules)
+    assert all(rule.risk_category == "regulated_ingredient" for rule in ingredient_rules)
+    assert all(rule.decision_ref == "DEC-0042" for rule in ingredient_rules)
+    assert all(
+        rule.evidence_ref == "ART-PH-GABA-FREEZE-OWNER-ATTESTATION-V1"
+        for rule in ingredient_rules
+    )
     assert "Bose" not in {rule.value for rule in rules}
 
 
@@ -945,6 +958,7 @@ def test_phase1_v2_is_not_enabled_for_sg_even_when_v2_ruleset_is_missing(tmp_pat
         ({"fact_field": "title"}, "fact_field"),
         ({"operator": "contains"}, "operator"),
         ({"action": "REVIEW"}, "action"),
+        ({"canonical_term": ""}, "canonical_term"),
         ({"value": ""}, "value"),
         ({"risk_category": "other"}, "risk_category"),
         ({"source_type": "internal_rule"}, "source_type"),
@@ -1034,3 +1048,85 @@ def test_v2_common_and_ph_scopes_form_a_union_for_ph(tmp_path):
     assert [row["guardrail_status"] for row in rows] == ["BLOCK", "BLOCK"]
     assert "COMMON-V2-BRAND-001" in rows[0]["guardrail_note"]
     assert "PH-V2-BRAND-TEST" in rows[1]["guardrail_note"]
+
+
+@pytest.mark.parametrize(
+    "term",
+    [
+        "GABA",
+        "gaba",
+        "ＧＡＢＡ",
+        "gamma-aminobutyric acid",
+        "gamma aminobutyric acid",
+        "γ-アミノ酪酸",
+        "ガンマアミノ酪酸",
+        "ギャバ",
+    ],
+)
+@pytest.mark.parametrize(
+    "field",
+    ["product_title", "ingredients", "activeIngredients", "specialIngredients"],
+)
+def test_ph_gaba_rule_v2_blocks_all_approved_fact_domains(term, field):
+    row = candidate(title="ordinary product", brand="Other")
+    row[field] = term if field == "product_title" else (term,)
+
+    guarded = apply_guardrails([row], marketplace="PH")[0]
+
+    assert guarded["guardrail_status"] == "BLOCK"
+    assert guarded["guardrail_risk_category"] == "regulated_ingredient"
+    assert guarded["guardrail_matched_terms"] == "GABA"
+    assert f"fact_field={field}" in guarded["guardrail_note"]
+    assert "ART-PH-GABA-FREEZE-OWNER-ATTESTATION-V1" in guarded["guardrail_note"]
+
+
+@pytest.mark.parametrize("term", ["gabapentin", "GABAergic"])
+def test_ph_gaba_rule_v2_ascii_boundary_avoids_false_positive(term):
+    guarded = apply_guardrails(
+        [candidate(title=term, brand="Other")],
+        marketplace="PH",
+    )[0]
+
+    assert guarded["guardrail_status"] == "SAFE"
+
+
+def test_gaba_rule_v2_is_not_applied_to_sg():
+    ph = apply_guardrails([candidate(title="GABA", brand="Other")], marketplace="PH")[0]
+    sg = apply_guardrails([candidate(title="GABA", brand="Other")], marketplace="SG")[0]
+
+    assert ph["guardrail_status"] == "BLOCK"
+    assert sg["guardrail_status"] == "SAFE"
+
+
+def test_new_ingredient_can_be_added_by_rule_v2_data_without_source_change(tmp_path):
+    dictionary_dir = write_ph_dictionaries(
+        tmp_path,
+        v2_csv=render_v2_rules(
+            v2_rule(
+                rule_id="PH-V2-INGREDIENT-SYNTHETIC-001",
+                fact_field="ingredient_safety",
+                operator="contains_term",
+                canonical_term="Synthetic Ingredient",
+                value="synthetic ingredient",
+                risk_category="regulated_ingredient",
+                source_type="internal_rule",
+                decision_ref="DEC-9999",
+                evidence_ref="ART-SYNTHETIC-INGREDIENT-V1",
+            )
+        ),
+    )
+
+    guarded = apply_guardrails(
+        [
+            {
+                **candidate(title="ordinary product", brand="Other"),
+                "ingredients": ("Contains synthetic ingredient 10 mg",),
+            }
+        ],
+        dictionary_dir,
+        marketplace="PH",
+    )[0]
+
+    assert guarded["guardrail_status"] == "BLOCK"
+    assert guarded["guardrail_matched_terms"] == "Synthetic Ingredient"
+    assert "ART-SYNTHETIC-INGREDIENT-V1" in guarded["guardrail_note"]

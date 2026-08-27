@@ -33,6 +33,7 @@ from modules.shopee_catalog_client import (
 _RESULT_KEY = "category_mapper_recommendations"
 _FINGERPRINT_KEY = "category_mapper_input_fingerprint"
 _SOURCE_TYPE_KEY = "category_mapper_source_type"
+_ACCESS_TOKEN_KEY = "category_mapper_temporary_access_token"
 _STATE_KEYS = (_RESULT_KEY, _FINGERPRINT_KEY, _SOURCE_TYPE_KEY)
 CATALOG_ADMIN_UI_ENABLED_ENV = "CATEGORY_MAPPER_CATALOG_ADMIN_UI_ENABLED"
 
@@ -46,6 +47,12 @@ def render_category_mapper_tab() -> None:
     )
     marketplace = st.selectbox("Marketplace", ("PH",), disabled=True, key="category_mapper_marketplace")
     st.caption("SG / MY / TH は未検証・未対応のため、この画面から内部APIへ渡しません。")
+    st.text_input(
+        "Shopee ACCESS_TOKEN（一時利用）",
+        type="password",
+        key=_ACCESS_TOKEN_KEY,
+        help="このブラウザの利用中だけ使用します。空欄の場合は既存の認証設定を使用します。",
+    )
     store = CategoryMapperStore()
     if os.environ.get(CATALOG_ADMIN_UI_ENABLED_ENV) == "1":
         _render_catalog_status(store, marketplace)
@@ -116,6 +123,13 @@ def clear_category_mapper_result(state: Mapping[str, object] | dict[str, object]
         state.pop(key, None)  # type: ignore[attr-defined]
 
 
+def _catalog_client() -> ShopeeCatalogClient:
+    temporary_token = str(st.session_state.get(_ACCESS_TOKEN_KEY) or "").strip()
+    if temporary_token:
+        return ShopeeCatalogClient.from_local_audit_env(access_token_override=temporary_token)
+    return ShopeeCatalogClient.from_local_audit_env()
+
+
 def _render_catalog_status(store: CategoryMapperStore, marketplace: str) -> None:
     status = store.catalog_status(marketplace)
     with st.container(border=True):
@@ -132,7 +146,7 @@ def _render_catalog_status(store: CategoryMapperStore, marketplace: str) -> None
             key="category_mapper_sync_categories",
         ):
             try:
-                client = ShopeeCatalogClient.from_local_audit_env()
+                client = _catalog_client()
                 categories = client.get_categories(marketplace)
                 store.save_categories(marketplace, categories)
             except ShopeeCatalogConfigurationError:
@@ -467,7 +481,7 @@ def _render_attribute_controls(
 
 
 def _fetch_attributes(category_id: int, store: CategoryMapperStore) -> None:
-    client = ShopeeCatalogClient.from_local_audit_env()
+    client = _catalog_client()
     tree = client.get_attribute_tree("PH", category_id)
     flattened = flatten_attribute_tree(tree)
     store.save_attributes("PH", category_id, flattened.attributes)
@@ -502,7 +516,7 @@ def _render_brand_controls(
         key=f"category_mapper_fetch_brands_{index}",
     ):
         try:
-            client = ShopeeCatalogClient.from_local_audit_env()
+            client = _catalog_client()
             page = client.get_brand_list(
                 "PH",
                 category_id,
