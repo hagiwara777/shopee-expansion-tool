@@ -149,3 +149,13 @@ coverageは読み取り専用で確認した。V1 `risk_keywords_ph.csv`は89ル
 Shopee PHの[Prohibited and Restricted Items Policy](https://help.shopee.ph/portal/4/article/77276?previousPage=other+articles)と[Terms of Service](https://help.shopee.ph/portal/4/article/77272-Shopee-Terms-of-Service)は、2026-08-28にCodexがread-onlyで独立再確認した。前者は2025-04-28更新のままで、禁止・制限違反に対するlisting deletion、account privilege制限、suspension/terminationを明記する。これは公開ページの現行性確認であり、保存された一次Evidence、辞書、Rule V2、またはP1cの実装を置き換えない。
 
 このcandidateは`CANDIDATE / OWNER_ACCEPTANCE_PENDING`であり、P1bの正式完了、P1c、辞書変更、Gate P再開を意味しない。次はオーナーが分類とP1c候補scopeを受入する単一作業である。
+
+### ChatGPT検収差戻しによるv1-r1（2026-08-28）
+
+ChatGPT検収で、GSA-0659（Bose）のP1c候補指定がDEC-0030のRule境界HOLDと整合しないこと、およびCSVの機械可読enum表記の不統一が確認された。修正元`ART-PH-GUARDRAIL-P1B-DISPOSITION-CANDIDATE-V1`（v1、SHA-256 `f1daed1bcdcb1388d42859b9050b216d665c0dff6853feb3fa4229f662bcae19`）は保持し、新規artifact `ART-PH-GUARDRAIL-P1B-DISPOSITION-CANDIDATE-V1-R1`を生成した。v1-r1のfilenameは`PH_GUARDRAIL_P1B_DISPOSITION_CANDIDATE_v1_r1.csv`、完全SHA-256は`27641fc0cde3bc3d585f939f9db3aeeb54545283716350554e4c74b1de382deb`、producerは`Codex`、storage aliasは`LOCAL_ARTIFACT_ROOT/PH_Guardrail_Evidence/Derived/`、acceptanceは`P1B_CANDIDATE / OWNER_ACCEPTANCE_PENDING`である。
+
+v1-r1は727件を維持し、`BLOCK` 243、`REVIEW` 125、`非対象・根拠不足` 359、未分類0である。分類理由、SLSのPH-only境界、既存Brand exact 13件、GABA 6 alias、許認可必須品、PHアルコール禁止は変更していない。`OUT_OF_SCOPE_OR_INSUFFICIENT_EVIDENCE`を`非対象・根拠不足`へ、P1c scope hintを`COMMON_BLOCK_CANDIDATE`、`PH_BLOCK_CANDIDATE`、`N/A`へ統一した。
+
+GSA-0659の`BLOCK` dispositionは維持し、`p1c_candidate=NO`と`p1c_scope_hint=N/A`へ訂正した。これはBLOCKの降格でもDEC-0030のsupersedeでもなく、同DecisionがBose Rule境界をHOLDしているためP1c登録候補から除外する訂正である。GSA-0727は`REVIEW`を維持し、SLSの一次記載に従い、単体電池・バッテリー・パワーバンク・パワーケースならBLOCK、機器内蔵電池なら発送前のSDS等必要書類提出とShopee承認の充足で通過候補、未充足ならBLOCKとする質問へ具体化した。P1c candidateは`YES` 229、`NO` 498であり、P1cは開始していない。
+
+v1-r1は`OWNER_ACCEPTANCE_PENDING`の再検収用candidateである。P1bの正式完了、P1c、辞書変更、Rule V2変更、Gate P再開を意味しない。次の単一作業はChatGPT / オーナーによる修正版P1b candidateの再検収である。

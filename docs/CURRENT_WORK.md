@@ -14,14 +14,14 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 ## 現在作業
 
 - current_work_type: `PH Guardrail Baseline P1b Evidence disposition / Gate P HOLD`
-- current_phase: `P1b Evidence disposition candidate ready / OWNER_ACCEPTANCE_PENDING / Gate P HOLD`
+- current_phase: `P1b disposition candidate corrected / OWNER_ACCEPTANCE_PENDING / Gate P HOLD`
 - working_branch: `codex/ph-guardrail-p1b-evidence-disposition`
 - marketplace: `PH`
 - module: `出品支援ツール / PH Guardrail`
 - phase: `PH Guardrail Baseline / P1b Evidence disposition / Gate P HOLD`
-- next_action: オーナーがP1b candidateの分類・P1c候補範囲を受入する。受入までP1bを正式完了とせず、Gate P HOLDを維持する。
+- next_action: ChatGPT / オーナーが修正版P1b candidateを再検収する。受入までP1bを正式完了とせず、Gate P HOLDを維持する。
 
-P1b Evidence disposition candidateは、3一次Evidenceの実物SHA-256再照合、727件の過去監査candidateとの照合、既存PH V1/V2 coverageの読み取り確認を完了したうえでGit外artifactとして作成した。分類は`BLOCK` 243、`REVIEW` 125、`OUT_OF_SCOPE_OR_INSUFFICIENT_EVIDENCE`（非対象・根拠不足、SAFEの意味ではない）359で、未分類は0件である。P1bの正式完了、辞書登録、P1c開始、Gate P再開は行っていない。
+P1b Evidence disposition candidate v1-r1は、3一次Evidenceの実物SHA-256再照合、727件の過去監査candidateとの照合、既存PH V1/V2 coverageの読み取り確認済みのv1を局所修正したGit外artifactである。分類は`BLOCK` 243、`REVIEW` 125、`非対象・根拠不足`（SAFEの意味ではない）359で、未分類は0件のまま維持した。GSA-0659（Bose）は`BLOCK`を維持したうえでDEC-0030のRule境界HOLDによりP1c候補から除外し、GSA-0727（電池を含む商品）はSLSにある単体電池の発送不可と、機器内蔵電池に必要なSDS等提出・発送前承認の分岐を`REVIEW`質問へ明記した。P1bの正式完了、辞書登録、P1c開始、Gate P再開は行っていない。
 
 P1b candidateの作業baseはformal main `7a49110caddc62467e010e67e759d3bbb07a002b`である。
 
@@ -185,7 +185,8 @@ CI成果物で再確認された事実ではありません。コード機能の
 | OWNER_SOURCE_COMMUNITY_NG_LIST | コミュニティNGリスト・版指定なし | `ＮＧリスト.xlsx` | `82a4b72cfdfa53fdfec87f00685ea3f81ced6bde747e54a71155e56ef92312d1` | オーナー提供（producer metadata独立確認未実施） | `OWNER_PROVIDED_SOURCE / NOT_CANONICAL` | `LOCAL_ARTIFACT_ROOT/PH_Guardrail_Evidence/Sources/ＮＧリスト.xlsx` | P1aで実物SHA-256一致を確認。P1bで具体的なBLOCK／REVIEW／非対象・根拠不足を判断 |
 | ART-PH-GABA-FREEZE-OWNER-ATTESTATION-V1 | Owner Attestation v1 | `PH_GABA_Freeze_Community_Report_Owner_Attestation_v1.md` | `cc6b369250bedb0a99c9731e438e420ee1e2bccd14721e75546aa2f191919a88` | `Owner attestation recorded by Codex` | `OWNER_ATTESTATION_RECORDED_NOT_INDEPENDENTLY_VERIFIED` | `LOCAL_GITEXCLUDED_PH_GABA_EVIDENCE_V1` | PH GABA deterministic BLOCK Rule V2の`evidence_ref`。Rule実装時はartifact ID / SHA / index照合のみ必須で、原コミュニティ投稿の実物アクセスは不要 |
 | OWNER_SOURCE_PH_RESTRICTION_IMAGE | PH制限参考画像・元資料版未確認 | `2026-08-13_121116.png` | `7df6f6196b7ad4ac7a63a380f3eb3c03a3b6ab661bd4941152b6a4484196a681` | オーナー提供（producer metadata独立確認未実施） | `OWNER_PROVIDED_SOURCE / NOT_CANONICAL` | `LOCAL_ARTIFACT_ROOT/PH_Guardrail_Evidence/Sources/2026-08-13_121116.png` | P1aで実物SHA-256一致を確認。P1bで具体的なBLOCK／REVIEW／非対象・根拠不足を判断 |
-| ART-PH-GUARDRAIL-P1B-DISPOSITION-CANDIDATE-V1 | P1b Evidence disposition candidate v1 | `PH_GUARDRAIL_P1B_DISPOSITION_CANDIDATE_v1.csv` | `f1daed1bcdcb1388d42859b9050b216d665c0dff6853feb3fa4229f662bcae19` | `PH Guardrail Baseline P1b Evidence disposition` | `CANDIDATE / OWNER_ACCEPTANCE_PENDING` | `LOCAL_ARTIFACT_ROOT/PH_Guardrail_Evidence/Derived/PH_GUARDRAIL_P1B_DISPOSITION_CANDIDATE_v1.csv` | 727件のP1b disposition、既存V1/V2 coverage、P1c候補scope hint。辞書・Rule V2・Candidate schemaの正本ではない |
+| ART-PH-GUARDRAIL-P1B-DISPOSITION-CANDIDATE-V1 | P1b Evidence disposition candidate v1 | `PH_GUARDRAIL_P1B_DISPOSITION_CANDIDATE_v1.csv` | `f1daed1bcdcb1388d42859b9050b216d665c0dff6853feb3fa4229f662bcae19` | `PH Guardrail Baseline P1b Evidence disposition` | `P1B_CANDIDATE / OWNER_ACCEPTANCE_PENDING / CHATGPT_RETURNED_FOR_CORRECTION` | `LOCAL_ARTIFACT_ROOT/PH_Guardrail_Evidence/Derived/PH_GUARDRAIL_P1B_DISPOSITION_CANDIDATE_v1.csv` | 修正元を保持。727件のP1b disposition、既存V1/V2 coverage、旧P1c候補scope hint。辞書・Rule V2・Candidate schemaの正本ではない |
+| ART-PH-GUARDRAIL-P1B-DISPOSITION-CANDIDATE-V1-R1 | P1b Evidence disposition candidate v1-r1 | `PH_GUARDRAIL_P1B_DISPOSITION_CANDIDATE_v1_r1.csv` | `27641fc0cde3bc3d585f939f9db3aeeb54545283716350554e4c74b1de382deb` | `PH Guardrail Baseline P1b Evidence disposition` | `P1B_CANDIDATE / OWNER_ACCEPTANCE_PENDING` | `LOCAL_ARTIFACT_ROOT/PH_Guardrail_Evidence/Derived/PH_GUARDRAIL_P1B_DISPOSITION_CANDIDATE_v1_r1.csv` | ChatGPT / オーナー再検収用。727件、BLOCK 243、REVIEW 125、非対象・根拠不足 359。P1cは未開始 |
 | GAR-AUD-CLASSIFICATION-CANDIDATES | 727候補詳細分類・版指定なし | `classification_candidates.csv` | `b6c0329e1d5d63a38507c34588ca95e0c8483a05614c4bb711f27ea0a4dc2832` | Guardrail 3資料監査 | `GENERATED_AUDIT_CANDIDATE / NOT_CANONICAL` | `LOCAL_GITEXCLUDED_GUARDRAIL_AUDIT_CLASSIFICATION_CANDIDATES` | 727候補の詳細分類。実物アクセス確認済み |
 | GAR-AUD-SUMMARY | 監査要約・版指定なし | `audit_summary.md` | `0f76e38904c6f4eeaa6be3338f75dbb15c10725260b5e0ba2451a431d14efeb1` | Guardrail 3資料監査 | `GENERATED_AUDIT_CANDIDATE / NOT_CANONICAL` | `LOCAL_GITEXCLUDED_GUARDRAIL_AUDIT_SUMMARY` | 監査要約。実物アクセス確認済み |
 | GAR-AUD-EXISTING-DICTIONARY-COMPARISON | 既存辞書比較・版指定なし | `existing_dictionary_comparison.csv` | `c5a2c6faaf5d24ca722d406e571bcdd669c1a271e5779c96a6d2be6370cbd180` | Guardrail 3資料監査 | `GENERATED_AUDIT_CANDIDATE / NOT_CANONICAL` | `LOCAL_GITEXCLUDED_GUARDRAIL_AUDIT_EXISTING_DICTIONARY_COMPARISON` | 既存89ルールとの比較。実物アクセス確認済み |
