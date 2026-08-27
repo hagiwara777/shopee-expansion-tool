@@ -71,7 +71,7 @@ PHを選択したGateはPH専用辞書だけを読み込む。辞書や判定結
 
 この追補は、formal main `0626a6504af15ebc0a1723a13dcac613aef7e676` 上のGit管理内の辞書・実装・既存監査記録と、`CURRENT_WORK.md` のGit外成果物索引を照合した棚卸しである。coverageは「現在どのルールが登録されているか」の事実だけを表し、根拠の有効性、BLOCK / REVIEW / 非対象・根拠不足のdisposition、または辞書変更を決めない。
 
-今回のworktreeには、索引で指定されたSLS、Community NG、PH restriction imageの実物がなく、`LOCAL_ARTIFACT_ROOT` も未設定だった。外部サービス・外部API・live Shopee pageは使用していない。このため、索引に記録されたSHA-256を今回再照合したとは扱わない。P1aは **未完了（Evidence Gate HOLD）** とし、一次Evidence 3件の実物アクセスが必要である。
+Git外の固定storage alias `LOCAL_ARTIFACT_ROOT/PH_Guardrail_Evidence/Sources/` に配置されたSLS、Community NG、PH restriction imageの実物を読み取り、各ファイルのSHA-256を計算した。3件すべてが`CURRENT_WORK.md`の正本索引値と完全一致したため、P1aの実物確認は **完了** とする。外部サービス・外部API・live Shopee pageは使用していない。この確認は根拠内容のdispositionまたは辞書変更を意味せず、次の判断はP1bで行う。
 
 `VERIFIED` は今回の実物と完全SHA-256を照合できた状態、`NOT_AVAILABLE` は索引のみで実物に到達できない状態、`INDEX_ONLY` はGitまたは索引で参照・登録状況だけを確認できた状態を表す。
 
@@ -81,9 +81,9 @@ PHを選択したGateはPH専用辞書だけを読み込む。辞書や判定結
 | --- | --- | --- | --- | --- | --- |
 | `SHOPEE_PH_PROHIBITED_RESTRICTED_POLICY` | Shopee PH Prohibited and Restricted Items Policy / Shopee公式 | PH / ページ最終更新日 `2025-04-28` は既存監査の記録。Git ref: formal main の本書「Shopee PH公式ポリシーとの照合」 | `INDEX_ONLY`（`LIVE_RECHECK_REQUIRED`） | V1注記で直接参照する17ルール（`BLOCK` 8、`REVIEW` 9）。既存監査の分類照合は部分対応または不足であり、完全coverageではない。 | 要 |
 | `SHOPEE_PH_TERMS_OF_SERVICE` | Shopee PH Terms of Service / Shopee公式 | PH / 版・現行性は今回未確認。Git ref: formal main の本書「Shopee PH公式ポリシーとの照合」 | `INDEX_ONLY`（`LIVE_RECHECK_REQUIRED`） | V1 / V2にこのsource IDの直接参照はない。既存監査では知的財産リスクの一般根拠として扱うが、PHブランドV1辞書は0件。 | 要 |
-| `OWNER_SOURCE_SLS_PROHIBITED_CATEGORY` | `【SLS対象マーケット】SLS出品可否確認表（Prohibited Category List）2025年3月17日適用.xlsx` / SLS | PH / ファイル名は2025-03-17適用、索引SHA-256 `ee68151aa951921dfb7c8a5ea76ea67441342b5be5511d4b18905591e4c621c2` / `OWNER_SOURCE_SLS_PROHIBITED_2025_03_17` | `NOT_AVAILABLE` | V1注記が明示するSLS由来11ルール（`BLOCK` 3、`REVIEW` 8）。別表記の「Shopee Japan販売規制ガイドPH欄」23ルール（`BLOCK` 9、`REVIEW` 14）との同一資料性は実物未照合のため確認不能。 | 要 |
-| `OWNER_SOURCE_COMMUNITY_NG_LIST` | `ＮＧリスト.xlsx` / community operational（オーナー提供） | PH / 版指定なし、索引SHA-256 `82a4b72cfdfa53fdfec87f00685ea3f81ced6bde747e54a71155e56ef92312d1` / `OWNER_SOURCE_COMMUNITY_NG_LIST` | `NOT_AVAILABLE` | Rule V2のブランドexact 13ルール（`PH-V2-BRAND-001`〜`013`）がこの`evidence_ref`を持つ。元リストの全件および13件との対応は確認不能。 | 要 |
-| `OWNER_SOURCE_PH_RESTRICTION_IMAGE` | `2026-08-13_121116.png` / オーナー提供 | PH / 2026-08-13、索引SHA-256 `7df6f6196b7ad4ac7a63a380f3eb3c03a3b6ab661bd4941152b6a4484196a681` / `OWNER_SOURCE_PH_RESTRICTION_IMAGE_2026_08_13` | `NOT_AVAILABLE` | V1 / V2にこのartifact IDを直接参照するルールは確認できない。 | 要 |
+| `OWNER_SOURCE_SLS_PROHIBITED_CATEGORY` | `【SLS対象マーケット】SLS出品可否確認表（Prohibited Category List）2025年3月17日適用.xlsx` / SLS | PH / ファイル名は2025-03-17適用、索引SHA-256 `ee68151aa951921dfb7c8a5ea76ea67441342b5be5511d4b18905591e4c621c2` / `LOCAL_ARTIFACT_ROOT/PH_Guardrail_Evidence/Sources/【SLS対象マーケット】SLS出品可否確認表（Prohibited Category List）2025年3月17日適用.xlsx` | `VERIFIED`（実物SHA-256一致） | V1注記が明示するSLS由来11ルール（`BLOCK` 3、`REVIEW` 8）。別表記の「Shopee Japan販売規制ガイドPH欄」23ルール（`BLOCK` 9、`REVIEW` 14）との同一資料性は今回のSHA照合対象外。 | 要 |
+| `OWNER_SOURCE_COMMUNITY_NG_LIST` | `ＮＧリスト.xlsx` / community operational（オーナー提供） | PH / 版指定なし、索引SHA-256 `82a4b72cfdfa53fdfec87f00685ea3f81ced6bde747e54a71155e56ef92312d1` / `LOCAL_ARTIFACT_ROOT/PH_Guardrail_Evidence/Sources/ＮＧリスト.xlsx` | `VERIFIED`（実物SHA-256一致） | Rule V2のブランドexact 13ルール（`PH-V2-BRAND-001`〜`013`）がこの`evidence_ref`を持つ。元リストの全件および13件との対応はP1bで判断しない限り確定しない。 | 要 |
+| `OWNER_SOURCE_PH_RESTRICTION_IMAGE` | `2026-08-13_121116.png` / オーナー提供 | PH / 2026-08-13、索引SHA-256 `7df6f6196b7ad4ac7a63a380f3eb3c03a3b6ab661bd4941152b6a4484196a681` / `LOCAL_ARTIFACT_ROOT/PH_Guardrail_Evidence/Sources/2026-08-13_121116.png` | `VERIFIED`（実物SHA-256一致） | V1 / V2にこのartifact IDを直接参照するルールは確認できない。 | 要 |
 | `ART-PH-GABA-FREEZE-OWNER-ATTESTATION-V1` | `PH_GABA_Freeze_Community_Report_Owner_Attestation_v1.md` / community operational owner attestation | PH / v1、索引SHA-256 `cc6c369250bedb0a99c9731e438e420ee1e2bccd14721e75546aa2f191919a88` / `LOCAL_GITEXCLUDED_PH_GABA_EVIDENCE_V1` | `INDEX_ONLY` | Rule V2のIngredient Safety 6 alias（`PH-V2-INGREDIENT-GABA-001`〜`006`）がこの`evidence_ref`を持つ。索引と既存Ruleの照合のみで、原コミュニティ投稿はP1aの再取得対象外。 | 要 |
 
 ### Git注記だけで確認できる追加source reference
@@ -112,4 +112,4 @@ PHを選択したGateはPH専用辞書だけを読み込む。辞書や判定結
 - V2: `deterministic_block_rules_v2.csv` はPH `BLOCK` 19ルール（brand exact 13、Ingredient SafetyのGABA alias 6）。brand 13件の`evidence_ref`は`OWNER_SOURCE_COMMUNITY_NG_LIST`、GABA 6件の`evidence_ref`は`ART-PH-GABA-FREEZE-OWNER-ATTESTATION-V1`である。
 - 実装: PH実行時だけV1 PH辞書とRule V2を読み、V2の`BLOCK`はV1結果を降格させない。これは`modules/guardrails.py`と関連testで確認できる実装事実であり、各sourceの有効性を確認した事実ではない。
 
-P1bでは、一次Evidenceの実物と完全SHA-256を確認してから、各項目を`BLOCK`、`REVIEW`、`非対象・根拠不足`へ判断する。このP1a追補では新しいBLOCK / REVIEW / 非対象判断、辞書変更、Rule V2 schema変更、外部API、live page再確認を行っていない。
+P1aでは、一次Evidenceの実物と完全SHA-256を確認した。P1bで初めて、各項目を`BLOCK`、`REVIEW`、`非対象・根拠不足`へ判断する。このP1a追補では新しいBLOCK / REVIEW / 非対象判断、辞書変更、Rule V2 schema変更、外部API、live page再確認を行っていない。

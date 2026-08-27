@@ -13,13 +13,13 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH Guardrail Baseline P1a Evidence Coverage Inventory / Gate P HOLD`
-- current_phase: `P1a PH Guardrail Evidence Coverage Inventory / Gate P HOLD`
+- current_work_type: `PH Guardrail Baseline P1a完了 / 次はP1b Evidence disposition / Gate P HOLD`
+- current_phase: `P1a PH Guardrail Evidence Coverage Inventory 完了 / Gate P HOLD`
 - working_branch: `codex/ph-guardrail-baseline-p1a-inventory`
 - marketplace: `PH`
 - module: `出品支援ツール / PH Guardrail`
-- phase: `PH Guardrail Baseline / P1a Evidence Coverage Inventory / Gate P HOLD`
-- next_action: Git外一次Evidence（SLS、Community NG、PH restriction image）の実物をstorage alias解決または再添付で取得し、SHA-256を照合してP1a棚卸しを完了する。
+- phase: `PH Guardrail Baseline / P1a完了 / 次はP1b Evidence disposition / Gate P HOLD`
+- next_action: P1bで、P1a棚卸し済みEvidenceごとにBLOCK、REVIEW、非対象・根拠不足を判断する。
 
 DEC-0043により、PH Guardrail BaselineをBeta MUSTとしてP0に置いた。PR #37のmain統合（formal main commit `0626a6504af15ebc0a1723a13dcac613aef7e676`）を確認し、P1aを開始した。P1a〜P1dでPH Guardrail Baselineを受入するまでGate PをHOLDする。P0〜P2はGate Pの新しい前提であり、過去のGate P結果をPH Minimum Betaの最終受入またはmain統合済みと扱わない。
 
@@ -52,6 +52,7 @@ PR #16はGate結果CSVのschema version再検証をmainへ統合し、formal mai
 ## 完了・受入済み
 
 - P0 PH Guardrail BaselineのBeta MUST正本化とPR #37のmain統合（formal main commit `0626a6504af15ebc0a1723a13dcac613aef7e676`）
+- P1a PH Guardrail Evidence Coverage Inventory。Git外一次Evidence 3件の実物SHA-256が正本索引と完全一致し、固定storage aliasを解決した。P1b dispositionは未実施
 - Gate Kの正式技術確認PASS
 - Gate P B1〜B7の実物受入PASS
 - Gate P結果画面のオーナー実物確認PASS
@@ -173,20 +174,19 @@ CI成果物で再確認された事実ではありません。コード機能の
 | ART-PH-FIXED30-BASELINE-INPUT-V1 | 固定30件基準入力 v1 | `PH_Japan_AI_Eval_Resolver_Input_V1.tsv` | `32e2dcc21f6820134d7919bbc572e1f91781082cd1d28eee892c3213aaa3d5e1` | `PH_Japan_AI_Eval_Selection_Report_V1.md` | `OWNER_ACCEPTED_FOR_NEW_BASELINE_ONLY` | `LOCAL_RECOVERED_PH_FIXED30_INPUT` | 新規固定30件基準実行専用入力 |
 | ART-PH-ASIN-EXEC-RECORD-V0.1.2-CANDIDATE-REV2 | Excel実行記録 v0.1.2 candidate rev2 | `PH_ASIN_Resolver_Execution_Record_v0.1.2_candidate_rev2.xlsx` | `054f771328b9be4d128c42e650791a22f6c0e4bab9892bb8ebd9fb0ca98e4f7b` | `PH ASIN Resolver 証拠永続化実装` | `OWNER_ACCEPTED` | `LOCAL_ARTIFACT_ROOT/HANDOFF_EXECUTION_RECORD/candidate/v0.1.2/` | PH固定30件の人間可読実行記録 |
 | ART-PH-ASIN-EXEC-GUIDE-V0.1.2-CANDIDATE-REV2 | 非エンジニア向け実行Guide v0.1.2 candidate rev2 | `PH_ASIN_Resolver_Execution_Record_v0.1.2_Guide_candidate_rev2.txt` | `7e55527e6eee6288b679db37937954be1cb8ccd23b51a327eea2171aa6e59540` | `PH ASIN Resolver 証拠永続化実装` | `OWNER_ACCEPTED` | `LOCAL_ARTIFACT_ROOT/HANDOFF_EXECUTION_RECORD/candidate/v0.1.2/` | 非エンジニア向け実行Guide |
-| OWNER_SOURCE_SLS_PROHIBITED_CATEGORY | SLS出品可否確認表・2025年3月17日適用 | `【SLS対象マーケット】SLS出品可否確認表（Prohibited Category List）2025年3月17日適用.xlsx` | `ee68151aa951921dfb7c8a5ea76ea67441342b5be5511d4b18905591e4c621c2` | オーナー提供（producer metadata独立確認未実施） | `OWNER_PROVIDED_SOURCE / NOT_CANONICAL` | `OWNER_SOURCE_SLS_PROHIBITED_2025_03_17` | 将来のBLOCK／REVIEW辞書具体化の根拠資料。具体化前に実物照合必須 |
-| OWNER_SOURCE_COMMUNITY_NG_LIST | コミュニティNGリスト・版指定なし | `ＮＧリスト.xlsx` | `82a4b72cfdfa53fdfec87f00685ea3f81ced6bde747e54a71155e56ef92312d1` | オーナー提供（producer metadata独立確認未実施） | `OWNER_PROVIDED_SOURCE / NOT_CANONICAL` | `OWNER_SOURCE_COMMUNITY_NG_LIST` | 当社BLOCK候補の実務資料。無条件移植せず、具体化前に実物照合必須 |
+| OWNER_SOURCE_SLS_PROHIBITED_CATEGORY | SLS出品可否確認表・2025年3月17日適用 | `【SLS対象マーケット】SLS出品可否確認表（Prohibited Category List）2025年3月17日適用.xlsx` | `ee68151aa951921dfb7c8a5ea76ea67441342b5be5511d4b18905591e4c621c2` | オーナー提供（producer metadata独立確認未実施） | `OWNER_PROVIDED_SOURCE / NOT_CANONICAL` | `LOCAL_ARTIFACT_ROOT/PH_Guardrail_Evidence/Sources/【SLS対象マーケット】SLS出品可否確認表（Prohibited Category List）2025年3月17日適用.xlsx` | P1aで実物SHA-256一致を確認。P1bで具体的なBLOCK／REVIEW／非対象・根拠不足を判断 |
+| OWNER_SOURCE_COMMUNITY_NG_LIST | コミュニティNGリスト・版指定なし | `ＮＧリスト.xlsx` | `82a4b72cfdfa53fdfec87f00685ea3f81ced6bde747e54a71155e56ef92312d1` | オーナー提供（producer metadata独立確認未実施） | `OWNER_PROVIDED_SOURCE / NOT_CANONICAL` | `LOCAL_ARTIFACT_ROOT/PH_Guardrail_Evidence/Sources/ＮＧリスト.xlsx` | P1aで実物SHA-256一致を確認。P1bで具体的なBLOCK／REVIEW／非対象・根拠不足を判断 |
 | ART-PH-GABA-FREEZE-OWNER-ATTESTATION-V1 | Owner Attestation v1 | `PH_GABA_Freeze_Community_Report_Owner_Attestation_v1.md` | `cc6b369250bedb0a99c9731e438e420ee1e2bccd14721e75546aa2f191919a88` | `Owner attestation recorded by Codex` | `OWNER_ATTESTATION_RECORDED_NOT_INDEPENDENTLY_VERIFIED` | `LOCAL_GITEXCLUDED_PH_GABA_EVIDENCE_V1` | PH GABA deterministic BLOCK Rule V2の`evidence_ref`。Rule実装時はartifact ID / SHA / index照合のみ必須で、原コミュニティ投稿の実物アクセスは不要 |
-| OWNER_SOURCE_PH_RESTRICTION_IMAGE | PH制限参考画像・元資料版未確認 | `2026-08-13_121116.png` | `7df6f6196b7ad4ac7a63a380f3eb3c03a3b6ab661bd4941152b6a4484196a681` | オーナー提供（producer metadata独立確認未実施） | `OWNER_PROVIDED_SOURCE / NOT_CANONICAL` | `OWNER_SOURCE_PH_RESTRICTION_IMAGE_2026_08_13` | PH禁止・輸入禁止・ライセンス条件の参考一次資料。PH辞書具体化前に実物照合必須 |
+| OWNER_SOURCE_PH_RESTRICTION_IMAGE | PH制限参考画像・元資料版未確認 | `2026-08-13_121116.png` | `7df6f6196b7ad4ac7a63a380f3eb3c03a3b6ab661bd4941152b6a4484196a681` | オーナー提供（producer metadata独立確認未実施） | `OWNER_PROVIDED_SOURCE / NOT_CANONICAL` | `LOCAL_ARTIFACT_ROOT/PH_Guardrail_Evidence/Sources/2026-08-13_121116.png` | P1aで実物SHA-256一致を確認。P1bで具体的なBLOCK／REVIEW／非対象・根拠不足を判断 |
 | GAR-AUD-CLASSIFICATION-CANDIDATES | 727候補詳細分類・版指定なし | `classification_candidates.csv` | `b6c0329e1d5d63a38507c34588ca95e0c8483a05614c4bb711f27ea0a4dc2832` | Guardrail 3資料監査 | `GENERATED_AUDIT_CANDIDATE / NOT_CANONICAL` | `LOCAL_GITEXCLUDED_GUARDRAIL_AUDIT_CLASSIFICATION_CANDIDATES` | 727候補の詳細分類。実物アクセス確認済み |
 | GAR-AUD-SUMMARY | 監査要約・版指定なし | `audit_summary.md` | `0f76e38904c6f4eeaa6be3338f75dbb15c10725260b5e0ba2451a431d14efeb1` | Guardrail 3資料監査 | `GENERATED_AUDIT_CANDIDATE / NOT_CANONICAL` | `LOCAL_GITEXCLUDED_GUARDRAIL_AUDIT_SUMMARY` | 監査要約。実物アクセス確認済み |
 | GAR-AUD-EXISTING-DICTIONARY-COMPARISON | 既存辞書比較・版指定なし | `existing_dictionary_comparison.csv` | `c5a2c6faaf5d24ca722d406e571bcdd669c1a271e5779c96a6d2be6370cbd180` | Guardrail 3資料監査 | `GENERATED_AUDIT_CANDIDATE / NOT_CANONICAL` | `LOCAL_GITEXCLUDED_GUARDRAIL_AUDIT_EXISTING_DICTIONARY_COMPARISON` | 既存89ルールとの比較。実物アクセス確認済み |
 | GAR-AUD-NEW-CANDIDATE-EXISTING-COVERAGE | 新候補既存辞書カバレッジ比較・版指定なし | `new_candidate_existing_coverage.csv` | `e545583f8b3765ddecadc6878128f95e446bd358bfb2ea3f7162475495b9b08b` | Guardrail 3資料監査 | `GENERATED_AUDIT_CANDIDATE / NOT_CANONICAL` | `LOCAL_GITEXCLUDED_GUARDRAIL_AUDIT_NEW_CANDIDATE_EXISTING_COVERAGE` | 新候補363件と既存辞書の比較。実物アクセス確認済み |
 
-実物が必要な場合は、必要時だけ軽量WORK_BRIEFでstorage aliasを解決するか、オーナーが現在のCodexタスクへ再添付する。
+P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guardrail_Evidence/Sources/`に固定保存する。Git管理対象にはせず、更新または差替えが必要な場合は次の作業開始時に完全SHA-256を再照合する。
 
 ## 未完了事項
 
-- P1a PH Guardrail Evidence Coverage Inventory（Git外一次Evidence 3件の実物アクセス・SHA-256照合待ち）
 - P1b EvidenceごとのBLOCK / REVIEW / 非対象・根拠不足 disposition
 - P1c 確定BLOCKのCOMMON_BLOCK / PH_BLOCK登録と関連test
 - P1d PH_GUARDRAIL_BASELINE_COMPLETEの受入
@@ -215,19 +215,19 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## 次の単一作業
 
-Git外一次Evidence（SLS、Community NG、PH restriction image）の実物をstorage alias解決または再添付で取得し、SHA-256を照合してP1a棚卸しを完了する。
+P1bで、P1a棚卸し済みEvidenceごとにBLOCK、REVIEW、非対象・根拠不足を判断する。
 
 ## 停止条件
 
 - Gate P B2 PH Safetyのオーナー実物再受入までは、Gate P PASS、Minimum Beta PASS、B2受入PASSとして扱わない。
 - P1d `PH_GUARDRAIL_BASELINE_COMPLETE`受入前に、Gate Pを再開しない。
-- P1a / P1bのEvidence棚卸しとdisposition前に、新規BLOCK / REVIEWを確定しない。P1cの辞書登録はP1bで確定したBLOCKだけに限定する。
+- P1bのEvidence disposition前に、新規BLOCK / REVIEWを確定しない。P1cの辞書登録はP1bで確定したBLOCKだけに限定する。
 - P2前に通常利用導線、P3前にGate P B2、P4前にGate P B1〜B7全体、P5前に第三者独立レビュー、P6前にPH実運用を開始しない。
 - 今回のKeepa Ingredient Safety live技術確認を、オーナー実物受入またはGABA実商品live BLOCK確認として扱わない。
 - GABAを含む実商品によるlive BLOCK確認を、既存unit testsおよび独立security reviewのPASSから推測しない。
 - 実装前の古いClaude Evidence Packageを第三者レビュー用に再利用しない。
 - Keepa APIその他の外部APIを実行しない。
-- P1a / P1b完了前に、GABAを含む市場別BLOCK成分辞書を変更しない。P1cでは確定BLOCKを`COMMON_BLOCK` / `PH_BLOCK`へ区別して登録する。
+- P1b完了前に、GABAを含む市場別BLOCK成分辞書を変更しない。P1cでは確定BLOCKを`COMMON_BLOCK` / `PH_BLOCK`へ区別して登録する。
 - Candidate物理schemaを推測で変更しない。
 - P5のEvidence Package再生成前に第三者独立レビューへ戻らない。
 - Gate P PASSをPH Minimum Beta正式完成またはmain統合済みと扱わない。
