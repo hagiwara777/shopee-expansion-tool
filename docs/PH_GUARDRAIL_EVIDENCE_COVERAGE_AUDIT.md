@@ -124,3 +124,28 @@ P1aでは、一次Evidenceの実物と完全SHA-256を確認した。P1bで初�
 - REVIEWは、具体的な追加確認または対応によって販売可能性が残る場合だけに用いる。取得しない許認可を確認待ちREVIEWに置かず、許認可が必須で当社が取得しない場合は該当市場のBLOCKとする。市場固有の条件をCOMMON_BLOCKへ自動昇格しない。
 
 この追補は個別EvidenceのBLOCK / REVIEW / 非対象・根拠不足をまだ決めず、辞書またはRule V2も変更しない。P1bの開始は、DEC-0044を含む正本化差分がmainへ統合された後とする。
+
+## P1b Evidence disposition candidate（2026-08-28）
+
+### Candidateの範囲とintegrity
+
+`LOCAL_ARTIFACT_ROOT` を解決し、P1aの3一次Evidenceへ実物アクセスして完全SHA-256を再計算した。SLS workbook、`ＮＧリスト.xlsx`、PH制限参考画像は、いずれも本書および`CURRENT_WORK.md`の索引値と一致した。過去の727件分類candidateも索引SHA-256 `b6c0329e1d5d63a38507c34588ca95e0c8483a05614c4bb711f27ea0a4dc2832` と一致したため、P1bではその全727 `item_id`を保持し、現行DEC-0024 / DEC-0026 / DEC-0027 / DEC-0030 / DEC-0044で再dispositionした。
+
+Git外artifact `PH_GUARDRAIL_P1B_DISPOSITION_CANDIDATE_v1.csv` は727行、SHA-256 `f1daed1bcdcb1388d42859b9050b216d665c0dff6853feb3fa4229f662bcae19`である。必須16列を持ち、`BLOCK` 243、`REVIEW` 125、`OUT_OF_SCOPE_OR_INSUFFICIENT_EVIDENCE`（非対象・根拠不足）359、未分類0件である。最後の区分はSAFEや出品承認を意味せず、PHの具体的な品目・条件・NG理由をこのEvidenceだけでは確定できないことを表す。
+
+### P1bの判定結果
+
+- SLSの全市場輸送禁止18件、PH欄`NO`170件、PH制限参考画像の明確なPH禁止等37件、PHで商品・ブランド・具体的NG理由を持つcommunity 14件は`BLOCK`とした。community 14件は公式禁止の主張ではなく、DEC-0027による当社内部リスク回避の根拠である。
+- `一般用医薬品`、`医療用針`、およびSLSで必須許認可が示された商品は、当社が必要な許認可を取得しないというDEC-0026 / DEC-0027 / DEC-0044の方針により`BLOCK`とした。許認可待ちの`REVIEW`には置かない。
+- SLSのPH `Shopeeと要確認`110件、全市場の具体的な発送前承認12件、PH画像の条件付き2件、および単体電池と電池内蔵機器を区別して承認可否を確認できる1件は`REVIEW`とした。各行には、何を確認し、未充足ならBLOCK、充足なら通過候補となるかを記録した。
+- 311件のgeneric community NG、PH以外のみの41件、補助sheet等、資料間の条件境界を確定できない項目は`OUT_OF_SCOPE_OR_INSUFFICIENT_EVIDENCE`とした。PHのSAFEを意味せず、P1c候補にもしていない。資料間の矛盾は一律のBLOCK / REVIEWへ平坦化していないが、PH画像がアルコール飲料のオンライン販売禁止を明示する項目は、SLSの別条件がPH禁止を解除しないためPH `BLOCK`とした。
+
+過去727候補との差異は分類ラベルの収束である。旧`COMMON_BLOCK_CANDIDATE`18件と`PH_BLOCK_CANDIDATE`221件は`BLOCK`、旧`REVIEW_CANDIDATE`124件は`REVIEW`、旧`INSUFFICIENT_EVIDENCE`314件と`OUT_OF_SCOPE_OTHER_MARKET`41件は非対象・根拠不足へ対応付けた。旧`OWNER_DECISION_REQUIRED`3件は現行の許認可方針により`BLOCK`、旧`SOURCE_CONFLICT`6件はアルコールを`BLOCK`、電池形態を`REVIEW`、残る4件を非対象・根拠不足とした。item IDの増減はない。
+
+### 現行coverageと未実施事項
+
+coverageは読み取り専用で確認した。V1 `risk_keywords_ph.csv`は89ルール（BLOCK 31、REVIEW 58）、`prohibited_brands_ph.csv`は0ルール、Rule V2はPH BLOCK 19ルール（既存Brand exact 13、既存GABA alias 6）である。PH community 14件のうち、Brand exact 13件は既存Rule V2を保持し、降格していない。Boseイヤホン／ヘッドホンは具体的community Evidenceに基づくPH BLOCKとしてcandidateへ残すが、既存のBrand exact ruleへ広げず、P1c候補scopeだけを示した。GABA 6 aliasは、P1aの再取得対象外だったowner attestation索引に結び付く既存BLOCKとして保持し、本candidateによって変更・降格していない。
+
+Shopee PHの[Prohibited and Restricted Items Policy](https://help.shopee.ph/portal/4/article/77276?previousPage=other+articles)と[Terms of Service](https://help.shopee.ph/portal/4/article/77272-Shopee-Terms-of-Service)は、2026-08-28にCodexがread-onlyで独立再確認した。前者は2025-04-28更新のままで、禁止・制限違反に対するlisting deletion、account privilege制限、suspension/terminationを明記する。これは公開ページの現行性確認であり、保存された一次Evidence、辞書、Rule V2、またはP1cの実装を置き換えない。
+
+このcandidateは`CANDIDATE / OWNER_ACCEPTANCE_PENDING`であり、P1bの正式完了、P1c、辞書変更、Gate P再開を意味しない。次はオーナーが分類とP1c候補scopeを受入する単一作業である。
