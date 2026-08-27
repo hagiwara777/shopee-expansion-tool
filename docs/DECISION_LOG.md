@@ -483,3 +483,18 @@
 - 理由: 実装済みの個別Safety機構と、PH向け禁止根拠の全体的なカバレッジ・正式運用ルールを混同せず、最新のGuardrailを前提にGate Pと最終受入を行うため。
 - 影響: `PROJECT_ROADMAP.md`の「現在から先の工程」と`CURRENT_WORK.md`の現在地・次の単一作業・停止条件を更新する。旧Gate P受入履歴は保持するが、P0〜P2の新しい前提を満たすまで再受入またはPH Minimum Beta PASSの根拠にしない。今回、source、Guardrail辞書、tests、UI、Candidate schema、DB、外部API、外部書込み、push、PR、merge、deployは変更・実行しない。
 - 再検討条件: P1aで利用可能・確認可能なEvidenceの範囲が確定できないとき、P1bでdisposition不能な根拠が残るとき、P1cで既存Guardrail契約を保てないとき、P2で内部安全機構の維持と通常導線の簡素化を両立できないとき、またはP3〜P5でBeta blocker候補が確認されたとき。
+
+## DEC-0044 — PH Guardrail P1bの判断基準と依存工程前の正本化順序を明確化する
+
+- 日付: 2026-08-27
+- 背景: DEC-0043でP1a〜P1d工程を定義し、その後P1aのEvidence棚卸しはPR #38のmain統合により完了した。P1bで各Evidenceをdispositionする前段階において、DEC-0024、DEC-0026、DEC-0027、DEC-0030はそれぞれ一発アウト遮断、BLOCK / REVIEW境界、市場別Evidence、13 Brand-exact PH_BLOCKを定めているが、SLSの市場別表、owner提供のNG・制限資料、community operational evidence、許認可、既存確定事項の正本化順序を、P1b開始前に一意に参照できるようにする必要がある。
+- 決定: SLS出品可否確認表は市場別資料として扱う。PHのdispositionではPH欄とPH条件だけを用い、SG / MY / TH / TW等のNGまたは条件をPHへ推測適用しない。他市場NGまたは複数市場NGだけを理由に、PH_BLOCKまたはCOMMON_BLOCKへ自動昇格しない。
+- 決定: SLS出品可否確認表、`ＮＧリスト.xlsx`、PH制限参考画像は、中立なカタログではなくNG・禁止・制限のEvidence sourceとして扱う。ただし全行を無条件にBLOCKせず、P1bで市場、適用条件、NG理由を確認し、BLOCK、REVIEW、非対象・根拠不足へ整理する。
+- 決定: community operational evidenceは公式Evidenceと区別する。ただし、第三者販売で実際に生じた警告、削除、違反、ペナルティ、制限または凍結を示し、市場、ブランドまたは商品、具体的理由を確認できる場合は、当社内部のリスク回避BLOCK根拠になり得る。DEC-0027のPHコミュニティ14項目に関する採用方針を維持する。
+- 決定: 正規品であることだけではブランドまたはIPリスクを否定しない。第三者販売への警告、削除申請、ペナルティ等の具体的EvidenceがあるブランドはBLOCK候補になり得るが、有名ブランドであることだけではBLOCKしない。DEC-0030で確定し実装済みの13 Brand-exact PH_BLOCKを降格しない。
+- 決定: 現地ライセンス、政府許可その他の許認可が販売に必須で、当社が取得しない対象は、該当市場のBLOCKとする。「必要だからREVIEW」にはしない。市場固有の要件を理由にCOMMON_BLOCKへ自動昇格しない。DEC-0026およびDEC-0027の原則を維持する。
+- 決定: REVIEWは、具体的な追加確認または対応により販売可能性が残る対象だけに用いる。通過またはBLOCK決定に必要な確認事項を示し、当社が取得しない許認可を確認待ちREVIEWに置かない。
+- 決定: 後続の開発、実装、disposition、受入または優先順位判断の前提となるオーナー確定事項は、依存する次工程の開始前に適切な正本へ最小限反映する。順序は、会話・検討、オーナー判断確定、正本への最小反映、main統合確認、依存する次工程とする。既存に同一判断がある場合は重複Decisionを作らず参照し、仮説または却下案は正本化しない。
+- 理由: 市場固有のEvidenceを他市場や共通禁止へ推測拡張せず、公式根拠と内部リスク回避根拠を区別しながら、確定禁止と現実に解決可能なREVIEWを一貫して扱うため。また、依存工程が未統合または仮説の判断を前提に開始されることを防ぐため。
+- 影響: DEC-0024の一発アウト遮断優先を維持し、DEC-0026のBLOCK / REVIEW境界、DEC-0027の市場別Evidenceと許認可の扱い、DEC-0030の13 Brand-exact PH_BLOCK、DEC-0043のP1a〜P1d順序を再決定しない。今回、P1bの個別disposition、Guardrail辞書、Rule V2、source、tests、UI、DB、Gate P、外部API、外部書込み、push、PR、merge、deployは変更・実行しない。
+- 再検討条件: 既存Decisionと矛盾し、優先関係を一意に決められないとき、SLSの市場別扱いと正本が両立しないとき、または個別dispositionにPROJECT_ROADMAP、辞書、P1b範囲を越える責務変更が必要と判明したとき。

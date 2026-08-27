@@ -113,3 +113,14 @@ Git外の固定storage alias `LOCAL_ARTIFACT_ROOT/PH_Guardrail_Evidence/Sources/
 - 実装: PH実行時だけV1 PH辞書とRule V2を読み、V2の`BLOCK`はV1結果を降格させない。これは`modules/guardrails.py`と関連testで確認できる実装事実であり、各sourceの有効性を確認した事実ではない。
 
 P1aでは、一次Evidenceの実物と完全SHA-256を確認した。P1bで初めて、各項目を`BLOCK`、`REVIEW`、`非対象・根拠不足`へ判断する。このP1a追補では新しいBLOCK / REVIEW / 非対象判断、辞書変更、Rule V2 schema変更、外部API、live page再確認を行っていない。
+
+## P1b開始前の判断基準正本化（2026-08-27）
+
+この追補は過去監査およびP1a棚卸しを書き換えず、P1bを始めるためにDEC-0044が明確化した運用基準との関係だけを記録する。本文の「文脈や許認可の確認が必要なものは`REVIEW`」という一般表現は、当時のcoverage監査の記述であり、P1bのdisposition規則ではない。許認可が販売に必須で当社が取得しない対象は該当市場のBLOCKとする後続判断がこれをsupersedeし、DEC-0026、DEC-0027、DEC-0044を優先する。
+
+- SLS出品可否確認表は市場別Evidenceである。PHではPH欄・PH条件だけを読み、他市場または複数市場のNG・条件をPH_BLOCKまたはCOMMON_BLOCKへ自動的に推測しない。
+- SLS、`ＮＧリスト.xlsx`、PH制限参考画像はNG・禁止・制限を示すEvidence sourceであり、中立カタログではない。ただし、その全行をBLOCKとするのではなく、市場、条件、NG理由をP1bで確認する。
+- community operational evidenceは公式Evidenceと区別する。市場、ブランドまたは商品、第三者販売で起きた具体的な警告、削除、違反、ペナルティ、制限または凍結の理由を確認できる場合は、DEC-0027の範囲で内部リスク回避BLOCKの根拠になり得る。正規品または有名ブランドであることだけで、ブランド・IPリスクを否定またはBLOCKすることはしない。DEC-0030の13 Brand-exact PH_BLOCKは維持する。
+- REVIEWは、具体的な追加確認または対応によって販売可能性が残る場合だけに用いる。取得しない許認可を確認待ちREVIEWに置かず、許認可が必須で当社が取得しない場合は該当市場のBLOCKとする。市場固有の条件をCOMMON_BLOCKへ自動昇格しない。
+
+この追補は個別EvidenceのBLOCK / REVIEW / 非対象・根拠不足をまだ決めず、辞書またはRule V2も変更しない。P1bの開始は、DEC-0044を含む正本化差分がmainへ統合された後とする。
