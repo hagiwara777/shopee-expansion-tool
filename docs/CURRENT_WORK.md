@@ -15,7 +15,7 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 - current_work_type: `PH Guardrail Baseline P1b OWNER_ACCEPTED / P1c implementation-preparation design gate / Gate P HOLD`
 - current_phase: `P1b complete / OWNER_ACCEPTED / P1c implementation-preparation design gate / Gate P HOLD`
-- working_branch: `codex/ph-guardrail-p1c-design-gate-sync`
+- working_branch: `再開時にGit状態を確認して確定`
 - marketplace: `PH`
 - module: `出品支援ツール / PH Guardrail`
 - phase: `PH Guardrail Baseline / P1b OWNER_ACCEPTED / P1c implementation-preparation design gate / Gate P HOLD`
@@ -235,7 +235,7 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 - 今回のKeepa Ingredient Safety live技術確認を、オーナー実物受入またはGABA実商品live BLOCK確認として扱わない。
 - GABAを含む実商品によるlive BLOCK確認を、既存unit testsおよび独立security reviewのPASSから推測しない。
 - 実装前の古いClaude Evidence Packageを第三者レビュー用に再利用しない。
-- Keepa APIその他の外部APIを実行しない。
+- 外部APIは原則実行しない。ただし、次の単一作業として承認されたShopee PH Category Taxonomy Freshness Auditでは、承認済みWORK_BRIEFの範囲内でShopee get_category read-onlyを1回・retry 0で実行できる。
 - Candidate物理schemaを推測で変更しない。
 - P5のEvidence Package再生成前に第三者独立レビューへ戻らない。
 - Gate P PASSをPH Minimum Beta正式完成またはmain統合済みと扱わない。
