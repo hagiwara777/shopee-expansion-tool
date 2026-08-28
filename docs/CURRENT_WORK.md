@@ -13,15 +13,15 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH Guardrail Baseline P1b OWNER_ACCEPTED / P1c開始準備 / Gate P HOLD`
-- current_phase: `P1b complete / OWNER_ACCEPTED / P1c開始は受入正本化main統合後 / Gate P HOLD`
-- working_branch: `codex/ph-guardrail-p1b-evidence-disposition`
+- current_work_type: `PH Guardrail Baseline P1b OWNER_ACCEPTED / P1c implementation-preparation design gate / Gate P HOLD`
+- current_phase: `P1b complete / OWNER_ACCEPTED / P1c implementation-preparation design gate / Gate P HOLD`
+- working_branch: `codex/ph-guardrail-p1c-design-gate-sync`
 - marketplace: `PH`
 - module: `出品支援ツール / PH Guardrail`
-- phase: `PH Guardrail Baseline / P1b OWNER_ACCEPTED / P1c開始は受入正本化main統合後 / Gate P HOLD`
-- next_action: P1b受入正本化差分のmain統合確認後、P1cで確定BLOCKをCOMMON_BLOCK / PH_BLOCKへ具体化・登録し、関連testを行う。
+- phase: `PH Guardrail Baseline / P1b OWNER_ACCEPTED / P1c implementation-preparation design gate / Gate P HOLD`
+- next_action: 読み取り専用のP1c design-gate research「Shopee PH Category Taxonomy Freshness Audit」を行い、current Shopee Category APIとSLS 2025-03-17 editionを比較する。これはP1bではない。
 
-P1b Evidence disposition v1-r1はオーナー受入済みであり、P1bを完了とする（DEC-0045）。Git外artifactの完全SHA-256は`27641fc0cde3bc3d585f939f9db3aeeb54545283716350554e4c74b1de382deb`で、727件、`BLOCK` 243、`REVIEW` 125、`非対象・根拠不足`（SAFEの意味ではない）359、未分類0である。P1c candidateは`YES` 229、`NO` 498であり、GSA-0659（Bose）は`BLOCK`を維持しつつDEC-0030のRule境界HOLDによりP1c対象外（`NO` / `N/A`）とする。229 candidateはP1cでCOMMON_BLOCK / PH_BLOCK具体化を検討する入力であり、受入だけでRuleを実装・有効化したものではない。DEC-0045の正本化差分がmainへ統合されるまでP1cを開始せず、P1d受入までGate PをHOLDする。
+P1b Evidence disposition v1-r1はオーナー受入済みであり、P1bを完了とする（DEC-0045）。Git外artifactの完全SHA-256は`27641fc0cde3bc3d585f939f9db3aeeb54545283716350554e4c74b1de382deb`で、727件、`BLOCK` 243、`REVIEW` 125、`非対象・根拠不足`（SAFEの意味ではない）359、未分類0である。P1c candidateは`YES` 229、`NO` 498であり、GSA-0659（Bose）は`BLOCK`を維持しつつDEC-0030のRule境界HOLDによりP1c対象外（`NO` / `N/A`）とする。229 candidateはP1cでCOMMON_BLOCK / PH_BLOCK具体化を検討する入力であり、受入だけでRuleを実装・有効化したものではない。P1b受入正本化はPR #41でmainへ統合済みであり、formal main commitは`eb14622d3a8e062a44fec7829212555f4a7cdf75`である。P1c Expressibility Auditは、現行contractで安全に実装可能0件、新しいFactまたはconnection changeが必要189件、安全なRule boundary未解決40件、合計229件とした。したがってP1c implementationはHOLDとし、P1d受入までGate PをHOLDする。
 
 P1b candidateの作業baseはformal main `7a49110caddc62467e010e67e759d3bbb07a002b`である。
 
@@ -57,6 +57,7 @@ PR #16はGate結果CSVのschema version再検証をmainへ統合し、formal mai
 
 ## 完了・受入済み
 
+- DEC-0045 PH Guardrail P1b Evidence dispositionのOWNER_ACCEPTEDとPR #41のmain統合（formal main commit `eb14622d3a8e062a44fec7829212555f4a7cdf75`）
 - DEC-0044 PH Guardrail P1b判断基準の正本化とPR #39のmain統合（formal main commit `98a16ff12f131912688c9a1885edfbbc605f9f33`）
 - P0 PH Guardrail BaselineのBeta MUST正本化とPR #37のmain統合（formal main commit `0626a6504af15ebc0a1723a13dcac613aef7e676`）
 - P1a PH Guardrail Evidence Coverage Inventory。Git外一次Evidence 3件の実物SHA-256が正本索引と完全一致し、固定storage aliasを解決した。P1b dispositionは未実施
@@ -196,8 +197,7 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 
 ## 未完了事項
 
-- P1b受入正本化差分のmain統合
-- P1c 確定BLOCKのCOMMON_BLOCK / PH_BLOCK登録と関連test
+- P1c implementation-preparation design gate: 読み取り専用の「Shopee PH Category Taxonomy Freshness Audit」（current Shopee Category APIとSLS 2025-03-17 editionの比較）
 - P1d PH_GUARDRAIL_BASELINE_COMPLETEの受入
 - P2 Gate通常利用導線の簡素化
 - P3 Ingredient Safetyと最新Guardrailを含むGate P B2 — PH Safetyのオーナー実物再受入
@@ -224,19 +224,18 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 
 ## 次の単一作業
 
-P1b受入正本化差分のmain統合確認後、P1cで確定BLOCKを`COMMON_BLOCK` / `PH_BLOCK`へ具体化・登録し、関連testを行う。
+読み取り専用のP1c design-gate research「Shopee PH Category Taxonomy Freshness Audit」を行い、current Shopee Category APIとSLS 2025-03-17 editionを比較する。これはP1bではない。
 
 ## 停止条件
 
 - Gate P B2 PH Safetyのオーナー実物再受入までは、Gate P PASS、Minimum Beta PASS、B2受入PASSとして扱わない。
 - P1d `PH_GUARDRAIL_BASELINE_COMPLETE`受入前に、Gate Pを再開しない。
-- P1b受入正本化差分のmain統合確認前に、P1cの辞書登録を開始しない。P1cの辞書登録は受入済みP1bの`p1c_candidate=YES` 229件を入力として具体化する対象に限定する。
+- P1c design-gate HOLDが解除されるまで、dictionary registration、Rule changes、code changes、または関連testsを開始しない。
 - P2前に通常利用導線、P3前にGate P B2、P4前にGate P B1〜B7全体、P5前に第三者独立レビュー、P6前にPH実運用を開始しない。
 - 今回のKeepa Ingredient Safety live技術確認を、オーナー実物受入またはGABA実商品live BLOCK確認として扱わない。
 - GABAを含む実商品によるlive BLOCK確認を、既存unit testsおよび独立security reviewのPASSから推測しない。
 - 実装前の古いClaude Evidence Packageを第三者レビュー用に再利用しない。
 - Keepa APIその他の外部APIを実行しない。
-- P1b受入正本化差分のmain統合確認前に、GABAを含む市場別BLOCK成分辞書を変更しない。P1cでは受入済みcandidateを`COMMON_BLOCK` / `PH_BLOCK`へ区別して具体化・登録する。
 - Candidate物理schemaを推測で変更しない。
 - P5のEvidence Package再生成前に第三者独立レビューへ戻らない。
 - Gate P PASSをPH Minimum Beta正式完成またはmain統合済みと扱わない。
