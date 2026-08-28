@@ -196,7 +196,7 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 
 ## 未完了事項
 
-- P1b candidateのオーナー受入（受入まで`OWNER_ACCEPTANCE_PENDING`）
+- P1b受入正本化差分のmain統合
 - P1c 確定BLOCKのCOMMON_BLOCK / PH_BLOCK登録と関連test
 - P1d PH_GUARDRAIL_BASELINE_COMPLETEの受入
 - P2 Gate通常利用導線の簡素化
