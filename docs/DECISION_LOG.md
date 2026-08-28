@@ -498,3 +498,15 @@
 - 理由: 市場固有のEvidenceを他市場や共通禁止へ推測拡張せず、公式根拠と内部リスク回避根拠を区別しながら、確定禁止と現実に解決可能なREVIEWを一貫して扱うため。また、依存工程が未統合または仮説の判断を前提に開始されることを防ぐため。
 - 影響: DEC-0024の一発アウト遮断優先を維持し、DEC-0026のBLOCK / REVIEW境界、DEC-0027の市場別Evidenceと許認可の扱い、DEC-0030の13 Brand-exact PH_BLOCK、DEC-0043のP1a〜P1d順序を再決定しない。今回、P1bの個別disposition、Guardrail辞書、Rule V2、source、tests、UI、DB、Gate P、外部API、外部書込み、push、PR、merge、deployは変更・実行しない。
 - 再検討条件: 既存Decisionと矛盾し、優先関係を一意に決められないとき、SLSの市場別扱いと正本が両立しないとき、または個別dispositionにPROJECT_ROADMAP、辞書、P1b範囲を越える責務変更が必要と判明したとき。
+
+## DEC-0045 — PH Guardrail P1b Evidence dispositionをオーナー受入する
+
+- 日付: 2026-08-28
+- 背景: DEC-0044に従ってP1bの727件をdispositionし、ChatGPT検収差戻しを反映したv1-r1 candidateを作成した。後続P1cが確定済みP1b dispositionだけを入力にするため、オーナー受入、artifact identity、件数、P1c候補範囲を依存工程の前に正本化する必要がある。
+- 決定: Git外artifact `ART-PH-GUARDRAIL-P1B-DISPOSITION-CANDIDATE-V1-R1`（`PH_GUARDRAIL_P1B_DISPOSITION_CANDIDATE_v1_r1.csv`、SHA-256 `27641fc0cde3bc3d585f939f9db3aeeb54545283716350554e4c74b1de382deb`、producer `Codex`、storage alias `LOCAL_ARTIFACT_ROOT/PH_Guardrail_Evidence/Derived/`）を`OWNER_ACCEPTED`とする。P1b dispositionは727件、`BLOCK` 243、`REVIEW` 125、`非対象・根拠不足` 359、未分類0でP1bを完了とする。非対象・根拠不足はSAFEを意味しない。
+- 決定: P1c candidateは`YES` 229、`NO` 498である。REVIEW 125件をBLOCKへ変更せず、P1c対象にしない。P1cでは受入済みの229 candidateを入力として、各対象を`COMMON_BLOCK`または`PH_BLOCK`へ具体化・登録するかを判断する。このDecisionだけで229 Ruleを実装・有効化したものとはしない。
+- 決定: GSA-0659（Boseイヤホン、ヘッドホン全般）はP1b `BLOCK`を維持するが、`p1c_candidate=NO`および`p1c_scope_hint=N/A`とする。DEC-0030のBose Rule境界HOLDを維持し、P1c対象へ戻さない。
+- 決定: P1cは本Decisionの正本化差分がmainへ統合されたことを確認した後にだけ開始する。P1d `PH_GUARDRAIL_BASELINE_COMPLETE`受入前にGate Pを再開しない。
+- 理由: 受入済みのEvidence dispositionと未実装のGuardrail登録を区別し、未統合または未確定の判断をP1cの入力にしないため。
+- 影響: `DECISION_LOG.md`、`PH_GUARDRAIL_EVIDENCE_COVERAGE_AUDIT.md`、`CURRENT_WORK.md`のP1b受入状態と次工程を更新する。今回、P1c実装、Guardrail辞書、Rule V2、source code、tests、UI、DB、PROJECT_ROADMAP、Gate P、外部API、外部書込み、push、PR、merge、deployは変更・実行しない。
+- 再検討条件: v1-r1 artifactのSHA-256または受入件数が一致しないとき、DEC-0030のBose HOLDと矛盾するP1c登録が必要になったとき、またはP1cで既存Guardrail契約を保てないと判明したとき。
