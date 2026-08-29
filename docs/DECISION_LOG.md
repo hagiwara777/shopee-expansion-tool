@@ -524,3 +524,16 @@
 - 理由: 商品自体から確定できるSafetyをCategory未確定のために遅延させず、同時にCategory依存の禁止条件も`listing_ready`前に確実に再確認するため。候補生成、Safety、Category決定の責務を分け、通常商品の全件目視やAIの無検証決定を避けながら、未解決ケースだけを具体的な確認へ回すため。
 - 影響: 後続のP1c技術設計は、受入済み229候補をCategory確定前に判定できるもの、Category確定後に判定するもの、追加Factが必要なもの、Rule境界が未解決なものへ整理する。この正本化差分がmainへ統合されるまでP1c implementationを開始せず、P1d受入までGate PをHOLDする。今回、Guardrail、Category Mapper、Resolver、Expansion、Rule V2、BLOCK辞書、source、tests、UI、DB、schema、外部API、外部書込み、push、PR、merge、deployは変更・実行しない。
 - 再検討条件: 二段階のどちらかで必要FactまたはRule境界を一意に定義できないとき、Resolverの商品同一性をSafety Factへ接続する契約を確定できないとき、Category taxonomy Evidenceに親子不整合または取得版の不明確さがあるとき、既存statusとの対応が安全保証を誤認させるとき、またはBeta実利用後に今回不採用とした案を再評価する具体的Evidenceが得られたとき。
+
+## DEC-0047 — PH Guardrail P1c技術分類 v1-r1をオーナー受入する
+
+- 日付: 2026-08-30
+- 背景: DEC-0046のmain統合（formal main `49a383da7fd895973e66f08c8a0f065cf0f08c5d`）後、P1bで受入済みの229候補を二段階Safetyに沿って技術分類した。v1のOwner Decision Queue 15件についてオーナーが境界を確定し、hemp、GABA、武器を持つキャラクター玩具等の扱いを反映したv1-r1を作成した。後続工程が未受入candidateを前提に進まないよう、成果物identityと受入範囲を正本化する必要がある。
+- 決定: 次のGit外artifact 3件を`OWNER_ACCEPTED`とする。`ART-PH-GUARDRAIL-P1C-TECHNICAL-CLASSIFICATION-CANDIDATE-V1-R1`（`PH_GUARDRAIL_P1C_TECHNICAL_CLASSIFICATION_CANDIDATE_v1_r1.csv`、SHA-256 `fadb8d18aec2dd8ac0453d608fd643b421d5fc7ec7f24b09f33562a3b121e68f`）、`ART-PH-GUARDRAIL-P1C-OWNER-DECISION-QUEUE-V1-R1`（`PH_GUARDRAIL_P1C_OWNER_DECISION_QUEUE_v1_r1.csv`、SHA-256 `16d17bad452ead487769f5a51c104c96b6e9c24d7d256a1538f8e302e897e707`、残件0）、`ART-PH-GUARDRAIL-P1C-TECHNICAL-CLASSIFICATION-SUMMARY-V1-R1`（`PH_GUARDRAIL_P1C_TECHNICAL_CLASSIFICATION_SUMMARY_v1_r1.md`、SHA-256 `5cf4f313e94f3e1cbddc599a92e6a22419c345d44ee91633779b7209baa0e434`）。producerはいずれも`Codex / PH Guardrail P1c Owner Decisions Applied`、storage aliasは`LOCAL_ARTIFACT_ROOT/PH_Guardrail_Evidence/Derived/`とする。
+- 決定: 229件の確定分類は、`PRE_CATEGORY` 0件、`POST_CATEGORY` 170件、`ADDITIONAL_FACT_REQUIRED` 59件、`RULE_BOUNDARY_UNRESOLVED` 0件、オーナー判断残0件とする。P1bのoriginal dispositionを再判定せず、分類の受入だけでRuleを実装・有効化したものとはしない。
+- 決定: Exhaust/CNGは親Categoryから子Categoryへ推測継承せず、個別に確認済みの子Category EvidenceだけをCategory決定後に判定する。hempはtitleに`hemp`を含む場合（`hemp-free`を含む）を対象とし、titleに現れない大麻・マリファナ・CBD・ヘンプ由来品は追加Factを必要とする。実武器、武器形状商品、武器を持つキャラクター玩具・模型、ガンプラ等は追加Factが必要な境界として扱う。
+- 決定: GABA含有またはGABA商品のPH除外方針と既存GABA Evidence / Rule V2の関係は維持する。ただし既存matcherが`GABA-free`までBLOCKする差分を確認した。この差分は別修正事項として残し、今回の正本化ではRule、辞書、code、testsを変更しない。
+- 決定: 次の単一作業は、本正本化差分のmain統合確認後に、`POST_CATEGORY` 170件をcurrent Shopee Categoryへ安全に接続する技術設計とする。`ADDITIONAL_FACT_REQUIRED` 59件のFact取得・搬送実装は開始しない。
+- 理由: オーナーが確定した境界、Git外artifactの実物SHA、後続工程の入力を一意にしつつ、分類受入とGuardrail実装・業務受入を混同しないため。
+- 影響: `CURRENT_WORK.md`の現在地、Git外成果物索引、残作業、次の単一作業、停止条件を更新する。P1d `PH_GUARDRAIL_BASELINE_COMPLETE`受入までGate P HOLDを維持する。今回、PROJECT_ROADMAP、Guardrail、Category Mapper、Resolver、Expansion、Rule、辞書、source、tests、UI、DB、schema、外部API、外部書込み、push、PR、merge、deployは変更・実行しない。
+- 再検討条件: 3成果物のSHA-256または229件・分類件数が一致しないとき、P1c分類がRule実装済みまたはFact取得済みと誤認されるとき、GABA-free差分の解消に別のRule／code変更が必要になったとき、または170件のCategory接続でversioned Evidenceとcurrent Categoryを安全に対応付けられないとき。
