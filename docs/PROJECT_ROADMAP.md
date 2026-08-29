@@ -23,11 +23,13 @@ Shopee事業で開発する対象は、次の三つの独立ツールである�
 
 ## V2の論理責務と実装順
 
-V2では、候補ASINと出所を`Candidate`、確認済み事実を`FactSnapshot`、Safety上のPASS / REVIEW / BLOCKを`SafetyDecision`、不足Factを解決する構造化質問・回答を`ReviewCase`、Primeまたは翌日発送等の当社運用条件を`OperationalFilter`、Categoryと必須属性単位のASIN groupを`CategoryBatch`として論理的に分離する。物理CSV列、DB構造、API fieldは今回確定しない。
+V2では、候補ASINと出所を`Candidate`、確認済み事実を`FactSnapshot`、Safety判定を`SafetyDecision`、不足Factを解決する構造化質問・回答を`ReviewCase`、Primeまたは翌日発送等の当社運用条件を`OperationalFilter`、Categoryと必須属性単位のASIN groupを`CategoryBatch`として論理的に分離する。物理CSV列、DB構造、API fieldは今回確定しない。新しい公開status / enumは追加せず、既存statusとの具体的対応は後続技術設計で決める。
 
 APIはFact、RuleはDecision、AIはPrediction、HumanはExceptionを担当する。Gate／Guardrailが無秩序に外部APIを直接呼ばない。実効BLOCKは`COMMON_BLOCK ∪ 選択市場BLOCK`とし、市場別BLOCKはCOMMON_BLOCKを解除せず、BLOCKを後工程でREVIEWまたはPASSへ降格しない。
 
-Category Mapperは唯一の正しいleaf Categoryの完全自動確定ではなく、既存出品ツールで一括処理しやすいCategoryと必須属性単位へのBatch Preparationを主目的とする。AI Category predictionは候補予測に限り、Safety BLOCK根拠にしない。Safety REVIEWとCategory Confirmationは別責務とする。
+ExpansionとResolverは候補生成の二入口であり、候補生成自身にSafety責務を持たせない。両入口の候補は共通Safetyへ渡し、Resolver由来またはShopee既出品であることだけを安全の根拠にしない。Safetyは、Shopee Category確定前に商品自体のFactで禁止・確認要件を判定し、Category決定後かつ`listing_ready`前にCategory・市場条件へ依存する禁止・確認要件を再判定する。確認済み禁止は除外し、未解決ケースだけを具体的な確認項目とともに人へ回す。Category決定へ進むことは安全保証を意味しない。
+
+Category Mapperは出品可否の最終判断者ではなく、Safety判定を通過した候補を対象市場のどのCategoryへ準備するかを担当する。唯一の正しいleaf Categoryの完全自動確定ではなく、既存出品ツールで一括処理しやすいCategoryと必須属性単位へのBatch Preparationを主目的とする。AI Category predictionは候補予測に限り、Safety BLOCK根拠にしない。Safety判定とCategory Confirmationは別責務とする。AIはFact・商品種別・確認項目・Categoryの候補抽出を補助できるが、最終的な禁止または通過を決定しない。
 
 PHではPhase 1 deterministic BLOCKのmain技術受入後、PH Beta Minimum Definitionを先に置く。Beta Minimum Coreは、(B1) ExpansionとResolverの両入口による候補ASIN取得、(B2) PH Safety、(B3) 確認済みShopee Category IDへの経路、(B4) 確認済みShopee Brand IDまたはNo Brandへの経路、(B5) 未確定を推測で準備完了にしない停止能力、(B6) ASIN・Category ID・Brand ID / No Brandの揃い具合の一意な判別、(B7) 人間が確認済み情報を取得して既存出品ツールへの手入力準備に利用できるhandoffとする。これは外部出品ツールへの自動投入や実際の出品可能を意味しない。
 
@@ -59,22 +61,32 @@ ASIN到達性能とResolver成功は未評価であり、Evidence Persistenceの
 - Shopeeに出品されている商品の英字タイトル → Resolver → 対応するAmazon ASIN
 - 既知Amazon ASIN → Expansion Tool → 関連Amazon ASIN候補
 
-### 2. 候補選別
+### 2. 商品自体のSafety
 
-- Guardrail／出品前保安ゲート（対象市場を明示して実行）
-- ELIGIBLE / REVIEW / EXCLUDE
-- 現在の市場対応範囲は別途コード・仕様監査が必要
+- Shopee Category確定前に、商品自体から判断可能な禁止・確認要件を対象市場を明示して判定する
+- 明確な禁止は除外し、判断材料不足は具体的な確認項目を示して人へ止め、それ以外だけをCategory決定へ進める
+- Category決定へ進むことは安全保証を意味しない
 
-### 3. 出品準備
+### 3. Category決定
 
-- Category Mapper（対象市場ごとのCategory ID、Brand ID、必須属性確認。現在はPHのみ。V2ではBatch Preparationを主目的とする）
+- Category Mapper（Safety判定を通過した候補について、対象市場ごとのCategory IDを決定・確認する。現在はPHのみ）
+- Category predictionとSafety判定を混同しない
+
+### 4. Category依存Safety
+
+- Shopee Category確定後かつ`listing_ready`前に、Categoryおよび市場条件へ依存する禁止・確認要件を再判定する
+- 禁止は除外し、追加確認が必要な対象は人へ止める
+- Category自身のversioned Evidenceを優先し、Category階層から独自の一般則を推測しない
+
+### 5. 出品準備
+
 - Category ID
 - Brand ID
 - 必須属性情報
 - 人間確認
 - 既存出品ツール向け受け渡し準備
 
-### 4. 出品
+### 6. 出品
 
 - 既存出品ツールを使用
 - 正式入力契約は未確認
@@ -94,9 +106,9 @@ PH Guardrail BaselineをPH Minimum BetaのMUSTとして正本化し、Gate PをH
 
 各Evidence項目を`BLOCK`、`REVIEW`、`非対象・根拠不足`へdispositionし、未判断を残さない。
 
-### P1c — 確定BLOCKのGuardrail登録
+### P1c — 二段階Safetyに基づく技術分類と確定BLOCKのGuardrail登録
 
-P1bで確定したBLOCKを`COMMON_BLOCK`と`PH_BLOCK`に区別してGuardrailへ登録し、関連testを行う。
+DEC-0046の正本化差分がmainへ統合された後、P1bで受入済みの229候補を、Category確定前に判定できるもの、Category確定後に判定するもの、追加Factが必要なもの、Rule境界が未解決なものへ技術的に整理する。その後、確定したBLOCKを`COMMON_BLOCK`と`PH_BLOCK`に区別してGuardrailへ登録し、関連testを行う。具体的なstatus対応、Fact接続、Rule境界は技術設計で確定し、分類前に実装を開始しない。
 
 ### P1d — PH Guardrail Baseline受入
 

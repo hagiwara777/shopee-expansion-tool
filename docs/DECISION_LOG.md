@@ -510,3 +510,17 @@
 - 理由: 受入済みのEvidence dispositionと未実装のGuardrail登録を区別し、未統合または未確定の判断をP1cの入力にしないため。
 - 影響: `DECISION_LOG.md`、`PH_GUARDRAIL_EVIDENCE_COVERAGE_AUDIT.md`、`CURRENT_WORK.md`のP1b受入状態と次工程を更新する。今回、P1c実装、Guardrail辞書、Rule V2、source code、tests、UI、DB、PROJECT_ROADMAP、Gate P、外部API、外部書込み、push、PR、merge、deployは変更・実行しない。
 - 再検討条件: v1-r1 artifactのSHA-256または受入件数が一致しないとき、DEC-0030のBose HOLDと矛盾するP1c登録が必要になったとき、またはP1cで既存Guardrail契約を保てないと判明したとき。
+
+## DEC-0046 — PH Safetyを商品チェックとCategory決定後チェックの二段階に分離する
+
+- 日付: 2026-08-29
+- 背景: P1c Expressibility Auditでは、受入済み229候補を現行の単純なGuardrail契約で安全に実装可能な対象は0件で、新しいFactまたはconnection changeが必要な対象189件、安全なRule boundaryが未解決の対象40件となった。Category判定をSafetyの前提にしすぎず、ExpansionとResolverの両入口、Guardrail、Category Mapperの責務を分離した設計原則をP1c技術設計より先に確定する必要がある。CodexとClaudeの独立レビューはいずれも`ACCEPT_WITH_REQUIRED_CHANGES`であり、元案の新しい`PASS`状態および非BLOCK候補の全件人間確認は採用しない。
+- 決定: ExpansionとResolverはともに候補生成入口とし、候補生成自身にSafety責務を持たせない。両入口の候補は共通の出品前Safety判定へ渡し、Shopee上の既出品商品またはResolver由来であることだけを安全の根拠にしない。ResolverでAmazon ASINとの商品同一性が未確定の候補は、確定済みAmazon FactとしてSafetyへ渡さない。具体的なconfidence score、閾値、UIは後続設計で決める。
+- 決定: PH Safetyは二段階とする。第一段階ではShopee Category確定前に、ASIN、Brand、Ingredient、商品属性、商品種別、許認可等の商品自体から判断可能なFactに基づき、明確な禁止は自動除外し、具体的な判断材料が不足する場合は解決に必要な確認項目を示して人の確認へ止め、禁止条件または確認要件が成立していない候補だけをCategory決定へ進める。Category決定へ進むことは絶対的な安全保証を意味しない。第二段階ではShopee Category確定後かつ`listing_ready`前に、Categoryおよび市場条件に依存する禁止・確認要件を再判定し、禁止は除外し、追加確認が必要な対象は人の確認へ止める。
+- 決定: Category Mapperは出品可否の最終判断者ではなく、Safety判定を通過した候補を対象市場のどのCategoryへ準備するかを担当する。Category predictionとSafety判定を混同しない。AIを最終的な禁止または通過の決定者にせず、利用する場合はFact候補、商品種別候補、確認項目、Category候補の抽出・整理に限定し、AI出力だけを無検証で正式BLOCK Ruleまたは安全Factへ昇格させない。人の確認はFact不足、Resolverの商品同一性未確定、Category自動確定不能、Category決定後条件の機械判定不能等の未解決例外に限定し、既存出品ツールへの手入力をSafety再審査の代替にしない。
+- 決定: このDecisionでは`PASS`、`NO_KNOWN_BLOCK`、`SAFE_CORRIDOR`等の新しい公開status / enumを導入しない。既存の`BLOCK / REVIEW / SAFE`および`EXCLUDE / REVIEW / ELIGIBLE`との具体的対応は後続技術設計で整理し、既存の`SAFE`を安全保証の意味へ拡張しない。Safe Corridor、positive whitelist、Amazon Browse Node等による全面的な入口制限、リスクスコアだけの通過判定、AIによる最終Safety決定、Expansionだけの独自Safety Firewall、非BLOCK候補の全件人間確認は今回採用しない。
+- 決定: 2026-08-29のread-only auditでは、Seller Centre category datasetとOpen Platform `get_category` snapshotのCategory ID比較において、Seller Centreだけに存在する79 IDとSeller Centre `is_prohibit=true`の79 IDがexact一致した。これは今回取得したdataset間の観測事実であり、Shopee APIの恒久仕様とは断定しない。`is_prohibit`はCategory決定後のSafety Evidence候補とするが、このDecisionではRuleを実装しない。今回のdatasetでは`is_prohibit=true`の上位Category配下に`is_prohibit=false`の子Categoryは確認されなかったが、「親が禁止なら子は必ず禁止」という一般則を追加せず、各Category自身のversioned Evidenceを優先する。将来、親禁止・子非禁止の不整合を検出した場合は推測で通過させず設計確認へ戻す。
+- 決定: 後続技術設計では、使用Fact、Rule / Evidence、marketplace、Category taxonomyの版または取得時点、人が確認した場合の確認結果を追跡可能にする。具体的なDB列、CSV列、schemaは今回確定しない。確認済みBLOCKを後工程でREVIEWまたは通過扱いへ降格せず、`COMMON_BLOCK`と市場別BLOCKの境界を維持する。今回の対象はPH Minimum Betaであり、他marketplaceへ実装しない。
+- 理由: 商品自体から確定できるSafetyをCategory未確定のために遅延させず、同時にCategory依存の禁止条件も`listing_ready`前に確実に再確認するため。候補生成、Safety、Category決定の責務を分け、通常商品の全件目視やAIの無検証決定を避けながら、未解決ケースだけを具体的な確認へ回すため。
+- 影響: 後続のP1c技術設計は、受入済み229候補をCategory確定前に判定できるもの、Category確定後に判定するもの、追加Factが必要なもの、Rule境界が未解決なものへ整理する。この正本化差分がmainへ統合されるまでP1c implementationを開始せず、P1d受入までGate PをHOLDする。今回、Guardrail、Category Mapper、Resolver、Expansion、Rule V2、BLOCK辞書、source、tests、UI、DB、schema、外部API、外部書込み、push、PR、merge、deployは変更・実行しない。
+- 再検討条件: 二段階のどちらかで必要FactまたはRule境界を一意に定義できないとき、Resolverの商品同一性をSafety Factへ接続する契約を確定できないとき、Category taxonomy Evidenceに親子不整合または取得版の不明確さがあるとき、既存statusとの対応が安全保証を誤認させるとき、またはBeta実利用後に今回不採用とした案を再評価する具体的Evidenceが得られたとき。
