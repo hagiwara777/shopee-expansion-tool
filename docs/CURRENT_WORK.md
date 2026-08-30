@@ -13,15 +13,15 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH Guardrail P1c technical classification v1-r1 owner acceptance canonicalization / P1c implementation HOLD / Gate P HOLD`
-- current_phase: `P1c 229 technical classification v1-r1 OWNER_ACCEPTED / P1c implementation HOLD / Gate P HOLD`
-- working_branch: `codex/ph-guardrail-p1c-technical-classification`
+- current_work_type: `PH Guardrail P1c POST_CATEGORY Connection Design v1 owner acceptance canonicalization / P1c implementation HOLD / Gate P HOLD`
+- current_phase: `P1c POST_CATEGORY 170 connection design v1 OWNER_ACCEPTED / 62 accepted mapping / 108 unresolved / P1c implementation HOLD / Gate P HOLD`
+- working_branch: `codex/ph-guardrail-p1c-post-category-acceptance`
 - marketplace: `PH`
 - module: `出品支援ツール / Candidate Generation / PH Guardrail / Category Mapper`
-- phase: `PH Guardrail Baseline / P1c技術分類v1-r1受入済み / 実装HOLD / Gate P HOLD`
-- next_action: 本正本化差分のmain統合確認後、受入済みPOST_CATEGORY 170件をcurrent Shopee Categoryへ安全に接続する技術設計を開始する。ADDITIONAL_FACT_REQUIRED 59件の実装は開始しない。
+- phase: `PH Guardrail Baseline / P1c POST_CATEGORY connection design v1受入済み / 62件接続可能 / 108件未解決 / 実装HOLD / Gate P HOLD`
+- next_action: 本正本化差分のmain統合確認後、108件を解決するためのSeller Centre Category Evidenceのidentity確定とstrict再照合をread-onlyで実施する。ADDITIONAL_FACT_REQUIRED 59件の実装は開始しない。
 
-formal main `49a383da7fd895973e66f08c8a0f065cf0f08c5d`でDEC-0046正本化差分のmain統合を確認した。P1c 229候補の技術分類v1-r1はオーナー受入済みであり、Category決定前0件、Category決定後170件、追加商品情報必要59件、Rule境界未解決0件、オーナー判断残0件である。3つのGit外artifactのidentity・完全SHA-256は索引のとおり実物再計算一致した。これは分類結果の受入であり、170件のCategory接続、59件のFact取得・搬送、Rule登録、Guardrail実装、P1d受入を完了したものではない。Gate PはHOLDを維持する。
+formal main `0d1d58a59c7f3e729e0c305fb367cbde9f693889`でDEC-0047正本化差分のmain統合を確認した。P1c POST_CATEGORY Connection Design v1と3つのGit外artifactはオーナー受入済みであり、identity・完全SHA-256は索引のとおり実物再計算一致した。POST_CATEGORY 170件のstrict照合結果は、current Categoryへ接続可能62件（`CURRENT_ID_EXACT` 62、`CURRENT_FULL_PATH_EXACT_UNIQUE` 0）、未解決108件（`LEGACY_UNRESOLVED` 106、`PARENT_SCOPE_UNRESOLVED` 2）である。108件の受入は未解決監査結果の受入であり、解決済みを意味しない。62件の受入もRule実装・有効化の許可ではない。Category確定後にGuardrail所有のCategory依存Safety判定を行い、問題がない場合だけ`listing_ready`へ進める二段階Safety原則を維持する。P1c implementationとGate PはHOLDを維持する。
 
 Shopee PH Category Taxonomy Freshness AuditとCategory ID exact照合は完了した。2026-08-29のread-only auditでは、Seller Centreだけに存在する79 Category IDとSeller Centre `is_prohibit=true`の79 IDがexact一致した。これは取得dataset間の観測事実であり、Shopee APIの恒久仕様とは扱わない。CodexとClaudeの独立設計レビューはいずれも`ACCEPT_WITH_REQUIRED_CHANGES`で完了し、オーナーは指摘を反映した二段階Safety設計原則を採用した。P1c implementationとGate PはHOLDを維持する。
 
@@ -61,6 +61,7 @@ PR #16はGate結果CSVのschema version再検証をmainへ統合し、formal mai
 
 ## 完了・受入済み
 
+- P1c POST_CATEGORY Connection Design v1とGit外成果物3件のOWNER_ACCEPTED。170件 = strict接続可能62件 + 未解決108件。108件は追加Evidence対象であり解決済みではなく、62件はRule実装済みではない（DEC-0048）
 - Shopee PH Category Taxonomy Freshness AuditとCategory ID exact照合完了（2026-08-29 read-only audit）
 - PH Safety二段階設計のCodex・Claude独立レビュー完了（ともに`ACCEPT_WITH_REQUIRED_CHANGES`）とオーナー採用
 - DEC-0045 PH Guardrail P1b Evidence dispositionのOWNER_ACCEPTEDとPR #41のmain統合（formal main commit `eb14622d3a8e062a44fec7829212555f4a7cdf75`）
@@ -198,6 +199,9 @@ CI成果物で再確認された事実ではありません。コード機能の
 | ART-PH-GUARDRAIL-P1C-OWNER-DECISION-QUEUE-V1-R1 | P1c owner decision queue v1-r1 | `PH_GUARDRAIL_P1C_OWNER_DECISION_QUEUE_v1_r1.csv` | `16d17bad452ead487769f5a51c104c96b6e9c24d7d256a1538f8e302e897e707` | `Codex / PH Guardrail P1c Owner Decisions Applied` | `OWNER_ACCEPTED` | `LOCAL_ARTIFACT_ROOT/PH_Guardrail_Evidence/Derived/` | 残件0。15件のowner decisionを分類へ反映済み |
 | ART-PH-GUARDRAIL-P1C-TECHNICAL-CLASSIFICATION-SUMMARY-V1-R1 | P1c technical classification summary v1-r1 | `PH_GUARDRAIL_P1C_TECHNICAL_CLASSIFICATION_SUMMARY_v1_r1.md` | `5cf4f313e94f3e1cbddc599a92e6a22419c345d44ee91633779b7209baa0e434` | `Codex / PH Guardrail P1c Owner Decisions Applied` | `OWNER_ACCEPTED` | `LOCAL_ARTIFACT_ROOT/PH_Guardrail_Evidence/Derived/` | 4分類、hemp、GABA、武器を持つキャラクター玩具の境界と未実装事項を要約 |
 | ART-PH-SHOPEE-CATEGORY-SNAPSHOT-20260829-V1 | Shopee PH Category snapshot v1 | `SHOPEE_PH_CATEGORY_SNAPSHOT_2026-08-29_v1.csv` | `16cc9bcd0be87326e2d221bcf113f54a99b2d4698f3e911abb2878611b9e8211` | `Codex` | `AUDIT_OUTPUT_PENDING_REVIEW` | `LOCAL_ARTIFACT_ROOT/PH_Guardrail_Evidence/Derived/` | 2026-08-29 Open Platform Category snapshot。実物とSHA-256を確認済み |
+| ART-PH-GUARDRAIL-P1C-POST-CATEGORY-MAPPING-CANDIDATE-V1 | P1c POST_CATEGORY mapping candidate v1 | `PH_GUARDRAIL_P1C_POST_CATEGORY_MAPPING_CANDIDATE_v1.csv` | `f12b96dbe8a073c67a5d6bc75b0c542431b956cc50023321c617d130566c2ecd` | `Codex / PH Guardrail P1c POST_CATEGORY Connection Design` | `OWNER_ACCEPTED` | `LOCAL_ARTIFACT_ROOT/PH_Guardrail_Evidence/Derived/` | 170件。strict接続可能62件、未解決108件。62件の受入はRule実装許可ではない |
+| ART-PH-GUARDRAIL-P1C-POST-CATEGORY-UNRESOLVED-V1 | P1c POST_CATEGORY unresolved v1 | `PH_GUARDRAIL_P1C_POST_CATEGORY_UNRESOLVED_v1.csv` | `b61d2d78149ad2b8bd50193d660ae63486b7dc825c2b0d694fc51bfc1f4218c9` | `Codex / PH Guardrail P1c POST_CATEGORY Connection Design` | `OWNER_ACCEPTED` | `LOCAL_ARTIFACT_ROOT/PH_Guardrail_Evidence/Derived/` | 未解決108件。LEGACY 106、PARENT_SCOPE 2。受入は解決済みを意味しない |
+| ART-PH-GUARDRAIL-P1C-POST-CATEGORY-CONNECTION-DESIGN-V1 | P1c POST_CATEGORY connection design v1 | `PH_GUARDRAIL_P1C_POST_CATEGORY_CONNECTION_DESIGN_v1.md` | `7f46486883f1b96f1631d0fc5a6f4ac398f066ad7ba691cbbf243ce104e461ee` | `Codex / PH Guardrail P1c POST_CATEGORY Connection Design` | `OWNER_ACCEPTED` | `LOCAL_ARTIFACT_ROOT/PH_Guardrail_Evidence/Derived/` | strict mapping基準、Category MapperとGuardrailの責務分離、二段階Safety、後続内部interface方針 |
 | GAR-AUD-CLASSIFICATION-CANDIDATES | 727候補詳細分類・版指定なし | `classification_candidates.csv` | `b6c0329e1d5d63a38507c34588ca95e0c8483a05614c4bb711f27ea0a4dc2832` | Guardrail 3資料監査 | `GENERATED_AUDIT_CANDIDATE / NOT_CANONICAL` | `LOCAL_GITEXCLUDED_GUARDRAIL_AUDIT_CLASSIFICATION_CANDIDATES` | 727候補の詳細分類。実物アクセス確認済み |
 | GAR-AUD-SUMMARY | 監査要約・版指定なし | `audit_summary.md` | `0f76e38904c6f4eeaa6be3338f75dbb15c10725260b5e0ba2451a431d14efeb1` | Guardrail 3資料監査 | `GENERATED_AUDIT_CANDIDATE / NOT_CANONICAL` | `LOCAL_GITEXCLUDED_GUARDRAIL_AUDIT_SUMMARY` | 監査要約。実物アクセス確認済み |
 | GAR-AUD-EXISTING-DICTIONARY-COMPARISON | 既存辞書比較・版指定なし | `existing_dictionary_comparison.csv` | `c5a2c6faaf5d24ca722d406e571bcdd669c1a271e5779c96a6d2be6370cbd180` | Guardrail 3資料監査 | `GENERATED_AUDIT_CANDIDATE / NOT_CANONICAL` | `LOCAL_GITEXCLUDED_GUARDRAIL_AUDIT_EXISTING_DICTIONARY_COMPARISON` | 既存89ルールとの比較。実物アクセス確認済み |
@@ -207,7 +211,8 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 
 ## 未完了事項
 
-- P1cの受入済みPOST_CATEGORY 170件をcurrent Shopee Categoryへ安全に接続する技術設計（本正本化差分のmain統合確認後）
+- P1c POST_CATEGORY未解決108件を解決するためのSeller Centre Category Evidenceのidentity確定とstrict再照合（本正本化差分のmain統合確認後、read-only）
+- P1c POST_CATEGORYの受入済みstrict mapping 62件を対象とする個別Rule scope reviewと後続実装設計（今回開始しない）
 - P1cのADDITIONAL_FACT_REQUIRED 59件に必要なFact取得・搬送の後続設計（今回の実装開始はしない）
 - 既存GABA Rule V2が`GABA-free`までBLOCKするmatcher差分の別修正（今回のRule／code変更対象外）
 - P1d PH_GUARDRAIL_BASELINE_COMPLETEの受入
@@ -238,17 +243,23 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 
 DEC-0046正本化差分のmain統合確認後、P1cの受入済み229候補をCategory確定前に判定できるもの、Category確定後に判定するもの、追加Factが必要なもの、Rule境界が未解決なものへ技術的に分類する。
 
-## 次の単一作業
+## 旧・次の単一作業（DEC-0048で完了）
 
 本正本化差分のmain統合確認後、受入済みPOST_CATEGORY 170件をcurrent Shopee Categoryへ安全に接続する技術設計を開始する。ADDITIONAL_FACT_REQUIRED 59件の実装は開始しない。
+
+## 次の単一作業
+
+本正本化差分のmain統合確認後、108件を解決するためのSeller Centre Category Evidenceのidentity確定とstrict再照合をread-onlyで実施する。以前取得済みのローカルdatasetを使う場合も、ファイル名、完全SHA-256、producer、取得元、取得時点、storage aliasを確認し、正式Evidence identityを固定してから使う。ADDITIONAL_FACT_REQUIRED 59件の実装は開始しない。
 
 ## 停止条件
 
 - Gate P B2 PH Safetyのオーナー実物再受入までは、Gate P PASS、Minimum Beta PASS、B2受入PASSとして扱わない。
 - P1d `PH_GUARDRAIL_BASELINE_COMPLETE`受入前に、Gate Pを再開しない。
-- P1c design-gate HOLDが解除されるまで、dictionary registration、Rule changes、code changes、または関連testsを開始しない。
-- 本正本化差分のmain統合確認前に、P1cのPOST_CATEGORY 170件をcurrent Shopee Categoryへ接続する設計または実装を開始しない。
-- P1c分類の受入だけで、POST_CATEGORY 170件を実装完了、ADDITIONAL_FACT_REQUIRED 59件をFact取得済み、または229件をRule登録済みと扱わない。
+- 後続実装の範囲が別途受入されるまで、dictionary registration、Rule changes、code changes、または関連testsを開始しない。
+- 本正本化差分のmain統合確認前に、未解決108件のSeller Centre Category Evidence調査・strict再照合、62件のRule設計または実装を開始しない。
+- 未解決108件を解決済みとして扱わず、62件をRule実装済みまたは有効化済みとして扱わない。POST_CATEGORY 170件を実装完了、ADDITIONAL_FACT_REQUIRED 59件をFact取得済み、または229件をRule登録済みと扱わない。
+- 未解決108件をfuzzy、AI、leaf名だけの一致、親Categoryから子Categoryへの推測継承で接続しない。
+- Seller Centre Category Evidenceはidentityを固定してから使用し、未索引のローカルファイルを推測で正式根拠にしない。
 - GABA-free matcher差分を本正本化作業へ混在させず、別の承認済み修正までRule、辞書、code、testsを変更しない。
 - P2前に通常利用導線、P3前にGate P B2、P4前にGate P B1〜B7全体、P5前に第三者独立レビュー、P6前にPH実運用を開始しない。
 - 今回のKeepa Ingredient Safety live技術確認を、オーナー実物受入またはGABA実商品live BLOCK確認として扱わない。
