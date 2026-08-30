@@ -537,3 +537,16 @@
 - 理由: オーナーが確定した境界、Git外artifactの実物SHA、後続工程の入力を一意にしつつ、分類受入とGuardrail実装・業務受入を混同しないため。
 - 影響: `CURRENT_WORK.md`の現在地、Git外成果物索引、残作業、次の単一作業、停止条件を更新する。P1d `PH_GUARDRAIL_BASELINE_COMPLETE`受入までGate P HOLDを維持する。今回、PROJECT_ROADMAP、Guardrail、Category Mapper、Resolver、Expansion、Rule、辞書、source、tests、UI、DB、schema、外部API、外部書込み、push、PR、merge、deployは変更・実行しない。
 - 再検討条件: 3成果物のSHA-256または229件・分類件数が一致しないとき、P1c分類がRule実装済みまたはFact取得済みと誤認されるとき、GABA-free差分の解消に別のRule／code変更が必要になったとき、または170件のCategory接続でversioned Evidenceとcurrent Categoryを安全に対応付けられないとき。
+
+## DEC-0048 — P1c POST_CATEGORY Connection Design v1をオーナー受入する
+
+- 日付: 2026-08-30
+- 背景: DEC-0047のmain統合（formal main `0d1d58a59c7f3e729e0c305fb367cbde9f693889`）後、受入済み`POST_CATEGORY` 170件を、SLS source EvidenceのCategory ID / full pathと2026-08-29のcurrent Shopee PH Category snapshotへstrict criteriaで照合した。後続工程が62件の確定mappingと108件の未解決範囲を混同せず、未解決Categoryを名前類似や意味推測で接続しないよう、設計、成果物identity、件数、次工程を正本化する必要がある。
+- 決定: 次のGit外artifact 3件を`OWNER_ACCEPTED`とする。`ART-PH-GUARDRAIL-P1C-POST-CATEGORY-MAPPING-CANDIDATE-V1`（`PH_GUARDRAIL_P1C_POST_CATEGORY_MAPPING_CANDIDATE_v1.csv`、SHA-256 `f12b96dbe8a073c67a5d6bc75b0c542431b956cc50023321c617d130566c2ecd`）、`ART-PH-GUARDRAIL-P1C-POST-CATEGORY-UNRESOLVED-V1`（`PH_GUARDRAIL_P1C_POST_CATEGORY_UNRESOLVED_v1.csv`、SHA-256 `b61d2d78149ad2b8bd50193d660ae63486b7dc825c2b0d694fc51bfc1f4218c9`）、`ART-PH-GUARDRAIL-P1C-POST-CATEGORY-CONNECTION-DESIGN-V1`（`PH_GUARDRAIL_P1C_POST_CATEGORY_CONNECTION_DESIGN_v1.md`、SHA-256 `7f46486883f1b96f1631d0fc5a6f4ac398f066ad7ba691cbbf243ce104e461ee`）。producerはいずれも`Codex / PH Guardrail P1c POST_CATEGORY Connection Design`、storage aliasは`LOCAL_ARTIFACT_ROOT/PH_Guardrail_Evidence/Derived/`とする。
+- 決定: `POST_CATEGORY` 170件のstrict照合結果は、current Categoryへ接続可能62件、未解決108件とする。接続可能の内訳は`CURRENT_ID_EXACT` 62件、`CURRENT_FULL_PATH_EXACT_UNIQUE` 0件である。未解決の内訳は`LEGACY_UNRESOLVED` 106件、`PARENT_SCOPE_UNRESOLVED` 2件である。fuzzy、AI、leaf名だけの一致、親Categoryから子Categoryへの推測継承は使用しない。108件のartifact受入は、108件が解決したことを意味しない。
+- 決定: Category依存Safetyは、Category確定後にGuardrail所有のCategory依存Safety判定を行い、問題がない場合だけ`listing_ready`へ進める二段階Safety原則を維持する。Category Mapper自身を禁止判定者にしない。`PRELISTING_CANDIDATE_V1`、`PRELISTING_GATE_RESULT_V1`、既存Category Mapper CSVの破壊的変更は不要とし、具体的な内部interface、version binding、Category変更時のDecision invalidation、audit persistence、fail-closed表示は後続実装設計で確定する。
+- 決定: 62件のstrict mappingを後続Rule設計の正式入力として受け入れるが、この受入をRule登録、Guardrail実装、Category Mapper実装または有効化の許可としない。未解決108件はそのまま保持し、LEGACY 106件の現在の後継CategoryとExhaust / CNG 2件の個別子Categoryについて、確認可能なSeller Centre Category Evidenceを追加取得・照合する。`ADDITIONAL_FACT_REQUIRED` 59件のFact取得・搬送実装は開始しない。
+- 決定: 次の単一作業は、本正本化差分のmain統合確認後に、108件を解決するためのSeller Centre Category Evidenceのidentity確定とstrict再照合をread-onlyで実施することとする。以前取得済みのローカルdatasetを使う場合も、ファイル名、完全SHA-256、producer、取得元、取得時点、storage aliasを確認して正式Evidence identityを固定し、未索引ファイルを推測で正式根拠にしない。
+- 理由: versioned Evidenceに基づく62件だけを確定入力として固定し、Evidence不足の108件を推測接続せず、Category決定とGuardrail所有のSafety判定の責務を分離したまま後続調査へ渡すため。
+- 影響: `CURRENT_WORK.md`の現在地、Git外成果物索引、未完了事項、次の単一作業、停止条件を更新する。P1c implementationとGate PはHOLDを維持する。今回、`PROJECT_ROADMAP.md`、Guardrail、Category Mapper、Prelisting Gate、Resolver、Expansion、Rule、辞書、source、tests、UI、DB、public schema、外部API、外部書込み、push、PR、merge、deployは変更・実行しない。
+- 再検討条件: 3成果物のidentityまたはSHA-256が一致しないとき、`170 != 62 + 108`となるとき、108件を解決済みとして扱う必要が生じるとき、strict criteriaでないmappingが必要になるとき、または次工程にRule／code変更が必要と判明したとき。
