@@ -550,3 +550,16 @@
 - 理由: versioned Evidenceに基づく62件だけを確定入力として固定し、Evidence不足の108件を推測接続せず、Category決定とGuardrail所有のSafety判定の責務を分離したまま後続調査へ渡すため。
 - 影響: `CURRENT_WORK.md`の現在地、Git外成果物索引、未完了事項、次の単一作業、停止条件を更新する。P1c implementationとGate PはHOLDを維持する。今回、`PROJECT_ROADMAP.md`、Guardrail、Category Mapper、Prelisting Gate、Resolver、Expansion、Rule、辞書、source、tests、UI、DB、public schema、外部API、外部書込み、push、PR、merge、deployは変更・実行しない。
 - 再検討条件: 3成果物のidentityまたはSHA-256が一致しないとき、`170 != 62 + 108`となるとき、108件を解決済みとして扱う必要が生じるとき、strict criteriaでないmappingが必要になるとき、または次工程にRule／code変更が必要と判明したとき。
+
+## DEC-0049 — PH Minimum Beta完成線を重大実務リスク中心へ再設定する
+
+- 日付: 2026-08-31
+- 背景: オーナーがSLS一次資料を直接確認した結果、同資料は単純な禁止Category一覧ではなく、SLS物流、危険物、発送可否の性格が強いと判断した。受入済みP1c成果では`POST_CATEGORY` 170件をstrict接続可能62件と未解決108件に分けたが、この完全追跡をBeta前に継続する限界効用は低い。既存実装と過去成果を壊さず、アカウント・知財・Safety上の重大な実務リスクを防ぎながら早く実務投入できる完成線へ優先順位を変更する必要がある。なお、Work Briefの「61件」表記は、既存正本で確認済みの62件を変更する根拠とせず、`170 = 62 + 108`を維持する。
+- 決定: PH Minimum Beta前のMUSTを次の10項目に限定する。(1) Expansion / Resolverの既存候補生成機能を継続利用できること、(2) 既出品ASINおよび同一入力内ASINの重複を検出して準備対象から外せること、(3) 確定済みNG ASIN、Brand、知財Evidenceに基づく除外を行えること、(4) GABA、hemp等の確定禁止条件を取得済み商品情報から検出できること、(5) 商品titleだけでなく、description、featuresその他の取得可能な商品文章も禁止判定対象にできること、(6) 武器等、文章から明確に禁止対象と判断できる商品を除外できること、(7) 画像でしか判別できない武器等はAIを疑わしい商品の発見に利用し、AI推定だけで自動BLOCKせず人間確認へ回せること、(8) 判断不能な重大Safety案件を準備完了にせず人間確認へ止められること、(9) Category Mapper、Brand、handoffの既存機能を継続利用できること、(10) 少量の実商品でこの一連の流れを確認し、オーナーがBeta受入を判断すること。具体的な実装充足状況は未確認であり、本Decisionだけで各項目を実装済みまたはPASSとは扱わない。
+- 決定: Beta前MUSTから、SLS旧Category 170件・未解決108件・strict接続可能62件の完全追跡、Category依存Safetyの網羅的Rule化、古いCategoryの後継Category完全特定、確定済みNGリスト外の知財をAI等で広範囲に推測してBLOCKすること、ASIN exact一致を越える高度な重複商品判定、他marketplace対応、自動出品を外す。これらは削除せず、必要に応じて再評価する`BETA_AFTER_CANDIDATE`として保持する。
+- 決定: DEC-0043のP0〜P6をBeta前の必須順序とする部分、およびDEC-0048の未解決108件調査を次の単一作業とする部分を、本Decisionでsupersedeする。DEC-0034／DEC-0035のB1〜B7、DEC-0043のPH Guardrail Baseline、DEC-0046〜DEC-0048の二段階Safety・P1c分類・Category接続成果は履歴および将来Evidenceとして保持するが、本Decisionの10項目を越えてBeta blockerを自動追加する根拠にはしない。確定済みBLOCKを後工程で降格しない原則、候補生成・Safety・Category Mapperの責務分離、AIだけで正式BLOCKまたは安全Factを確定しない原則は維持する。
+- 決定: Gate PはPASSにしない。新しい10項目に対する現行実装のread-only差分監査と、その結果に基づく必要最小限の別途承認済み対応を経て、少量の実商品による一連の流れをオーナーが確認するまでHOLDとする。過去のGate P PASSは旧仕様に対する受入履歴としてのみ保持する。
+- 決定: 次の単一作業を「現行実装が新Beta MUSTのどこまで既に満たしているかのread-only差分監査」とする。監査では各MUSTを、確認済み実装、部分充足、未充足、未確認に区別し、未確認事項または理想的な追加機能を新しいBeta blockerへ自動昇格させない。監査中はコード、Rule、辞書、testsを変更せず、外部API、実データ、外部書込みを使用しない。
+- 理由: 網羅的なCategory追跡より、確認済みの重大禁止、重複、知財、文章・画像から発見できる重大Safety、人間へのsafe stopを優先し、既存の有効な候補生成・Category・Brand・handoffを再利用してPH実務投入までの距離を短くするため。
+- 影響: `CURRENT_WORK.md`を旧Category調査から新Beta方針とread-only差分監査へ切り替え、`PROJECT_ROADMAP.md`のBeta前／Beta後境界を同期する。過去のP1c成果物、identity、SHA-256、170件・62件・108件の確認済み事実は削除、無効化、再分類しない。今回、コード、Rule、辞書、tests、README、schema、UI、DB、外部API、実データ、外部書込み、push、PR、merge、deployは変更・実行しない。
+- 再検討条件: read-only差分監査で10項目のいずれかに重大な未充足が確認されたとき、少量実商品受入で重大な見逃しまたは実務不能が確認されたとき、新しいBeta blockerを追加するオーナー判断が行われたとき、またはBeta後の実利用EvidenceによりCategory完全追跡その他の`BETA_AFTER_CANDIDATE`を優先する必要が生じたとき。
