@@ -13,25 +13,29 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH Guardrail P1c POST_CATEGORY Connection Design v1 owner acceptance canonicalization / P1c implementation HOLD / Gate P HOLD`
-- current_phase: `P1c POST_CATEGORY 170 connection design v1 OWNER_ACCEPTED / 62 accepted mapping / 108 unresolved / P1c implementation HOLD / Gate P HOLD`
-- working_branch: `codex/ph-guardrail-p1c-post-category-acceptance`
+- current_work_type: `PH Minimum Beta completion line reset canonicalization / read-only implementation gap audit pending / Gate P HOLD`
+- current_phase: `DEC-0049 new Beta MUST canonicalized / legacy P1c Category full tracking moved to BETA_AFTER_CANDIDATE / Gate P HOLD`
+- working_branch: `codex/ph-minimum-beta-completion-line-reset`
 - marketplace: `PH`
-- module: `出品支援ツール / Candidate Generation / PH Guardrail / Category Mapper`
-- phase: `PH Guardrail Baseline / P1c POST_CATEGORY connection design v1受入済み / 62件接続可能 / 108件未解決 / 実装HOLD / Gate P HOLD`
-- next_action: 本正本化差分のmain統合確認後、108件を解決するためのSeller Centre Category Evidenceのidentity確定とstrict再照合をread-onlyで実施する。ADDITIONAL_FACT_REQUIRED 59件の実装は開始しない。
+- module: `出品支援ツール / Candidate Generation / PH Guardrail / Category Mapper / Brand / Handoff`
+- phase: `PH Minimum Beta重大実務リスク中心の完成線 / 現行実装差分未監査 / Category完全追跡はBeta後候補 / Gate P HOLD`
+- next_action: 本正本化差分のmain統合確認後、現行実装が新Beta MUSTのどこまで既に満たしているかのread-only差分監査を実施する。監査中はコード、Rule、辞書、testsを変更しない。
+
+最新`origin/main`と作業開始時HEADは`bf28c0702c845ec90e3f2847a8689c26162f32d3`で一致した。DEC-0049により、PH Minimum Beta完成線をCategory Safetyの完全追跡から、重大な実務リスクを防ぎながら既存機能を利用して早く実務投入する方針へ切り替えた。Beta前MUSTは、既存Expansion / Resolver、ASIN exact重複、確定済みNG ASIN / Brand / 知財、GABA・hemp等の確定禁止、title以外を含む取得可能文章、文章で明確な武器等、画像AIによる疑わしい商品の発見と人間確認、判断不能な重大Safetyのsafe stop、既存Category Mapper / Brand / handoff、少量実商品でのオーナー受入に限定する。現行実装の充足状況は未監査であり、Gate PはHOLDを維持する。
+
+P1c POST_CATEGORY 170件の確認済み内訳はstrict接続可能62件と未解決108件である。Work Briefの「61件」表記で既存の確認済み件数を変更しない。170件・108件・62件の完全追跡、Category依存Safetyの網羅的Rule化、古いCategoryの後継Category完全特定は`BETA_AFTER_CANDIDATE`へ移し、過去のP1c成果物、identity、SHA-256、分類、二段階Safety原則を履歴・将来Evidenceとして保持する。Category調査を別名称でBeta前に継続しない。
 
 formal main `0d1d58a59c7f3e729e0c305fb367cbde9f693889`でDEC-0047正本化差分のmain統合を確認した。P1c POST_CATEGORY Connection Design v1と3つのGit外artifactはオーナー受入済みであり、identity・完全SHA-256は索引のとおり実物再計算一致した。POST_CATEGORY 170件のstrict照合結果は、current Categoryへ接続可能62件（`CURRENT_ID_EXACT` 62、`CURRENT_FULL_PATH_EXACT_UNIQUE` 0）、未解決108件（`LEGACY_UNRESOLVED` 106、`PARENT_SCOPE_UNRESOLVED` 2）である。108件の受入は未解決監査結果の受入であり、解決済みを意味しない。62件の受入もRule実装・有効化の許可ではない。Category確定後にGuardrail所有のCategory依存Safety判定を行い、問題がない場合だけ`listing_ready`へ進める二段階Safety原則を維持する。P1c implementationとGate PはHOLDを維持する。
 
 Shopee PH Category Taxonomy Freshness AuditとCategory ID exact照合は完了した。2026-08-29のread-only auditでは、Seller Centreだけに存在する79 Category IDとSeller Centre `is_prohibit=true`の79 IDがexact一致した。これは取得dataset間の観測事実であり、Shopee APIの恒久仕様とは扱わない。CodexとClaudeの独立設計レビューはいずれも`ACCEPT_WITH_REQUIRED_CHANGES`で完了し、オーナーは指摘を反映した二段階Safety設計原則を採用した。P1c implementationとGate PはHOLDを維持する。
 
-P1b Evidence disposition v1-r1はオーナー受入済みであり、P1bを完了とする（DEC-0045）。Git外artifactの完全SHA-256は`27641fc0cde3bc3d585f939f9db3aeeb54545283716350554e4c74b1de382deb`で、727件、`BLOCK` 243、`REVIEW` 125、`非対象・根拠不足`（SAFEの意味ではない）359、未分類0である。P1c candidateは`YES` 229、`NO` 498であり、GSA-0659（Bose）は`BLOCK`を維持しつつDEC-0030のRule境界HOLDによりP1c対象外（`NO` / `N/A`）とする。229 candidateはP1cでCOMMON_BLOCK / PH_BLOCK具体化を検討する入力であり、受入だけでRuleを実装・有効化したものではない。P1b受入正本化はPR #41でmainへ統合済みであり、formal main commitは`eb14622d3a8e062a44fec7829212555f4a7cdf75`である。P1c Expressibility Auditは、現行contractで安全に実装可能0件、新しいFactまたはconnection changeが必要189件、安全なRule boundary未解決40件、合計229件とした。したがってP1c implementationはHOLDとし、P1d受入までGate PをHOLDする。
+P1b Evidence disposition v1-r1はオーナー受入済みであり、P1bを完了とする（DEC-0045）。Git外artifactの完全SHA-256は`27641fc0cde3bc3d585f939f9db3aeeb54545283716350554e4c74b1de382deb`で、727件、`BLOCK` 243、`REVIEW` 125、`非対象・根拠不足`（SAFEの意味ではない）359、未分類0である。P1c candidateは`YES` 229、`NO` 498であり、GSA-0659（Bose）は`BLOCK`を維持しつつDEC-0030のRule境界HOLDによりP1c対象外（`NO` / `N/A`）とする。229 candidateはP1cでCOMMON_BLOCK / PH_BLOCK具体化を検討する入力であり、受入だけでRuleを実装・有効化したものではない。P1b受入正本化はPR #41でmainへ統合済みであり、formal main commitは`eb14622d3a8e062a44fec7829212555f4a7cdf75`である。P1c Expressibility Auditは、現行contractで安全に実装可能0件、新しいFactまたはconnection changeが必要189件、安全なRule boundary未解決40件、合計229件とした。旧優先順位ではP1c implementationとP1d受入までGate PをHOLDしていたが、DEC-0049によりP1c完全追跡をBeta前MUSTから外した。
 
 P1b candidateの作業baseはformal main `7a49110caddc62467e010e67e759d3bbb07a002b`である。
 
-DEC-0043により、PH Guardrail BaselineをBeta MUSTとしてP0に置いた。PR #37のmain統合（formal main commit `0626a6504af15ebc0a1723a13dcac613aef7e676`）を確認し、P1aを開始した。P1a〜P1dでPH Guardrail Baselineを受入するまでGate PをHOLDする。P0〜P2はGate Pの新しい前提であり、過去のGate P結果をPH Minimum Betaの最終受入またはmain統合済みと扱わない。
+旧優先順位ではDEC-0043によりPH Guardrail BaselineをBeta MUSTとしてP0に置き、PR #37のmain統合（formal main commit `0626a6504af15ebc0a1723a13dcac613aef7e676`）後にP1aを開始した。DEC-0049はP0〜P6をBeta前の必須順序とする部分を置き換えた。過去の成果とGate P結果は履歴として保持するが、Gate PまたはPH Minimum Betaの現在のPASS根拠にしない。
 
-P1aの棚卸し後、P1bを始める前にDEC-0044でPH Guardrailの市場別Evidence、community operational evidence、ブランド・IP、許認可、REVIEWの境界と、依存工程前の確定判断の正本化順序を明確化した。PR #39はmainへ統合済みで、formal main commitは`98a16ff12f131912688c9a1885edfbbc605f9f33`である。次の単一作業はP1bの個別Evidence dispositionであり、Gate PはHOLDを維持する。
+P1aの棚卸し後、P1bを始める前にDEC-0044でPH Guardrailの市場別Evidence、community operational evidence、ブランド・IP、許認可、REVIEWの境界と、依存工程前の確定判断の正本化順序を明確化した。PR #39はmainへ統合済みで、formal main commitは`98a16ff12f131912688c9a1885edfbbc605f9f33`である。当時の次の単一作業はP1bの個別Evidence dispositionであり、完了済みの履歴として保持する。
 
 Gate Kの正式技術確認はPASS済みである。Gate PはB1 Candidate、B2 PH Safety、B3 Category、B4 Brand / No Brand、B5 Safe Stop、B6 listing_ready、B7 Human Handoffの全項目を実画面で確認し、B1〜B7をPASSとする。B2ではPH、Candidate 2件、ELIGIBLE 2件、REVIEW 0件、EXCLUDE 0件とshop label UX修正を確認した。B3ではCategory Path `Beauty > Skincare > Toner`、Category ID `100892`を採用した。B4ではCategory Mapper一時認証入力のsecurity reviewをPASS後、承認済みのShopee Brand List read-only取得を1回・retry 0で実行し、No BrandをBrand ID `0`としてオーナーが確定した。B5ではBrand未確定時に出力対象がなく次工程へ進めないこと、B6では2件がlisting_readyになること、B7では2件・1グループのCSV / text handoffを取得できることを確認した。これらは旧優先順位における受入履歴である。商品名、ASIN、CSV本文、credentialはこの正本に記録しない。
 
@@ -61,6 +65,7 @@ PR #16はGate結果CSVのschema version再検証をmainへ統合し、formal mai
 
 ## 完了・受入済み
 
+- DEC-0049でPH Minimum Beta完成線を重大実務リスク中心へ再設定。旧P1cのCategory完全追跡を`BETA_AFTER_CANDIDATE`へ移し、過去成果・Evidenceは保持。Gate PはHOLD
 - P1c POST_CATEGORY Connection Design v1とGit外成果物3件のOWNER_ACCEPTED。170件 = strict接続可能62件 + 未解決108件。108件は追加Evidence対象であり解決済みではなく、62件はRule実装済みではない（DEC-0048）
 - Shopee PH Category Taxonomy Freshness AuditとCategory ID exact照合完了（2026-08-29 read-only audit）
 - PH Safety二段階設計のCodex・Claude独立レビュー完了（ともに`ACCEPT_WITH_REQUIRED_CHANGES`）とオーナー採用
@@ -211,16 +216,13 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 
 ## 未完了事項
 
-- P1c POST_CATEGORY未解決108件を解決するためのSeller Centre Category Evidenceのidentity確定とstrict再照合（本正本化差分のmain統合確認後、read-only）
-- P1c POST_CATEGORYの受入済みstrict mapping 62件を対象とする個別Rule scope reviewと後続実装設計（今回開始しない）
-- P1cのADDITIONAL_FACT_REQUIRED 59件に必要なFact取得・搬送の後続設計（今回の実装開始はしない）
+- 新Beta MUST 10項目に対する現行実装のread-only差分監査。各MUSTを確認済み実装、部分充足、未充足、未確認に区別し、未確認事項を新しいBeta blockerへ自動昇格させない
+- 差分監査後に確認された新Beta MUSTの不足への対応。具体的なコード、Rule、辞書、testsの変更は別作業・別範囲とし、今回開始しない
+- 少量の実商品による「候補生成、重複・重大Safety、Category / Brand、handoff」の一連の流れのオーナーBeta受入。Gate PはそれまでHOLD
+- `BETA_AFTER_CANDIDATE`: P1c POST_CATEGORY 170件（strict接続可能62件、未解決108件）の完全追跡、Seller Centre Category Evidenceの追加照合、62件の個別Rule scope review、Category依存Safetyの網羅的Rule化、古いCategoryの後継Category完全特定
+- `BETA_AFTER_CANDIDATE`: P1c `ADDITIONAL_FACT_REQUIRED` 59件のうち、新Beta MUSTの重大リスク対応を越えるFact取得・搬送設計
+- `BETA_AFTER_CANDIDATE`: 確定済みNGリスト外の知財の広範推測、高度な重複商品判定、他marketplace、自動出品、および旧P0〜P6のうち新Beta MUSTに含まれない全面工程
 - 既存GABA Rule V2が`GABA-free`までBLOCKするmatcher差分の別修正（今回のRule／code変更対象外）
-- P1d PH_GUARDRAIL_BASELINE_COMPLETEの受入
-- P2 Gate通常利用導線の簡素化
-- P3 Ingredient Safetyと最新Guardrailを含むGate P B2 — PH Safetyのオーナー実物再受入
-- P4 Gate P B1〜B7全体の実商品・実画面・実業務受入
-- P5 Evidence Package再生成と第三者独立レビュー
-- P6 オーナーによるPH Minimum Beta最終受入判断
 - GABAを含む実商品によるlive BLOCK確認
 - Canopyの長期品質・安定性、実商品の網羅確認
 - Category ID等を扱うGuardrail候補データ構造・判定単位・根拠種別の設計
@@ -247,21 +249,25 @@ DEC-0046正本化差分のmain統合確認後、P1cの受入済み229候補をCa
 
 本正本化差分のmain統合確認後、受入済みPOST_CATEGORY 170件をcurrent Shopee Categoryへ安全に接続する技術設計を開始する。ADDITIONAL_FACT_REQUIRED 59件の実装は開始しない。
 
+## 旧・次の単一作業（DEC-0049で置換）
+
+本正本化差分のmain統合確認後、108件を解決するためのSeller Centre Category Evidenceのidentity確定とstrict再照合をread-onlyで実施する。DEC-0049により、このCategory調査はBeta前の次作業ではなく`BETA_AFTER_CANDIDATE`とする。
+
 ## 次の単一作業
 
-本正本化差分のmain統合確認後、108件を解決するためのSeller Centre Category Evidenceのidentity確定とstrict再照合をread-onlyで実施する。以前取得済みのローカルdatasetを使う場合も、ファイル名、完全SHA-256、producer、取得元、取得時点、storage aliasを確認し、正式Evidence identityを固定してから使う。ADDITIONAL_FACT_REQUIRED 59件の実装は開始しない。
+本正本化差分のmain統合確認後、現行実装が新Beta MUSTのどこまで既に満たしているかのread-only差分監査を実施する。各MUSTを確認済み実装、部分充足、未充足、未確認に区別し、コード、Rule、辞書、testsを変更せず、未確認事項または理想的な追加機能を新しいBeta blockerへ自動昇格させない。
 
 ## 停止条件
 
-- Gate P B2 PH Safetyのオーナー実物再受入までは、Gate P PASS、Minimum Beta PASS、B2受入PASSとして扱わない。
-- P1d `PH_GUARDRAIL_BASELINE_COMPLETE`受入前に、Gate Pを再開しない。
-- 後続実装の範囲が別途受入されるまで、dictionary registration、Rule changes、code changes、または関連testsを開始しない。
-- 本正本化差分のmain統合確認前に、未解決108件のSeller Centre Category Evidence調査・strict再照合、62件のRule設計または実装を開始しない。
+- 新Beta MUSTのread-only差分監査と、少量の実商品による一連の流れのオーナー受入までは、Gate P PASSまたはMinimum Beta PASSとして扱わない。
+- read-only差分監査の完了前に、新Beta blockerを推測で追加せず、dictionary registration、Rule changes、code changes、または関連testsを開始しない。
+- 未解決108件のSeller Centre Category Evidence調査・strict再照合、62件のRule設計、Category依存Safetyの網羅的Rule化、古いCategoryの後継Category完全特定を、Beta前に別名称で再開しない。
 - 未解決108件を解決済みとして扱わず、62件をRule実装済みまたは有効化済みとして扱わない。POST_CATEGORY 170件を実装完了、ADDITIONAL_FACT_REQUIRED 59件をFact取得済み、または229件をRule登録済みと扱わない。
 - 未解決108件をfuzzy、AI、leaf名だけの一致、親Categoryから子Categoryへの推測継承で接続しない。
 - Seller Centre Category Evidenceはidentityを固定してから使用し、未索引のローカルファイルを推測で正式根拠にしない。
 - GABA-free matcher差分を本正本化作業へ混在させず、別の承認済み修正までRule、辞書、code、testsを変更しない。
-- P2前に通常利用導線、P3前にGate P B2、P4前にGate P B1〜B7全体、P5前に第三者独立レビュー、P6前にPH実運用を開始しない。
+- 画像AIの推定だけで自動BLOCKせず、疑わしい重大Safety案件は人間確認へ止める。
+- 確定済みNGリスト外の知財をAI等で広範囲に推測してBLOCKしない。
 - 今回のKeepa Ingredient Safety live技術確認を、オーナー実物受入またはGABA実商品live BLOCK確認として扱わない。
 - GABAを含む実商品によるlive BLOCK確認を、既存unit testsおよび独立security reviewのPASSから推測しない。
 - 実装前の古いClaude Evidence Packageを第三者レビュー用に再利用しない。
@@ -378,4 +384,4 @@ DEC-0046正本化差分のmain統合確認後、P1cの受入済み229候補をCa
 
 ## 最終更新日
 
-2026-08-30
+2026-08-31

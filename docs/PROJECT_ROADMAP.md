@@ -33,7 +33,7 @@ Category Mapperは出品可否の最終判断者ではなく、Safety判定を�
 
 PHではPhase 1 deterministic BLOCKのmain技術受入後、PH Beta Minimum Definitionを先に置く。Beta Minimum Coreは、(B1) ExpansionとResolverの両入口による候補ASIN取得、(B2) PH Safety、(B3) 確認済みShopee Category IDへの経路、(B4) 確認済みShopee Brand IDまたはNo Brandへの経路、(B5) 未確定を推測で準備完了にしない停止能力、(B6) ASIN・Category ID・Brand ID / No Brandの揃い具合の一意な判別、(B7) 人間が確認済み情報を取得して既存出品ツールへの手入力準備に利用できるhandoffとする。これは外部出品ツールへの自動投入や実際の出品可能を意味しない。
 
-PH Beta Minimum Feasibility Auditと、B1〜B7完成定義に対する現行実装の差分監査は完了した。確認済み`MISSING_IMPLEMENTATION`は0件であり、これをBeta完成、Beta受入、実商品・実画面・実業務の受入完了とは扱わない。残るBeta MUSTは、ASIN Expansion / ASIN ResolverのKeepa本番標準経路のlive技術確認と、PH Minimum Betaのオーナー実物受入である。この差分監査結果により、Beta前の新規実装へ自動進行しない。B1のAmazon Data Provider Test Bridge Design Gateでは、Keepaを本番標準として維持し、Canopyを明示設定時だけ用いる開発・試験専用providerとして採用した（DEC-0033）。Canopy Test Provider v0.1はmain上の正式技術成果であり、CanopyはKeepa本番確認を代替せず、Safety / Category / Brandの責務は変更しない。外部出品ツールの正式入力契約はBeta MUSTではなく、mandatory attribute全面対応はconditionalのままとする。structured REVIEW、API auto-resolution、Shipping / Operational Filter、Category Batch、AI Shadow、Workflow、自動投入、自動出品、SG / MY / THはBeta MUSTへ自動追加しない。
+PH Beta Minimum Feasibility Auditと、B1〜B7完成定義に対する旧差分監査は完了し、確認済み`MISSING_IMPLEMENTATION`は0件だった。この結果は履歴として保持するが、DEC-0049で重大実務リスク中心の新Beta完成線へ切り替えたため、新しい10項目に対する現行実装の充足状況は未監査である。Gate PはPASSにせず、read-only差分監査と少量実商品によるオーナー受入までHOLDする。B1のAmazon Data Provider Test Bridge Design Gateでは、Keepaを本番標準として維持し、Canopyを明示設定時だけ用いる開発・試験専用providerとして採用した（DEC-0033）。Canopy Test Provider v0.1はmain上の正式技術成果であり、CanopyはKeepa本番確認を代替せず、Safety / Category / Brandの責務は変更しない。外部出品ツールの正式入力契約はBeta MUSTではなく、mandatory attribute全面対応はconditionalのままとする。
 
 Beta前に詳細なE2E人間作業時間測定、`CORE_INFO_READY ASIN / human hour`、Human Touch Rate、固定工数削減目標を必須Gateにしない。Beta後は実利用、オーナーによる実務ボトルネック報告、次versionでの改善を反復する。必要になったE2E時間測定はこのBeta後の改善手段候補とし、既存の件数、status、未解決理由等の自動出力を優先して、人間へ詳細な時間記録を常時要求しない。他市場への共通化はPH Betaの成立確認後に別途判断する。
 ## 正式完成済み
@@ -74,9 +74,9 @@ ASIN到達性能とResolver成功は未評価であり、Evidence Persistenceの
 
 ### 4. Category依存Safety
 
-- Shopee Category確定後かつ`listing_ready`前に、Categoryおよび市場条件へ依存する禁止・確認要件を再判定する
+- Shopee Category確定後かつ`listing_ready`前に、確認済みのCategory・市場依存禁止条件がある場合は再判定する
 - 禁止は除外し、追加確認が必要な対象は人へ止める
-- Category自身のversioned Evidenceを優先し、Category階層から独自の一般則を推測しない
+- Category自身のversioned Evidenceを優先し、Category階層から独自の一般則を推測しない。Category依存Safetyの網羅的Rule化はBeta前MUSTにしない
 
 ### 5. 出品準備
 
@@ -93,6 +93,45 @@ ASIN到達性能とResolver成功は未評価であり、Evidence Persistenceの
 - 自動接続・自動出品は未承認
 
 ## 現在から先の工程
+
+### B0 — 新Beta MUSTのread-only差分監査
+
+次の10項目について、現行実装を確認済み実装、部分充足、未充足、未確認に区別する。監査中はコード、Rule、辞書、testsを変更せず、未確認事項を新しいBeta blockerへ自動追加しない。
+
+1. Expansion / Resolverの既存機能の継続利用
+2. 既出品ASINおよび入力内ASINのexact重複チェック
+3. 確定済みNG ASIN / Brand / 知財Evidenceによる除外
+4. GABA、hemp等の確定禁止条件の商品情報からの検出
+5. titleに加え、description、featuresその他の取得可能文章を対象とする禁止判定
+6. 武器等、文章で明確な禁止対象の除外
+7. 画像AIによる疑わしい商品の発見と人間確認。AI推定だけでは自動BLOCKしない
+8. 判断不能な重大Safety案件のsafe stopと人間確認
+9. Category Mapper / Brand / handoffの既存機能の継続利用
+10. 少量の実商品による一連の流れの確認とオーナーBeta受入
+
+### B1 — 確認済み不足だけを必要最小限で対応
+
+B0で新Beta MUSTの未充足が確認された場合だけ、別途範囲を確定して必要最小限の対応と検証を行う。未確認事項、理想的な追加機能、網羅性向上を自動的にBeta blockerへ昇格させない。
+
+### B2 — 少量実商品のBeta受入
+
+既存Expansion / Resolverから、重複・重大Safety、Category / Brand、handoffまでを少量の実商品で確認し、オーナーがBeta受入を判断する。Gate Pはこの受入までHOLDとし、過去の旧仕様Gate P PASSを現在のPASSに読み替えない。
+
+### BETA_AFTER_CANDIDATE
+
+- SLS旧Category 170件（strict接続可能62件、未解決108件）の完全追跡
+- Category依存Safetyの網羅的Rule化と古いCategoryの後継Category完全特定
+- P1c `ADDITIONAL_FACT_REQUIRED` 59件のうち、新Beta MUSTを越えるFact取得・搬送
+- 確定済みNGリスト外の知財をAI等で広範囲に推測してBLOCKすること
+- ASIN exact一致を越える高度な重複商品判定
+- 他marketplace対応と自動出品
+- structured REVIEW完成形、API auto-resolution、Shipping / Operational Filter、Category Batch完成形、AI Shadow、Workflow、固定工数削減KPI、詳細E2E時間測定
+
+P1cの成果物、identity、SHA-256、170件・62件・108件の確認済み件数、二段階Safety設計は削除または無効化せず、将来Evidenceとして保持する。Category完全追跡を別名称でBeta前に継続しない。
+
+## 旧Beta前工程（DEC-0049で優先順位を置換・履歴保持）
+
+以下のP0〜P6はDEC-0043時点の履歴であり、DEC-0049以降のBeta前必須順序または自動blockerとして使用しない。各工程の完了済み成果とEvidenceは保持する。
 
 ### P0 — PH Guardrail BaselineをBeta MUSTとして正本化する
 
@@ -140,7 +179,7 @@ Ingredient Safetyおよび最新Guardrailを含むEvidence Packageを再生成�
 
 ### Post-Beta
 
-DB化、他市場展開、出品後商品改善ツール、Amazon仕入れ支援ツール等の優先順位を再判断する。Post-Betaの開発管理基盤整備はPH実運用の開始条件でも、新しいBeta MUSTでもない。
+DEC-0049の`BETA_AFTER_CANDIDATE`、DB化、他市場展開、出品後商品改善ツール、Amazon仕入れ支援ツール等の優先順位を、Beta実利用で得たEvidenceに基づいて再判断する。Post-Betaの開発管理基盤整備はPH実運用の開始条件でも、新しいBeta MUSTでもない。
 
 ## 保留
 
