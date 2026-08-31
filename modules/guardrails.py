@@ -331,6 +331,18 @@ def evaluate_deterministic_blocks_v2(
                     )
                     break
             continue
+        if rule.fact_field == "product_text" and rule.operator == "contains":
+            for actual_field, value in _product_text_values(row):
+                if rule.normalized_value in normalize_v2_text(value):
+                    matches.append(
+                        DeterministicBlockMatchV2(
+                            rule=rule,
+                            actual_fact_field=actual_field,
+                            matched_value=rule.value,
+                        )
+                    )
+                    break
+            continue
         raise GuardrailDictionaryError(
             f"unsupported V2 evaluator pair: {rule.fact_field}/{rule.operator}"
         )
@@ -548,7 +560,7 @@ def _parse_v2_rule(
         )
 
     fact_field = normalize_v2_text(row.get("fact_field"))
-    if fact_field not in {"brand", "ingredient_safety"}:
+    if fact_field not in {"brand", "ingredient_safety", "product_text"}:
         raise GuardrailDictionaryError(
             f"{file_name} {row_number}行目: unsupported fact_fieldです: "
             f"{fact_field or '空欄'}"
@@ -557,6 +569,7 @@ def _parse_v2_rule(
     allowed_pair = (fact_field, operator) in {
         ("brand", "exact"),
         ("ingredient_safety", "contains_term"),
+        ("product_text", "contains"),
     }
     if not allowed_pair:
         raise GuardrailDictionaryError(
@@ -616,6 +629,18 @@ def _parse_v2_rule(
         raise GuardrailDictionaryError(
             f"{file_name} {row_number}行目: Ingredient Safety ruleの"
             "risk_categoryはregulated_ingredientにしてください。"
+        )
+    if fact_field == "product_text" and (
+        normalized_canonical_term != "hemp"
+        or normalized_value != "hemp"
+        or risk_category != "drug_or_hemp"
+        or source_type != "internal_rule"
+        or decision_ref != "DEC-0050"
+        or evidence_ref != "OWNER_APPROVED_PH_HEMP_BOUNDARY"
+    ):
+        raise GuardrailDictionaryError(
+            f"{file_name} {row_number}行目: Product Text hemp ruleの"
+            "canonical evidenceが不正です。"
         )
     note = str(row.get("note") or "").strip()
     if not note:
@@ -740,6 +765,35 @@ def _ingredient_safety_values(row: dict[str, Any]) -> list[tuple[str, str]]:
         for item in raw_value:
             if not isinstance(item, str):
                 raise GuardrailDictionaryError(f"{field} Ingredient Safety Fact is malformed")
+            if item.strip():
+                values.append((field, item))
+    return values
+
+
+def _product_text_values(row: dict[str, Any]) -> list[tuple[str, str]]:
+    values: list[tuple[str, str]] = []
+    for field in (
+        "product_title",
+        "description",
+        "features",
+        "shortDescription",
+        "safetyWarning",
+        "itemHighlights",
+    ):
+        raw_value = row.get(field)
+        if raw_value is None:
+            continue
+        if isinstance(raw_value, str):
+            if raw_value.strip():
+                values.append((field, raw_value))
+            continue
+        if not isinstance(raw_value, (list, tuple)):
+            raise GuardrailDictionaryError(f"{field} Product Text Safety Fact is malformed")
+        for item in raw_value:
+            if not isinstance(item, str):
+                raise GuardrailDictionaryError(
+                    f"{field} Product Text Safety Fact is malformed"
+                )
             if item.strip():
                 values.append((field, item))
     return values

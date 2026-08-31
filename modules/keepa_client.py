@@ -15,6 +15,13 @@ from modules.ingredient_safety import (
     ingredient_safety_fact_from_product_data,
     ingredient_safety_fact_to_payload,
 )
+from modules.product_text_safety import (
+    PRODUCT_TEXT_SAFETY_PAYLOAD_VERSION,
+    ProductTextSafetyError,
+    extract_keepa_product_text_safety_fact,
+    product_text_safety_fact_from_product_data,
+    product_text_safety_fact_to_payload,
+)
 
 
 ASIN_PATTERN = re.compile(r"^[A-Z0-9]{10}$")
@@ -687,6 +694,15 @@ class KeepaExpansionClient:
             )
         except IngredientSafetyError as exc:
             raise KeepaDataError("Ingredient Safety Factを安全に復元できません。") from exc
+        try:
+            product_text_fact = product_text_safety_fact_from_product_data(
+                product,
+                candidate_asin=candidate_asin,
+                provider=KEEPA_PROVIDER,
+                fetched_at=str(product.get("fetched_at") or fetched_at),
+            )
+        except ProductTextSafetyError as exc:
+            raise KeepaDataError("Product Text Safety Factを安全に復元できません。") from exc
         return {
             "seed_asin": source.asin,
             "candidate_asin": candidate_asin,
@@ -699,6 +715,7 @@ class KeepaExpansionClient:
             "duplicate_flag": "false",
             "note": row_note,
             "ingredient_safety_fact": ingredient_safety_fact_to_payload(ingredient_fact),
+            "product_text_safety_fact": product_text_safety_fact_to_payload(product_text_fact),
         }
 
     def _token_status(self) -> str:
@@ -873,6 +890,15 @@ def _product_to_cache_data(product: Any, fallback_asin: str = "") -> dict[str, A
     except IngredientSafetyError as exc:
         raise KeepaDataError("Keepa Ingredient Safety Factの構造が不正です。") from exc
     ingredient_payload = ingredient_safety_fact_to_payload(ingredient_fact)
+    try:
+        product_text_fact = extract_keepa_product_text_safety_fact(
+            product,
+            candidate_asin=asin,
+            fetched_at=fetched_at,
+        )
+    except ProductTextSafetyError as exc:
+        raise KeepaDataError("Keepa Product Text Safety Factの構造が不正です。") from exc
+    product_text_payload = product_text_safety_fact_to_payload(product_text_fact)
     return {
         "asin": asin,
         "title": _get_text(product, "title"),
@@ -890,6 +916,13 @@ def _product_to_cache_data(product: Any, fallback_asin: str = "") -> dict[str, A
         "ingredients": list(ingredient_fact.ingredients),
         "activeIngredients": list(ingredient_fact.active_ingredients),
         "specialIngredients": list(ingredient_fact.special_ingredients),
+        "product_text_safety_payload_version": PRODUCT_TEXT_SAFETY_PAYLOAD_VERSION,
+        "product_text_safety_capture_status": product_text_fact.capture_status,
+        "description": list(product_text_fact.description),
+        "features": list(product_text_fact.features),
+        "shortDescription": list(product_text_fact.short_description),
+        "safetyWarning": list(product_text_fact.safety_warning),
+        "itemHighlights": list(product_text_fact.item_highlights),
         "response": {
             "asin": asin,
             "title": _get_text(product, "title"),
@@ -905,6 +938,13 @@ def _product_to_cache_data(product: Any, fallback_asin: str = "") -> dict[str, A
             "ingredients": ingredient_payload["ingredients"],
             "activeIngredients": ingredient_payload["activeIngredients"],
             "specialIngredients": ingredient_payload["specialIngredients"],
+            "product_text_safety_payload_version": PRODUCT_TEXT_SAFETY_PAYLOAD_VERSION,
+            "product_text_safety_capture_status": product_text_fact.capture_status,
+            "description": product_text_payload["description"],
+            "features": product_text_payload["features"],
+            "shortDescription": product_text_payload["shortDescription"],
+            "safetyWarning": product_text_payload["safetyWarning"],
+            "itemHighlights": product_text_payload["itemHighlights"],
         },
     }
 

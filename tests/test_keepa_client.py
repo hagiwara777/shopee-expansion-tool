@@ -11,6 +11,8 @@ from modules.keepa_client import (
     planned_candidate_count,
 )
 from modules.ingredient_safety import CAPTURED
+from modules.product_text_safety import CAPTURED as PRODUCT_TEXT_CAPTURED
+from modules.product_text_safety import NOT_CAPTURED as PRODUCT_TEXT_NOT_CAPTURED
 
 
 SOURCE_ASIN = "B07TSC47PH"
@@ -153,6 +155,8 @@ def test_keepa_detail_response_transports_three_ingredient_facts_without_extra_q
                 "ingredients": " GABA ",
                 "activeIngredients": ["active one"],
                 "specialIngredients": ("special one",),
+                "description": "Product description",
+                "features": ["Feature one"],
             }
         ],
     )
@@ -169,6 +173,10 @@ def test_keepa_detail_response_transports_three_ingredient_facts_without_extra_q
     assert payload["ingredients"] == ["GABA"]
     assert payload["activeIngredients"] == ["active one"]
     assert payload["specialIngredients"] == ["special one"]
+    product_text_payload = result.rows[0]["product_text_safety_fact"]
+    assert product_text_payload["capture_status"] == PRODUCT_TEXT_CAPTURED
+    assert product_text_payload["description"] == ["Product description"]
+    assert product_text_payload["features"] == ["Feature one"]
     assert len(api.query_calls) == 2
 
 
@@ -190,7 +198,36 @@ def test_old_product_cache_hit_is_not_captured_and_does_not_refresh(tmp_path):
     fact = products["B000000001"]
 
     assert "ingredient_safety_payload_version" not in fact
+    assert "product_text_safety_payload_version" not in fact
     assert api.query_calls == []
+
+
+def test_old_product_cache_candidate_transport_is_product_text_not_captured(tmp_path):
+    cache = KeepaCache(tmp_path / "cache.sqlite3")
+    cache.save_product(
+        {
+            "asin": "B000000001",
+            "title": "Legacy cached product",
+            "brand": "SampleBrand",
+            "category": "Leaf",
+            "category_id": 12345,
+        }
+    )
+    client = KeepaExpansionClient(domain="JP", api=FakeKeepaApi(), cache=cache)
+    source = client._get_source_product(SOURCE_ASIN)
+
+    row = client._build_candidate_row(
+        source,
+        "B000000001",
+        cache.get_product("B000000001"),
+        0,
+        "2026-09-01T00:00:00+00:00",
+        "synthetic",
+        "",
+        "",
+    )
+
+    assert row["product_text_safety_fact"]["capture_status"] == PRODUCT_TEXT_NOT_CAPTURED
 
 
 def test_find_related_products_deduplicates_repeated_candidates(tmp_path):

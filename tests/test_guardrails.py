@@ -821,23 +821,25 @@ def render_v2_rules(*rows, columns=V2_COLUMNS):
     return output.getvalue()
 
 
-def test_production_v2_ruleset_preserves_13_brands_and_adds_six_gaba_aliases():
+def test_production_v2_ruleset_preserves_brands_gaba_and_adds_one_ph_hemp_rule():
     rules = load_deterministic_block_rules_v2()
     brand_rules = [rule for rule in rules if rule.fact_field == "brand"]
     ingredient_rules = [rule for rule in rules if rule.fact_field == "ingredient_safety"]
+    product_text_rules = [rule for rule in rules if rule.fact_field == "product_text"]
 
     assert [rule.rule_id for rule in brand_rules] == [rule_id for rule_id, _ in PHASE1_V2_BRAND_RULES]
     assert [rule.value for rule in brand_rules] == [brand for _, brand in PHASE1_V2_BRAND_RULES]
-    assert len(rules) == 19
+    assert len(rules) == 20
     assert len(brand_rules) == 13
     assert len(ingredient_rules) == 6
+    assert len(product_text_rules) == 1
     assert sum(rule.scope == "COMMON_BLOCK" for rule in rules) == 0
-    assert sum(rule.scope == "PH_BLOCK" for rule in rules) == 19
+    assert sum(rule.scope == "PH_BLOCK" for rule in rules) == 20
     assert {rule.schema_version for rule in rules} == {guardrails_module.V2_RULESET_SCHEMA_VERSION}
     assert all(rule.operator == "exact" for rule in brand_rules)
     assert all(rule.action == "BLOCK" for rule in rules)
     assert all(rule.risk_category == "community_report" for rule in brand_rules)
-    assert all(rule.source_type == "community_report" for rule in rules)
+    assert all(rule.source_type == "community_report" for rule in brand_rules + ingredient_rules)
     assert all(rule.decision_ref == "DEC-0030" for rule in brand_rules)
     assert all(rule.evidence_ref == "OWNER_SOURCE_COMMUNITY_NG_LIST" for rule in brand_rules)
     assert {rule.canonical_term for rule in ingredient_rules} == {"GABA"}
@@ -848,6 +850,10 @@ def test_production_v2_ruleset_preserves_13_brands_and_adds_six_gaba_aliases():
         rule.evidence_ref == "ART-PH-GABA-FREEZE-OWNER-ATTESTATION-V1"
         for rule in ingredient_rules
     )
+    assert product_text_rules[0].value == "hemp"
+    assert product_text_rules[0].operator == "contains"
+    assert product_text_rules[0].source_type == "internal_rule"
+    assert product_text_rules[0].decision_ref == "DEC-0050"
     assert "Bose" not in {rule.value for rule in rules}
 
 

@@ -10,7 +10,13 @@ from modules.prelisting_candidate_csv import (
     EXPANSION_SOURCE_TYPE,
     PRELISTING_CANDIDATE_SCHEMA_VERSION,
     PrelistingCandidateRow,
+    parse_prelisting_candidate_csv,
     rows_to_prelisting_candidate_csv,
+)
+from modules.product_text_safety import (
+    NOT_AVAILABLE,
+    ProductTextSafetyFact,
+    rows_to_product_text_safety_sidecar,
 )
 
 
@@ -359,6 +365,32 @@ def _empty_inventory_csv(marketplace: str) -> bytes:
     return output.getvalue().encode("utf-8-sig")
 
 
+def _product_text_sidecar(candidate_csv: bytes) -> bytes:
+    candidate_file = parse_prelisting_candidate_csv(
+        candidate_csv,
+        filename="candidates.csv",
+    )
+    facts = tuple(
+        ProductTextSafetyFact(
+            candidate_asin=row.candidate_asin,
+            provider="keepa",
+            capture_status=NOT_AVAILABLE,
+            description=(),
+            features=(),
+            short_description=(),
+            safety_warning=(),
+            item_highlights=(),
+            fetched_at=row.fetched_at,
+        )
+        for row in candidate_file.rows
+    )
+    return rows_to_product_text_safety_sidecar(
+        candidate_csv,
+        candidate_file.rows,
+        facts,
+    )
+
+
 def _prelisting_gate_test_app(monkeypatch) -> AppTest:
     monkeypatch.setattr(logging.Logger, "warning", _standard_logger_warning)
     app = AppTest.from_file(str(APP_PATH), default_timeout=10)
@@ -464,6 +496,12 @@ def test_prelisting_gate_marketplace_switches_run_ph_empty_inventory_and_clear_r
 
     app.file_uploader(key="prelisting_gate_inventory_files").set_value(
         [("Shopee 更新_PH.csv", _empty_inventory_csv("PH"), "text/csv")]
+    )
+    app.run()
+    assert len(app.exception) == 0
+    assert _run_gate_button(app).disabled is True
+    app.file_uploader(key="prelisting_gate_product_text_safety_file").set_value(
+        ("product_text.csv", _product_text_sidecar(candidate_csv), "text/csv")
     )
     app.run()
     assert len(app.exception) == 0

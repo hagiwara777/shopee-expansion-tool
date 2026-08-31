@@ -16,6 +16,11 @@ from modules.ingredient_safety import (
     ingredient_safety_fact_from_transport,
     ingredient_safety_fact_to_payload,
 )
+from modules.product_text_safety import (
+    product_text_safety_fact_from_product_data,
+    product_text_safety_fact_from_transport,
+    product_text_safety_fact_to_payload,
+)
 from modules.keepa_client import normalize_asin
 
 
@@ -945,6 +950,7 @@ def _verified_row(
     product_category = _keepa_display_text(keepa_product, "category")
     product_fetched_at = _keepa_display_text(keepa_product, "fetched_at")
     ingredient_payload = None
+    product_text_payload = None
     if status == FOUND:
         provider = CANOPY_TEST_PROVIDER if product_field_prefix == "canopy" else KEEPA_PROVIDER
         source_payload = (
@@ -967,6 +973,26 @@ def _verified_row(
                 fetched_at=product_fetched_at,
             )
         ingredient_payload = ingredient_safety_fact_to_payload(ingredient_fact)
+        product_text_source_payload = (
+            keepa_product.get("product_text_safety_fact")
+            if isinstance(keepa_product, dict)
+            else None
+        )
+        if product_text_source_payload is None:
+            product_text_fact = product_text_safety_fact_from_product_data(
+                keepa_product if isinstance(keepa_product, dict) else None,
+                candidate_asin=str(row.get("asin") or ""),
+                provider=provider,
+                fetched_at=product_fetched_at,
+            )
+        else:
+            product_text_fact = product_text_safety_fact_from_transport(
+                product_text_source_payload,
+                candidate_asin=str(row.get("asin") or ""),
+                provider=provider,
+                fetched_at=product_fetched_at,
+            )
+        product_text_payload = product_text_safety_fact_to_payload(product_text_fact)
     verified.update(
         {
             "status": status,
@@ -981,6 +1007,7 @@ def _verified_row(
             f"{product_field_prefix}_category": product_category,
             f"{product_field_prefix}_fetched_at": product_fetched_at,
             "ingredient_safety_fact": ingredient_payload,
+            "product_text_safety_fact": product_text_payload,
         }
     )
     return verified

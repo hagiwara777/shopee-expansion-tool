@@ -563,3 +563,15 @@
 - 理由: 網羅的なCategory追跡より、確認済みの重大禁止、重複、知財、文章・画像から発見できる重大Safety、人間へのsafe stopを優先し、既存の有効な候補生成・Category・Brand・handoffを再利用してPH実務投入までの距離を短くするため。
 - 影響: `CURRENT_WORK.md`を旧Category調査から新Beta方針とread-only差分監査へ切り替え、`PROJECT_ROADMAP.md`のBeta前／Beta後境界を同期する。過去のP1c成果物、identity、SHA-256、170件・62件・108件の確認済み事実は削除、無効化、再分類しない。今回、コード、Rule、辞書、tests、README、schema、UI、DB、外部API、実データ、外部書込み、push、PR、merge、deployは変更・実行しない。
 - 再検討条件: read-only差分監査で10項目のいずれかに重大な未充足が確認されたとき、少量実商品受入で重大な見逃しまたは実務不能が確認されたとき、新しいBeta blockerを追加するオーナー判断が行われたとき、またはBeta後の実利用EvidenceによりCategory完全追跡その他の`BETA_AFTER_CANDIDATE`を優先する必要が生じたとき。
+
+## DEC-0050 — PH Product Text Safety最小搬送契約とhemp境界を確定する
+
+- 日付: 2026-09-01
+- 背景: DEC-0049に基づくB0 read-only差分監査で、現行保安ゲートへtitleとIngredient Safetyの3成分fieldは届くが、description / features等の商品文章は届かず、PHのhemp確定BLOCK Ruleも未実装であることを確認した。Candidate固定15列、Expansion / Resolver共通経路、既存Ingredient Safety責務を壊さず、この不足だけをB1で解消する必要がある。
+- 決定: `PRELISTING_CANDIDATE_V1`の15列は変更しない。Candidate最終bytesのSHA-256、`PRELISTING_CANDIDATE_V1` schema、Candidateとの完全一致ASIN集合に結び付く別CSV `PRODUCT_TEXT_SAFETY_FACT_V1`を新設する。schema、SHA、ASIN集合、重複ASIN、JSON cellまたはFact構造が不正なsidecarは使用せず停止する。Ingredient Safety sidecarのschema、責務、matcherは変更せず、汎用Sidecar Registryへ先行抽象化しない。
+- 決定: ExpansionとResolverは、既存provider response / cacheから同一の内部Fact payloadを作り、同一serializerでProduct Text sidecarを生成する。追加Keepa requestは行わない。必須抽出対象は同名field `description`と`features`とし、`shortDescription`、`safetyWarning`、`itemHighlights`は既存応答に同名fieldが存在する場合だけ抽出対象とする。類似名探索、Web取得、AI補完、意味推測は行わない。
+- 決定: capture statusは`CAPTURED`、`NOT_CAPTURED`、`NOT_AVAILABLE`、`PROVIDER_UNSUPPORTED`とする。markerのない旧Keepa cacheは`NOT_CAPTURED`、新規Keepa応答の承認済みfieldに非空文章がなければ`NOT_AVAILABLE`、Canopy Testは`PROVIDER_UNSUPPORTED`とする。これら3つの未取得statusは文章不存在またはSafety PASSを意味せず、そのstatusだけではBLOCKまたはREVIEWにしない。PH通常app flowでは対応sidecar未指定をpreflightで停止し、「sidecar渡し忘れ」と「sidecar内Fact未取得」を区別する。SGはlegacy互換としてsidecarなしでも実行できる。
+- 決定: PHでは`product_title`およびProduct Text Factの承認済み5 fieldを対象に、NFKC・case正規化後のliteral substring `hemp`をdeterministic BLOCKとする。`hemp-free`と`hempseed`はsubstring一致によりBLOCKする。CBD、marijuana、大麻その他のaliasを推測追加せず、このRuleをSGへ適用しない。GABAの既存6 aliasと`contains_term` matcherは変更せず、`GABA-free`差分は別のオーナー判断まで未着手とする。
+- 理由: Candidate互換性、両入口の責務統一、Fact未取得商品の過剰除外を維持しながら、取得済み文章に明示された確定禁止条件の見逃しだけを最小変更で減らすため。
+- 影響: `modules/product_text_safety.py`、既存Keepa / Resolver内部搬送、Prelisting Gate、PH Guardrail Rule V2、通常app/UI、関連synthetic / mock tests、READMEを最小範囲で変更する。外部API、実商品、live書込み、画像AI、Bose、Category Safety、他marketplace対応、自動出品は実行・実装しない。Gate PはHOLDを維持し、独立reviewと少量実商品受入を別工程とする。
+- 再検討条件: 追加Keepa requestなしで承認済みfieldを保持できないと判明したとき、固定15列CandidateまたはExpansion / Resolver共通契約を維持できないとき、Product Text sidecarとIngredient Safetyの責務が重複するとき、hemp以外のaliasまたはGABA-free境界に新しい事業判断が必要になったとき、または少量実商品受入で通常PH flowが成立しないとき。

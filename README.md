@@ -92,10 +92,11 @@ Guardrailは候補生成の結果を直接出品候補にするための機能�
 入力内重複、起点ASIN自身、メタデータ不足も確認し、最終結果を `ELIGIBLE / REVIEW /
 EXCLUDE` とします。
 
-Guardrailは、候補生成時に取得済みの `product_title`、`brand`、`category` と、任意の
+Guardrailは、候補生成時に取得済みの `product_title`、`brand`、`category`、任意の
 Ingredient Safety Fact sidecarに含まれる `ingredients`、`activeIngredients`、
-`specialIngredients`だけを使うCSV辞書ベースの確認です。AI判定、Web検索、Shopee API連携、
-Keepa APIの追加呼び出しは行いません。
+`specialIngredients`、およびProduct Text Safety Fact sidecarの承認済み商品文章だけを使う
+CSV辞書ベースの確認です。AI判定、Web検索、Shopee API連携、Keepa APIの追加呼び出しは
+行いません。
 
 Guardrail内部のステータスは次の3種類です。これらはGateの最終結果ではありません。
 
@@ -303,6 +304,20 @@ Rule V2によりdeterministic BLOCKする。成分Factが`NOT_CAPTURED`または
 REVIEWまたはBLOCKにしない。PHのGABA ruleはアカウント保護のための当社運用上のBLOCKであり、
 Shopee公式禁止物質であるという断定ではない。Keepaを本番標準、Canopyを明示設定時だけの
 開発・試験専用providerとする方針は変わらない。
+
+### Product Text Safety Fact sidecar
+
+ExpansionとResolverは、Candidate CSVと同時に`PRODUCT_TEXT_SAFETY_FACT_V1` sidecarを出力する。
+sidecarはCandidate最終bytesのSHA-256と候補ASIN集合に結び付けられ、`description`、`features`、
+および既存provider応答に同名fieldがある場合だけ`shortDescription`、`safetyWarning`、
+`itemHighlights`を保持する。追加のKeepa requestは行わない。
+
+PHの通常Gate画面では、Candidate CSVに対応するProduct Text sidecarを必須入力とする。sidecarの
+SHA、schema、ASIN集合、JSON cellが不正な場合は停止する。一方、Factの`NOT_CAPTURED`、
+`NOT_AVAILABLE`、`PROVIDER_UNSUPPORTED`は文章未取得の状態であり、それ自体ではBLOCKまたは
+REVIEWにしない。PHでは商品titleまたはProduct Textにliteral substring `hemp`があればBLOCKし、
+`hemp-free`と`hempseed`も同じ境界に含む。CBD等の未承認aliasを推測追加せず、このRuleをSGへ
+適用しない。既存Ingredient Safety sidecarとGABA matcherは変更しない。
 
 ## 注意
 

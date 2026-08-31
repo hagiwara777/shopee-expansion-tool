@@ -15,6 +15,12 @@ from modules.ingredient_safety import (
     IngredientSafetyFact,
     IngredientSafetySidecarResult,
 )
+from modules.product_text_safety import (
+    CAPTURED as PRODUCT_TEXT_CAPTURED,
+    PRODUCT_TEXT_SAFETY_SIDECAR_SCHEMA_VERSION,
+    ProductTextSafetyFact,
+    ProductTextSafetySidecarResult,
+)
 from modules.listing_inventory_parser import ListingEvidence, ListingInventoryFileResult
 from modules.prelisting_candidate_csv import (
     EXPANSION_SOURCE_TYPE,
@@ -730,8 +736,10 @@ def test_phase1_v2_keeps_candidate_gate_schema_and_gate_public_interface_v1():
         "marketplace",
         "expected_shop_count",
         "ingredient_safety",
+        "product_text_safety",
     )
     assert parameters["ingredient_safety"].default is None
+    assert parameters["product_text_safety"].default is None
     assert PRELISTING_CANDIDATE_SCHEMA_VERSION == "PRELISTING_CANDIDATE_V1"
     assert GATE_RESULT_SCHEMA_VERSION == "PRELISTING_GATE_RESULT_V1"
 
@@ -798,3 +806,44 @@ def test_missing_ingredient_sidecar_does_not_create_review_but_title_still_block
     assert result.rows[0].final_eligibility == "ELIGIBLE"
     assert result.rows[1].guardrail_status == "BLOCK"
     assert result.rows[1].final_eligibility == "EXCLUDE"
+
+
+def test_product_text_sidecar_description_hemp_blocks_at_gate():
+    row = candidate(product_title="ordinary supplement", brand="Other")
+    sidecar = ProductTextSafetySidecarResult(
+        schema_version=PRODUCT_TEXT_SAFETY_SIDECAR_SCHEMA_VERSION,
+        candidate_schema_version=PRELISTING_CANDIDATE_SCHEMA_VERSION,
+        candidate_sha256="0" * 64,
+        rows=(
+            ProductTextSafetyFact(
+                candidate_asin=row.candidate_asin,
+                provider="keepa",
+                capture_status=PRODUCT_TEXT_CAPTURED,
+                description=("contains hemp oil",),
+                features=(),
+                short_description=(),
+                safety_warning=(),
+                item_highlights=(),
+                fetched_at="2026-09-01T00:00:00+00:00",
+            ),
+        ),
+    )
+    ph_inventory = inventory(
+        (),
+        marketplace="PH",
+        shop_label="PH_SHOP_1",
+        source_file="empty_PH.csv",
+        data_row_count=0,
+    )
+
+    result = gate.evaluate_prelisting_gate(
+        candidate_file((row,)),
+        (ph_inventory,),
+        marketplace="PH",
+        expected_shop_count=1,
+        product_text_safety=sidecar,
+    )
+
+    assert result.rows[0].guardrail_status == "BLOCK"
+    assert result.rows[0].final_eligibility == "EXCLUDE"
+    assert "fact_field=description" in result.rows[0].guardrail_note
