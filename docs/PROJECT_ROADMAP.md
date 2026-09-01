@@ -33,7 +33,7 @@ Category Mapperは出品可否の最終判断者ではなく、Safety判定を�
 
 PHではPhase 1 deterministic BLOCKのmain技術受入後、PH Beta Minimum Definitionを先に置く。Beta Minimum Coreは、(B1) ExpansionとResolverの両入口による候補ASIN取得、(B2) PH Safety、(B3) 確認済みShopee Category IDへの経路、(B4) 確認済みShopee Brand IDまたはNo Brandへの経路、(B5) 未確定を推測で準備完了にしない停止能力、(B6) ASIN・Category ID・Brand ID / No Brandの揃い具合の一意な判別、(B7) 人間が確認済み情報を取得して既存出品ツールへの手入力準備に利用できるhandoffとする。これは外部出品ツールへの自動投入や実際の出品可能を意味しない。
 
-PH Beta Minimum Feasibility Auditと、B1〜B7完成定義に対する旧差分監査は完了し、確認済み`MISSING_IMPLEMENTATION`は0件だった。この結果は履歴として保持する。DEC-0049で切り替えた新Beta完成線のB0 read-only差分監査も完了し、description / features等が現行Gateへ届かないこととPH hemp Rule未実装を確認した。B1では固定15列Candidateを維持した`PRODUCT_TEXT_SAFETY_FACT_V1` sidecarとPH限定hemp Ruleを必要最小限で実装中である。Gate PはPASSにせず、B1の独立reviewと少量実商品によるオーナー受入までHOLDする。Amazon Data Provider Test Bridge Design Gateでは、Keepaを本番標準として維持し、Canopyを明示設定時だけ用いる開発・試験専用providerとして採用した（DEC-0033）。Canopy Test Provider v0.1はmain上の正式技術成果であり、CanopyはKeepa本番確認を代替せず、Safety / Category / Brandの責務は変更しない。外部出品ツールの正式入力契約はBeta MUSTではなく、mandatory attribute全面対応はconditionalのままとする。
+PH Beta Minimum Feasibility Auditと、B1〜B7完成定義に対する旧差分監査は完了し、確認済み`MISSING_IMPLEMENTATION`は0件だった。この結果は履歴として保持する。DEC-0049で切り替えた新Beta完成線のB0 read-only差分監査も完了し、description / features等が現行Gateへ届かないこととPH hemp Rule未実装を確認した。B1では固定15列Candidateを維持した`PRODUCT_TEXT_SAFETY_FACT_V1` sidecarとPH限定hemp Ruleを必要最小限で実装し、独立read-only reviewとKeepa JP production read-onlyのlive技術確認をPASSした。実商品2件でProduct Text Safety Factが`CAPTURED` 2件となり、Candidateからsidecarを経て通常PH Gateまで成立した。Product Textの2件超の取得率とhemp実商品live BLOCKは未確認だが、新しいBeta blockerにはしない。Gate PはPASSにせず、B2の少量実商品によるPH Minimum Beta全体フローのオーナー受入までHOLDする。Amazon Data Provider Test Bridge Design Gateでは、Keepaを本番標準として維持し、Canopyを明示設定時だけ用いる開発・試験専用providerとして採用した（DEC-0033）。Canopy Test Provider v0.1はmain上の正式技術成果であり、CanopyはKeepa本番確認を代替せず、Safety / Category / Brandの責務は変更しない。外部出品ツールの正式入力契約はBeta MUSTではなく、mandatory attribute全面対応はconditionalのままとする。
 
 Beta前に詳細なE2E人間作業時間測定、`CORE_INFO_READY ASIN / human hour`、Human Touch Rate、固定工数削減目標を必須Gateにしない。Beta後は実利用、オーナーによる実務ボトルネック報告、次versionでの改善を反復する。必要になったE2E時間測定はこのBeta後の改善手段候補とし、既存の件数、status、未解決理由等の自動出力を優先して、人間へ詳細な時間記録を常時要求しない。他市場への共通化はPH Betaの成立確認後に別途判断する。
 ## 正式完成済み
@@ -109,9 +109,9 @@ ASIN到達性能とResolver成功は未評価であり、Evidence Persistenceの
 9. Category Mapper / Brand / handoffの既存機能の継続利用
 10. 少量の実商品による一連の流れの確認とオーナーBeta受入
 
-### B1 — 確認済み不足だけを必要最小限で対応（Product Text Safety対応中）
+### B1 — 確認済み不足だけを必要最小限で対応（Product Text Safety実装・review・live技術確認PASS）
 
-B0で確認したdescription / features等の未搬送とPH hemp Rule未実装に対し、固定15列Candidateを維持したProduct Text Safety sidecar、追加Keepa requestなしの共通搬送、PH限定literal substring `hemp`を必要最小限で実装する。GABA-free、画像AI、Bose、Category Safety、汎用sidecar frameworkは同時実装しない。未確認事項、理想的な追加機能、網羅性向上を自動的にBeta blockerへ昇格させない。
+B0で確認したdescription / features等の未搬送とPH hemp Rule未実装に対し、固定15列Candidateを維持したProduct Text Safety sidecar、追加Keepa requestなしの共通搬送、PH限定literal substring `hemp`を必要最小限で実装した。独立read-only reviewはPASSし、Keepa JP production read-onlyでは実商品2件で`CAPTURED` 2件、Candidate→sidecar→通常PH Gate成立を確認した。2件超の取得率とhemp実商品live BLOCKは未確認のまま保持し、新しいBeta blockerにはしない。GABA-free、画像AI、Bose、Category Safety、汎用sidecar frameworkは同時実装しない。
 
 ### B2 — 少量実商品のBeta受入
 
