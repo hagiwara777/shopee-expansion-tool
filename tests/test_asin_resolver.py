@@ -32,6 +32,11 @@ from modules.ingredient_safety import (
     INGREDIENT_SAFETY_PAYLOAD_VERSION,
     PROVIDER_UNSUPPORTED,
 )
+from modules.product_text_safety import (
+    CAPTURED as PRODUCT_TEXT_CAPTURED,
+    PRODUCT_TEXT_SAFETY_PAYLOAD_VERSION,
+    PROVIDER_UNSUPPORTED as PRODUCT_TEXT_PROVIDER_UNSUPPORTED,
+)
 from modules.keepa_client import KeepaClientError, KeepaExpansionClient
 
 
@@ -820,6 +825,10 @@ def test_verify_preview_rows_keeps_canopy_verification_and_product_fields_distin
     assert rows[0]["canopy_brand"] == "Canopy brand"
     assert rows[0]["product_title"] == "Canopy product title"
     assert rows[0]["ingredient_safety_fact"]["capture_status"] == PROVIDER_UNSUPPORTED
+    assert (
+        rows[0]["product_text_safety_fact"]["capture_status"]
+        == PRODUCT_TEXT_PROVIDER_UNSUPPORTED
+    )
     assert "keepa_title" not in rows[0]
 
 
@@ -898,6 +907,13 @@ def test_verify_preview_rows_transports_captured_keepa_ingredient_facts():
                 "ingredients": ["one"],
                 "activeIngredients": ["two"],
                 "specialIngredients": ["three"],
+                "product_text_safety_payload_version": PRODUCT_TEXT_SAFETY_PAYLOAD_VERSION,
+                "product_text_safety_capture_status": PRODUCT_TEXT_CAPTURED,
+                "description": ["Product description"],
+                "features": ["Feature one"],
+                "shortDescription": [],
+                "safetyWarning": [],
+                "itemHighlights": [],
             }
         }
     )
@@ -912,6 +928,10 @@ def test_verify_preview_rows_transports_captured_keepa_ingredient_facts():
     assert payload["ingredients"] == ["one"]
     assert payload["activeIngredients"] == ["two"]
     assert payload["specialIngredients"] == ["three"]
+    product_text_payload = rows[0]["product_text_safety_fact"]
+    assert product_text_payload["capture_status"] == PRODUCT_TEXT_CAPTURED
+    assert product_text_payload["description"] == ["Product description"]
+    assert product_text_payload["features"] == ["Feature one"]
 
 
 @pytest.mark.parametrize(

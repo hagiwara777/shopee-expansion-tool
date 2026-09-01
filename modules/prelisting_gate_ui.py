@@ -205,6 +205,8 @@ def build_prelisting_gate_fingerprint(
     inventory_files: Iterable[tuple[str, bytes, object]],
     ingredient_safety_filename: str | None = None,
     ingredient_safety_content: bytes | None = None,
+    product_text_safety_filename: str | None = None,
+    product_text_safety_content: bytes | None = None,
 ) -> str:
     """Build a deterministic, non-reversible fingerprint of current inputs."""
 
@@ -236,11 +238,20 @@ def build_prelisting_gate_fingerprint(
             "filename": str(ingredient_safety_filename),
             "content_sha256": content_sha256(ingredient_safety_content),
         }
+    product_text_safety = None
+    if product_text_safety_filename is not None or product_text_safety_content is not None:
+        if product_text_safety_filename is None or product_text_safety_content is None:
+            raise ValueError("Product Text Safety filename and content must be provided together")
+        product_text_safety = {
+            "filename": str(product_text_safety_filename),
+            "content_sha256": content_sha256(product_text_safety_content),
+        }
     payload = {
         "marketplace": str(marketplace),
         "expected_shop_count": expected_shop_count,
         "candidate": candidate,
         "ingredient_safety": ingredient_safety,
+        "product_text_safety": product_text_safety,
         "inventories": inventories,
     }
     encoded = json.dumps(

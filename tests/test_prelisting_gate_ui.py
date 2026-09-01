@@ -366,6 +366,28 @@ def test_gate_fingerprint_changes_when_optional_ingredient_sidecar_changes():
     assert first != second
 
 
+def test_gate_fingerprint_changes_when_product_text_sidecar_changes():
+    base = {
+        "marketplace": "PH",
+        "expected_shop_count": 1,
+        "candidate_filename": "candidate.csv",
+        "candidate_content": b"candidate",
+        "inventory_files": (("existing_PH.csv", b"inventory", "PH_SHOP_1"),),
+        "product_text_safety_filename": "product-text.csv",
+    }
+
+    first = build_prelisting_gate_fingerprint(
+        **base,
+        product_text_safety_content=b"first",
+    )
+    second = build_prelisting_gate_fingerprint(
+        **base,
+        product_text_safety_content=b"second",
+    )
+
+    assert first != second
+
+
 @pytest.mark.parametrize("final_eligibility", ["SAFE", "", None])
 def test_preview_rows_reject_invalid_final_eligibility(final_eligibility):
     result = _gate_result((("ELIGIBLE", "B000000001"),))

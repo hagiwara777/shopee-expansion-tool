@@ -13,15 +13,19 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH Minimum Beta completion line reset canonicalization / read-only implementation gap audit pending / Gate P HOLD`
-- current_phase: `DEC-0049 new Beta MUST canonicalized / legacy P1c Category full tracking moved to BETA_AFTER_CANDIDATE / Gate P HOLD`
-- working_branch: `codex/ph-minimum-beta-completion-line-reset`
+- current_work_type: `PH Minimum Beta Product Text Safety / independent read-only review PASS / live read-only確認前 / Gate P HOLD`
+- current_phase: `B0完了 / B1 Product Text Safety実装・local validation・独立review PASS / 少量実商品確認前 / Gate P HOLD`
+- working_branch: `codex/ph-product-text-safety`
 - marketplace: `PH`
 - module: `出品支援ツール / Candidate Generation / PH Guardrail / Category Mapper / Brand / Handoff`
-- phase: `PH Minimum Beta重大実務リスク中心の完成線 / 現行実装差分未監査 / Category完全追跡はBeta後候補 / Gate P HOLD`
-- next_action: 本正本化差分のmain統合確認後、現行実装が新Beta MUSTのどこまで既に満たしているかのread-only差分監査を実施する。監査中はコード、Rule、辞書、testsを変更しない。
+- phase: `PH Minimum Beta重大実務リスク中心の完成線 / Product Text Safety独立review PASS / 少量実商品確認前 / Category完全追跡はBeta後候補 / Gate P HOLD`
+- next_action: 少量のKeepa実商品でProduct Text Safety Factの取得経路と通常PH画面フローをread-onlyで確認する。live書込みは行わず、GABA-free、画像AI、Bose、Category Safetyへ範囲を拡大しない。
 
-最新`origin/main`と作業開始時HEADは`bf28c0702c845ec90e3f2847a8689c26162f32d3`で一致した。DEC-0049により、PH Minimum Beta完成線をCategory Safetyの完全追跡から、重大な実務リスクを防ぎながら既存機能を利用して早く実務投入する方針へ切り替えた。Beta前MUSTは、既存Expansion / Resolver、ASIN exact重複、確定済みNG ASIN / Brand / 知財、GABA・hemp等の確定禁止、title以外を含む取得可能文章、文章で明確な武器等、画像AIによる疑わしい商品の発見と人間確認、判断不能な重大Safetyのsafe stop、既存Category Mapper / Brand / handoff、少量実商品でのオーナー受入に限定する。現行実装の充足状況は未監査であり、Gate PはHOLDを維持する。
+最新`origin/main`と作業開始時HEADは`45959b0241676249b38c8ee60815e844d48a0ca5`で一致した。DEC-0049に基づくB0 read-only差分監査は完了し、現行Gateへdescription / features等が届かないことと、PH hemp Ruleが未実装であることを確認した。B1では固定15列の`PRELISTING_CANDIDATE_V1`を維持して`PRODUCT_TEXT_SAFETY_FACT_V1` sidecarを追加し、Expansion / Resolverの両入口、Candidate SHA-256 binding、ASIN集合・schema検証、PH Gate、literal substring `hemp` Ruleを共通経路で接続した。旧cacheは`NOT_CAPTURED`、新規応答に承認済み文章fieldがなければ`NOT_AVAILABLE`、Canopyは`PROVIDER_UNSUPPORTED`とし、これらのstatusだけではBLOCK / REVIEWにしない。既存Ingredient Safety sidecar、GABA 6 alias、GABA matcherは変更していない。Gate PはHOLDを維持する。
+
+Product Text Safetyのlocal technical validationは、関連targeted pytest 592件、PH UI必須経路修正後の再確認44件、全pytest 899件で成功した。すべてsynthetic / mockまたは既存fixtureであり、外部API、実商品、live書込みは使用していない。description / features等のKeepa本番取得率、少量実商品での通常PH画面、Beta業務受入は未確認である。
+
+PR #47のProduct Text Safety実装差分について、GPT独立read-only reviewはPASSした。これは実装差分のreview結果であり、少量のKeepa実商品によるFact取得経路、通常PH画面フロー、Gate PまたはPH Minimum Betaの受入PASSを意味しない。Gate PはHOLDを維持する。
 
 P1c POST_CATEGORY 170件の確認済み内訳はstrict接続可能62件と未解決108件である。Work Briefの「61件」表記で既存の確認済み件数を変更しない。170件・108件・62件の完全追跡、Category依存Safetyの網羅的Rule化、古いCategoryの後継Category完全特定は`BETA_AFTER_CANDIDATE`へ移し、過去のP1c成果物、identity、SHA-256、分類、二段階Safety原則を履歴・将来Evidenceとして保持する。Category調査を別名称でBeta前に継続しない。
 
@@ -216,8 +220,8 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 
 ## 未完了事項
 
-- 新Beta MUST 10項目に対する現行実装のread-only差分監査。各MUSTを確認済み実装、部分充足、未充足、未確認に区別し、未確認事項を新しいBeta blockerへ自動昇格させない
-- 差分監査後に確認された新Beta MUSTの不足への対応。具体的なコード、Rule、辞書、testsの変更は別作業・別範囲とし、今回開始しない
+- Product Text Safetyの少量実商品・実画面受入。description / features等のKeepa本番取得率は未確認であり、追加requestなしの通常フロー実物確認は別決裁とする
+- B0で確認された他の新Beta MUST不足への対応は、個別に範囲と事業境界を確定してから行う。Product Text Safety実装だけでB0全項目充足またはBeta完成とは扱わない
 - 少量の実商品による「候補生成、重複・重大Safety、Category / Brand、handoff」の一連の流れのオーナーBeta受入。Gate PはそれまでHOLD
 - `BETA_AFTER_CANDIDATE`: P1c POST_CATEGORY 170件（strict接続可能62件、未解決108件）の完全追跡、Seller Centre Category Evidenceの追加照合、62件の個別Rule scope review、Category依存Safetyの網羅的Rule化、古いCategoryの後継Category完全特定
 - `BETA_AFTER_CANDIDATE`: P1c `ADDITIONAL_FACT_REQUIRED` 59件のうち、新Beta MUSTの重大リスク対応を越えるFact取得・搬送設計
@@ -255,12 +259,12 @@ DEC-0046正本化差分のmain統合確認後、P1cの受入済み229候補をCa
 
 ## 次の単一作業
 
-本正本化差分のmain統合確認後、現行実装が新Beta MUSTのどこまで既に満たしているかのread-only差分監査を実施する。各MUSTを確認済み実装、部分充足、未充足、未確認に区別し、コード、Rule、辞書、testsを変更せず、未確認事項または理想的な追加機能を新しいBeta blockerへ自動昇格させない。
+少量のKeepa実商品でProduct Text Safety Factの取得経路と通常PH画面フローをread-onlyで確認する。追加requestなしの既存取得経路、sidecar生成・検証、PH Gate到達を確認し、live書込み、Rule変更、未承認alias追加は行わない。
 
 ## 停止条件
 
-- 新Beta MUSTのread-only差分監査と、少量の実商品による一連の流れのオーナー受入までは、Gate P PASSまたはMinimum Beta PASSとして扱わない。
-- read-only差分監査の完了前に、新Beta blockerを推測で追加せず、dictionary registration、Rule changes、code changes、または関連testsを開始しない。
+- Product Text Safetyの少量実商品・通常PH画面確認と、その後の一連の流れのオーナー受入までは、Gate P PASSまたはMinimum Beta PASSとして扱わない。
+- B0未確認事項または理想的な追加機能を新しいBeta blockerへ自動追加せず、個別に承認された不足以外のdictionary registration、Rule changes、code changes、関連testsを開始しない。
 - 未解決108件のSeller Centre Category Evidence調査・strict再照合、62件のRule設計、Category依存Safetyの網羅的Rule化、古いCategoryの後継Category完全特定を、Beta前に別名称で再開しない。
 - 未解決108件を解決済みとして扱わず、62件をRule実装済みまたは有効化済みとして扱わない。POST_CATEGORY 170件を実装完了、ADDITIONAL_FACT_REQUIRED 59件をFact取得済み、または229件をRule登録済みと扱わない。
 - 未解決108件をfuzzy、AI、leaf名だけの一致、親Categoryから子Categoryへの推測継承で接続しない。
@@ -379,9 +383,9 @@ DEC-0046正本化差分のmain統合確認後、P1cの受入済み229候補をCa
 | 回収TSVの今後の正式基準入力としての採用 | 新規基準入力専用としてオーナー受入済み |
 | Resolver証拠永続化改修、テスト、実画面 | branch技術検収、オーナー実画面確認、PR #7 main統合およびformal main確認済み |
 | 実データ | 未確認 |
-| PH対応のコード上の事実 | Ingredient Safety実装を含むtargeted pytest 695件、全pytest 868件でlocal technical validation済み。独立security / compatibility review再実行はtargeted pytest 579件、全pytest 868件成功。Keepa Ingredient Safetyのproduction / JP / read-only live技術確認は実商品2 ASIN・空のin-memory PH inventoryでPASS。GABA実商品live BLOCK確認とB2再受入は未実施。GABA-free matcher差分はP1c v1-r1受入で確認済みだが未修正 |
+| PH対応のコード上の事実 | Ingredient Safety既存検証に加え、Product Text Safety関連targeted pytest 592件、PH UI再確認44件、全pytest 899件でlocal technical validation済み。Product Text検証はsynthetic / mockのみ。Keepa Ingredient Safetyのproduction / JP / read-only live技術確認は実商品2 ASIN・空のin-memory PH inventoryでPASS。Product TextのKeepa本番取得率、実商品通常PH flow、GABA実商品live BLOCK確認、B2再受入は未実施。GABA-free matcher差分はP1c v1-r1受入で確認済みだが未修正 |
 | 新batchで確定する再検索対象件数・source_id、再評価の実行日・担当者・使用外部AI、Resolver成功基準、改善対象と改善方法 | 未確認 |
 
 ## 最終更新日
 
-2026-08-31
+2026-09-01
