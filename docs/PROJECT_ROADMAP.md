@@ -16,7 +16,7 @@ Shopee事業で開発する対象は、次の三つの独立ツールである�
 2. **出品後商品改善ツール** — Shopeeへ出品済みの商品リストの編集・改善を省力化する。
 3. **Amazon仕入れ支援ツール** — Amazonでの商品購入・仕入れを省力化する。
 
-現在は出品支援ツールの完成を最優先とする。この優先順位は開発順序であり、三ツール間の技術的依存関係を意味しない。出品後商品改善ツールとAmazon仕入れ支援ツールの本格設計・実装は、出品支援ツールの完成受入後に優先順位を再判断する。両ツールの詳細仕様は今回決めない。PH Minimum Betaの完成定義・受入条件はDEC-0034、B1〜B7に対する差分監査結果と残る受入GateはDEC-0035で正本化済みであり、次はPH Minimum Beta実物受入プロトコルの定義である。
+現在は出品支援ツールの完成を最優先とする。この優先順位は開発順序であり、三ツール間の技術的依存関係を意味しない。出品後商品改善ツールとAmazon仕入れ支援ツールの本格設計・実装は、出品支援ツールの完成受入後に優先順位を再判断する。両ツールの詳細仕様は今回決めない。PH Minimum Betaの完成定義・受入条件はDEC-0034、B1〜B7に対する差分監査結果と残る受入GateはDEC-0035で正本化済みである。少量実商品のB2 E2E全体フロー技術確認は完了し、次は画像Safety・人間REVIEWの最小設計ゲートである。
 
 外部出品ツールへの自動接続・自動投入は出品支援ツールの中核目的と別の責務境界であり、別設計・別承認とする。外部契約未確認の事実は残すが、その未確認だけを理由にASIN、Shopee Category ID、Shopee Brand IDの取得・確認に関する中核開発全体を停止しない。
 
@@ -33,7 +33,7 @@ Category Mapperは出品可否の最終判断者ではなく、Safety判定を�
 
 PHではPhase 1 deterministic BLOCKのmain技術受入後、PH Beta Minimum Definitionを先に置く。Beta Minimum Coreは、(B1) ExpansionとResolverの両入口による候補ASIN取得、(B2) PH Safety、(B3) 確認済みShopee Category IDへの経路、(B4) 確認済みShopee Brand IDまたはNo Brandへの経路、(B5) 未確定を推測で準備完了にしない停止能力、(B6) ASIN・Category ID・Brand ID / No Brandの揃い具合の一意な判別、(B7) 人間が確認済み情報を取得して既存出品ツールへの手入力準備に利用できるhandoffとする。これは外部出品ツールへの自動投入や実際の出品可能を意味しない。
 
-PH Beta Minimum Feasibility Auditと、B1〜B7完成定義に対する旧差分監査は完了し、確認済み`MISSING_IMPLEMENTATION`は0件だった。この結果は履歴として保持する。DEC-0049で切り替えた新Beta完成線のB0 read-only差分監査も完了し、description / features等が現行Gateへ届かないこととPH hemp Rule未実装を確認した。B1では固定15列Candidateを維持した`PRODUCT_TEXT_SAFETY_FACT_V1` sidecarとPH限定hemp Ruleを必要最小限で実装し、独立read-only reviewとKeepa JP production read-onlyのlive技術確認をPASSした。実商品2件でProduct Text Safety Factが`CAPTURED` 2件となり、Candidateからsidecarを経て通常PH Gateまで成立した。Product Textの2件超の取得率とhemp実商品live BLOCKは未確認だが、新しいBeta blockerにはしない。Gate PはPASSにせず、B2の少量実商品によるPH Minimum Beta全体フローのオーナー受入までHOLDする。Amazon Data Provider Test Bridge Design Gateでは、Keepaを本番標準として維持し、Canopyを明示設定時だけ用いる開発・試験専用providerとして採用した（DEC-0033）。Canopy Test Provider v0.1はmain上の正式技術成果であり、CanopyはKeepa本番確認を代替せず、Safety / Category / Brandの責務は変更しない。外部出品ツールの正式入力契約はBeta MUSTではなく、mandatory attribute全面対応はconditionalのままとする。
+PH Beta Minimum Feasibility Auditと、B1〜B7完成定義に対する旧差分監査は完了し、確認済み`MISSING_IMPLEMENTATION`は0件だった。この結果は履歴として保持する。DEC-0049で切り替えた新Beta完成線のB0 read-only差分監査も完了し、description / features等が現行Gateへ届かないこととPH hemp Rule未実装を確認した。B1では固定15列Candidateを維持した`PRODUCT_TEXT_SAFETY_FACT_V1` sidecarとPH限定hemp Ruleを必要最小限で実装し、独立read-only reviewとKeepa JP production read-onlyのlive技術確認をPASSした。実商品2件でProduct Text Safety Factが`CAPTURED` 2件となり、Candidateからsidecarを経て通常PH Gateまで成立した。Product Textの2件超の取得率とhemp実商品live BLOCKは未確認だが、新しいBeta blockerにはしない。B2ではResolver / Expansionの両入口について、Candidate生成からSafety、exact重複、Category、Brand / No Brand、`listing_ready`、CSV / TXT handoffまで少量実商品で成立した。これはE2E技術確認であり、画像Safetyと重大Safety判断不能時の人間REVIEWという残るBeta MUSTがあるため、Gate PとPH Minimum BetaはHOLDを継続する。Amazon Data Provider Test Bridge Design Gateでは、Keepaを本番標準として維持し、Canopyを明示設定時だけ用いる開発・試験専用providerとして採用した（DEC-0033）。Canopy Test Provider v0.1はmain上の正式技術成果であり、CanopyはKeepa本番確認を代替せず、Safety / Category / Brandの責務は変更しない。外部出品ツールの正式入力契約はBeta MUSTではなく、mandatory attribute全面対応はconditionalのままとする。
 
 Beta前に詳細なE2E人間作業時間測定、`CORE_INFO_READY ASIN / human hour`、Human Touch Rate、固定工数削減目標を必須Gateにしない。Beta後は実利用、オーナーによる実務ボトルネック報告、次versionでの改善を反復する。必要になったE2E時間測定はこのBeta後の改善手段候補とし、既存の件数、status、未解決理由等の自動出力を優先して、人間へ詳細な時間記録を常時要求しない。他市場への共通化はPH Betaの成立確認後に別途判断する。
 ## 正式完成済み
@@ -113,9 +113,21 @@ ASIN到達性能とResolver成功は未評価であり、Evidence Persistenceの
 
 B0で確認したdescription / features等の未搬送とPH hemp Rule未実装に対し、固定15列Candidateを維持したProduct Text Safety sidecar、追加Keepa requestなしの共通搬送、PH限定literal substring `hemp`を必要最小限で実装した。独立read-only reviewはPASSし、Keepa JP production read-onlyでは実商品2件で`CAPTURED` 2件、Candidate→sidecar→通常PH Gate成立を確認した。2件超の取得率とhemp実商品live BLOCKは未確認のまま保持し、新しいBeta blockerにはしない。GABA-free、画像AI、Bose、Category Safety、汎用sidecar frameworkは同時実装しない。
 
-### B2 — 少量実商品のBeta受入
+### B2 — 少量実商品のE2E全体フロー技術確認（完了）
 
-既存Expansion / Resolverから、重複・重大Safety、Category / Brand、handoffまでを少量の実商品で確認し、オーナーがBeta受入を判断する。Gate Pはこの受入までHOLDとし、過去の旧仕様Gate P PASSを現在のPASSに読み替えない。
+Resolver入口ではCandidate 1件、Expansion入口ではstrict 1ページから人間追跡対象1件に限定し、両入口でIngredient Safety / Product Text Safety CAPTURED、PH Gate SAFE / ELIGIBLE、入力内exact UNIQUE、既出品exact CLEAR、Category確定、Brand / No Brand確定、`listing_ready = TRUE`、CSV / TXT handoff取得まで成立した。使用したPH既出品CSVは0 ASINで、オーナー確認でもPHショップの既出品は0件だったため、既出品exact CLEARは実態と整合する。Shopee live書込みとコード・Rule・辞書・tests変更は0だった。
+
+この結果は現行機能でE2E全体フローが成立した技術確認であり、Gate P PASSまたはPH Minimum Beta PASSではない。B2を最初から再実行することは次工程にせず、残るBeta MUST対応後に最終オーナーBeta受入を行う。
+
+### B3 — PH 画像Safety・人間REVIEW 最小設計ゲート（次工程）
+
+残るBeta MUSTを、(1) 画像でしか判別しにくい武器等についてAIで疑わしい商品を発見し、自動BLOCKせず人間確認へ回すこと、(2) 重大Safetyで判断不能な商品を`listing_ready`へ進めず、人間REVIEWへ止めること、の2点に限定して最小設計を確定する。本工程は設計ゲートであり、承認範囲が確定する前にコード、Rule、辞書、testsを変更しない。
+
+Category 170 / 108 / 62件、Category Safety網羅化、高度な重複判定、確定NGリスト外の広範な知財AI推測、他marketplace、自動出品を新しいBeta blockerへ追加しない。GABA-free matcher差分は既知差分として保持するが本工程に含めない。Boseは既存Evidence上の未接続事項として保持し、画像Safety設計へ混在させず、Beta前の追加実装要否を別途判断する。
+
+### B4 — 残るBeta MUST対応後の最終オーナー受入
+
+B3で確定した設計に基づく必要最小限の対応と検証が完了した後、オーナーへPH Minimum Betaを実務投入してよいかの最終判断を求める。受入まではGate PとPH Minimum BetaをHOLDとする。
 
 ### BETA_AFTER_CANDIDATE
 
