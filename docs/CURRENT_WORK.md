@@ -13,34 +13,41 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `出品前保安ゲート結果画面の日本語化・検証完了 / Gate P HOLD`
-- current_phase: `結果表示の日本語化・内部値とCSV不変の検証完了`
-- working_branch: `codex/prelisting-gate-japanese-display`
-- marketplace: `SG / PH（既存画面対象）`
-- module: `Prelisting Gate UI`
-- phase: `UI表示限定変更の検証完了 / 画像Safety技術選定前 / Gate P HOLD`
-- next_action: `selectorを前提としたPH画像Safety使用技術・最小実装方式の選定`
+- current_work_type: `PH画像Safety使用技術・最小実装方式の正本化 / Gate P HOLD`
+- current_phase: `DEC-0054技術選定・文書検証完了`
+- working_branch: `codex/ph-image-safety-technology-dec0054`
+- marketplace: `PH`
+- module: `PH画像Safety / 人間REVIEW（設計文書）`
+- phase: `画像Safety技術選定済み / Minimum Beta実装前 / Gate P HOLD`
+- next_action: `DEC-0054に基づくPH画像Safety Minimum Beta実装`
 
-本UI作業はオーナーの2026-09-03指示により、fetch済みformal main `c334c929eef002bdf60aa504b0c3a1de4b38b8ba`（PR #53統合済み）から専用branchで開始した。変更は結果画面の日本語表示、関連UIテスト、必要な作業状態記録に限定する。内部status、reason code、CSV schema/header/value、Candidate 15列、Guardrail Rule・辞書・判定優先順位、画像Safety設計・実装を変更せず、DECISION_LOGへ新Decisionを追加しない。本差分の検証後commit、push、PR作成、mainへのmergeはオーナー明示承認済みである。画像Safety技術選定は本UI作業後の再開地点として保持し、このタスクでは開始しない。
+本DEC-0054正本化はオーナーの2026-09-03継続指示により、fetch済みformal `origin/main` `3cb2d04d4a2c6e059a4e17e98c35101a223d3c8d`（PR #54統合済み）とCURRENT_WORKを確認し、同一cloneのcleanな登録済み管理worktreeから専用branchで開始した。開始時local `main` は `3263364a43919ec8da3f35cdb7c40777eef90ea2` であり、最新formal mainとは区別する。元cloneの別branchにある無関係な未コミット変更は保持する。変更はDECISION_LOG、CURRENT_WORK、PROJECT_ROADMAPの3文書とGit管理対象外snapshotの再生成に限定し、検証後のローカルcommitまで実施する。push / PR / mergeは別途オーナー承認が必要であり、過去のUI・selector差分に対する承認を流用しない。
 
+DEC-0054により、OpenAI Responses API、画像入力対応の`gpt-5.6-terra`、`reasoning.effort=low`、最大3画像・原則1商品1 request、Structured Outputs、`store=false`を基本方式として確定した。DEC-0053 selector、DEC-0051のAI権限・人間判断・商品REVIEW / Gate STOP境界を維持する。既存Keepa応答のroot・画像情報を搬送し、画像Safety目的の追加Keepa requestは原則行わず、Amazon画像は恒久保存しない。固定15列Candidateと安全にbindingするPH画像Safety専用sidecarを用い、selector未実行、AIの意味上の結果、取得・実行状態を分離する。Canopyはtest providerのままとし、対象拡張・暗黙Keepa fallbackは行わない。具体的な決定・公式仕様の参照先・未確認事項はDEC-0054を正本とする。
+
+利用アカウントでの実行可否、契約・データ保持設定、画像取得可否、検出品質・遅延・実費は未確認である。prompt、正式sidecar schema、画像選択・取得制限、binding検証は次の実装で具体化し、外部API・実商品検証は別途承認を得る。今回の正本化を画像AI実装完了またはBeta受入PASSと扱わず、Gate P / PH Minimum BetaはHOLDを継続する。
+
+DEC-0054文書検証: 変更3文書限定、DECISION_LOG追記専用、指定技術・4 root ID・次の単一作業の整合、追加行の秘密情報パターンチェック、`git diff --check`、既存snapshot生成・検証がPASSした。既存ローカルvenv（Python 3.13 / Streamlit 1.63.0）で全pytestは902件成功・失敗0件。コード・Rule・辞書・tests・依存環境は変更せず、外部API・実商品処理は行っていない。今回はローカルcommitまでで、push / PR / mergeは未実施として引き渡す。
+
+直前の結果画面日本語化はPR #54でmainへ統合済みである。以下3段落はその実装・検証履歴として保持する。
 
 日本語表示はUI専用のコピーへ適用し、最終判定・保安判定・既出品・商品情報・理由・12列の列名・上部metric・判定別tab・説明文・要確認CSVボタンを更新した。元の結果オブジェクト、既存preview helper、CSV serializerは維持した。実際のdownload_buttonへ渡るCSV bytes、header、status、reason codeと、再描画後のsession結果が変化しないことをAppTestで確認した。商品名・該当語・判定メモ等の自由記述は翻訳せず、未定義の内部値も表示から消さない。
 
 検証: 関連pytest 178件成功。Git管理対象外のローカルvenv（Python 3.13 / Streamlit 1.63.0）では全pytest 902件成功。変更前の既定環境（Streamlit 1.44.1）は875件成功・24件失敗、変更後の同Streamlit環境は879件成功・23件失敗で、失敗test ID比較による新規失敗は0件だった。既知のwidth引数非対応23件は旧Streamlit環境に残り、repo内venv不在による1件はローカル環境準備で解消した。追加テストは3件である。既定Pythonのlogging既知不具合は依存導入プロセス内だけ標準warning動作へ戻し、グローバル環境・requirements・アプリのloggingは変更していない。
 
-変更はapp.py、UI helper、関連UIテスト2ファイル、CURRENT_WORKの5ファイルに限定する。DECISION_LOG、PROJECT_ROADMAP、判定・CSVコード、Rule・辞書は不変。関連テストはsynthetic / mockであり、外部API・実商品処理・deploy・Shopee live書込みは行っていない。実商品でのオーナー画面確認は未実施であり、確認箇所は件数表示、判定別tab、12列の日本語表示、説明文、要確認CSVボタンとする。Gate P / PH Minimum BetaはHOLDを継続し、画像Safety技術選定を次の単一作業として保持する。
+変更はapp.py、UI helper、関連UIテスト2ファイル、CURRENT_WORKの5ファイルに限定する。DECISION_LOG、PROJECT_ROADMAP、判定・CSVコード、Rule・辞書は不変。関連テストはsynthetic / mockであり、外部API・実商品処理・deploy・Shopee live書込みは行っていない。実商品でのオーナー画面確認は未実施であり、確認箇所は件数表示、判定別tab、12列の日本語表示、説明文、要確認CSVボタンとする。当時の次作業だった画像Safety技術選定は今回DEC-0054で完了し、Gate P / PH Minimum Betaは引き続きHOLDとする。
 
 DEC-0053により、PH画像Safety selectorのBeta範囲を確定した。原則対象のKeepa JP rootはおもちゃ、ホビー、スポーツ＆アウトドア、DIY・工具・ガーデンの4つとし、IDと適用条件はDEC-0053を正本とする。正常に識別できた他rootは原則未実行、root欠損・不正・判定不能は画像AI対象、既存title / description / ingredients SafetyでBLOCK確定済みの商品は画像AI未実行とする。未実行をNO_SIGNALへ読み替えず、画像確認済みで疑義なしという結果と分離する。ホーム＆キッチン、Beautyその他root全体は対象に追加せず、title trigger、subcategory細分化、全rootの網羅的画像リスク調査はBETA_AFTER_CANDIDATEとする。selectorの確定は実装完了を意味しない。
 
-DEC-0052の販売規制ガイド登録はPR #52でmainへ統合済みであり、資料identity・完全SHA-256・保存先・親資料へのbindingは `docs/evidence/GUARDRAIL_SOURCE_MANIFEST.csv` を正本とする。DEC-0052で一次確認したPDF p.9のPH輸入禁制品「包丁」と、現行PH Guardrailの明示語BLOCKを根拠に、DEC-0053でホーム＆キッチンroot全体を画像AI対象へ広げないと決定した。今回、登録済みPDF/TXTの完全SHA-256とbytesを再照合し一致した。資料の日付・版・現行性は推測せず、Rule境界は変更しない。
+DEC-0052の販売規制ガイド登録はPR #52でmainへ統合済みであり、資料identity・完全SHA-256・保存先・親資料へのbindingは `docs/evidence/GUARDRAIL_SOURCE_MANIFEST.csv` を正本とする。DEC-0052で一次確認したPDF p.9のPH輸入禁制品「包丁」と、現行PH Guardrailの明示語BLOCKを根拠に、DEC-0053でホーム＆キッチンroot全体を画像AI対象へ広げないと決定した。DEC-0053正本化時に、登録済みPDF/TXTの完全SHA-256とbytesを再照合し一致した。資料の日付・版・現行性は推測せず、Rule境界は変更しない。
 
-本正本化はfetch済みformal `origin/main` / 開始時HEAD `2d309adb3dcfbf14bf5a348f25d5bf32f7468dd6`（PR #52統合済み）から、同一cloneのcleanな登録済み管理worktreeで開始した。local `main` は開始時 `3263364a43919ec8da3f35cdb7c40777eef90ea2` であり、最新formal mainとは区別する。元cloneの別branchにある無関係な未コミット管理文書は保持する。本作業の検証済み3文書差分についてcommit、push、PR作成、mainへのmergeはオーナー明示承認済みである。実際の統合結果とformal main full SHAはGit / PR履歴で確認し、snapshotは既存手順で再生成・検証する。
+DEC-0053正本化はfetch済みformal `origin/main` / 開始時HEAD `2d309adb3dcfbf14bf5a348f25d5bf32f7468dd6`（PR #52統合済み）から、同一cloneのcleanな登録済み管理worktreeで開始した。local `main` は開始時 `3263364a43919ec8da3f35cdb7c40777eef90ea2` であり、最新formal mainとは区別する。元cloneの別branchにある無関係な未コミット管理文書は保持する。当時の検証済み3文書差分についてcommit、push、PR作成、mainへのmergeはオーナー明示承認済みであり、PR #53で統合した。この承認はDEC-0054には適用しない。
 
 前回DEC-0052登録時の検証はManifest・Evidence identity・snapshot等がPASSし、既定Pythonの全pytestは875件成功・24件失敗だった。失敗にはStreamlit 1.44.1の既存UI `width` 引数非対応とrepo内 `.venv` 不在を確認した。これは前回の検証履歴である。
 
-今回DEC-0053正本化の検証は、変更3文書限定、DECISION_LOG追記専用、4 root IDと次の単一作業の整合、追加行の秘密情報チェック、登録済みPDF/TXTの完全SHA-256・bytes照合、`git diff --check`、既存snapshot生成・検証がPASSした。既定Pythonによる全pytestは875件成功・24件失敗（前回と同数）で、既存Streamlit 1.44.1の `width` 引数非対応と、検証スクリプトが要求するrepo内 `.venv` 不在を再確認した。機能コード、Rule、辞書、tests、実行環境は変更せず、全pytest PASSとは扱わない。外部API実行・実商品処理は行っていない。
+DEC-0053正本化時の検証は、変更3文書限定、DECISION_LOG追記専用、4 root IDと次の単一作業の整合、追加行の秘密情報チェック、登録済みPDF/TXTの完全SHA-256・bytes照合、`git diff --check`、既存snapshot生成・検証がPASSした。既定Pythonによる全pytestは875件成功・24件失敗（前回と同数）で、既存Streamlit 1.44.1の `width` 引数非対応と、検証スクリプトが要求するrepo内 `.venv` 不在を再確認した。機能コード、Rule、辞書、tests、実行環境は変更せず、全pytest PASSとは扱わない。外部API実行・実商品処理は行っていない。
 
-DEC-0051で、PH画像Safetyは画像上で見える武器・武器形状物の疑義発見に限定し、AI単独でBLOCK、SAFE保証、既存BLOCK解除を行わず、判断不能を商品単位の人間REVIEWへ止める事業ルールを確定した。`PRELISTING_CANDIDATE_V1`の固定15列を維持して独立sidecarを基本方針とするが、AI provider、API、model、prompt、正式sidecar schema、cache方式、具体的料金は未決定である。Gate PとPH Minimum BetaはHOLDを維持する。
+DEC-0051で、PH画像Safetyは画像上で見える武器・武器形状物の疑義発見に限定し、AI単独でBLOCK、SAFE保証、既存BLOCK解除を行わず、判断不能を商品単位の人間REVIEWへ止める事業ルールを確定した。`PRELISTING_CANDIDATE_V1`の固定15列を維持して独立sidecarを基本方針とする。provider・API・modelと最小実装方式はDEC-0054で確定済みであり、prompt・正式sidecar schemaは次の実装で具体化する。AI結果cacheはBETA_AFTER_CANDIDATEとし、商品単位の実費は未確認である。Gate PとPH Minimum BetaはHOLDを維持する。
 
 latest main `b62be9152b2c1ddc009e304e26a63fe8f33847e0`を基準に、少量実商品のB2全体フローを通常画面で確認した。Resolver入口はCandidate 1件、Expansion入口はstrict 1ページで候補を取得し、人間追跡対象を1件に限定した。両入口ともIngredient Safety / Product Text SafetyはCAPTURED、PH GateはSAFE / ELIGIBLE、入力内exactはUNIQUE、既出品exactはCLEARとなり、Category、Brand / No Brand、`listing_ready = TRUE`、CSV / TXT handoffまで成立した。使用したPH既出品CSVの登録ASINは0件で、オーナー確認でも現在のPHショップに既出品商品は存在せず、今回の既出品exact CLEARは実態と整合する。Shopee live書込み、コード・Rule・辞書・tests変更はいずれも0である。これは現行機能によるE2E全体フロー成立の技術確認であり、Gate P PASSまたはPH Minimum Beta PASSではない。
 
@@ -247,10 +254,11 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 ## 未完了事項
 
 - Product Textの2件超の取得率とhemp実商品によるlive BLOCKは未確認だが、新しいBeta blockerにはしない
-- selectorを前提としたPH画像Safety使用技術・最小実装方式の選定（DEC-0053）。selectorのBeta範囲は確定済み
-- 画像上で見える武器・武器形状物の疑義発見と、判断不能時の商品単位REVIEWを実現する最小実装・検証
-- 上記2件の残るBeta MUST対応後に行うPH Minimum Betaの最終オーナー受入。Gate PはそれまでHOLD
+- DEC-0054に基づくPH画像Safety Minimum Beta実装・検証。DEC-0053 selectorと技術選定は確定済み
+- 画像疑義・判断不能等の商品単位REVIEWと、Candidate・画像評価にbindingした人間最終判断の最小実装・検証（同じDEC-0054実装作業内）
+- 残る画像Safety・人間REVIEWのBeta MUST対応後に行うPH Minimum Betaの最終オーナー受入。Gate PはそれまでHOLD
 - `BETA_AFTER_CANDIDATE`: 画像Safetyのtitle trigger、subcategory細分化、全rootの網羅的画像リスク調査（DEC-0053）
+- `BETA_AFTER_CANDIDATE`: `gpt-5.6-luna`へのコスト最適化比較、provider複数対応、AI結果cache、その他root拡張（DEC-0054）
 - `BETA_AFTER_CANDIDATE`: P1c POST_CATEGORY 170件（strict接続可能62件、未解決108件）の完全追跡、Seller Centre Category Evidenceの追加照合、62件の個別Rule scope review、Category依存Safetyの網羅的Rule化、古いCategoryの後継Category完全特定
 - `BETA_AFTER_CANDIDATE`: P1c `ADDITIONAL_FACT_REQUIRED` 59件のうち、新Beta MUSTの重大リスク対応を越えるFact取得・搬送設計
 - `BETA_AFTER_CANDIDATE`: 確定済みNGリスト外の知財の広範推測、高度な重複商品判定、他marketplace、自動出品、および旧P0〜P6のうち新Beta MUSTに含まれない全面工程
@@ -287,13 +295,13 @@ DEC-0046正本化差分のmain統合確認後、P1cの受入済み229候補をCa
 
 ## 次の単一作業
 
-selectorを前提としたPH画像Safety使用技術・最小実装方式の選定
+DEC-0054に基づくPH画像Safety Minimum Beta実装
 
 ## 停止条件
 
 - 残るBeta MUSTの対応と最終オーナーBeta受入までは、Gate P PASSまたはPH Minimum Beta PASSとして扱わない。
 - B2全体フローは現行機能によるE2E技術確認完了として扱い、新しい不具合Evidenceがない限り最初からの再実行を次工程にしない。
-- 本作業は結果画面の日本語表示、関連UIテスト、作業状態記録に限定する。内部status、reason code、CSV契約、Candidate 15列、Guardrail Rule・辞書・判定優先順位、画像Safety設計・実装を変更せず、新Decisionを追加しない。画像Safety技術選定は本タスクで開始しない。
+- 本作業はDEC-0054の設計・正本化と文書検証に限定する。Guardrail Rule・辞書、既存判定ロジック、Candidate 15列、画像AI実装コードは変更せず、次の実装作業へ本タスク内で進まない。外部API実行、実商品処理、Shopee live書込みは行わない。
 - DEC-0053のselector範囲を自動拡張せず、title trigger、subcategory細分化、全rootの網羅的画像リスク調査をBeta前に再開しない。
 - 市場横断Evidenceの保存・参照を、他市場のRule適用またはCOMMON_BLOCK採用の承認と扱わない。資料・ページ・市場を明示して判断する。
 - Evidence再利用時はManifestの完全SHA-256を照合する。不一致、資料identityの曖昧さ、PDF/TXTの同一資料性未確認、または資料日付の推測が必要な場合は停止する。
@@ -334,7 +342,7 @@ selectorを前提としたPH画像Safety使用技術・最小実装方式の選�
 - 承認済みのCategory Mapper一時認証入力範囲を越えてBrand resolution、Guardrail辞書、Gateロジック、Phase 1の13 Brand rulesを変更しない。Resolver／ExpansionをCanopy v0.1契約外へ拡張しない。
 - Shipping / Operational Filter、Category Batch Builder、mandatory attribute Batchへ進まない。
 - SG / MY / THへ展開せず、Marketplace-neutral schemaを先行確定しない。
-- 今回の検証済み結果画面日本語化差分に限り、承認済みのpush、PR作成、mainへのmergeを行える。この承認を他の実装へ流用せず、deploy、外部API実行、Shopee live書込みは行わない。
+- 今回は関連文書検証後のローカルcommitまでとし、push / PR / mergeは別途オーナー承認を得る。過去のUI・selector差分に対する承認を流用しない。deploy、外部API実行、Shopee live書込みは行わない。
 - 727候補を、設計・根拠の確認なしに正式COMMON_BLOCK、PH_BLOCK、REVIEW辞書として扱わない。
 - 理由不足の一般コミュニティNG 311行を、今回のPHコミュニティ14項目の採用判断だけでBLOCKまたはREVIEWへ昇格しない。
 - 台湾・タイ・マレーシア等の参考資料から具体辞書を作らず、PHルールへ混ぜず、共通項目へ昇格しない。
