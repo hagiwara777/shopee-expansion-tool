@@ -605,3 +605,27 @@
 - 理由: 同じ資料を市場別フォルダで重複管理せず、一次資料と解析用派生物を区別し、資料identityの保存と市場別の事業・実装判断を分離して再現性を保つため。
 - 影響: 新設Manifest、CURRENT_WORK、B3の次工程記載だけを更新し、snapshotを既存スクリプトで再生成・検証する。ユーザー許可により検証済みローカルcommitまで実施できる。push、Draft PR、mergeは行わず、Rule実装や他市場展開へ自動的に進まない。
 - 再検討条件: 日付・版・取得履歴を示す一次資料が得られたとき、新版または異なる内容の同名資料が見つかったとき、PDF/TXTの対応に不一致が判明したとき、またはPH包丁規制の正式整理で画像Safety事業ルールの変更が必要になったとき。
+
+## DEC-0053 — PH画像Safety selectorのMinimum Beta範囲を確定する
+
+- 日付: 2026-09-03
+- 背景: DEC-0051の画像Safety・人間REVIEW事業ルールと、DEC-0052で登録した販売規制ガイド一次Evidenceを前提に、使用技術・最小実装方式の選定へ進むため、画像AIを実行するBeta範囲をオーナー承認により固定する。
+- 決定: PH Minimum Betaで画像AIを原則実行するKeepa JP root categoryは次の4つに限定する。これは画像確認対象の選択であり、root自体のBLOCK判定ではない。
+
+  | Keepa JP root category | root_category_id |
+  | --- | --- |
+  | おもちゃ | `13299531` |
+  | ホビー | `2277721051` |
+  | スポーツ＆アウトドア | `14304371` |
+  | DIY・工具・ガーデン | `2016929051` |
+
+- 決定: 上記以外の正常に識別できたroot categoryは、Betaでは原則画像AIを実行しない。`root_category_id`が欠損・不正・判定不能の場合はSKIPせず画像AI対象とする。既存title / description / ingredients SafetyでBLOCKが確定した商品には、rootの対象内外・不明を問わず画像AIを実行せず、既存BLOCKを維持する。
+- 決定: 画像AIを実行しなかった商品を`NO_SIGNAL`とは扱わない。「未実行」と「画像確認済みで疑義なし」を分離する。DEC-0051の5つのAI結果statusと、疑義・画像なし・処理失敗・一部画像失敗・判断不能等を商品単位REVIEWにする原則は画像AI対象の商品に適用する。selectorによる対象外または既存BLOCKによる未実行をAI結果へ読み替えず、未実行をSAFE保証または既存Safety解除の根拠にしない。未実行の具体的な表現・記録方式は後続技術選定で決め、今回新しいstatus / enumまたは正式sidecar schemaを確定しない。
+- 決定: ホーム＆キッチンroot全体はBeta画像AI対象にしない。Shopee Japan販売規制ガイドのPDF p.9「フィリピン → 輸入禁制品 → 包丁」が一次確認済みであり、現行PH Guardrailにも`kitchen knife` / `chef knife` / `包丁`のBLOCK Ruleがあるため、既存の明示語BLOCKを維持し、この理由でroot全体へ画像AI対象を広げない。Beautyその他root全体もBetaでは対象外とする。これらは正常にrootを識別できた場合の扱いであり、欠損・不正・判定不能時の対象化を上書きしない。
+- 根拠: 一次資料identityは`SHOPEE_JAPAN_SALES_RESTRICTION_GUIDE` / `SJ-SALES-RESTRICTION-PDF-8ef486ce851b`、完全SHA-256は`8ef486ce851bda22ae2442c3c234ab33de29f44ccdf52f3e106c254ebdf7bb6d`。索引は`docs/evidence/GUARDRAIL_SOURCE_MANIFEST.csv`、区分・配置の根拠はPDF p.9とDEC-0052の確認記録とする。今回、登録済みPDF/TXTの完全SHA-256とbytesを再照合し一致した。現行Ruleはfetch済みformal main `2d309adb3dcfbf14bf5a348f25d5bf32f7468dd6`の`guardrails/risk_keywords_ph.csv`にあるPH-D070 / PH-D071 / PH-D072（title / contains / BLOCK / enabled TRUE）を直接確認した。資料の日付・版・現行性は推測せず、今回新たな法令解釈またはRule境界変更は行わない。
+- 決定: title trigger、subcategory細分化、全rootの網羅的画像リスク調査は`BETA_AFTER_CANDIDATE`とする。Beta前のselector選定または網羅性確認として別名称で再開しない。既存title SafetyのBLOCKを適用することと、画像AI対象を増やすtitle triggerは分離する。
+- 維持: DEC-0051の「画像上で見える武器・武器形状物の疑義発見」という目的、AI単独ではBLOCKしないこと、`NO_SIGNAL`はSAFE保証ではないこと、1商品最大3画像、transient error最大1 retry、疑義・判断不能等の商品単位REVIEWを維持する。人間最終判断は`ALLOW_PREPARATION` / `EXCLUDE`とし、前者は画像由来REVIEWだけを解除し、他のBLOCK / REVIEWを解除しない。sidecar schema・Candidate SHA・ASIN集合・重複ASIN・status・人間判断bindingの不正、およびAI認証・契約・未対応設定のGate全体STOPも維持する。`PRELISTING_CANDIDATE_V1`固定15列と独立sidecar基本方針を維持し、汎用Sidecar frameworkは作らない。
+- 決定: selectorのBeta範囲は確定済みとし、次の単一作業を「selectorを前提としたPH画像Safety使用技術・最小実装方式の選定」とする。AI provider、API、model、prompt、正式sidecar schema、cache方式、具体的料金は今回選定しない。Gate P / PH Minimum BetaはHOLDを継続し、selector確定を実装完了またはBeta受入PASSとして扱わない。
+- 理由: 既存の文章Safetyで確定できるBLOCKを優先し、承認された4 rootとroot不明の商品に画像確認を絞り、未実行と確認結果を混同せずに最小実装の選定へ進むため。
+- 影響: DECISION_LOGへの追記、CURRENT_WORKのselector確定・次作業・停止条件、PROJECT_ROADMAPの必要な工程差分だけを更新する。snapshotは既存手順で再生成・検証し、Git管理対象外を維持する。本作業の検証済み差分のcommit、push、PR作成、mainへのmergeはオーナー明示承認済みである。Guardrail Rule、辞書、判定コード、画像AI実装、Candidate 15列は変更せず、外部API実行、実商品処理、deploy、Shopee live書込みは行わない。
+- 再検討条件: Beta実利用で対象rootまたは未実行の扱いを変更すべき具体的Evidenceが得られたとき、資料identityまたはPH包丁記載に不一致が判明したとき、あるいは最小実装方式の選定でDEC-0051と本selectorの両立に未解決の事業判断が必要になったとき。変更は別判断として記録し、対象範囲を自動拡張しない。
