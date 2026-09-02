@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 import pytest
 
 from modules.listing_inventory_parser import ListingEvidence, ListingInventoryFileResult
@@ -8,6 +10,7 @@ from modules.prelisting_gate_ui import (
     PRELISTING_GATE_PREVIEW_COLUMNS,
     build_internal_shop_labels,
     build_prelisting_gate_preview_rows,
+    localize_prelisting_gate_preview_rows,
     build_prelisting_gate_fingerprint,
     clear_prelisting_gate_result,
     prelisting_gate_download_source_type,
@@ -416,3 +419,69 @@ def test_download_source_type_uses_only_the_formal_source_types():
     assert prelisting_gate_download_source_type("RESOLVER") == "resolver"
     with pytest.raises(ValueError):
         prelisting_gate_download_source_type("UNKNOWN")
+
+
+def test_japanese_preview_copies_rows_and_preserves_free_text_and_internal_values():
+    result = _gate_result((("ELIGIBLE", "B000000001"), ("REVIEW", "B000000002"), ("EXCLUDE", "B000000003")))
+    raw = tuple(
+        row
+        for status in ("ELIGIBLE", "REVIEW", "EXCLUDE")
+        for row in build_prelisting_gate_preview_rows(result, final_eligibility=status)
+    )
+    original = deepcopy(raw)
+    original_result = deepcopy(result)
+    display = localize_prelisting_gate_preview_rows(raw)
+
+    assert list(display[0]) == [
+        "ASIN", "商品名", "ブランド", "カテゴリ", "保安判定", "該当語", "判定メモ",
+        "既出品", "商品情報", "最終判定", "理由", "既出品一致件数",
+    ]
+    assert [row["最終判定"] for row in display] == ["出品候補", "要確認", "除外"]
+    assert [row["保安判定"] for row in display] == ["現行ルール該当なし", "要確認", "除外対象"]
+    assert [row["既出品"] for row in display] == ["既出品なし", "既出品あり", "既出品なし"]
+    assert [row["商品情報"] for row in display] == ["商品情報あり"] * 3
+    assert [row["理由"] for row in display] == ["", "要確認ルール該当", "禁止・除外ルール該当"]
+    assert [row["既出品一致件数"] for row in display] == [0, 1, 0]
+    for source, translated in zip(raw, display):
+        for source_key, display_key in (
+            ("candidate_asin", "ASIN"), ("product_title", "商品名"),
+            ("brand", "ブランド"), ("category", "カテゴリ"),
+            ("guardrail_matched_terms", "該当語"), ("guardrail_note", "判定メモ"),
+        ):
+            assert translated[display_key] == source[source_key]
+    display[0]["商品名"] = "表示だけ変更"
+    assert raw == original
+    assert result == original_result
+    assert raw[0]["final_eligibility"] == "ELIGIBLE"
+    assert raw[1]["reason_codes"] == "GUARDRAIL_REVIEW"
+
+
+def test_japanese_preview_translates_all_reasons_in_order_and_keeps_unknown_values():
+    raw = ({
+        "metadata_status": "INCOMPLETE",
+        "reason_codes": "GUARDRAIL_BLOCK|EXISTING_ASIN|INPUT_DUPLICATE|SELF_ASIN|GUARDRAIL_REVIEW|METADATA_INCOMPLETE|FUTURE_REASON",
+        "guardrail_status": "FUTURE_STATUS",
+        "product_title": "SAFE REVIEW CLEAR COMPLETE",
+        "guardrail_note": "GUARDRAIL_BLOCK is source evidence text",
+    },)
+    original = deepcopy(raw)
+    display = localize_prelisting_gate_preview_rows(raw)
+    assert display == ({
+        "商品情報": "商品情報不足",
+        "理由": "禁止・除外ルール該当 / 既出品 / 入力内重複 / 起点商品と同一 / 要確認ルール該当 / 商品情報不足 / FUTURE_REASON",
+        "保安判定": "FUTURE_STATUS",
+        "商品名": "SAFE REVIEW CLEAR COMPLETE",
+        "判定メモ": "GUARDRAIL_BLOCK is source evidence text",
+    },)
+    assert raw == original
+
+
+def test_japanese_preview_retains_empty_results_and_the_hundred_row_limit():
+    result = _gate_result(tuple(("ELIGIBLE", f"B{index:09d}") for index in range(1, 102)))
+    display = localize_prelisting_gate_preview_rows(
+        build_prelisting_gate_preview_rows(result, final_eligibility="ELIGIBLE")
+    )
+    assert len(display) == 100
+    assert display[0]["ASIN"] == "B000000001"
+    assert display[-1]["ASIN"] == "B000000100"
+    assert localize_prelisting_gate_preview_rows(()) == ()

@@ -1,8 +1,8 @@
-"""Pure input-validation helpers for the pre-listing gate UI.
+"""Pure display and input-validation helpers for the pre-listing gate UI.
 
 This module deliberately has no Streamlit dependency and does not evaluate
 guardrails, write files, or perform external I/O.  It only prepares safe,
-deterministic input metadata for the Phase 4A-1 screen.
+deterministic input metadata and display copies for the screen.
 """
 
 from __future__ import annotations
@@ -36,6 +36,38 @@ PRELISTING_GATE_PREVIEW_COLUMNS = (
     "reason_codes",
     "existing_evidence_count",
 )
+_PRELISTING_GATE_COLUMN_LABELS = {
+    "candidate_asin": "ASIN",
+    "product_title": "商品名",
+    "brand": "ブランド",
+    "category": "カテゴリ",
+    "guardrail_status": "保安判定",
+    "guardrail_matched_terms": "該当語",
+    "guardrail_note": "判定メモ",
+    "existing_listing_status": "既出品",
+    "metadata_status": "商品情報",
+    "final_eligibility": "最終判定",
+    "reason_codes": "理由",
+    "existing_evidence_count": "既出品一致件数",
+}
+_PRELISTING_GATE_VALUE_LABELS = {
+    "final_eligibility": {
+        "ELIGIBLE": "出品候補", "REVIEW": "要確認", "EXCLUDE": "除外",
+    },
+    "guardrail_status": {
+        "SAFE": "現行ルール該当なし", "REVIEW": "要確認", "BLOCK": "除外対象",
+    },
+    "existing_listing_status": {"CLEAR": "既出品なし", "EXISTING": "既出品あり"},
+    "metadata_status": {"COMPLETE": "商品情報あり", "INCOMPLETE": "商品情報不足"},
+}
+_PRELISTING_GATE_REASON_LABELS = {
+    "GUARDRAIL_BLOCK": "禁止・除外ルール該当",
+    "EXISTING_ASIN": "既出品",
+    "INPUT_DUPLICATE": "入力内重複",
+    "SELF_ASIN": "起点商品と同一",
+    "GUARDRAIL_REVIEW": "要確認ルール該当",
+    "METADATA_INCOMPLETE": "商品情報不足",
+}
 _PRELISTING_GATE_FINAL_ELIGIBILITIES = {"ELIGIBLE", "REVIEW", "EXCLUDE"}
 _PRELISTING_GATE_DOWNLOAD_SOURCE_TYPES = {
     "EXPANSION": "expansion",
@@ -326,6 +358,31 @@ def build_prelisting_gate_preview_rows(
         if len(preview_rows) == limit:
             break
     return tuple(preview_rows)
+
+
+def localize_prelisting_gate_preview_rows(
+    preview_rows: Iterable[dict[str, str | int]],
+) -> tuple[dict[str, str | int], ...]:
+    """Copy preview rows into Japanese display labels; never change export data.
+
+    Unknown values remain visible rather than being dropped or interpreted as
+    a passing status. Free-form product and evidence text is left untouched.
+    """
+
+    display_rows: list[dict[str, str | int]] = []
+    for row in preview_rows:
+        display_row: dict[str, str | int] = {}
+        for column, value in row.items():
+            if column == "reason_codes":
+                value = " / ".join(
+                    _PRELISTING_GATE_REASON_LABELS.get(code, code)
+                    for code in str(value).split("|")
+                )
+            elif column in _PRELISTING_GATE_VALUE_LABELS:
+                value = _PRELISTING_GATE_VALUE_LABELS[column].get(value, value)
+            display_row[_PRELISTING_GATE_COLUMN_LABELS.get(column, column)] = value
+        display_rows.append(display_row)
+    return tuple(display_rows)
 
 
 def summarize_prelisting_inventory(

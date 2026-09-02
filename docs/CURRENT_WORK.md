@@ -13,13 +13,22 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH画像Safety selector Beta範囲確定 / 技術選定前 / Gate P HOLD`
-- current_phase: `B3事業ルール・selector確定 / 使用技術・最小実装方式の選定前 / Gate P HOLD`
-- working_branch: `codex/ph-image-safety-selector-dec0053`
-- marketplace: `PH`
-- module: `Guardrail / 画像Safety`
-- phase: `PH画像Safety selector Beta範囲確定済み / 画像AI未実装 / Gate P HOLD`
+- current_work_type: `出品前保安ゲート結果画面の日本語化・検証完了 / Gate P HOLD`
+- current_phase: `結果表示の日本語化・内部値とCSV不変の検証完了`
+- working_branch: `codex/prelisting-gate-japanese-display`
+- marketplace: `SG / PH（既存画面対象）`
+- module: `Prelisting Gate UI`
+- phase: `UI表示限定変更の検証完了 / 画像Safety技術選定前 / Gate P HOLD`
 - next_action: `selectorを前提としたPH画像Safety使用技術・最小実装方式の選定`
+
+本UI作業はオーナーの2026-09-03指示により、fetch済みformal main `c334c929eef002bdf60aa504b0c3a1de4b38b8ba`（PR #53統合済み）から専用branchで開始した。変更は結果画面の日本語表示、関連UIテスト、必要な作業状態記録に限定する。内部status、reason code、CSV schema/header/value、Candidate 15列、Guardrail Rule・辞書・判定優先順位、画像Safety設計・実装を変更せず、DECISION_LOGへ新Decisionを追加しない。本差分の検証後commit、push、PR作成、mainへのmergeはオーナー明示承認済みである。画像Safety技術選定は本UI作業後の再開地点として保持し、このタスクでは開始しない。
+
+
+日本語表示はUI専用のコピーへ適用し、最終判定・保安判定・既出品・商品情報・理由・12列の列名・上部metric・判定別tab・説明文・要確認CSVボタンを更新した。元の結果オブジェクト、既存preview helper、CSV serializerは維持した。実際のdownload_buttonへ渡るCSV bytes、header、status、reason codeと、再描画後のsession結果が変化しないことをAppTestで確認した。商品名・該当語・判定メモ等の自由記述は翻訳せず、未定義の内部値も表示から消さない。
+
+検証: 関連pytest 178件成功。Git管理対象外のローカルvenv（Python 3.13 / Streamlit 1.63.0）では全pytest 902件成功。変更前の既定環境（Streamlit 1.44.1）は875件成功・24件失敗、変更後の同Streamlit環境は879件成功・23件失敗で、失敗test ID比較による新規失敗は0件だった。既知のwidth引数非対応23件は旧Streamlit環境に残り、repo内venv不在による1件はローカル環境準備で解消した。追加テストは3件である。既定Pythonのlogging既知不具合は依存導入プロセス内だけ標準warning動作へ戻し、グローバル環境・requirements・アプリのloggingは変更していない。
+
+変更はapp.py、UI helper、関連UIテスト2ファイル、CURRENT_WORKの5ファイルに限定する。DECISION_LOG、PROJECT_ROADMAP、判定・CSVコード、Rule・辞書は不変。関連テストはsynthetic / mockであり、外部API・実商品処理・deploy・Shopee live書込みは行っていない。実商品でのオーナー画面確認は未実施であり、確認箇所は件数表示、判定別tab、12列の日本語表示、説明文、要確認CSVボタンとする。Gate P / PH Minimum BetaはHOLDを継続し、画像Safety技術選定を次の単一作業として保持する。
 
 DEC-0053により、PH画像Safety selectorのBeta範囲を確定した。原則対象のKeepa JP rootはおもちゃ、ホビー、スポーツ＆アウトドア、DIY・工具・ガーデンの4つとし、IDと適用条件はDEC-0053を正本とする。正常に識別できた他rootは原則未実行、root欠損・不正・判定不能は画像AI対象、既存title / description / ingredients SafetyでBLOCK確定済みの商品は画像AI未実行とする。未実行をNO_SIGNALへ読み替えず、画像確認済みで疑義なしという結果と分離する。ホーム＆キッチン、Beautyその他root全体は対象に追加せず、title trigger、subcategory細分化、全rootの網羅的画像リスク調査はBETA_AFTER_CANDIDATEとする。selectorの確定は実装完了を意味しない。
 
@@ -284,7 +293,7 @@ selectorを前提としたPH画像Safety使用技術・最小実装方式の選�
 
 - 残るBeta MUSTの対応と最終オーナーBeta受入までは、Gate P PASSまたはPH Minimum Beta PASSとして扱わない。
 - B2全体フローは現行機能によるE2E技術確認完了として扱い、新しい不具合Evidenceがない限り最初からの再実行を次工程にしない。
-- 次工程はselectorを前提としたPH画像Safety使用技術・最小実装方式の選定に限定し、別途実装範囲が確定する前にRule、辞書、判定コード、画像AI実装、testsを変更しない。
+- 本作業は結果画面の日本語表示、関連UIテスト、作業状態記録に限定する。内部status、reason code、CSV契約、Candidate 15列、Guardrail Rule・辞書・判定優先順位、画像Safety設計・実装を変更せず、新Decisionを追加しない。画像Safety技術選定は本タスクで開始しない。
 - DEC-0053のselector範囲を自動拡張せず、title trigger、subcategory細分化、全rootの網羅的画像リスク調査をBeta前に再開しない。
 - 市場横断Evidenceの保存・参照を、他市場のRule適用またはCOMMON_BLOCK採用の承認と扱わない。資料・ページ・市場を明示して判断する。
 - Evidence再利用時はManifestの完全SHA-256を照合する。不一致、資料identityの曖昧さ、PDF/TXTの同一資料性未確認、または資料日付の推測が必要な場合は停止する。
@@ -325,7 +334,7 @@ selectorを前提としたPH画像Safety使用技術・最小実装方式の選�
 - 承認済みのCategory Mapper一時認証入力範囲を越えてBrand resolution、Guardrail辞書、Gateロジック、Phase 1の13 Brand rulesを変更しない。Resolver／ExpansionをCanopy v0.1契約外へ拡張しない。
 - Shipping / Operational Filter、Category Batch Builder、mandatory attribute Batchへ進まない。
 - SG / MY / THへ展開せず、Marketplace-neutral schemaを先行確定しない。
-- 今回の検証済みDEC-0053正本化差分に限り、承認済みのpush、PR作成、mainへのmergeを行える。この承認を後続実装へ流用せず、deployとShopee live書込みは行わない。
+- 今回の検証済み結果画面日本語化差分に限り、承認済みのpush、PR作成、mainへのmergeを行える。この承認を他の実装へ流用せず、deploy、外部API実行、Shopee live書込みは行わない。
 - 727候補を、設計・根拠の確認なしに正式COMMON_BLOCK、PH_BLOCK、REVIEW辞書として扱わない。
 - 理由不足の一般コミュニティNG 311行を、今回のPHコミュニティ14項目の採用判断だけでBLOCKまたはREVIEWへ昇格しない。
 - 台湾・タイ・マレーシア等の参考資料から具体辞書を作らず、PHルールへ混ぜず、共通項目へ昇格しない。
