@@ -13,19 +13,23 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `Guardrail市場横断Evidence登録完了 / PH包丁規制整理前 / Gate P HOLD`
-- current_phase: `B3事業ルール確定 / 販売規制ガイドEvidence登録完了 / PH包丁規制整理前 / Gate P HOLD`
-- working_branch: `codex/guardrail-source-evidence-registration`
-- marketplace: `PH / 市場横断Evidence保管`
-- module: `Guardrail / Evidence管理`
-- phase: `市場横断一次Evidenceのローカル登録完了 / PH包丁規制と画像Safety selectorの判断未実施 / Gate P HOLD`
-- next_action: `PH包丁規制の正式整理と画像Safety selectorへの反映判断`
+- current_work_type: `PH画像Safety selector Beta範囲確定 / 技術選定前 / Gate P HOLD`
+- current_phase: `B3事業ルール・selector確定 / 使用技術・最小実装方式の選定前 / Gate P HOLD`
+- working_branch: `codex/ph-image-safety-selector-dec0053`
+- marketplace: `PH`
+- module: `Guardrail / 画像Safety`
+- phase: `PH画像Safety selector Beta範囲確定済み / 画像AI未実装 / Gate P HOLD`
+- next_action: `selectorを前提としたPH画像Safety使用技術・最小実装方式の選定`
 
-DEC-0052に基づき、Shopee Japan販売規制ガイドを市場横断で参照するGit外Evidenceとしてローカル登録した。PDFはPRIMARY、TXTは解析用DERIVEDとし、identity・完全SHA-256・保存先・親資料へのbindingの正本は `docs/evidence/GUARDRAIL_SOURCE_MANIFEST.csv` とする。両ファイルのコピー前後SHA-256は一致し、元ファイルは保持した。PDF全9ページ、9ページ目の「フィリピン → 輸入禁制品 → 包丁」、TXT本文の同一資料性を確認した。source_dateとsource_versionは資料に表示がないため `UNKNOWN_NOT_SHOWN` とし、取得日・取得元URL・TXT変換履歴は推測しない。登録は資料の現行性確認または具体的Rule採用を意味せず、PH包丁規制の整理と画像Safety selectorへの反映判断は次工程とする。
+DEC-0053により、PH画像Safety selectorのBeta範囲を確定した。原則対象のKeepa JP rootはおもちゃ、ホビー、スポーツ＆アウトドア、DIY・工具・ガーデンの4つとし、IDと適用条件はDEC-0053を正本とする。正常に識別できた他rootは原則未実行、root欠損・不正・判定不能は画像AI対象、既存title / description / ingredients SafetyでBLOCK確定済みの商品は画像AI未実行とする。未実行をNO_SIGNALへ読み替えず、画像確認済みで疑義なしという結果と分離する。ホーム＆キッチン、Beautyその他root全体は対象に追加せず、title trigger、subcategory細分化、全rootの網羅的画像リスク調査はBETA_AFTER_CANDIDATEとする。selectorの確定は実装完了を意味しない。
 
-本作業はfetch済み `origin/main` / 開始時HEAD `ca35caed9deb495ccecd5c9f4fd7e882c30da22e`（PR #50統合済み）のcleanな同一clone管理用worktreeから開始した。local `main` は `3263364a43919ec8da3f35cdb7c40777eef90ea2` のまま保持した。旧working_branch記載を上記の今回専用branchへ更新した。登録差分はローカル検証・commitまでを対象とし、push、Draft PR、mergeは未実施とする。
+DEC-0052の販売規制ガイド登録はPR #52でmainへ統合済みであり、資料identity・完全SHA-256・保存先・親資料へのbindingは `docs/evidence/GUARDRAIL_SOURCE_MANIFEST.csv` を正本とする。DEC-0052で一次確認したPDF p.9のPH輸入禁制品「包丁」と、現行PH Guardrailの明示語BLOCKを根拠に、DEC-0053でホーム＆キッチンroot全体を画像AI対象へ広げないと決定した。今回、登録済みPDF/TXTの完全SHA-256とbytesを再照合し一致した。資料の日付・版・現行性は推測せず、Rule境界は変更しない。
 
-本登録の検証は、Manifest 2行の役割・親SHA binding・storage alias解決・コピー元/先SHA一致・変更4ファイル限定・Decision追記専用・`git diff --check`・既存snapshot検証がPASSした。既定Pythonによる全pytestは875件成功・24件失敗だった。失敗にはStreamlit 1.44.1で既存UIの `width` 引数が非対応であることと、検証ループが必要とするrepo内 `.venv` 不在を確認した。本登録では環境または機能コードを変更せず、全pytest PASSとは扱わない。
+本正本化はfetch済みformal `origin/main` / 開始時HEAD `2d309adb3dcfbf14bf5a348f25d5bf32f7468dd6`（PR #52統合済み）から、同一cloneのcleanな登録済み管理worktreeで開始した。local `main` は開始時 `3263364a43919ec8da3f35cdb7c40777eef90ea2` であり、最新formal mainとは区別する。元cloneの別branchにある無関係な未コミット管理文書は保持する。本作業の検証済み3文書差分についてcommit、push、PR作成、mainへのmergeはオーナー明示承認済みである。実際の統合結果とformal main full SHAはGit / PR履歴で確認し、snapshotは既存手順で再生成・検証する。
+
+前回DEC-0052登録時の検証はManifest・Evidence identity・snapshot等がPASSし、既定Pythonの全pytestは875件成功・24件失敗だった。失敗にはStreamlit 1.44.1の既存UI `width` 引数非対応とrepo内 `.venv` 不在を確認した。これは前回の検証履歴である。
+
+今回DEC-0053正本化の検証は、変更3文書限定、DECISION_LOG追記専用、4 root IDと次の単一作業の整合、追加行の秘密情報チェック、登録済みPDF/TXTの完全SHA-256・bytes照合、`git diff --check`、既存snapshot生成・検証がPASSした。既定Pythonによる全pytestは875件成功・24件失敗（前回と同数）で、既存Streamlit 1.44.1の `width` 引数非対応と、検証スクリプトが要求するrepo内 `.venv` 不在を再確認した。機能コード、Rule、辞書、tests、実行環境は変更せず、全pytest PASSとは扱わない。外部API実行・実商品処理は行っていない。
 
 DEC-0051で、PH画像Safetyは画像上で見える武器・武器形状物の疑義発見に限定し、AI単独でBLOCK、SAFE保証、既存BLOCK解除を行わず、判断不能を商品単位の人間REVIEWへ止める事業ルールを確定した。`PRELISTING_CANDIDATE_V1`の固定15列を維持して独立sidecarを基本方針とするが、AI provider、API、model、prompt、正式sidecar schema、cache方式、具体的料金は未決定である。Gate PとPH Minimum BetaはHOLDを維持する。
 
@@ -234,9 +238,10 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 ## 未完了事項
 
 - Product Textの2件超の取得率とhemp実商品によるlive BLOCKは未確認だが、新しいBeta blockerにはしない
-- PH包丁規制の正式整理と画像Safety selectorへの反映判断（DEC-0052）。この判断後にDEC-0051の使用技術・最小実装方式の選定を再開する
+- selectorを前提としたPH画像Safety使用技術・最小実装方式の選定（DEC-0053）。selectorのBeta範囲は確定済み
 - 画像上で見える武器・武器形状物の疑義発見と、判断不能時の商品単位REVIEWを実現する最小実装・検証
 - 上記2件の残るBeta MUST対応後に行うPH Minimum Betaの最終オーナー受入。Gate PはそれまでHOLD
+- `BETA_AFTER_CANDIDATE`: 画像Safetyのtitle trigger、subcategory細分化、全rootの網羅的画像リスク調査（DEC-0053）
 - `BETA_AFTER_CANDIDATE`: P1c POST_CATEGORY 170件（strict接続可能62件、未解決108件）の完全追跡、Seller Centre Category Evidenceの追加照合、62件の個別Rule scope review、Category依存Safetyの網羅的Rule化、古いCategoryの後継Category完全特定
 - `BETA_AFTER_CANDIDATE`: P1c `ADDITIONAL_FACT_REQUIRED` 59件のうち、新Beta MUSTの重大リスク対応を越えるFact取得・搬送設計
 - `BETA_AFTER_CANDIDATE`: 確定済みNGリスト外の知財の広範推測、高度な重複商品判定、他marketplace、自動出品、および旧P0〜P6のうち新Beta MUSTに含まれない全面工程
@@ -273,18 +278,19 @@ DEC-0046正本化差分のmain統合確認後、P1cの受入済み229候補をCa
 
 ## 次の単一作業
 
-PH包丁規制の正式整理と画像Safety selectorへの反映判断
+selectorを前提としたPH画像Safety使用技術・最小実装方式の選定
 
 ## 停止条件
 
 - 残るBeta MUSTの対応と最終オーナーBeta受入までは、Gate P PASSまたはPH Minimum Beta PASSとして扱わない。
 - B2全体フローは現行機能によるE2E技術確認完了として扱い、新しい不具合Evidenceがない限り最初からの再実行を次工程にしない。
-- 次工程はPH包丁規制の正式整理と画像Safety selectorへの反映判断に限定し、判断と実装範囲が確定する前にRule、辞書、判定コード、画像AI実装、testsを変更しない。
+- 次工程はselectorを前提としたPH画像Safety使用技術・最小実装方式の選定に限定し、別途実装範囲が確定する前にRule、辞書、判定コード、画像AI実装、testsを変更しない。
+- DEC-0053のselector範囲を自動拡張せず、title trigger、subcategory細分化、全rootの網羅的画像リスク調査をBeta前に再開しない。
 - 市場横断Evidenceの保存・参照を、他市場のRule適用またはCOMMON_BLOCK採用の承認と扱わない。資料・ページ・市場を明示して判断する。
 - Evidence再利用時はManifestの完全SHA-256を照合する。不一致、資料identityの曖昧さ、PDF/TXTの同一資料性未確認、または資料日付の推測が必要な場合は停止する。
 - 重大Safetyで判断不能な商品を`listing_ready`へ進める設計にせず、人間REVIEWへ止める。
 - 画像AIは画像上で見える武器・武器形状物の疑義発見だけに使用し、AI単独でBLOCK、SAFE保証、既存BLOCK解除を行わない。
-- `NO_SIGNAL`以外は原則商品単位REVIEWとし、画像なし、一部画像失敗、十分判断できない状態を準備完了として扱わない。
+- 画像AI対象の商品で`NO_SIGNAL`以外のAI結果は原則商品単位REVIEWとし、画像なし、一部画像失敗、十分判断できない状態を準備完了として扱わない。selector対象外または既存BLOCKによる未実行を`NO_SIGNAL`その他のAI結果へ読み替えず、未実行と画像確認済みで疑義なしを分離する。
 - sidecar schema、Candidate SHA、ASIN集合、重複ASIN、statusまたは人間判断bindingが不正な場合、およびAI認証・契約・未対応設定がある場合はGate全体を開始または続行しない。
 - B0未確認事項または理想的な追加機能を新しいBeta blockerへ自動追加せず、個別に承認された不足以外のdictionary registration、Rule changes、code changes、関連testsを開始しない。
 - 未解決108件のSeller Centre Category Evidence調査・strict再照合、62件のRule設計、Category依存Safetyの網羅的Rule化、古いCategoryの後継Category完全特定を、Beta前に別名称で再開しない。
@@ -319,7 +325,7 @@ PH包丁規制の正式整理と画像Safety selectorへの反映判断
 - 承認済みのCategory Mapper一時認証入力範囲を越えてBrand resolution、Guardrail辞書、Gateロジック、Phase 1の13 Brand rulesを変更しない。Resolver／ExpansionをCanopy v0.1契約外へ拡張しない。
 - Shipping / Operational Filter、Category Batch Builder、mandatory attribute Batchへ進まない。
 - SG / MY / THへ展開せず、Marketplace-neutral schemaを先行確定しない。
-- push、PR作成、merge、deployを行わない。
+- 今回の検証済みDEC-0053正本化差分に限り、承認済みのpush、PR作成、mainへのmergeを行える。この承認を後続実装へ流用せず、deployとShopee live書込みは行わない。
 - 727候補を、設計・根拠の確認なしに正式COMMON_BLOCK、PH_BLOCK、REVIEW辞書として扱わない。
 - 理由不足の一般コミュニティNG 311行を、今回のPHコミュニティ14項目の採用判断だけでBLOCKまたはREVIEWへ昇格しない。
 - 台湾・タイ・マレーシア等の参考資料から具体辞書を作らず、PHルールへ混ぜず、共通項目へ昇格しない。
