@@ -13,13 +13,19 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH Minimum Beta / B2 E2E全体フロー技術確認完了 / 画像Safety・人間REVIEW事業ルール確定 / Gate P HOLD`
-- current_phase: `B0完了 / B1 Product Text Safety確認完了 / B2 E2E技術確認完了 / B3事業ルール確定・技術選定前 / Gate P HOLD`
-- working_branch: `codex/ph-image-safety-policy-formalization`
-- marketplace: `PH`
-- module: `出品支援ツール / Candidate Generation / PH Guardrail / Category Mapper / Brand / Handoff`
-- phase: `PH Minimum Beta重大実務リスク中心の完成線 / B2 E2E全体フロー技術確認完了 / 画像Safety・人間REVIEW事業ルール確定・技術選定前 / Category完全追跡はBeta後候補 / Gate P HOLD`
-- next_action: `PH 画像Safety 使用技術・最小実装方式の選定`
+- current_work_type: `Guardrail市場横断Evidence登録完了 / PH包丁規制整理前 / Gate P HOLD`
+- current_phase: `B3事業ルール確定 / 販売規制ガイドEvidence登録完了 / PH包丁規制整理前 / Gate P HOLD`
+- working_branch: `codex/guardrail-source-evidence-registration`
+- marketplace: `PH / 市場横断Evidence保管`
+- module: `Guardrail / Evidence管理`
+- phase: `市場横断一次Evidenceのローカル登録完了 / PH包丁規制と画像Safety selectorの判断未実施 / Gate P HOLD`
+- next_action: `PH包丁規制の正式整理と画像Safety selectorへの反映判断`
+
+DEC-0052に基づき、Shopee Japan販売規制ガイドを市場横断で参照するGit外Evidenceとしてローカル登録した。PDFはPRIMARY、TXTは解析用DERIVEDとし、identity・完全SHA-256・保存先・親資料へのbindingの正本は `docs/evidence/GUARDRAIL_SOURCE_MANIFEST.csv` とする。両ファイルのコピー前後SHA-256は一致し、元ファイルは保持した。PDF全9ページ、9ページ目の「フィリピン → 輸入禁制品 → 包丁」、TXT本文の同一資料性を確認した。source_dateとsource_versionは資料に表示がないため `UNKNOWN_NOT_SHOWN` とし、取得日・取得元URL・TXT変換履歴は推測しない。登録は資料の現行性確認または具体的Rule採用を意味せず、PH包丁規制の整理と画像Safety selectorへの反映判断は次工程とする。
+
+本作業はfetch済み `origin/main` / 開始時HEAD `ca35caed9deb495ccecd5c9f4fd7e882c30da22e`（PR #50統合済み）のcleanな同一clone管理用worktreeから開始した。local `main` は `3263364a43919ec8da3f35cdb7c40777eef90ea2` のまま保持した。旧working_branch記載を上記の今回専用branchへ更新した。登録差分はローカル検証・commitまでを対象とし、push、Draft PR、mergeは未実施とする。
+
+本登録の検証は、Manifest 2行の役割・親SHA binding・storage alias解決・コピー元/先SHA一致・変更4ファイル限定・Decision追記専用・`git diff --check`・既存snapshot検証がPASSした。既定Pythonによる全pytestは875件成功・24件失敗だった。失敗にはStreamlit 1.44.1で既存UIの `width` 引数が非対応であることと、検証ループが必要とするrepo内 `.venv` 不在を確認した。本登録では環境または機能コードを変更せず、全pytest PASSとは扱わない。
 
 DEC-0051で、PH画像Safetyは画像上で見える武器・武器形状物の疑義発見に限定し、AI単独でBLOCK、SAFE保証、既存BLOCK解除を行わず、判断不能を商品単位の人間REVIEWへ止める事業ルールを確定した。`PRELISTING_CANDIDATE_V1`の固定15列を維持して独立sidecarを基本方針とするが、AI provider、API、model、prompt、正式sidecar schema、cache方式、具体的料金は未決定である。Gate PとPH Minimum BetaはHOLDを維持する。
 
@@ -196,6 +202,8 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 ## Git外成果物索引
 
+市場横断で共用する販売規制ガイドの資料索引は `docs/evidence/GUARDRAIL_SOURCE_MANIFEST.csv` を正本とする（DEC-0052）。以下の既存PH固有Evidenceと履歴索引は移動・統合せず保持する。
+
 | artifact_id | 種別・版 | ファイル名 | SHA-256 | producer task | 受入状態 | storage alias | 用途 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | ART-PH-ASIN-EXEC-RECORD-V0.1.1 | Excel実行記録テンプレート v0.1.1 | `PH_ASIN_Resolver_Execution_Record_v0.1.1_final.xlsx` | `d150be6a552d0ef212f0ee4965f11f0c8f324eacbf3d8c56e05db07efd8d616e` | `PH_ASIN_Resolver_実行記録v0.1設計` | `OWNER_ACCEPTED` | `ARTIFACT_ROOT/HANDOFF_EXECUTION_RECORD/PH_ASIN_Resolver_Execution_Record_v0.1.1_final.xlsx` | 21件再評価の工程・証拠記録 |
@@ -226,7 +234,7 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 ## 未完了事項
 
 - Product Textの2件超の取得率とhemp実商品によるlive BLOCKは未確認だが、新しいBeta blockerにはしない
-- DEC-0051に基づくPH画像Safetyの使用技術・最小実装方式の選定
+- PH包丁規制の正式整理と画像Safety selectorへの反映判断（DEC-0052）。この判断後にDEC-0051の使用技術・最小実装方式の選定を再開する
 - 画像上で見える武器・武器形状物の疑義発見と、判断不能時の商品単位REVIEWを実現する最小実装・検証
 - 上記2件の残るBeta MUST対応後に行うPH Minimum Betaの最終オーナー受入。Gate PはそれまでHOLD
 - `BETA_AFTER_CANDIDATE`: P1c POST_CATEGORY 170件（strict接続可能62件、未解決108件）の完全追跡、Seller Centre Category Evidenceの追加照合、62件の個別Rule scope review、Category依存Safetyの網羅的Rule化、古いCategoryの後継Category完全特定
@@ -265,13 +273,15 @@ DEC-0046正本化差分のmain統合確認後、P1cの受入済み229候補をCa
 
 ## 次の単一作業
 
-PH 画像Safety 使用技術・最小実装方式の選定
+PH包丁規制の正式整理と画像Safety selectorへの反映判断
 
 ## 停止条件
 
 - 残るBeta MUSTの対応と最終オーナーBeta受入までは、Gate P PASSまたはPH Minimum Beta PASSとして扱わない。
 - B2全体フローは現行機能によるE2E技術確認完了として扱い、新しい不具合Evidenceがない限り最初からの再実行を次工程にしない。
-- 次工程はPH画像Safetyの使用技術・最小実装方式の選定に限定し、方式が確定する前にコード、Rule、辞書、testsを変更しない。
+- 次工程はPH包丁規制の正式整理と画像Safety selectorへの反映判断に限定し、判断と実装範囲が確定する前にRule、辞書、判定コード、画像AI実装、testsを変更しない。
+- 市場横断Evidenceの保存・参照を、他市場のRule適用またはCOMMON_BLOCK採用の承認と扱わない。資料・ページ・市場を明示して判断する。
+- Evidence再利用時はManifestの完全SHA-256を照合する。不一致、資料identityの曖昧さ、PDF/TXTの同一資料性未確認、または資料日付の推測が必要な場合は停止する。
 - 重大Safetyで判断不能な商品を`listing_ready`へ進める設計にせず、人間REVIEWへ止める。
 - 画像AIは画像上で見える武器・武器形状物の疑義発見だけに使用し、AI単独でBLOCK、SAFE保証、既存BLOCK解除を行わない。
 - `NO_SIGNAL`以外は原則商品単位REVIEWとし、画像なし、一部画像失敗、十分判断できない状態を準備完了として扱わない。

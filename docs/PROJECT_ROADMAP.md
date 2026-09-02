@@ -123,7 +123,7 @@ Resolver入口ではCandidate 1件、Expansion入口ではstrict 1ページか�
 
 DEC-0051で、対象を画像上で見える武器・武器形状物の疑義発見に限定し、AI単独ではBLOCK、SAFE保証、既存BLOCK解除を行わず、`NO_SIGNAL`以外を原則商品単位REVIEWへ止める事業ルールを確定した。人間最終判断は`ALLOW_PREPARATION`と`EXCLUDE`とし、前者は画像由来REVIEWだけを解除し、後者は対象商品だけを準備対象から外す。固定15列Candidateを維持し、画像Safetyは独立sidecarを基本方針とする。
 
-次の単一作業は、PH画像Safetyの使用技術・最小実装方式の選定とする。AI provider、API、model、prompt、正式sidecar schema、cache方式、具体的料金は未決定のまま保持し、方式確定前にコード、Rule、辞書、testsを変更しない。
+DEC-0052で販売規制ガイドを市場横断のGit外Evidenceとして登録し、技術選定の前に「PH包丁規制の正式整理と画像Safety selectorへの反映判断」を置く。資料索引は `docs/evidence/GUARDRAIL_SOURCE_MANIFEST.csv` を参照する。登録自体ではRuleまたは画像AIの対象を変更しない。この判断後に使用技術・最小実装方式の選定へ戻る。AI provider、API、model、prompt、正式sidecar schema、cache方式、具体的料金は未決定のまま保持し、判断と実装範囲の確定前にコード、Rule、辞書、testsを変更しない。
 
 Category 170 / 108 / 62件、Category Safety網羅化、高度な重複判定、確定NGリスト外の広範な知財AI推測、他marketplace、自動出品を新しいBeta blockerへ追加しない。GABA-free matcher差分は既知差分として保持するが本工程に含めない。Boseは既存Evidence上の未接続事項として保持し、画像Safety設計へ混在させず、Beta前の追加実装要否を別途判断する。
 
