@@ -13,13 +13,15 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH Minimum Beta / B2 E2E全体フロー技術確認完了 / 画像Safety・人間REVIEW最小設計ゲート / Gate P HOLD`
-- current_phase: `B0完了 / B1 Product Text Safety確認完了 / B2 E2E技術確認完了 / 残るBeta MUST設計前 / Gate P HOLD`
-- working_branch: `codex/ph-b2-flow-owner-acceptance-sync`
+- current_work_type: `PH Minimum Beta / B2 E2E全体フロー技術確認完了 / 画像Safety・人間REVIEW事業ルール確定 / Gate P HOLD`
+- current_phase: `B0完了 / B1 Product Text Safety確認完了 / B2 E2E技術確認完了 / B3事業ルール確定・技術選定前 / Gate P HOLD`
+- working_branch: `codex/ph-image-safety-policy-formalization`
 - marketplace: `PH`
 - module: `出品支援ツール / Candidate Generation / PH Guardrail / Category Mapper / Brand / Handoff`
-- phase: `PH Minimum Beta重大実務リスク中心の完成線 / B2 E2E全体フロー技術確認完了 / 画像Safety・人間REVIEW設計前 / Category完全追跡はBeta後候補 / Gate P HOLD`
-- next_action: `PH 画像Safety・人間REVIEW 最小設計ゲート`
+- phase: `PH Minimum Beta重大実務リスク中心の完成線 / B2 E2E全体フロー技術確認完了 / 画像Safety・人間REVIEW事業ルール確定・技術選定前 / Category完全追跡はBeta後候補 / Gate P HOLD`
+- next_action: `PH 画像Safety 使用技術・最小実装方式の選定`
+
+DEC-0051で、PH画像Safetyは画像上で見える武器・武器形状物の疑義発見に限定し、AI単独でBLOCK、SAFE保証、既存BLOCK解除を行わず、判断不能を商品単位の人間REVIEWへ止める事業ルールを確定した。`PRELISTING_CANDIDATE_V1`の固定15列を維持して独立sidecarを基本方針とするが、AI provider、API、model、prompt、正式sidecar schema、cache方式、具体的料金は未決定である。Gate PとPH Minimum BetaはHOLDを維持する。
 
 latest main `b62be9152b2c1ddc009e304e26a63fe8f33847e0`を基準に、少量実商品のB2全体フローを通常画面で確認した。Resolver入口はCandidate 1件、Expansion入口はstrict 1ページで候補を取得し、人間追跡対象を1件に限定した。両入口ともIngredient Safety / Product Text SafetyはCAPTURED、PH GateはSAFE / ELIGIBLE、入力内exactはUNIQUE、既出品exactはCLEARとなり、Category、Brand / No Brand、`listing_ready = TRUE`、CSV / TXT handoffまで成立した。使用したPH既出品CSVの登録ASINは0件で、オーナー確認でも現在のPHショップに既出品商品は存在せず、今回の既出品exact CLEARは実態と整合する。Shopee live書込み、コード・Rule・辞書・tests変更はいずれも0である。これは現行機能によるE2E全体フロー成立の技術確認であり、Gate P PASSまたはPH Minimum Beta PASSではない。
 
@@ -224,8 +226,8 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 ## 未完了事項
 
 - Product Textの2件超の取得率とhemp実商品によるlive BLOCKは未確認だが、新しいBeta blockerにはしない
-- 画像でしか判別しにくい武器等について、AIで疑わしい商品を発見し、自動BLOCKせず人間確認へ回すBeta MUST
-- 重大Safetyで判断不能な商品を`listing_ready`へ進めず、人間REVIEWへ止めるBeta MUST
+- DEC-0051に基づくPH画像Safetyの使用技術・最小実装方式の選定
+- 画像上で見える武器・武器形状物の疑義発見と、判断不能時の商品単位REVIEWを実現する最小実装・検証
 - 上記2件の残るBeta MUST対応後に行うPH Minimum Betaの最終オーナー受入。Gate PはそれまでHOLD
 - `BETA_AFTER_CANDIDATE`: P1c POST_CATEGORY 170件（strict接続可能62件、未解決108件）の完全追跡、Seller Centre Category Evidenceの追加照合、62件の個別Rule scope review、Category依存Safetyの網羅的Rule化、古いCategoryの後継Category完全特定
 - `BETA_AFTER_CANDIDATE`: P1c `ADDITIONAL_FACT_REQUIRED` 59件のうち、新Beta MUSTの重大リスク対応を越えるFact取得・搬送設計
@@ -263,14 +265,17 @@ DEC-0046正本化差分のmain統合確認後、P1cの受入済み229候補をCa
 
 ## 次の単一作業
 
-PH 画像Safety・人間REVIEW 最小設計ゲート
+PH 画像Safety 使用技術・最小実装方式の選定
 
 ## 停止条件
 
 - 残るBeta MUSTの対応と最終オーナーBeta受入までは、Gate P PASSまたはPH Minimum Beta PASSとして扱わない。
 - B2全体フローは現行機能によるE2E技術確認完了として扱い、新しい不具合Evidenceがない限り最初からの再実行を次工程にしない。
-- 次工程は画像Safety・人間REVIEWの最小設計ゲートに限定し、承認された実装範囲が確定する前にコード、Rule、辞書、testsを変更しない。
+- 次工程はPH画像Safetyの使用技術・最小実装方式の選定に限定し、方式が確定する前にコード、Rule、辞書、testsを変更しない。
 - 重大Safetyで判断不能な商品を`listing_ready`へ進める設計にせず、人間REVIEWへ止める。
+- 画像AIは画像上で見える武器・武器形状物の疑義発見だけに使用し、AI単独でBLOCK、SAFE保証、既存BLOCK解除を行わない。
+- `NO_SIGNAL`以外は原則商品単位REVIEWとし、画像なし、一部画像失敗、十分判断できない状態を準備完了として扱わない。
+- sidecar schema、Candidate SHA、ASIN集合、重複ASIN、statusまたは人間判断bindingが不正な場合、およびAI認証・契約・未対応設定がある場合はGate全体を開始または続行しない。
 - B0未確認事項または理想的な追加機能を新しいBeta blockerへ自動追加せず、個別に承認された不足以外のdictionary registration、Rule changes、code changes、関連testsを開始しない。
 - 未解決108件のSeller Centre Category Evidence調査・strict再照合、62件のRule設計、Category依存Safetyの網羅的Rule化、古いCategoryの後継Category完全特定を、Beta前に別名称で再開しない。
 - 未解決108件を解決済みとして扱わず、62件をRule実装済みまたは有効化済みとして扱わない。POST_CATEGORY 170件を実装完了、ADDITIONAL_FACT_REQUIRED 59件をFact取得済み、または229件をRule登録済みと扱わない。

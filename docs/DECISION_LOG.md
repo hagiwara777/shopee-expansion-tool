@@ -575,3 +575,17 @@
 - 理由: Candidate互換性、両入口の責務統一、Fact未取得商品の過剰除外を維持しながら、取得済み文章に明示された確定禁止条件の見逃しだけを最小変更で減らすため。
 - 影響: `modules/product_text_safety.py`、既存Keepa / Resolver内部搬送、Prelisting Gate、PH Guardrail Rule V2、通常app/UI、関連synthetic / mock tests、READMEを最小範囲で変更する。外部API、実商品、live書込み、画像AI、Bose、Category Safety、他marketplace対応、自動出品は実行・実装しない。Gate PはHOLDを維持し、独立reviewと少量実商品受入を別工程とする。
 - 再検討条件: 追加Keepa requestなしで承認済みfieldを保持できないと判明したとき、固定15列CandidateまたはExpansion / Resolver共通契約を維持できないとき、Product Text sidecarとIngredient Safetyの責務が重複するとき、hemp以外のaliasまたはGABA-free境界に新しい事業判断が必要になったとき、または少量実商品受入で通常PH flowが成立しないとき。
+
+## DEC-0051 — PH画像Safety・人間REVIEWの事業ルールを確定する
+
+- 日付: 2026-09-02
+- 背景: DEC-0049で、画像でしか判別しにくい武器等の疑義発見と、判断不能な重大Safety案件の人間確認をPH Minimum Beta前のMUSTに残した。B2 E2E全体フローの技術確認完了後、AIの権限、対象範囲、結果status、人間判断、商品単位REVIEWとGate全体STOPの境界を、使用技術の選定より先に事業ルールとして固定する必要がある。
+- 決定: AIは、商品画像から重大Safety上の疑わしい対象を発見する補助に限定する。AI単独ではBLOCKせず、SAFEを保証せず、既存BLOCKを解除しない。Beta対象は画像上で見える武器・武器形状物の疑義発見だけとし、知財、Category、個別玩具ジャンルその他の対象を推測で追加しない。
+- 決定: AI結果は`NO_SIGNAL`、`REVIEW`、`UNAVAILABLE`、`ERROR`、`INDETERMINATE`の5 statusとする。`NO_SIGNAL`は今回確認した画像で対象疑義を検出しなかったことだけを表し、SAFE保証ではない。`REVIEW`は疑わしい対象の検出、`UNAVAILABLE`は自動取得可能な画像なし、`ERROR`はAIまたは画像処理失敗、`INDETERMINATE`は一部画像失敗または十分判断できない状態を表す。`NO_SIGNAL`以外は原則商品単位REVIEWとする。
+- 決定: 画像なしは商品単位REVIEWとし、それだけでGate全体を停止しない。人間が別経路で十分な画像を確認できた場合は`ALLOW_PREPARATION`を選択でき、人間も十分に確認できない場合はREVIEWを継続する。transient timeout、429、5xx等は最大1 retryとし、その後も失敗した場合は商品単位REVIEWとする。認証、契約、未対応設定等のシステム不整合は処理開始前にGate全体をSTOPする。
+- 決定: Betaでは1商品最大3画像を確認する。一部画像が失敗した場合は`NO_SIGNAL`にせず、`INDETERMINATE`として商品単位REVIEWへ止める。人間最終判断は`ALLOW_PREPARATION`と`EXCLUDE`の2つとする。`ALLOW_PREPARATION`は画像由来REVIEWだけを解除し、他のBLOCKまたはREVIEWを解除しない。`EXCLUDE`はその商品だけを準備対象から外し、AIによるBLOCKとして扱わず、自動で一般Ruleまたは学習データへ昇格させない。
+- 決定: sidecar schema不正、Candidate SHA不一致、ASIN集合不一致、重複ASIN、不正status、人間判断binding破損、AI認証・契約・未対応設定はGate全体STOPとする。`PRELISTING_CANDIDATE_V1`の固定15列を維持し、画像Safetyは独立sidecar方式を基本方針とする。汎用Sidecar frameworkは作らない。
+- 決定: 今回はAI provider、API、model、prompt、正式sidecar schema、cache方式、具体的料金を決定しない。次の単一作業は「PH 画像Safety 使用技術・最小実装方式の選定」とする。Gate PとPH Minimum BetaはHOLDを維持する。
+- 理由: AIの誤検出または未検出を正式な禁止判定や安全保証へ昇格させず、商品単位の人間判断で重大Safetyを保留できる最小境界を、Candidate互換性と既存BLOCK優先を維持したまま定めるため。
+- 影響: `CURRENT_WORK.md`と`PROJECT_ROADMAP.md`を事業ルール確定・技術選定前へ更新する。今回、コード、Rule、辞書、tests、README、正式sidecar schema、外部API、実商品、外部書込み、push、PR、merge、deployは変更・実行しない。
+- 再検討条件: 最大3画像では重大Safety疑義の発見に不足すると確認されたとき、statusまたは人間判断だけではfail-closedを維持できないとき、独立sidecarでCandidate bindingを安全に表現できないとき、またはBeta実利用で対象範囲の変更が必要なEvidenceが得られたとき。

@@ -119,9 +119,11 @@ Resolver入口ではCandidate 1件、Expansion入口ではstrict 1ページか�
 
 この結果は現行機能でE2E全体フローが成立した技術確認であり、Gate P PASSまたはPH Minimum Beta PASSではない。B2を最初から再実行することは次工程にせず、残るBeta MUST対応後に最終オーナーBeta受入を行う。
 
-### B3 — PH 画像Safety・人間REVIEW 最小設計ゲート（次工程）
+### B3 — PH 画像Safety・人間REVIEW（事業ルール確定・技術選定へ）
 
-残るBeta MUSTを、(1) 画像でしか判別しにくい武器等についてAIで疑わしい商品を発見し、自動BLOCKせず人間確認へ回すこと、(2) 重大Safetyで判断不能な商品を`listing_ready`へ進めず、人間REVIEWへ止めること、の2点に限定して最小設計を確定する。本工程は設計ゲートであり、承認範囲が確定する前にコード、Rule、辞書、testsを変更しない。
+DEC-0051で、対象を画像上で見える武器・武器形状物の疑義発見に限定し、AI単独ではBLOCK、SAFE保証、既存BLOCK解除を行わず、`NO_SIGNAL`以外を原則商品単位REVIEWへ止める事業ルールを確定した。人間最終判断は`ALLOW_PREPARATION`と`EXCLUDE`とし、前者は画像由来REVIEWだけを解除し、後者は対象商品だけを準備対象から外す。固定15列Candidateを維持し、画像Safetyは独立sidecarを基本方針とする。
+
+次の単一作業は、PH画像Safetyの使用技術・最小実装方式の選定とする。AI provider、API、model、prompt、正式sidecar schema、cache方式、具体的料金は未決定のまま保持し、方式確定前にコード、Rule、辞書、testsを変更しない。
 
 Category 170 / 108 / 62件、Category Safety網羅化、高度な重複判定、確定NGリスト外の広範な知財AI推測、他marketplace、自動出品を新しいBeta blockerへ追加しない。GABA-free matcher差分は既知差分として保持するが本工程に含めない。Boseは既存Evidence上の未接続事項として保持し、画像Safety設計へ混在させず、Beta前の追加実装要否を別途判断する。
 
