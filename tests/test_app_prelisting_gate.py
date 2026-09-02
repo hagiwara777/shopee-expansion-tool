@@ -2,6 +2,8 @@ import ast
 import csv
 from io import StringIO
 import logging
+
+import streamlit as st
 from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
@@ -12,6 +14,10 @@ from modules.prelisting_candidate_csv import (
     PrelistingCandidateRow,
     parse_prelisting_candidate_csv,
     rows_to_prelisting_candidate_csv,
+)
+from modules.prelisting_gate_csv import (
+    PRELISTING_GATE_RESULT_COLUMNS,
+    build_prelisting_gate_exports,
 )
 from modules.product_text_safety import (
     NOT_AVAILABLE,
@@ -281,10 +287,10 @@ def test_gate_result_view_uses_four_metrics_three_safe_tabs_and_download_contrac
         for call in _attribute_calls(function, "download_button")
     }
 
-    assert metric_labels == ["候補総数", "ELIGIBLE", "REVIEW", "EXCLUDE"]
-    assert ast.literal_eval(tab_call.args[0]) == ["ELIGIBLE", "REVIEW", "EXCLUDE"]
+    assert metric_labels == ["候補総数", "出品候補", "要確認", "除外"]
+    assert ast.literal_eval(tab_call.args[0]) == ["出品候補", "要確認", "除外"]
     assert source.count("build_prelisting_gate_preview_rows(") == 1
-    assert "st.dataframe(preview_rows, hide_index=True, width=\"stretch\")" in source
+    assert "localize_prelisting_gate_preview_rows(preview_rows)" in source
     assert "先頭100件のみ表示。全件はCSVで確認してください" in source
     assert "該当商品はありません" in source
     assert "existing_evidence_json" not in source
@@ -294,7 +300,7 @@ def test_gate_result_view_uses_four_metrics_three_safe_tabs_and_download_contrac
 
     assert set(download_by_label) == {
         "出品可能CSVをダウンロード",
-        "REVIEW CSVをダウンロード",
+        "要確認CSVをダウンロード",
         "全件監査CSVをダウンロード",
     }
     for call in download_by_label.values():
@@ -444,22 +450,32 @@ def test_prelisting_gate_initial_ui_smoke(monkeypatch):
         button.label
         in {
             "出品可能CSVをダウンロード",
-            "REVIEW CSVをダウンロード",
+            "要確認CSVをダウンロード",
             "全件監査CSVをダウンロード",
         }
         for button in app.download_button
     )
     assert not {
         "候補総数",
-        "ELIGIBLE",
-        "REVIEW",
-        "EXCLUDE",
+        "出品候補",
+        "要確認",
+        "除外",
     } & {metric.label for metric in app.metric}
 
 
 def test_prelisting_gate_marketplace_switches_run_ph_empty_inventory_and_clear_results(
     monkeypatch,
 ):
+    download_payloads = {}
+    original_download_button = st.download_button
+
+    def capture_download(*args, **kwargs):
+        key = kwargs.get("key", "")
+        if key.startswith("prelisting-gate-"):
+            download_payloads[key] = kwargs["data"]
+        return original_download_button(*args, **kwargs)
+
+    monkeypatch.setattr(st, "download_button", capture_download)
     app = _prelisting_gate_test_app(monkeypatch)
     candidate_csv = _prelisting_candidate_csv()
 
@@ -514,9 +530,45 @@ def test_prelisting_gate_marketplace_switches_run_ph_empty_inventory_and_clear_r
     assert result.marketplace == "PH"
     assert (result.eligible_count, result.review_count, result.exclude_count) == (1, 1, 1)
     assert all(row.existing_listing_status == "CLEAR" for row in result.rows)
+    result_metrics = [metric for metric in app.metric if metric.label in {"候補総数", "出品候補", "要確認", "除外"}]
+    assert [metric.label for metric in result_metrics] == ["候補総数", "出品候補", "要確認", "除外"]
+    assert [metric.value for metric in result_metrics] == ["3", "1", "1", "1"]
+    assert [tab.label for tab in app.tabs if tab.label in {"出品候補", "要確認", "除外"}] == ["出品候補", "要確認", "除外"]
+    displayed = [frame.value for frame in app.dataframe if "最終判定" in frame.value.columns]
+    assert len(displayed) == 3
+    assert [frame.iloc[0]["最終判定"] for frame in displayed] == ["出品候補", "要確認", "除外"]
+    assert [frame.iloc[0]["保安判定"] for frame in displayed] == ["現行ルール該当なし", "要確認", "除外対象"]
+    assert all(list(frame.columns) == [
+        "ASIN", "商品名", "ブランド", "カテゴリ", "保安判定", "該当語", "判定メモ",
+        "既出品", "商品情報", "最終判定", "理由", "既出品一致件数",
+    ] for frame in displayed)
+    assert any("出品候補は安全・出品承認を保証するものではありません。" in warning.value for warning in app.warning)
+
+    # The display uses copies. The session result and actual download payloads
+    # retain the formal internal values and unmodified serializer bytes.
+    exports = app.session_state["prelisting_gate_exports"]
+    assert exports == build_prelisting_gate_exports(result)
+    assert {row.final_eligibility for row in result.rows} == {"ELIGIBLE", "REVIEW", "EXCLUDE"}
+    for name, expected_bytes in (
+        ("eligible", exports.eligible_csv), ("review", exports.review_csv), ("audit", exports.audit_csv),
+    ):
+        assert download_payloads[f"prelisting-gate-{name}-download"] == expected_bytes
+        reader = csv.DictReader(StringIO(expected_bytes.decode("utf-8-sig")))
+        assert reader.fieldnames == list(PRELISTING_GATE_RESULT_COLUMNS)
+        csv_rows = list(reader)
+        assert all(row["final_eligibility"] in {"ELIGIBLE", "REVIEW", "EXCLUDE"} for row in csv_rows)
+        assert all(row["guardrail_status"] in {"SAFE", "REVIEW", "BLOCK"} for row in csv_rows)
+        assert all(row["existing_listing_status"] == "CLEAR" for row in csv_rows)
+        assert all(row["metadata_status"] == "COMPLETE" for row in csv_rows)
+    review_csv_row = next(csv.DictReader(StringIO(exports.review_csv.decode("utf-8-sig"))))
+    assert review_csv_row["reason_codes"] == "GUARDRAIL_REVIEW"
+    app.run()
+    assert len(app.exception) == 0
+    assert app.session_state["prelisting_gate_result"] == result
+    assert app.session_state["prelisting_gate_exports"] == exports
     assert [button.label for button in app.download_button] == [
         "出品可能CSVをダウンロード",
-        "REVIEW CSVをダウンロード",
+        "要確認CSVをダウンロード",
         "全件監査CSVをダウンロード",
     ]
 

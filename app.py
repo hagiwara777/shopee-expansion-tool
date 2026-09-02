@@ -91,6 +91,7 @@ from modules.prelisting_gate_ui import (
     build_prelisting_gate_preview_rows,
     build_prelisting_gate_fingerprint,
     clear_prelisting_gate_result,
+    localize_prelisting_gate_preview_rows,
     safe_prelisting_gate_error_summary,
     summarize_prelisting_inventory,
     validate_inventory_file_duplicates,
@@ -237,18 +238,18 @@ def _render_prelisting_gate_result(result, exports, *, source_type: str) -> None
     st.caption(f"判定市場: {result.marketplace}")
     summary_columns = st.columns(4)
     summary_columns[0].metric("候補総数", result.candidate_count)
-    summary_columns[1].metric("ELIGIBLE", result.eligible_count)
-    summary_columns[2].metric("REVIEW", result.review_count)
-    summary_columns[3].metric("EXCLUDE", result.exclude_count)
-    st.caption("ELIGIBLE: 現時点のルールで出品候補にできる商品")
-    st.caption("REVIEW: 人間による確認が必要な商品")
-    st.caption("EXCLUDE: 出品候補から除外する商品")
+    summary_columns[1].metric("出品候補", result.eligible_count)
+    summary_columns[2].metric("要確認", result.review_count)
+    summary_columns[3].metric("除外", result.exclude_count)
+    st.caption("出品候補: 現時点のルールで除外・要確認理由が見つからなかった商品")
+    st.caption("要確認: 人間による確認が必要な商品")
+    st.caption("除外: 出品候補から除外する商品")
     st.warning(
-        "ELIGIBLEは出品安全を保証するものではありません。"
-        "現在のGuardrail辞書、既出品CSV、商品情報に基づく判定です。"
+        "出品候補は安全・出品承認を保証するものではありません。"
+        "現時点のルールで除外・要確認理由が見つからなかった商品です。"
     )
 
-    result_tabs = st.tabs(["ELIGIBLE", "REVIEW", "EXCLUDE"])
+    result_tabs = st.tabs(["出品候補", "要確認", "除外"])
     result_counts = (
         ("ELIGIBLE", result.eligible_count),
         ("REVIEW", result.review_count),
@@ -264,7 +265,11 @@ def _render_prelisting_gate_result(result, exports, *, source_type: str) -> None
             if not preview_rows:
                 st.info("該当商品はありません")
             else:
-                st.dataframe(preview_rows, hide_index=True, width="stretch")
+                st.dataframe(
+                    localize_prelisting_gate_preview_rows(preview_rows),
+                    hide_index=True,
+                    width="stretch",
+                )
                 if count > len(preview_rows):
                     st.caption("先頭100件のみ表示。全件はCSVで確認してください")
 
@@ -274,8 +279,8 @@ def _render_prelisting_gate_result(result, exports, *, source_type: str) -> None
         "外部出品ツールへの直接投入形式は未確認です。"
     )
     st.caption(
-        "ELIGIBLEは出品安全を保証するものではありません。\n"
-        "現在のGuardrail辞書、既出品CSV、商品情報に基づく判定です。"
+        "出品候補は安全・出品承認を保証するものではありません。\n"
+        "現時点のルールで除外・要確認理由が見つからなかった商品です。"
     )
     if exports.eligible_csv is not None:
         st.download_button(
@@ -289,7 +294,7 @@ def _render_prelisting_gate_result(result, exports, *, source_type: str) -> None
         )
     if exports.review_csv is not None:
         st.download_button(
-            label="REVIEW CSVをダウンロード",
+            label="要確認CSVをダウンロード",
             data=exports.review_csv,
             file_name=export_filenames["review"],
             mime="text/csv",
