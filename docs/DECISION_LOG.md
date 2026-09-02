@@ -589,3 +589,19 @@
 - 理由: AIの誤検出または未検出を正式な禁止判定や安全保証へ昇格させず、商品単位の人間判断で重大Safetyを保留できる最小境界を、Candidate互換性と既存BLOCK優先を維持したまま定めるため。
 - 影響: `CURRENT_WORK.md`と`PROJECT_ROADMAP.md`を事業ルール確定・技術選定前へ更新する。今回、コード、Rule、辞書、tests、README、正式sidecar schema、外部API、実商品、外部書込み、push、PR、merge、deployは変更・実行しない。
 - 再検討条件: 最大3画像では重大Safety疑義の発見に不足すると確認されたとき、statusまたは人間判断だけではfail-closedを維持できないとき、独立sidecarでCandidate bindingを安全に表現できないとき、またはBeta実利用で対象範囲の変更が必要なEvidenceが得られたとき。
+
+## DEC-0052 — 市場横断のGuardrail一次EvidenceをGit外で固定管理する
+
+- 日付: 2026-09-02
+- 背景: DEC-0051の画像Safety技術選定に先立ち、Shopee Japan販売規制ガイドの実物とPH包丁記載を再現可能な根拠として固定し、将来の複数市場Guardrailが同じ資料identityを参照できるようにする必要がある。
+- 決定: 資料IDを `SHOPEE_JAPAN_SALES_RESTRICTION_GUIDE` とし、`LOCAL_ARTIFACT_ROOT/Guardrail_Evidence/Sources/SHOPEE_JAPAN_SALES_RESTRICTION_GUIDE/original/` にPDF、同資料ID直下の `derived/` にTXTをコピーして保持する。元ファイルは移動・削除しない。既存 `PH_Guardrail_Evidence` は変更しない。
+- 決定: `docs/evidence/GUARDRAIL_SOURCE_MANIFEST.csv` を資料索引の正本とし、PDFを `PRIMARY`、TXTを解析用 `DERIVED` とする。資料ID、artifact ID、完全SHA-256、bytes、storage alias、市場範囲、親artifact ID・親SHA、source_date・版、検証日時・方法を記録する。PDF/TXT本体、QA画像・詳細ローカルログはGitへ入れない。実パスは環境変数 `LOCAL_ARTIFACT_ROOT` で解決し、Gitにはstorage aliasだけを記録する。
+- 確認事実: ローカルの番号なしPDFと `(1).pdf` はSHA-256および全bytesが一致した。異版候補はなく、指定名と完全一致する番号なしファイルをコピー元とした。PDF全9ページを抽出確認し、9ページ目の「フィリピン → 輸入禁制品 → 包丁」を描画して目視確認した。PDF/TXTともコピー前後の完全SHA-256が一致した。
+- 確認事実: pypdf 6.10.0で全9ページを順に抽出し、PDF/TXTの空白・箇条書き記号（●・▪）・独立したページ番号2〜9を除去し、TXTの追加Reference行・独立URL行を除いた本文6811文字が完全一致した。正規化本文のUTF-8 SHA-256は `03bd80f8db7ae880d6d0a17cb153a4666dc5c657bd34a57e842e25f395958007`。TXTは同資料の解析用派生物として登録するが、生成者・変換ツール・変換履歴は未確認であり推測しない。追加Reference行はPDF一次本文の根拠として扱わず、列の配置・区分はPDFを優先する。
+- 決定: source_dateとsource_versionは本文・PDF metadataで確認できないため `UNKNOWN_NOT_SHOWN` とする。取得日、取得元URL、TXTの変換方法は `UNKNOWN_NOT_RECORDED` とし、検証日時、ファイル作成・更新時刻、参照URL中の数字を資料日付へ代用しない。資料に記載された市場はSG / TW / TH / MY / ID / PHであり、この範囲は収録内容を示すだけである。
+- 決定: `PRIMARY` は保存した資料に対する一次Evidenceの役割であり、最新版、法令・規約の現行性、個別Rule採用またはCOMMON_BLOCKへの昇格を認定しない。PDFが参考資料である旨を保持し、各市場の適用判断では資料identity・対象ページ・市場・項目を明示する。派生TXTだけで禁止区分または適用範囲を確定しない。
+- 決定: 再利用時は完全SHA-256を再照合する。改訂・差替え時は既存bytesとidentityを上書きせず、新しいartifact ID・SHA-256・親子関係を索引に追加して旧版を保持する。候補を区別できない、hash不一致、同一資料性未確認、未確認日付の推測が必要、対象にユーザーdirty変更がある、またはPDF/TXTのGit登録が必要になる場合は停止する。
+- 決定: 次の単一作業を「PH包丁規制の正式整理と画像Safety selectorへの反映判断」とし、DEC-0051の使用技術・最小実装方式の選定より先に行う。今回、PH包丁のRule境界、selectorへの採否、AI provider・model・promptは決めない。Guardrail Rule、辞書、判定コード、画像AI実装は変更しない。Gate PとPH Minimum BetaはHOLDを維持する。
+- 理由: 同じ資料を市場別フォルダで重複管理せず、一次資料と解析用派生物を区別し、資料identityの保存と市場別の事業・実装判断を分離して再現性を保つため。
+- 影響: 新設Manifest、CURRENT_WORK、B3の次工程記載だけを更新し、snapshotを既存スクリプトで再生成・検証する。ユーザー許可により検証済みローカルcommitまで実施できる。push、Draft PR、mergeは行わず、Rule実装や他市場展開へ自動的に進まない。
+- 再検討条件: 日付・版・取得履歴を示す一次資料が得られたとき、新版または異なる内容の同名資料が見つかったとき、PDF/TXTの対応に不一致が判明したとき、またはPH包丁規制の正式整理で画像Safety事業ルールの変更が必要になったとき。
