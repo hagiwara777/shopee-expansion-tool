@@ -1,6 +1,8 @@
 """Synthetic-only DEC-0051/53/54 contract, selector, binding and gate tests."""
+from collections import UserDict
 from copy import deepcopy
 from dataclasses import replace
+from types import SimpleNamespace
 
 import pytest
 
@@ -164,6 +166,141 @@ def test_image_capture_uses_three_unique_source_order_references_only():
         root_category_id=None,
     )
     assert bad["capture_error"]
+
+
+@pytest.mark.parametrize("as_object", [False, True])
+@pytest.mark.parametrize(
+    "entry, expected",
+    [
+        ({"l": "large.jpg", "m": "medium.jpg"}, "large.jpg"),
+        ({"m": "medium.jpg"}, "medium.jpg"),
+        ({"l": "", "m": "medium.jpg"}, "medium.jpg"),
+        ({"l": None, "m": "medium.jpg"}, "medium.jpg"),
+        (UserDict({"l": "large.jpg"}), "large.jpg"),
+    ],
+)
+def test_images_prefer_large_and_fall_back_only_for_empty_or_missing_large(
+    as_object, entry, expected
+):
+    product = {"images": [entry], "imagesCSV": "legacy.jpg"}
+    if as_object:
+        product = SimpleNamespace(**product)
+    result = capture_keepa_image_fact(
+        product, candidate_asin="B000000001", root_category_id="13299531"
+    )
+    assert result["image_urls"] == ["https://m.media-amazon.com/images/I/" + expected]
+    assert not result["capture_error"]
+    assert result["root_category_id"] == 13299531
+
+
+def test_images_preserve_order_deduplicate_and_cap_without_mixing_legacy():
+    result = capture_keepa_image_fact(
+        {
+            "images": [
+                {"l": "one.jpg"}, {"m": "two.png"}, {"l": "one.jpg"},
+                {"l": "three.webp"}, {"l": "four.jpg"},
+            ],
+            "imagesCSV": "legacy.jpg",
+        },
+        candidate_asin="B000000001", root_category_id=None,
+    )
+    assert [u.rsplit("/", 1)[1] for u in result["image_urls"]] == [
+        "one.jpg", "two.png", "three.webp"
+    ]
+    assert not result["capture_error"]
+
+
+@pytest.mark.parametrize("images", [None, {}, "one.jpg", False, 1, ({"l": "one.jpg"},)])
+def test_malformed_images_never_fall_back_to_legacy(images):
+    result = capture_keepa_image_fact(
+        {"images": images, "imagesCSV": "legacy.jpg"},
+        candidate_asin="B000000001", root_category_id=None,
+    )
+    assert result["image_urls"] == []
+    assert result["capture_error"]
+
+
+def test_empty_images_list_is_unavailable_without_legacy_fallback():
+    result = capture_keepa_image_fact(
+        {"images": [], "imagesCSV": "legacy.jpg"},
+        candidate_asin="B000000001", root_category_id=None,
+    )
+    assert result["image_urls"] == []
+    assert not result["capture_error"]
+
+
+@pytest.mark.parametrize("entry", [None, "one.jpg", [], 1, SimpleNamespace(l="one.jpg"), {}])
+def test_malformed_image_entry_marks_error_and_keeps_only_valid_entries(entry):
+    result = capture_keepa_image_fact(
+        {"images": [{"l": "one.jpg"}, entry, {"m": "two.png"}]},
+        candidate_asin="B000000001", root_category_id=None,
+    )
+    assert [u.rsplit("/", 1)[1] for u in result["image_urls"]] == ["one.jpg", "two.png"]
+    assert result["capture_error"]
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [123, False, [], {}, " ", " one.jpg", "one.jpg\n", "../one.jpg",
+     "https://example.com/one.jpg", "one%2Ejpg", "one.svg", "one.jpg?x=1"],
+)
+def test_invalid_large_filename_is_not_repaired_or_replaced_by_medium(filename):
+    result = capture_keepa_image_fact(
+        {"images": [{"l": filename, "m": "medium.jpg"}], "imagesCSV": "legacy.jpg"},
+        candidate_asin="B000000001", root_category_id=None,
+    )
+    assert result["image_urls"] == []
+    assert result["capture_error"]
+
+
+@pytest.mark.parametrize("filename", [None, "", False, "../bad.jpg"])
+def test_missing_large_with_invalid_medium_marks_capture_error(filename):
+    result = capture_keepa_image_fact(
+        {"images": [{"m": filename}]},
+        candidate_asin="B000000001", root_category_id=None,
+    )
+    assert result["image_urls"] == []
+    assert result["capture_error"]
+
+
+def test_malformed_entry_after_three_images_still_marks_capture_error():
+    result = capture_keepa_image_fact(
+        {"images": [{"l": "one.jpg"}, {"l": "two.jpg"}, {"l": "three.jpg"}, None]},
+        candidate_asin="B000000001", root_category_id=None,
+    )
+    assert len(result["image_urls"]) == 3
+    assert result["capture_error"]
+
+
+@pytest.mark.parametrize("as_object", [False, True])
+def test_absent_images_keeps_legacy_csv_order_and_limit(as_object):
+    product = {"imagesCSV": " one.jpg,two.jpg,one.jpg,three.jpg,four.jpg"}
+    if as_object:
+        product = SimpleNamespace(**product)
+    result = capture_keepa_image_fact(
+        product, candidate_asin="B000000001", root_category_id=13299531
+    )
+    assert [u.rsplit("/", 1)[1] for u in result["image_urls"]] == [
+        "one.jpg", "two.jpg", "three.jpg"
+    ]
+    assert not result["capture_error"]
+
+
+@pytest.mark.parametrize(
+    "root, expected",
+    [(13299531, "TARGET_ROOT"), (2277721051, "TARGET_ROOT"),
+     (14304371, "TARGET_ROOT"), (2016929051, "TARGET_ROOT"),
+     (None, "ROOT_UNKNOWN"), ("bad", "ROOT_UNKNOWN"), (999, "OTHER_ROOT")],
+)
+def test_current_images_preserve_root_selector_and_existing_block(root, expected):
+    result = capture_keepa_image_fact(
+        {"images": [{"l": "one.jpg"}]},
+        candidate_asin="B000000001", root_category_id=root,
+    )
+    assert result["root_category_id"] == normalize_root(root)
+    assert select_images(result, "SAFE") == expected
+    assert select_images(result, "REVIEW") == expected
+    assert select_images(result, "BLOCK") == "EXISTING_BLOCK"
 
 
 def test_old_keepa_cache_preserves_root_without_fetching_and_has_no_images():

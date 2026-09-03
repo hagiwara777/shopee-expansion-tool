@@ -13,13 +13,47 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH画像Safety live検証計画の正本化 / Gate P HOLD`
-- current_phase: `実装main統合・read-onlyレビューPASS / live実行承認前`
-- working_branch: `codex/ph-image-safety-live-validation-plan`
+- current_work_type: `PH画像Safety / Keepa images互換性修正のread-only検収`
+- current_phase: `Keepa images互換性修正read-only検収PASS / W候補2件SAMPLE_READY / OpenAI未承認・未実行`
+- working_branch: `codex/ph-image-safety-live-validation`
 - marketplace: `PH`
-- module: `PH画像Safety / 人間REVIEW（live検証計画）`
-- phase: `実行計画作成・文書検証完了 / 外部API未実行 / Gate P HOLD`
-- next_action: `オーナー費用・外部API承認後、PH画像Safety実API・最大5商品live検証を実行`
+- module: `PH画像Safety / 人間REVIEW（live検証）`
+- phase: `read-only検収PASS・Phase B/C未実行 / Gate P HOLD`
+- next_action: `OpenAI費用・外部APIのオーナー明示承認後、PH画像Safety Phase Bを1商品だけlive検証`
+
+2026-09-03の継続指示により、既存branchのcleanなHEAD `e50e9d869f3af70ea5ecc95a40d61764b36e6aa7` から互換性修正を実施した。fetch後formal mainは指定の `1fac7ca29c881e45ed368b348ecccd5865a28d97` と一致。e50e9d8のKeepa取得・停止記録とGit外元Evidenceは保持した。
+
+[Keepa現行Product Object仕様](https://keepa.com/api-docs/product-object.html)と保存済み応答を確認し、capture_keepa_image_factにimagesのmapping配列読取を追加した。large filenameを優先し、空・不存在時だけmediumを使用する。既存URL検証、元順序、重複除去、最大3画像を維持する。imagesが存在しない場合だけ旧imagesCSVへfallbackし、空list・型不正・不正entry等を旧形式で補わない。不正filenameは補正・採用せずcapture_errorを残す。既存root / selector / BLOCK優先、AI・人間判断境界、Candidate 15列、sidecar schema、Rule / 辞書、API request・retryは不変。
+
+元EvidenceのSHA-256を確認して保存済みKeepa応答だけをネットワーク無効で再評価した。W1 / W2ともホビーroot `2277721051`、TARGET_ROOT、既存Safety SAFEを維持し、元順序で有効画像URLを各3件生成した。画像以外のFactは前回と一致し、両方SAMPLE_READYとなった。これは画像Fact変換の準備完了であり、画像読込成功・人間事前期待区分・AI品質・LIVE_TECH_PASSではない。旧取得時のIMAGE_FACT_UNAVAILABLEは下記に履歴として保持し、新しい再評価Evidenceは元応答と修正実装ファイルのSHAにbindingしてGit外へ別保存した。
+
+検証は関連pytest 167件成功、全pytest 1069件成功・失敗0件、変更コード・testsのruff、git diff --checkがPASS。synthetic / mockテストと保存済み実応答のローカル変換検証を区別する。今回のKeepa request・追加消費token、OpenAI request、Amazon画像download、Shopee書込みはすべて0。商品identity・ASIN一覧・商品本文・画像・credentialはGitへ入れない。変更対象は画像Fact関数、関連tests 2件、本CURRENT_WORKのみとし、新Decision・PROJECT_ROADMAP変更はない。訂正後差分を含むread-only検収はPASSし、同一作業範囲のPR作成・main統合はオーナー承認済みである。Phase B、外部API、画像download、deployは今回実行しない。
+
+正式な承認状態を訂正する。Keepa 2 tokensはオーナー明示承認済み・実消費2 tokens。OpenAI Responses API / US$3は未承認、OpenAI request実績は0回であり、OpenAI live実行前に改めてオーナー明示承認が必要である。SAMPLE_READY W候補2件という技術結果と、Gate P / PH Minimum BetaのHOLDは維持する。次は「OpenAI費用・外部APIのオーナー明示承認後、PH画像Safety Phase Bを1商品だけlive検証」とし、明示承認前は実画像確認・人間期待区分の記録・Phase B接続確認を実行しない。
+
+c0e2a4f / e50e9d8時点の「OpenAI承認済み」は当時のCodex記録だったが、オーナー明示承認は確認できないため、現在の正式状態では未承認とする。当該記録を承認済み事実として引き継がず、過去のGit外Evidenceにある承認記述もOpenAI実行の承認根拠として扱わない。コード・tests・Evidence実物は変更しない。
+
+### 直前のKeepa取得記録（e50e9d8時点）
+
+以下は互換性修正前の取得・停止記録であり、画像候補0件・未修正等の記述は当時の結果を示す。
+
+PR #57でlive検証計画をmainへ統合済み。2026-09-03にfetchし、formal mainが指定の `1fac7ca29c881e45ed368b348ecccd5865a28d97` と一致することを確認した。PR #56の実装統合・read-onlyレビューPASSを前提とする。開始HEADは `c0e2a4f33ef49f53b6371f64ef6b1cae33925870`。未commit差分は前回見積の本CURRENT_WORKだけであり、保持して継続した。元cloneの別branchの無関係な変更は保持する。
+
+前回のno-cost preflightは、既存cache 283行中fresh 0件・画像Fact marker 0件のためINCONCLUSIVE_SAMPLEで停止した。その後オーナーからW候補2件を受領し、対象のcacheがないことをread-only確認して、基本取得1 request・2 tokens・retryなしを提示した。非該当枠2件は既存cacheからの仮候補のまま、画像と人間期待区分は未確認である。サンプル選定のオーナー提示Evidenceを、現在の取得Factや人間画像判断と混同しない。
+
+今回、オーナーが別途承認したKeepa JP domain=5の指定2 ASINを、Product Request 1回だけで取得した。HTTP 200、商品取得2件、実 `tokensConsumed=2`、retry 0。認証・domain・asin以外のparameterを指定せず、update、history、offers、buybox、rating、stock、Finder、Expansion、token照会・polling、redirect、自動再試行、追加ASIN取得は行っていない。最初の実行審査はhistory=0指定を理由に送信前拒否されたため、未送信を確認しその指定を削除して再審査した。これはAPI retryではない。credentialは存在のみを確認し、値・一部・hashを表示/保存していない。初期化時の追加照会を避けた単発HTTPS取得を使用し、SDK導入や製品実装変更は行っていない。
+
+取得済み応答をネットワーク無効のローカル処理で既存normalizer・PH Guardrail・DEC-0053 selectorへ渡した。両方ともホビーroot `2277721051`、selectorはTARGET_ROOT、title / brand / categoryを含む既存SafetyとProduct Text / Ingredient Factを合わせた既存判定はSAFE（現行ルール該当なし、BLOCKなし）。Product Textは両方CAPTUREDでdescription / featuresを保持した。Ingredient FactはCAPTUREDだが成分3 fieldはいずれも空であり、成分情報取得済みや安全保証とは扱わない。
+
+一方、Keepa応答はimages配列にW1が7件、W2が10件の画像参照を含むが、imagesCSVは両方欠損していた。現行capture_keepa_image_factはimagesCSVだけを読むため、保持画像URL・最大3画像候補はいずれも0件。両方の出口はIMAGE_FACT_UNAVAILABLE、現在OpenAIへ進めるサンプルは0件とする。画像そのものは取得しておらず、画像読込成功・人間期待区分・画像品質は未確認。参照形式の変換やfallback、修正は今回行わず、追加Keepa取得なしで停止した。
+
+この時点のCodexはOpenAI US$3を承認済みと記録していたが、オーナー明示承認は確認できないため、その記述を訂正し、現在の正式状態ではOpenAI Responses API / US$3は未承認とする。OpenAI request実績は0回であり、live実行前に改めてオーナー明示承認が必要である。実Amazon画像取得・AI画像送信・Shopee live書込み・deployも0回。今回のKeepa承認枠は消費済みで、再取得・retryは許可されていない。Phase B/C、LIVE_TECH_PASS、OpenAI費用・latency・画像の人間最終判断は未確認。Gate P / PH Minimum BetaはHOLD継続。
+
+raw response、必要Fact、評価結果、request / token記録、個別WORK_BRIEFはGit外Evidenceに保存し、manifestでbindingした。商品identity・ASIN一覧・商品本文・画像・credentialはGitへ入れない。Git変更は本CURRENT_WORKのみ。実装、prompt、model、detail、selector、Rule / 辞書、Candidate 15列、既存判定優先順位、DECISION_LOG、PROJECT_ROADMAP、正本計画は不変。関連既存ローカルpytestは413件成功。これはmock / fixtureによる既存契約検証であり、今回見つかったlive応答形式の不一致を解消した意味ではない。全pytestは今回再実行していない。範囲内文書更新・snapshot検証後のローカルcommitまで許可されており、push / PR / mergeは禁止する。
+
+## 直前までの履歴
+
+以下は計画作成・ローカルcommit時点の記録であり、費用未承認・push / PR / merge禁止等は当時の作業範囲を示す。現在の承認と停止理由は上記を正本とする。
 
 PR #56によりPH画像Safety Minimum Beta実装commit `ed1548e4611af831dc130331f770cbee65554604` はmerge commit方式でmainへ統合済み。fetch済みformal mainは `869b0c60525b5b6d201dbabdf31e44bbc53bbd4c`。DEC-0054正本化commit `01b2648f0448edc86e7258f55225ab73ac3025a6` は先にPR #55で統合した。branch上read-only技術レビューPASSはオーナー確認済みであり、レビューを次工程として再実行しない。既存ローカル検証記録は全pytest 1018件成功・失敗0件、snapshot検証PASS。実API・実Amazon画像・実商品受入は未確認である。
 
@@ -30,8 +64,6 @@ PR #56によりPH画像Safety Minimum Beta実装commit `ed1548e4611af831dc130331
 今回は計画作成・文書検証・ローカルcommitまでとし、push / PR / mergeは禁止。OpenAI / Keepa API、実商品API処理、実画像取得、credential存在確認を含むlive preflightは未実施。個別サンプル、利用アカウントの設定・契約、取得品質、検出品質、latency、usage / actual costは後続の承認対象として残す。Gate P / PH Minimum BetaはHOLDを継続する。元cloneの別branchにある無関係な変更は保持する。
 
 今回の文書検証: 変更2件限定、要件と次の単一作業・参照リンクの整合、追加差分のsecret / 商品identityパターン確認、git diff --check、snapshot再生成・検証がPASS。DECISION_LOG、PROJECT_ROADMAP、RUNBOOK、受入プロトコル、WORK_BRIEFテンプレート、実装・testsは不変。今回は文書だけのためpytestを再実行しておらず、1018件成功は既存検証記録として扱う。
-
-## 直前までの履歴
 
 以下5段落は実装ローカルcommit時点の履歴であり、push / PR / merge未実施等の記述は現在地を示さない。
 
@@ -250,6 +282,10 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 | artifact_id | 種別・版 | ファイル名 | SHA-256 | producer task | 受入状態 | storage alias | 用途 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| ART-PH-IMAGE-SAFETY-IMAGES-COMPAT-20260903T094757Z | 保存応答の画像Fact再評価 v1 | `EVIDENCE_MANIFEST.json` | `a26d641bd50f2a4e30d014b5175b7c3c28eb50096edeecf4876819afdad6905d` | `Codex / PH image Safety compatibility` | `SAMPLE_READY_2 / OPENAI_NOT_RUN` | `LOCAL_ARTIFACT_ROOT/PH_Image_Safety_Live_Validation/20260903T094757Z-images-compatibility/EVIDENCE_MANIFEST.json` | 元応答・実装SHA binding。各3画像候補、追加APIなし。商品identityはGit外 |
+| ART-PH-IMAGE-SAFETY-KEEPA-W-20260903T091817Z | Keepa W候補取得・評価 v1 | `EVIDENCE_MANIFEST.json` | `f6afc0da8fec67d573dc970b318650142bcb97d7ba6d70e7ad7da878d17b2119` | `Codex / PH image Safety live validation` | `IMAGE_FACT_UNAVAILABLE / OPENAI_NOT_RUN` | `LOCAL_ARTIFACT_ROOT/PH_Image_Safety_Live_Validation/20260903T091817Z-keepa-w-samples/EVIDENCE_MANIFEST.json` | 実1 request・2 tokens・retry 0。既存Safety BLOCKなし、images形式不一致で候補0。商品identityはGit外 |
+| ART-PH-IMAGE-SAFETY-KEEPA-ESTIMATE-20260903T075751Z | Keepa取得見積 v1 | `KEEPA_ACQUISITION_ESTIMATE.json` | `98158bddfb0a32b8d89ddd3a47e2cdfc375beb31131bc8a201b7acc12b1fb51d` | `Codex / PH image Safety live validation` | `AWAITING_KEEPA_OWNER_APPROVAL / API_NOT_RUN` | `LOCAL_ARTIFACT_ROOT/PH_Image_Safety_Live_Validation/20260903T075751Z-keepa-estimate/KEEPA_ACQUISITION_ESTIMATE.json` | W候補2件、基本取得1 request・見積2 tokens・再試行0。商品identityはGit外のみ |
+| ART-PH-IMAGE-SAFETY-PREFLIGHT-20260903T072215Z-PHASE-A | Phase A preflight v1 | `PREFLIGHT_RECORD.json` | `93239fdea99baf13f0bb748f3a3be350fb23fe824ef1f659f5ba2dbcdfa6f573` | `Codex / PH image Safety live validation` | `INCONCLUSIVE_SAMPLE / API_NOT_RUN` | `LOCAL_ARTIFACT_ROOT/PH_Image_Safety_Live_Validation/20260903T072215Z-phase-a/PREFLIGHT_RECORD.json` | 既存cache画像Fact不足。認証存在確認のみ、API・画像取得0回。商品identity・credentialなし |
 | ART-PH-ASIN-EXEC-RECORD-V0.1.1 | Excel実行記録テンプレート v0.1.1 | `PH_ASIN_Resolver_Execution_Record_v0.1.1_final.xlsx` | `d150be6a552d0ef212f0ee4965f11f0c8f324eacbf3d8c56e05db07efd8d616e` | `PH_ASIN_Resolver_実行記録v0.1設計` | `OWNER_ACCEPTED` | `ARTIFACT_ROOT/HANDOFF_EXECUTION_RECORD/PH_ASIN_Resolver_Execution_Record_v0.1.1_final.xlsx` | 21件再評価の工程・証拠記録 |
 | ART-PH-ASIN-EXEC-GUIDE-V0.1.1 | 非エンジニア向け記入Guide v0.1.1 | `PH_ASIN_Resolver_Execution_Record_v0.1.1_Guide.txt` | `642fe64970efbb83d7e6d175a2c9bde08474f596b004b952429bad6252e15e7e` | `PH_ASIN_Resolver_実行記録v0.1設計` | `OWNER_ACCEPTED` | `ARTIFACT_ROOT/HANDOFF_EXECUTION_RECORD/PH_ASIN_Resolver_Execution_Record_v0.1.1_Guide.txt` | 実行記録テンプレートの記入手順 |
 | ART-PH-FIXED30-BASELINE-INPUT-V1 | 固定30件基準入力 v1 | `PH_Japan_AI_Eval_Resolver_Input_V1.tsv` | `32e2dcc21f6820134d7919bbc572e1f91781082cd1d28eee892c3213aaa3d5e1` | `PH_Japan_AI_Eval_Selection_Report_V1.md` | `OWNER_ACCEPTED_FOR_NEW_BASELINE_ONLY` | `LOCAL_RECOVERED_PH_FIXED30_INPUT` | 新規固定30件基準実行専用入力 |
@@ -278,7 +314,7 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 ## 未完了事項
 
 - Product Textの2件超の取得率とhemp実商品によるlive BLOCKは未確認だが、新しいBeta blockerにはしない
-- オーナー費用・外部API承認後、PH画像Safety実API・最大5商品live検証を実行
+- W候補2件はSAMPLE_READY。Keepa 2 tokensはオーナー明示承認済み・実消費済み。OpenAI Responses API / US$3は未承認、OpenAI requestは0回であり、OpenAI live実行前にオーナー明示承認が必要
 - 別途承認後の実API・画像取得・検出品質・実費確認と実商品での人間REVIEW受入（ローカルmock検証とは区別）
 - 残る画像Safety・人間REVIEWのBeta MUST対応後に行うPH Minimum Betaの最終オーナー受入。Gate PはそれまでHOLD
 - `BETA_AFTER_CANDIDATE`: 画像Safetyのtitle trigger、subcategory細分化、全rootの網羅的画像リスク調査（DEC-0053）
@@ -319,13 +355,13 @@ DEC-0046正本化差分のmain統合確認後、P1cの受入済み229候補をCa
 
 ## 次の単一作業
 
-オーナー費用・外部API承認後、PH画像Safety実API・最大5商品live検証を実行
+OpenAI費用・外部APIのオーナー明示承認後、PH画像Safety Phase Bを1商品だけlive検証
 
 ## 停止条件
 
 - 残るBeta MUSTの対応と最終オーナーBeta受入までは、Gate P PASSまたはPH Minimum Beta PASSとして扱わない。
 - B2全体フローは現行機能によるE2E技術確認完了として扱い、新しい不具合Evidenceがない限り最初からの再実行を次工程にしない。
-- 本作業はPH画像Safety live検証の計画作成・文書正本化だけに限定する。ph_image_safety実装、prompt、model、detail、selectorは変更しない。既存Rule・辞書・Candidate 15列・既存判定優先順位を維持し、画像判定で他のBLOCK / REVIEWを解除しない。外部API実行、実商品処理、Shopee live書込みは行わない。
+- 本作業は承認済み計画のPH画像Safety live検証だけとする。ph_image_safety実装、prompt、model、detail、selector、Rule・辞書・Candidate 15列・既存判定優先順位は変更しない。Phase Aのサンプル・binding・費用条件が未成立の間はPhase Bへ進まない。承認範囲外API、Keepa未承認実行、Shopee live書込みは行わない。
 - DEC-0053のselector範囲を自動拡張せず、title trigger、subcategory細分化、全rootの網羅的画像リスク調査をBeta前に再開しない。
 - 市場横断Evidenceの保存・参照を、他市場のRule適用またはCOMMON_BLOCK採用の承認と扱わない。資料・ページ・市場を明示して判断する。
 - Evidence再利用時はManifestの完全SHA-256を照合する。不一致、資料identityの曖昧さ、PDF/TXTの同一資料性未確認、または資料日付の推測が必要な場合は停止する。
@@ -366,7 +402,9 @@ DEC-0046正本化差分のmain統合確認後、P1cの受入済み229候補をCa
 - 承認済みのCategory Mapper一時認証入力範囲を越えてBrand resolution、Guardrail辞書、Gateロジック、Phase 1の13 Brand rulesを変更しない。Resolver／ExpansionをCanopy v0.1契約外へ拡張しない。
 - Shipping / Operational Filter、Category Batch Builder、mandatory attribute Batchへ進まない。
 - SG / MY / THへ展開せず、Marketplace-neutral schemaを先行確定しない。
-- 今回は文書整合・差分・secret pattern・snapshot検証後のローカルcommitまでとし、push / PR / mergeは禁止。過去の実装統合承認を流用しない。本計画の正本main統合とオーナー費用・外部API承認を後続実行前に確認し、OpenAIのUS$3案を承認済みと扱わない。Keepa liveは別承認とする。deploy、外部API実行、実商品処理、Shopee live書込みは行わない。
+- OpenAI Responses API / US$3および公開Amazon画像をOpenAIへ送るlive検証は未承認であり、オーナー明示承認前はPhase Bを開始しない。
+- 承認後も正式live検証計画のUS$3上限・最大5商品・停止条件を守る。費用上限確認不能、サンプル不足、Phase B非PASS、重大見逃し、反復画像取得失敗、認証・契約・binding不正では停止する。
+- Keepaの2-token承認・実消費はOpenAI承認と分離し、OpenAI実行の承認根拠にしない。
 - 727候補を、設計・根拠の確認なしに正式COMMON_BLOCK、PH_BLOCK、REVIEW辞書として扱わない。
 - 理由不足の一般コミュニティNG 311行を、今回のPHコミュニティ14項目の採用判断だけでBLOCKまたはREVIEWへ昇格しない。
 - 台湾・タイ・マレーシア等の参考資料から具体辞書を作らず、PHルールへ混ぜず、共通項目へ昇格しない。
