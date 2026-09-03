@@ -13,13 +13,27 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `DEC-0054 PH画像Safety Minimum Beta実装 / Gate P HOLD`
-- current_phase: `画像Safety・人間REVIEWの実装・mock検証完了`
-- working_branch: `codex/ph-image-safety-minimum-beta`
+- current_work_type: `PH画像Safety live検証計画の正本化 / Gate P HOLD`
+- current_phase: `実装main統合・read-onlyレビューPASS / live実行承認前`
+- working_branch: `codex/ph-image-safety-live-validation-plan`
 - marketplace: `PH`
-- module: `PH画像Safety / 人間REVIEW`
-- phase: `Minimum Beta最小実装・ローカル検証完了 / 外部受入前 / Gate P HOLD`
-- next_action: `PH画像Safety Minimum Beta実装差分のread-onlyレビュー`
+- module: `PH画像Safety / 人間REVIEW（live検証計画）`
+- phase: `実行計画作成・文書検証完了 / 外部API未実行 / Gate P HOLD`
+- next_action: `オーナー費用・外部API承認後、PH画像Safety実API・最大5商品live検証を実行`
+
+PR #56によりPH画像Safety Minimum Beta実装commit `ed1548e4611af831dc130331f770cbee65554604` はmerge commit方式でmainへ統合済み。fetch済みformal mainは `869b0c60525b5b6d201dbabdf31e44bbc53bbd4c`。DEC-0054正本化commit `01b2648f0448edc86e7258f55225ab73ac3025a6` は先にPR #55で統合した。branch上read-only技術レビューPASSはオーナー確認済みであり、レビューを次工程として再実行しない。既存ローカル検証記録は全pytest 1018件成功・失敗0件、snapshot検証PASS。実API・実Amazon画像・実商品受入は未確認である。
+
+今回、formal mainから専用branchを作成し、[PH画像Safety live検証計画](PH_IMAGE_SAFETY_LIVE_VALIDATION_PLAN.md)を追加した。変更対象は同計画と本CURRENT_WORKだけ。[WORK_BRIEFテンプレート](templates/WORK_BRIEF.md)を使用した個別Briefはrepo外に作成し、Gitへcommitしない。AGENTS、運用RUNBOOK、DEC-0051 / DEC-0053 / DEC-0054、既存受入プロトコルを確認した。新たな事業判断・仕様変更・工程変更はないため、DEC-0055を追加せずPROJECT_ROADMAPも変更しない。旧受入プロトコルの全面工程はDEC-0049以降の現在方針に従い、自動再開しない。
+
+計画は最大5商品（明確な疑義あり2、非該当2、曖昧最大1）、1商品最大3画像、通常最大5 Responses request・retry込み絶対上限10、proposed OpenAI総費用上限US$3とする。no-cost preflight後、1商品接続確認がPASSした場合だけ残りを1商品ずつ進める。明確な見逃しは即停止、サンプル不足はINCONCLUSIVE_SAMPLE、費用確認不能はCOST_UNVERIFIED。Keepaは既存cache / Fact優先で、fresh画像Factの取得にliveが不可避なら必要ASIN数・request範囲を示して別承認を得る。具体的な実行・費用予約・Evidence手順は計画書を正本とする。
+
+今回は計画作成・文書検証・ローカルcommitまでとし、push / PR / mergeは禁止。OpenAI / Keepa API、実商品API処理、実画像取得、credential存在確認を含むlive preflightは未実施。個別サンプル、利用アカウントの設定・契約、取得品質、検出品質、latency、usage / actual costは後続の承認対象として残す。Gate P / PH Minimum BetaはHOLDを継続する。元cloneの別branchにある無関係な変更は保持する。
+
+今回の文書検証: 変更2件限定、要件と次の単一作業・参照リンクの整合、追加差分のsecret / 商品identityパターン確認、git diff --check、snapshot再生成・検証がPASS。DECISION_LOG、PROJECT_ROADMAP、RUNBOOK、受入プロトコル、WORK_BRIEFテンプレート、実装・testsは不変。今回は文書だけのためpytestを再実行しておらず、1018件成功は既存検証記録として扱う。
+
+## 直前までの履歴
+
+以下5段落は実装ローカルcommit時点の履歴であり、push / PR / merge未実施等の記述は現在地を示さない。
 
 オーナーの2026-09-03継続指示により、DEC-0054に基づく最小実装とローカル検証を完了した。fetch済みformal mainは `3cb2d04d4a2c6e059a4e17e98c35101a223d3c8d` のままで、DEC-0054ローカルcommit `01b2648f0448edc86e7258f55225ab73ac3025a6` を引き継ぐ専用branchを使用する。対象はKeepa画像情報搬送、PH専用sidecar、Responses API接続、Gateへの追加画像確認、人間REVIEW UI、synthetic / mock tests、READMEと作業状態記録。既存Rule・辞書・Candidate固定15列・既存判定優先順位は維持する。外部API・実商品・Shopee live書込みは実行せず、push / PR / mergeは別途承認とする。
 
@@ -30,8 +44,6 @@ PH通常UIで画像確認ファイルを必須とし、日本語の画像確認�
 検証: 関連pytest 386件成功、追加した画像Safety専用tests 116件成功、既存ローカルvenvで全pytest 1018件成功・失敗0件。全pytest 902件だった前工程に対し116件を追加した。テストはsynthetic画像・mock HTTP・既存fixture・AppTestのみで、追加Keepa requestなし、最大3画像、1 retry、未実行とNO_SIGNAL分離、一部失敗、全体STOP、SHA / ASIN / 人間判断binding、既存BLOCK / REVIEW保持、再描画時のAPI未再送信を確認した。新規ファイルのruff、差分検査、snapshot生成・検証はPASS。外部API・実商品・Shopee live書込み・push / PR / merge / deployは未実施。
 
 未確認: 利用アカウントでのmodel / API / 契約設定、実際のAmazon画像取得、検出品質、遅延・実費、実商品でのオーナー受入。実装差分のread-onlyレビュー後、必要な外部確認は別途承認を得る。Gate P / PH Minimum BetaはHOLDを維持する。元cloneの別branchにある無関係な変更は保持した。
-
-## 直前までの履歴
 
 前工程のDEC-0054正本化はオーナーの2026-09-03継続指示により、fetch済みformal `origin/main` `3cb2d04d4a2c6e059a4e17e98c35101a223d3c8d`（PR #54統合済み）とCURRENT_WORKを確認し、同一cloneのcleanな登録済み管理worktreeから専用branchで開始した。開始時local `main` は `3263364a43919ec8da3f35cdb7c40777eef90ea2` であり、最新formal mainとは区別する。元cloneの別branchにある無関係な未コミット変更は保持する。変更はDECISION_LOG、CURRENT_WORK、PROJECT_ROADMAPの3文書とGit管理対象外snapshotの再生成に限定し、検証後のローカルcommitまで実施する。push / PR / mergeは別途オーナー承認が必要であり、過去のUI・selector差分に対する承認を流用しない。
 
@@ -59,7 +71,7 @@ DEC-0053正本化はfetch済みformal `origin/main` / 開始時HEAD `2d309adb3dc
 
 DEC-0053正本化時の検証は、変更3文書限定、DECISION_LOG追記専用、4 root IDと次の単一作業の整合、追加行の秘密情報チェック、登録済みPDF/TXTの完全SHA-256・bytes照合、`git diff --check`、既存snapshot生成・検証がPASSした。既定Pythonによる全pytestは875件成功・24件失敗（前回と同数）で、既存Streamlit 1.44.1の `width` 引数非対応と、検証スクリプトが要求するrepo内 `.venv` 不在を再確認した。機能コード、Rule、辞書、tests、実行環境は変更せず、全pytest PASSとは扱わない。外部API実行・実商品処理は行っていない。
 
-DEC-0051で、PH画像Safetyは画像上で見える武器・武器形状物の疑義発見に限定し、AI単独でBLOCK、SAFE保証、既存BLOCK解除を行わず、判断不能を商品単位の人間REVIEWへ止める事業ルールを確定した。`PRELISTING_CANDIDATE_V1`の固定15列を維持して独立sidecarを基本方針とする。provider・API・modelと最小実装方式はDEC-0054で確定済みであり、prompt・正式sidecar schemaは次の実装で具体化する。AI結果cacheはBETA_AFTER_CANDIDATEとし、商品単位の実費は未確認である。Gate PとPH Minimum BetaはHOLDを維持する。
+DEC-0051で、PH画像Safetyは画像上で見える武器・武器形状物の疑義発見に限定し、AI単独でBLOCK、SAFE保証、既存BLOCK解除を行わず、判断不能を商品単位の人間REVIEWへ止める事業ルールを確定した。`PRELISTING_CANDIDATE_V1`の固定15列を維持して独立sidecarを基本方針とする。provider・API・modelと最小実装方式はDEC-0054で確定済みであり、prompt・正式sidecar schemaはPR #56で実装済み。live検証は承認前であり、AI結果cacheはBETA_AFTER_CANDIDATEとし、商品単位の実費は未確認である。Gate PとPH Minimum BetaはHOLDを維持する。
 
 latest main `b62be9152b2c1ddc009e304e26a63fe8f33847e0`を基準に、少量実商品のB2全体フローを通常画面で確認した。Resolver入口はCandidate 1件、Expansion入口はstrict 1ページで候補を取得し、人間追跡対象を1件に限定した。両入口ともIngredient Safety / Product Text SafetyはCAPTURED、PH GateはSAFE / ELIGIBLE、入力内exactはUNIQUE、既出品exactはCLEARとなり、Category、Brand / No Brand、`listing_ready = TRUE`、CSV / TXT handoffまで成立した。使用したPH既出品CSVの登録ASINは0件で、オーナー確認でも現在のPHショップに既出品商品は存在せず、今回の既出品exact CLEARは実態と整合する。Shopee live書込み、コード・Rule・辞書・tests変更はいずれも0である。これは現行機能によるE2E全体フロー成立の技術確認であり、Gate P PASSまたはPH Minimum Beta PASSではない。
 
@@ -266,7 +278,7 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 ## 未完了事項
 
 - Product Textの2件超の取得率とhemp実商品によるlive BLOCKは未確認だが、新しいBeta blockerにはしない
-- PH画像Safety Minimum Beta実装差分のread-onlyレビュー
+- オーナー費用・外部API承認後、PH画像Safety実API・最大5商品live検証を実行
 - 別途承認後の実API・画像取得・検出品質・実費確認と実商品での人間REVIEW受入（ローカルmock検証とは区別）
 - 残る画像Safety・人間REVIEWのBeta MUST対応後に行うPH Minimum Betaの最終オーナー受入。Gate PはそれまでHOLD
 - `BETA_AFTER_CANDIDATE`: 画像Safetyのtitle trigger、subcategory細分化、全rootの網羅的画像リスク調査（DEC-0053）
@@ -307,13 +319,13 @@ DEC-0046正本化差分のmain統合確認後、P1cの受入済み229候補をCa
 
 ## 次の単一作業
 
-PH画像Safety Minimum Beta実装差分のread-onlyレビュー
+オーナー費用・外部API承認後、PH画像Safety実API・最大5商品live検証を実行
 
 ## 停止条件
 
 - 残るBeta MUSTの対応と最終オーナーBeta受入までは、Gate P PASSまたはPH Minimum Beta PASSとして扱わない。
 - B2全体フローは現行機能によるE2E技術確認完了として扱い、新しい不具合Evidenceがない限り最初からの再実行を次工程にしない。
-- 本作業はDEC-0054に基づく画像Safety・人間REVIEWの最小実装とローカル検証に限定する。既存Rule・辞書・Candidate 15列・既存判定優先順位を維持し、画像判定で他のBLOCK / REVIEWを解除しない。外部API実行、実商品処理、Shopee live書込みは行わない。
+- 本作業はPH画像Safety live検証の計画作成・文書正本化だけに限定する。ph_image_safety実装、prompt、model、detail、selectorは変更しない。既存Rule・辞書・Candidate 15列・既存判定優先順位を維持し、画像判定で他のBLOCK / REVIEWを解除しない。外部API実行、実商品処理、Shopee live書込みは行わない。
 - DEC-0053のselector範囲を自動拡張せず、title trigger、subcategory細分化、全rootの網羅的画像リスク調査をBeta前に再開しない。
 - 市場横断Evidenceの保存・参照を、他市場のRule適用またはCOMMON_BLOCK採用の承認と扱わない。資料・ページ・市場を明示して判断する。
 - Evidence再利用時はManifestの完全SHA-256を照合する。不一致、資料identityの曖昧さ、PDF/TXTの同一資料性未確認、または資料日付の推測が必要な場合は停止する。
@@ -354,7 +366,7 @@ PH画像Safety Minimum Beta実装差分のread-onlyレビュー
 - 承認済みのCategory Mapper一時認証入力範囲を越えてBrand resolution、Guardrail辞書、Gateロジック、Phase 1の13 Brand rulesを変更しない。Resolver／ExpansionをCanopy v0.1契約外へ拡張しない。
 - Shipping / Operational Filter、Category Batch Builder、mandatory attribute Batchへ進まない。
 - SG / MY / THへ展開せず、Marketplace-neutral schemaを先行確定しない。
-- 今回は関連実装検証後のローカルcommitまでとし、push / PR / mergeは別途オーナー承認を得る。過去のUI・selector差分に対する承認を流用しない。deploy、外部API実行、Shopee live書込みは行わない。
+- 今回は文書整合・差分・secret pattern・snapshot検証後のローカルcommitまでとし、push / PR / mergeは禁止。過去の実装統合承認を流用しない。本計画の正本main統合とオーナー費用・外部API承認を後続実行前に確認し、OpenAIのUS$3案を承認済みと扱わない。Keepa liveは別承認とする。deploy、外部API実行、実商品処理、Shopee live書込みは行わない。
 - 727候補を、設計・根拠の確認なしに正式COMMON_BLOCK、PH_BLOCK、REVIEW辞書として扱わない。
 - 理由不足の一般コミュニティNG 311行を、今回のPHコミュニティ14項目の採用判断だけでBLOCKまたはREVIEWへ昇格しない。
 - 台湾・タイ・マレーシア等の参考資料から具体辞書を作らず、PHルールへ混ぜず、共通項目へ昇格しない。
