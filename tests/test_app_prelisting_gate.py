@@ -174,7 +174,7 @@ def test_gate_tab_uses_formal_parsers_and_gate_public_functions_only():
     assert calls.count("parse_prelisting_candidate_csv") == 1
     assert calls.count("parse_listing_inventory_csv") == 1
     assert calls.count("evaluate_prelisting_gate") == 1
-    assert calls.count("build_prelisting_gate_exports") == 1
+    assert calls.count("build_prelisting_gate_exports") == 2  # initial gate and human image review
     assert "csv.reader" not in source
     assert "pd.read_csv" not in source
     assert "apply_guardrails" not in source
@@ -519,6 +519,16 @@ def test_prelisting_gate_marketplace_switches_run_ph_empty_inventory_and_clear_r
     app.file_uploader(key="prelisting_gate_product_text_safety_file").set_value(
         ("product_text.csv", _product_text_sidecar(candidate_csv), "text/csv")
     )
+    # Existing display regression uses known non-target roots, so image Safety
+    # does not change its original eligible/review/exclude expectations.
+    from modules.ph_image_safety import create_image_sidecar, capture_keepa_image_fact
+    parsed = parse_prelisting_candidate_csv(candidate_csv, filename="candidate.csv")
+    image_sources = [{"candidate_asin": r.candidate_asin, "ph_image_safety_fact": capture_keepa_image_fact(
+        {}, candidate_asin=r.candidate_asin, root_category_id=999,
+    )} for r in parsed.rows]
+    app.file_uploader(key="prelisting_gate_image_safety_file").set_value(
+        ("images.json", create_image_sidecar(candidate_csv, parsed.rows, image_sources), "application/json")
+    )
     app.run()
     assert len(app.exception) == 0
     assert _run_gate_button(app).disabled is False
@@ -567,6 +577,7 @@ def test_prelisting_gate_marketplace_switches_run_ph_empty_inventory_and_clear_r
     assert app.session_state["prelisting_gate_result"] == result
     assert app.session_state["prelisting_gate_exports"] == exports
     assert [button.label for button in app.download_button] == [
+        "画像確認記録をダウンロード",
         "出品可能CSVをダウンロード",
         "要確認CSVをダウンロード",
         "全件監査CSVをダウンロード",

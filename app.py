@@ -80,6 +80,11 @@ from modules.prelisting_candidate_csv import (
     resolver_rows_to_prelisting_candidates,
     rows_to_prelisting_candidate_csv,
 )
+from modules.ph_image_safety import (
+    ImageSafetyError, apply_image_safety, create_image_sidecar,
+    parse_image_sidecar, prepare_image_safety,
+)
+from modules.ph_image_safety_ui import render_image_review
 from modules.prelisting_gate import PrelistingGateError, evaluate_prelisting_gate
 from modules.prelisting_gate_csv import (
     PrelistingGateCsvError,
@@ -373,6 +378,16 @@ def _render_prelisting_gate_input_tab() -> None:
         "NOT_AVAILABLE / PROVIDER_UNSUPPORTEDは、それ自体ではBLOCKやREVIEWにしません。"
     )
 
+    image_safety_file = None
+    image_safety_bytes = None
+    if marketplace == "PH":
+        image_safety_file = st.file_uploader(
+            "PH画像確認ファイル（必須）", type=["json"], accept_multiple_files=False,
+            key="prelisting_gate_image_safety_file",
+        )
+        image_safety_bytes = image_safety_file.getvalue() if image_safety_file is not None else None
+        st.caption("候補と一緒にダウンロードした画像確認ファイル、または同じ候補の画像確認記録を指定してください。")
+
     uploaded_inventory_files = st.file_uploader(
         f"{marketplace}全ショップの既出品CSV",
         type=["csv"],
@@ -413,6 +428,7 @@ def _render_prelisting_gate_input_tab() -> None:
             product_text_safety_file.name if product_text_safety_file is not None else None
         ),
         product_text_safety_content=product_text_safety_bytes,
+        image_safety_content=image_safety_bytes,
         inventory_files=(
             (filename, content, label)
             for (filename, content), label in zip(inventory_files, labels, strict=True)
@@ -430,6 +446,9 @@ def _render_prelisting_gate_input_tab() -> None:
         configuration_errors.append(
             "PHではCandidate CSVと対応するProduct Text Safety sidecarが必要です。"
         )
+
+    if marketplace == "PH" and image_safety_file is None:
+        configuration_errors.append("PHでは候補CSVに対応する画像確認ファイルが必要です。")
 
     candidate_result = None
     candidate_parse_error = False
@@ -469,10 +488,22 @@ def _render_prelisting_gate_input_tab() -> None:
                 candidate_content=candidate_bytes,
                 candidates=candidate_result,
             )
-        except ProductTextSafetyError:
+        except (ProductTextSafetyError, ImageSafetyError):
             product_text_safety_parse_error = True
     elif product_text_safety_file is not None:
         product_text_safety_parse_error = True
+
+    image_safety_result = None
+    image_safety_parse_error = False
+    if image_safety_file is not None and candidate_result is not None:
+        try:
+            image_safety_result = parse_image_sidecar(
+                image_safety_bytes, candidate_content=candidate_bytes, candidates=candidate_result,
+            )
+        except (ImageSafetyError, TypeError, ValueError):
+            image_safety_parse_error = True
+    elif image_safety_file is not None:
+        image_safety_parse_error = True
 
     inventory_results = []
     inventory_parse_error = False
@@ -501,6 +532,7 @@ def _render_prelisting_gate_input_tab() -> None:
         and not inventory_parse_error
         and not ingredient_safety_parse_error
         and not product_text_safety_parse_error
+        and not image_safety_parse_error
         and candidate_result is not None
         and len(inventory_results) == len(inventory_files)
         and len(inventory_files) == expected_shop_count
@@ -524,6 +556,9 @@ def _render_prelisting_gate_input_tab() -> None:
         st.error(
             "Product Text Safety sidecarを検証できません。Candidate SHA、ASIN集合、schema、JSONを確認してください。"
         )
+
+    if image_safety_parse_error:
+        st.error("画像確認ファイルを検証できません。候補との対応、画像情報、判断記録を確認してください。")
 
     input_ready = preflight_ready
     if input_ready:
@@ -595,6 +630,10 @@ def _render_prelisting_gate_input_tab() -> None:
                     ingredient_safety=ingredient_safety_result,
                     product_text_safety=product_text_safety_result,
                 )
+                base_result = gate_result
+                if marketplace == "PH":
+                    image_safety_result = prepare_image_safety(base_result, image_safety_result, candidate_bytes)
+                    gate_result = apply_image_safety(base_result, image_safety_result, candidate_bytes)
                 exports = build_prelisting_gate_exports(gate_result)
         except PrelistingGateError:
             clear_prelisting_gate_result(st.session_state)
@@ -602,10 +641,15 @@ def _render_prelisting_gate_input_tab() -> None:
         except PrelistingGateCsvError:
             clear_prelisting_gate_result(st.session_state)
             st.error(safe_prelisting_gate_error_summary("export"))
+        except ImageSafetyError:
+            clear_prelisting_gate_result(st.session_state)
+            st.error("画像確認を続行できません。画像確認ファイル、API認証・契約・設定を確認してください。Gateを停止しました。")
         except Exception:
             clear_prelisting_gate_result(st.session_state)
             st.error(safe_prelisting_gate_error_summary("unexpected"))
         else:
+            st.session_state["prelisting_gate_base_result"] = base_result
+            st.session_state["prelisting_gate_image_sidecar"] = image_safety_result
             st.session_state["prelisting_gate_result"] = gate_result
             st.session_state["prelisting_gate_exports"] = exports
             st.session_state["prelisting_gate_fingerprint"] = current_fingerprint
@@ -627,11 +671,24 @@ def _render_prelisting_gate_input_tab() -> None:
     )
     if result_is_current:
         try:
+            if marketplace == "PH":
+                base_result = st.session_state["prelisting_gate_base_result"]
+                image_sidecar = st.session_state["prelisting_gate_image_sidecar"]
+                image_sidecar = prepare_image_safety(base_result, image_sidecar, candidate_bytes)
+                image_sidecar = render_image_review(base_result, image_sidecar, candidate_bytes)
+                saved_result = apply_image_safety(base_result, image_sidecar, candidate_bytes)
+                saved_exports = build_prelisting_gate_exports(saved_result)
+                st.session_state["prelisting_gate_image_sidecar"] = image_sidecar
+                st.session_state["prelisting_gate_result"] = saved_result
+                st.session_state["prelisting_gate_exports"] = saved_exports
             _render_prelisting_gate_result(
                 saved_result,
                 saved_exports,
                 source_type=candidate_result.source_type,
             )
+        except ImageSafetyError:
+            clear_prelisting_gate_result(st.session_state)
+            st.error("画像確認を続行できません。画像確認ファイル、API認証・契約・設定を確認してください。Gateを停止しました。")
         except Exception:
             clear_prelisting_gate_result(st.session_state)
             st.error(safe_prelisting_gate_error_summary("unexpected"))
@@ -801,6 +858,9 @@ with expansion_tab:
                 expansion_prelisting_rows,
                 expansion_product_text_facts,
             )
+            expansion_image_sidecar = create_image_sidecar(
+                expansion_prelisting_csv, expansion_prelisting_rows, result.rows,
+            )
         except PrelistingCandidateCsvError:
             st.error(
                 "出品前保安ゲート用CSVを生成できませんでした。候補データを確認してください。"
@@ -809,7 +869,7 @@ with expansion_tab:
             st.error(
                 "出品前保安ゲート用CSVを生成できませんでした。候補データを確認してください。"
             )
-        except ProductTextSafetyError:
+        except (ProductTextSafetyError, ImageSafetyError):
             st.error(
                 "出品前保安ゲート用CSVを生成できませんでした。候補データを確認してください。"
             )
@@ -840,6 +900,11 @@ with expansion_tab:
                 mime="text/csv",
                 key="product-text-safety-expansion-download",
                 width="stretch",
+            )
+            st.download_button(
+                label="PH画像確認ファイルをダウンロード", data=expansion_image_sidecar,
+                file_name=f"ph_image_safety_expansion_{result.source_asin}.json",
+                mime="application/json", key="ph-image-safety-expansion-download", width="stretch",
             )
         st.dataframe(pd.DataFrame(result.rows), width="stretch", hide_index=True)
 
@@ -1317,6 +1382,9 @@ with resolver_tab:
                         resolver_prelisting.output_rows,
                         resolver_product_text_facts,
                     )
+                    resolver_image_sidecar = create_image_sidecar(
+                        resolver_prelisting_csv, resolver_prelisting.output_rows, resolver_rows,
+                    )
             except PrelistingCandidateCsvError:
                 st.error(
                     "出品前保安ゲート用CSVを生成できませんでした。確認結果を確認してください。"
@@ -1325,7 +1393,7 @@ with resolver_tab:
                 st.error(
                     "出品前保安ゲート用CSVを生成できませんでした。確認結果を確認してください。"
                 )
-            except ProductTextSafetyError:
+            except (ProductTextSafetyError, ImageSafetyError):
                 st.error(
                     "出品前保安ゲート用CSVを生成できませんでした。確認結果を確認してください。"
                 )
@@ -1367,6 +1435,11 @@ with resolver_tab:
                         mime="text/csv",
                         key="product-text-safety-resolver-download",
                         width="stretch",
+                    )
+                    st.download_button(
+                        label="PH画像確認ファイルをダウンロード", data=resolver_image_sidecar,
+                        file_name="ph_image_safety_resolver.json", mime="application/json",
+                        key="ph-image-safety-resolver-download", width="stretch",
                     )
             comparison_columns = [
                 "source_id",

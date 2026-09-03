@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from modules.ph_image_safety import image_fact_from_product
+
 import csv
 from dataclasses import dataclass
 from io import StringIO
@@ -951,6 +953,7 @@ def _verified_row(
     product_fetched_at = _keepa_display_text(keepa_product, "fetched_at")
     ingredient_payload = None
     product_text_payload = None
+    image_payload = None
     if status == FOUND:
         provider = CANOPY_TEST_PROVIDER if product_field_prefix == "canopy" else KEEPA_PROVIDER
         source_payload = (
@@ -993,6 +996,7 @@ def _verified_row(
                 fetched_at=product_fetched_at,
             )
         product_text_payload = product_text_safety_fact_to_payload(product_text_fact)
+        image_payload = image_fact_from_product(keepa_product, candidate_asin=str(row.get("asin") or ""), provider=provider)
     verified.update(
         {
             "status": status,
@@ -1008,6 +1012,7 @@ def _verified_row(
             f"{product_field_prefix}_fetched_at": product_fetched_at,
             "ingredient_safety_fact": ingredient_payload,
             "product_text_safety_fact": product_text_payload,
+            "ph_image_safety_fact": image_payload,
         }
     )
     return verified

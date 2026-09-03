@@ -190,7 +190,7 @@ term,action,risk_category,match_field,match_type,source_type,note,enabled
 - Keepa APIの追加取得
 - Keepa Web画面操作、Amazonページ操作、スクレイピング
 - 本番アプリのブラウザ自動操作（開発・回帰確認用のBrowser E2E Test Kitは別途あり）
-- 画像解析、成分表解析、HSA DB連携
+- PH画像Safety Minimum Betaの範囲外の画像解析、成分表解析、HSA DB連携
 - 商品画像・説明文編集
 - fuzzy match
 - 本格的な重複除去
@@ -318,6 +318,54 @@ SHA、schema、ASIN集合、JSON cellが不正な場合は停止する。一方�
 REVIEWにしない。PHでは商品titleまたはProduct Textにliteral substring `hemp`があればBLOCKし、
 `hemp-free`と`hempseed`も同じ境界に含む。CBD等の未承認aliasを推測追加せず、このRuleをSGへ
 適用しない。既存Ingredient Safety sidecarとGABA matcherは変更しない。
+
+
+### PH画像Safety Minimum Beta（DEC-0051 / DEC-0053 / DEC-0054）
+
+PHでは候補CSV・既出品CSV・Product Text sidecarに加えて、Expansion / Resolverで候補と一緒に
+ダウンロードした「PH画像確認ファイル」（JSON）を入力する。Candidateの固定15列は変更しない。
+
+1. 「出品前チェックを実行」で既存Safetyと画像確認対象を確認する。対象商品の未実行、画像なし、
+   処理失敗、疑義・判断不能は要確認となり、出品候補へ自動的に進めない。
+2. 画像AIを利用する場合は、管理者がAPI利用設定を済ませ、画面の有料実行チェックを入れて
+   「対象商品の画像AIを実行」を押す。通常の画面再描画・CSVダウンロードではAPIへ再送信しない。
+3. 要確認の商品は「商品画像を開く」または別経路で十分な画像を確認し、判断根拠とともに
+   「画像確認済み・準備継続」または「除外」を記録する。十分な画像を確認できなければ要確認を継続する。
+   記録の取消も商品単位で行える。「画像確認記録をダウンロード」で結果を保存する。
+
+原則対象は、おもちゃ `13299531`、ホビー `2277721051`、スポーツ＆アウトドア `14304371`、
+DIY・工具・ガーデン `2016929051` とroot不明の商品。既存SafetyでBLOCK済みの商品、正常に識別した
+その他root、Canopy test providerは未実行とする。未実行と「確認画像で疑義なし」は別表示とし、
+どちらもSAFE保証や出品承認ではない。AI単独でBLOCKせず、人間の準備継続も画像以外のBLOCK / REVIEWを解除しない。
+
+管理者設定は環境変数 `OPENAI_API_KEY` と `PH_IMAGE_SAFETY_API_ENABLED=1`。
+既存のGit管理外 `.env` からも読み込める。設定・画面操作を伴わない自動API実行は行わない。
+OpenAI Responses APIへ `gpt-5.6-terra`、`reasoning.effort=low`、`store=false`、Structured Outputsを指定する。
+1商品最大3画像・原則1 requestとし、APIおよび各画像取得のtransient errorは各操作最大1 retry。
+認証・契約・未対応設定等は画像AI開始前または判明時にGate全体をSTOPし、保存済み結果・出力も画面から除去する。
+拒否・不完全応答・出力検証失敗は有効なAI結果なしの処理失敗として商品単位REVIEWへ送り、
+AIが意味上の結果を返したようには扱わない。一部画像失敗は、残り画像のAI応答が疑義なしでも、
+商品全体の画像確認結果を `INDETERMINATE`（判断不能）としてREVIEWを維持する。
+
+既存Keepa商品応答の `categoryTree[0].catId`（treeなしでは `rootCategory`）と `imagesCSV` を保持する。
+rootの不正値は画像Safety用には不明とし、整数へ丸めて対象外にしない。画像は元の順序で重複を除いた先頭3件。
+既存cacheに画像情報がない場合は追加Keepa requestで補わず、対象商品を画像なしのREVIEWとする。
+Amazon画像は許可した画像ホストから処理時だけ取得し、1画像5 MiB・2500万pixelまで、
+JPEG / PNG / WEBP / 非アニメーションGIFを検証する。redirect、未対応形式、取得失敗は画像処理失敗となる。
+画像bytesとbase64はメモリ内だけで使用し、画像本体・AI結果cacheは保存しない。`store=false`とAPI側の
+データ保持契約は別であり、利用アカウントの設定は別途確認する。
+
+専用sidecar `PH_IMAGE_SAFETY_V1` はCandidate最終bytesのSHA-256と完全一致ASIN集合に結び付く。
+各行にroot・画像参照のFact、selector、実行状態、AI意味上の結果、使用画像のSHA-256・形式、
+provider / model / prompt version・評価identity、人間判断とそのbindingを分けて記録する。
+重複ASIN、schema・SHA・状態・人間判断bindingの不一致はGate STOP。同じ候補の確認記録は再読込できるが、
+候補・画像Fact・評価を変えたときは古い人間判断を流用しない。画像AI再実行が必要な場合は元の画像確認ファイルから開始する。
+JSONファイルは既存のCandidate / Ingredient / Product Text CSVと独立し、汎用sidecar frameworkは追加しない。
+Gate CSVのheaderと既存status・reason codeは維持し、画像由来の理由だけを
+`IMAGE_SAFETY_REVIEW` / `IMAGE_SAFETY_EXCLUDE` として既存reason_codes列へ追加する。
+
+ローカル検証はsynthetic画像・mock HTTP・AppTestで行う。実API利用可否、画像取得品質、検出性能・実費、
+実商品での人間受入は別確認であり、Gate P / PH Minimum BetaのHOLDを解除するものではない。
 
 ## 注意
 

@@ -13,15 +13,27 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH画像Safety使用技術・最小実装方式の正本化 / Gate P HOLD`
-- current_phase: `DEC-0054技術選定・文書検証完了`
-- working_branch: `codex/ph-image-safety-technology-dec0054`
+- current_work_type: `DEC-0054 PH画像Safety Minimum Beta実装 / Gate P HOLD`
+- current_phase: `画像Safety・人間REVIEWの実装・mock検証完了`
+- working_branch: `codex/ph-image-safety-minimum-beta`
 - marketplace: `PH`
-- module: `PH画像Safety / 人間REVIEW（設計文書）`
-- phase: `画像Safety技術選定済み / Minimum Beta実装前 / Gate P HOLD`
-- next_action: `DEC-0054に基づくPH画像Safety Minimum Beta実装`
+- module: `PH画像Safety / 人間REVIEW`
+- phase: `Minimum Beta最小実装・ローカル検証完了 / 外部受入前 / Gate P HOLD`
+- next_action: `PH画像Safety Minimum Beta実装差分のread-onlyレビュー`
 
-本DEC-0054正本化はオーナーの2026-09-03継続指示により、fetch済みformal `origin/main` `3cb2d04d4a2c6e059a4e17e98c35101a223d3c8d`（PR #54統合済み）とCURRENT_WORKを確認し、同一cloneのcleanな登録済み管理worktreeから専用branchで開始した。開始時local `main` は `3263364a43919ec8da3f35cdb7c40777eef90ea2` であり、最新formal mainとは区別する。元cloneの別branchにある無関係な未コミット変更は保持する。変更はDECISION_LOG、CURRENT_WORK、PROJECT_ROADMAPの3文書とGit管理対象外snapshotの再生成に限定し、検証後のローカルcommitまで実施する。push / PR / mergeは別途オーナー承認が必要であり、過去のUI・selector差分に対する承認を流用しない。
+オーナーの2026-09-03継続指示により、DEC-0054に基づく最小実装とローカル検証を完了した。fetch済みformal mainは `3cb2d04d4a2c6e059a4e17e98c35101a223d3c8d` のままで、DEC-0054ローカルcommit `01b2648f0448edc86e7258f55225ab73ac3025a6` を引き継ぐ専用branchを使用する。対象はKeepa画像情報搬送、PH専用sidecar、Responses API接続、Gateへの追加画像確認、人間REVIEW UI、synthetic / mock tests、READMEと作業状態記録。既存Rule・辞書・Candidate固定15列・既存判定優先順位は維持する。外部API・実商品・Shopee live書込みは実行せず、push / PR / mergeは別途承認とする。
+
+Keepaの既存取得応答・cacheから画像参照とrootを両入口へ搬送し、固定15列CandidateにSHA-256 / ASIN集合でbindingする専用JSON `PH_IMAGE_SAFETY_V1` を追加した。既存Safetyの後にselectorを適用し、対象外・既存BLOCK・Canopyは未実行、対象商品の未実行・画像なし・失敗・疑義はREVIEWとする。Responses APIは指定model / low reasoning / store=false / Structured Outputsを使用し、最大3画像・原則1 request・transient最大1 retryを守る。一部画像失敗はAIの意味上の応答と分離し、商品全体をINDETERMINATE / REVIEWとする。認証・契約・未対応設定等はGate全体STOP。APIの有料実行は明示操作時のみで、通常再描画による再送信は行わない。
+
+PH通常UIで画像確認ファイルを必須とし、日本語の画像確認結果、人間判断 `ALLOW_PREPARATION` / `EXCLUDE`、根拠入力、取消、確認記録ダウンロードを接続した。人間の準備継続は画像以外の除外・要確認を解除しない。元Candidate・画像評価・人間判断のbindingが壊れた場合や入力変更時は古い結果と出力を破棄する。既存Gate判定・Rule・辞書・Candidate 15列・Gate CSV headerは変更せず、画像理由2値だけを既存reason_codes列へ追加した。操作・設定・正式sidecar仕様の要点はREADMEのPH画像Safety節を参照する。
+
+検証: 関連pytest 386件成功、追加した画像Safety専用tests 116件成功、既存ローカルvenvで全pytest 1018件成功・失敗0件。全pytest 902件だった前工程に対し116件を追加した。テストはsynthetic画像・mock HTTP・既存fixture・AppTestのみで、追加Keepa requestなし、最大3画像、1 retry、未実行とNO_SIGNAL分離、一部失敗、全体STOP、SHA / ASIN / 人間判断binding、既存BLOCK / REVIEW保持、再描画時のAPI未再送信を確認した。新規ファイルのruff、差分検査、snapshot生成・検証はPASS。外部API・実商品・Shopee live書込み・push / PR / merge / deployは未実施。
+
+未確認: 利用アカウントでのmodel / API / 契約設定、実際のAmazon画像取得、検出品質、遅延・実費、実商品でのオーナー受入。実装差分のread-onlyレビュー後、必要な外部確認は別途承認を得る。Gate P / PH Minimum BetaはHOLDを維持する。元cloneの別branchにある無関係な変更は保持した。
+
+## 直前までの履歴
+
+前工程のDEC-0054正本化はオーナーの2026-09-03継続指示により、fetch済みformal `origin/main` `3cb2d04d4a2c6e059a4e17e98c35101a223d3c8d`（PR #54統合済み）とCURRENT_WORKを確認し、同一cloneのcleanな登録済み管理worktreeから専用branchで開始した。開始時local `main` は `3263364a43919ec8da3f35cdb7c40777eef90ea2` であり、最新formal mainとは区別する。元cloneの別branchにある無関係な未コミット変更は保持する。変更はDECISION_LOG、CURRENT_WORK、PROJECT_ROADMAPの3文書とGit管理対象外snapshotの再生成に限定し、検証後のローカルcommitまで実施する。push / PR / mergeは別途オーナー承認が必要であり、過去のUI・selector差分に対する承認を流用しない。
 
 DEC-0054により、OpenAI Responses API、画像入力対応の`gpt-5.6-terra`、`reasoning.effort=low`、最大3画像・原則1商品1 request、Structured Outputs、`store=false`を基本方式として確定した。DEC-0053 selector、DEC-0051のAI権限・人間判断・商品REVIEW / Gate STOP境界を維持する。既存Keepa応答のroot・画像情報を搬送し、画像Safety目的の追加Keepa requestは原則行わず、Amazon画像は恒久保存しない。固定15列Candidateと安全にbindingするPH画像Safety専用sidecarを用い、selector未実行、AIの意味上の結果、取得・実行状態を分離する。Canopyはtest providerのままとし、対象拡張・暗黙Keepa fallbackは行わない。具体的な決定・公式仕様の参照先・未確認事項はDEC-0054を正本とする。
 
@@ -254,8 +266,8 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 ## 未完了事項
 
 - Product Textの2件超の取得率とhemp実商品によるlive BLOCKは未確認だが、新しいBeta blockerにはしない
-- DEC-0054に基づくPH画像Safety Minimum Beta実装・検証。DEC-0053 selectorと技術選定は確定済み
-- 画像疑義・判断不能等の商品単位REVIEWと、Candidate・画像評価にbindingした人間最終判断の最小実装・検証（同じDEC-0054実装作業内）
+- PH画像Safety Minimum Beta実装差分のread-onlyレビュー
+- 別途承認後の実API・画像取得・検出品質・実費確認と実商品での人間REVIEW受入（ローカルmock検証とは区別）
 - 残る画像Safety・人間REVIEWのBeta MUST対応後に行うPH Minimum Betaの最終オーナー受入。Gate PはそれまでHOLD
 - `BETA_AFTER_CANDIDATE`: 画像Safetyのtitle trigger、subcategory細分化、全rootの網羅的画像リスク調査（DEC-0053）
 - `BETA_AFTER_CANDIDATE`: `gpt-5.6-luna`へのコスト最適化比較、provider複数対応、AI結果cache、その他root拡張（DEC-0054）
@@ -295,13 +307,13 @@ DEC-0046正本化差分のmain統合確認後、P1cの受入済み229候補をCa
 
 ## 次の単一作業
 
-DEC-0054に基づくPH画像Safety Minimum Beta実装
+PH画像Safety Minimum Beta実装差分のread-onlyレビュー
 
 ## 停止条件
 
 - 残るBeta MUSTの対応と最終オーナーBeta受入までは、Gate P PASSまたはPH Minimum Beta PASSとして扱わない。
 - B2全体フローは現行機能によるE2E技術確認完了として扱い、新しい不具合Evidenceがない限り最初からの再実行を次工程にしない。
-- 本作業はDEC-0054の設計・正本化と文書検証に限定する。Guardrail Rule・辞書、既存判定ロジック、Candidate 15列、画像AI実装コードは変更せず、次の実装作業へ本タスク内で進まない。外部API実行、実商品処理、Shopee live書込みは行わない。
+- 本作業はDEC-0054に基づく画像Safety・人間REVIEWの最小実装とローカル検証に限定する。既存Rule・辞書・Candidate 15列・既存判定優先順位を維持し、画像判定で他のBLOCK / REVIEWを解除しない。外部API実行、実商品処理、Shopee live書込みは行わない。
 - DEC-0053のselector範囲を自動拡張せず、title trigger、subcategory細分化、全rootの網羅的画像リスク調査をBeta前に再開しない。
 - 市場横断Evidenceの保存・参照を、他市場のRule適用またはCOMMON_BLOCK採用の承認と扱わない。資料・ページ・市場を明示して判断する。
 - Evidence再利用時はManifestの完全SHA-256を照合する。不一致、資料identityの曖昧さ、PDF/TXTの同一資料性未確認、または資料日付の推測が必要な場合は停止する。
@@ -338,11 +350,11 @@ DEC-0054に基づくPH画像Safety Minimum Beta実装
 - Rainforestを実装せず、Canopy結果をKeepa SQLite cacheへ書き込まず、`PRELISTING_CANDIDATE_V1`の15列schemaを変更しない。
 - AI Shadowを今回開始しない。
 - 新しいExcel、CSV、physical measurement schemaを作成または確定しない。
-- structured REVIEW、ReviewCase、API auto-resolutionを実装しない。
+- PH画像Safety専用の最小人間判断を越える汎用structured REVIEW完成形、ReviewCase、API auto-resolutionを実装しない。
 - 承認済みのCategory Mapper一時認証入力範囲を越えてBrand resolution、Guardrail辞書、Gateロジック、Phase 1の13 Brand rulesを変更しない。Resolver／ExpansionをCanopy v0.1契約外へ拡張しない。
 - Shipping / Operational Filter、Category Batch Builder、mandatory attribute Batchへ進まない。
 - SG / MY / THへ展開せず、Marketplace-neutral schemaを先行確定しない。
-- 今回は関連文書検証後のローカルcommitまでとし、push / PR / mergeは別途オーナー承認を得る。過去のUI・selector差分に対する承認を流用しない。deploy、外部API実行、Shopee live書込みは行わない。
+- 今回は関連実装検証後のローカルcommitまでとし、push / PR / mergeは別途オーナー承認を得る。過去のUI・selector差分に対する承認を流用しない。deploy、外部API実行、Shopee live書込みは行わない。
 - 727候補を、設計・根拠の確認なしに正式COMMON_BLOCK、PH_BLOCK、REVIEW辞書として扱わない。
 - 理由不足の一般コミュニティNG 311行を、今回のPHコミュニティ14項目の採用判断だけでBLOCKまたはREVIEWへ昇格しない。
 - 台湾・タイ・マレーシア等の参考資料から具体辞書を作らず、PHルールへ混ぜず、共通項目へ昇格しない。
