@@ -119,11 +119,13 @@ Resolver入口ではCandidate 1件、Expansion入口ではstrict 1ページか�
 
 この結果は現行機能でE2E全体フローが成立した技術確認であり、Gate P PASSまたはPH Minimum Beta PASSではない。B2を最初から再実行することは次工程にせず、残るBeta MUST対応後に最終オーナーBeta受入を行う。
 
-### B3 — PH 画像Safety・人間REVIEW（事業ルール・selector確定・技術選定へ）
+### B3 — PH 画像Safety・人間REVIEW（技術選定済み・Minimum Beta実装へ）
 
 DEC-0051で、対象を画像上で見える武器・武器形状物の疑義発見に限定し、AI単独ではBLOCK、SAFE保証、既存BLOCK解除を行わず、画像AI対象商品の`NO_SIGNAL`以外のAI結果を原則商品単位REVIEWへ止める事業ルールを確定した。人間最終判断は`ALLOW_PREPARATION`と`EXCLUDE`とし、前者は画像由来REVIEWだけを解除し、後者は対象商品だけを準備対象から外す。固定15列Candidateを維持し、画像Safetyは独立sidecarを基本方針とする。
 
-DEC-0052で販売規制ガイドを市場横断のGit外Evidenceとして登録し、DEC-0053でPH画像Safety selectorのBeta範囲を確定した。対象4 root、root不明時の対象化、既存BLOCK優先、未実行とNO_SIGNALの分離はDEC-0053を正本とし、資料索引は `docs/evidence/GUARDRAIL_SOURCE_MANIFEST.csv` を参照する。次の単一作業は「selectorを前提としたPH画像Safety使用技術・最小実装方式の選定」とする。AI provider、API、model、prompt、正式sidecar schema、cache方式、具体的料金は未決定であり、実装範囲の確定前にコード、Rule、辞書、testsを変更しない。Gate P / PH Minimum BetaはHOLDを継続する。
+DEC-0052で販売規制ガイドを市場横断のGit外Evidenceとして登録し、DEC-0053でPH画像Safety selectorのBeta範囲を確定した。対象4 root、root不明時の対象化、既存BLOCK優先、未実行とNO_SIGNALの分離はDEC-0053を正本とし、資料索引は `docs/evidence/GUARDRAIL_SOURCE_MANIFEST.csv` を参照する。
+
+DEC-0054でOpenAI Responses API、`gpt-5.6-terra`の画像入力、最大3画像・原則1商品1 request、Structured Outputs、保存不要設定を基本方式として確定した。既存Keepa応答からのroot・画像情報搬送、未実行・AI結果・システム状態の分離、安全なCandidate bindingを持つ専用sidecarを最小実装の境界とする。次の単一作業は「DEC-0054に基づくPH画像Safety Minimum Beta実装」とし、prompt・正式schema・検証ケースをその実装内で具体化する。今回の設計正本化では機能コードを変更せず、外部API・実商品検証は別途承認とする。Gate P / PH Minimum BetaはHOLDを継続する。
 
 Category 170 / 108 / 62件、Category Safety網羅化、高度な重複判定、確定NGリスト外の広範な知財AI推測、他marketplace、自動出品を新しいBeta blockerへ追加しない。GABA-free matcher差分は既知差分として保持するが本工程に含めない。Boseは既存Evidence上の未接続事項として保持し、画像Safety設計へ混在させず、Beta前の追加実装要否を別途判断する。
 
@@ -134,6 +136,7 @@ B3で確定した設計に基づく必要最小限の対応と検証が完了し
 ### BETA_AFTER_CANDIDATE
 
 - 画像Safetyのtitle trigger、subcategory細分化、全rootの網羅的画像リスク調査（DEC-0053）
+- `gpt-5.6-luna`へのコスト最適化比較、provider複数対応、AI結果cache、その他root拡張（DEC-0054）
 - SLS旧Category 170件（strict接続可能62件、未解決108件）の完全追跡
 - Category依存Safetyの網羅的Rule化と古いCategoryの後継Category完全特定
 - P1c `ADDITIONAL_FACT_REQUIRED` 59件のうち、新Beta MUSTを越えるFact取得・搬送

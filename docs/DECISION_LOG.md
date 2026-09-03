@@ -629,3 +629,25 @@
 - 理由: 既存の文章Safetyで確定できるBLOCKを優先し、承認された4 rootとroot不明の商品に画像確認を絞り、未実行と確認結果を混同せずに最小実装の選定へ進むため。
 - 影響: DECISION_LOGへの追記、CURRENT_WORKのselector確定・次作業・停止条件、PROJECT_ROADMAPの必要な工程差分だけを更新する。snapshotは既存手順で再生成・検証し、Git管理対象外を維持する。本作業の検証済み差分のcommit、push、PR作成、mainへのmergeはオーナー明示承認済みである。Guardrail Rule、辞書、判定コード、画像AI実装、Candidate 15列は変更せず、外部API実行、実商品処理、deploy、Shopee live書込みは行わない。
 - 再検討条件: Beta実利用で対象rootまたは未実行の扱いを変更すべき具体的Evidenceが得られたとき、資料identityまたはPH包丁記載に不一致が判明したとき、あるいは最小実装方式の選定でDEC-0051と本selectorの両立に未解決の事業判断が必要になったとき。変更は別判断として記録し、対象範囲を自動拡張しない。
+
+## DEC-0054 — PH画像Safetyの使用技術・Minimum Beta最小実装方式を確定する
+
+- 日付: 2026-09-03
+- 背景: DEC-0051の画像Safety・人間REVIEW事業ルールとDEC-0053のselectorを前提に、オーナー指定の技術と最小実装境界を固定する。fetch済みformal main `3cb2d04d4a2c6e059a4e17e98c35101a223d3c8d`とCURRENT_WORKを確認して開始した。今回は設計・正本化のみであり、画像AI機能は実装しない。
+- 決定: AI providerはOpenAI、APIはResponses API、Minimum Beta modelは`gpt-5.6-terra`とし、画像入力を使用する。reasoningは最小限に抑えるため、対応値の`reasoning.effort=low`を基本とする。1商品最大3画像を原則1 requestで判定し、商品をまたいで結果を混在させない。モデルの画像入力、Responses API、Structured Outputsおよびreasoning対応値は[OpenAIモデル仕様](https://developers.openai.com/api/docs/models/gpt-5.6-terra)で確認した。モデルを暗黙に代替しない。
+- 決定: Responses APIのStructured Outputs（`text.format`の`json_schema`、`strict=true`）で、機械的に検証可能な出力を得る。対応するJSON Schemaで必須field・許容値・余分なfieldの禁止を定め、応答完了状態、refusal、schemaと値の検証を通過した結果だけを採用する。refusal、不完全な応答、解釈不能な結果を`NO_SIGNAL`へ変換しない。正式field名・prompt・schemaの具体化とsynthetic / mock検証は次の実装作業で行う。[Structured Outputs仕様](https://developers.openai.com/api/docs/guides/structured-outputs)
+- 決定: API側の応答保存・後日取得を必要とせず、`store=false`を基本とする。複数画像を同一requestへ渡し、画像入力は処理時のURLまたは一時的な画像dataを用い、恒久保存やFilesへの継続保管を前提としない。`store=false`はZero Data Retentionの保証とは区別する。[画像入力仕様](https://developers.openai.com/api/docs/guides/images-vision)、[データ取扱い仕様](https://developers.openai.com/api/docs/guides/your-data)
+- 維持: AIの権限は画像上で見える武器・武器形状物の疑義発見だけとする。AI単独BLOCK、SAFE保証、既存BLOCK解除は禁止する。`NO_SIGNAL`は今回確認した画像で疑義を検出しなかったことだけを表す。疑義・判断不能等は商品単位REVIEWへ送り、人間最終判断はDEC-0051の`ALLOW_PREPARATION` / `EXCLUDE`を維持する。前者は画像由来REVIEWだけを解除し、他のBLOCK / REVIEWを解除しない。後者はその商品だけを準備対象から外し、AI BLOCKや一般Ruleへ昇格させない。
+- 維持: selectorはDEC-0053をそのまま使用する。原則対象はKeepa JP rootのおもちゃ`13299531`、ホビー`2277721051`、スポーツ＆アウトドア`14304371`、DIY・工具・ガーデン`2016929051`と、root欠損・不正・判定不能の商品とする。正常に識別できたその他rootは原則未実行とし、ホーム＆キッチン・Beauty等のroot全体を追加しない。既存title / description / ingredients SafetyでBLOCK確定済みの商品はrootに関係なくAI未実行とする。
+- 決定: selector結果・理由、画像処理の実行状態、AIの意味上の結果をsidecar内で分けて記録する。selector対象外または既存BLOCKによる未実行ではAI結果を持たせず、`NO_SIGNAL`、画像なし、処理失敗へ読み替えない。未実行をSAFE保証や既存Safety解除の根拠にしない。DEC-0051の5 statusの意味は維持し、AIが返す意味上の結果（`NO_SIGNAL` / `REVIEW` / `INDETERMINATE`）と、システム側が判定する取得・実行状態から、商品単位の扱いを導く。画像なし・処理失敗等をAIに自己申告させてシステム状態の代わりにしない。
+- 決定: 画像AI対象の商品で、画像なし・画像取得不能は`UNAVAILABLE`または原因に応じた`ERROR`、処理失敗は`ERROR`、一部画像失敗・十分判断できない場合は`INDETERMINATE`として商品単位REVIEWへ送る。残りの画像が`NO_SIGNAL`でも一部失敗を打ち消さない。人間が別経路で十分な画像を確認できた場合の`ALLOW_PREPARATION`と、十分確認できない場合のREVIEW継続はDEC-0051どおりとする。
+- 決定: transient timeout、429、5xx等は最大1 retryとし、それでも失敗した商品はREVIEWへ送る。SDK等の自動retryを含めてこの上限を守り、原則1 requestに無制限の再試行を付け加えない。AI認証・契約・未対応設定等、結果を信頼できない全体障害はGate全体STOPとし、開始前に検出した場合は開始せず、実行中に判明した場合も続行しない。商品単位の失敗と全体障害を分離する。
+- 決定: Keepaとの接続は、既存の商品取得応答から`root_category_id`と画像情報を取得・保持し、Expansion / Resolverから画像Safetyへ搬送する方向とする。現行Keepa正規化でroot保持は確認したが、画像情報の搬送・画像Safety接続が完成済みとは扱わない。画像Safetyだけを目的とした追加Keepa API requestはMinimum Betaでは原則行わず、既存応答・保持情報に画像がない場合は未取得を隠さず前述のREVIEW境界に従う。Amazon画像そのものは恒久保存せず、選択した最大3画像を処理時だけ利用する。
+- 決定: `PRELISTING_CANDIDATE_V1`固定15列を維持し、PH画像Safety専用sidecarを作る。Candidate最終bytesのSHA-256、Candidateとの完全一致ASIN集合、商品ごとのrootとselector結果・理由、選択画像の参照identity・順序・使用結果、AI結果とシステム状態、provider / model、評価を識別する情報、人間判断を結び付ける。画像bytesそのものの恒久保存をbindingの前提にせず、処理時の内容hash等で実際に使用した画像を識別できる設計とする。人間判断は同じCandidate・ASIN・画像評価に結び付け、いずれかが変われば古い判断を流用しない。schema・Candidate SHA・ASIN集合・重複ASIN・status・人間判断binding不正はDEC-0051どおりGate全体STOPとする。汎用sidecar frameworkは作らず、正式sidecar schemaと検証処理はこの境界内で次の実装作業により具体化する。
+- 決定: 現行Canopyはtest providerのままとし、Minimum Beta画像Safety対象へ拡張しない。Canopyで不足する情報を補う暗黙Keepa fallbackを追加しない。
+- 決定: `gpt-5.6-luna`へのコスト最適化比較、provider複数対応、AI結果cache、title trigger、subcategory細分化、その他root拡張は`BETA_AFTER_CANDIDATE`とする。DEC-0053の全rootの網羅的画像リスク調査も同区分を維持する。sidecarへの評価記録を、別の商品取得・画像評価でのAI結果cache再利用に拡張しない。
+- 未確認事項: 利用アカウントでのmodel利用可否・契約・データ保持設定、実際の画像形式・取得可否、検出品質、遅延、商品単位の実費は未確認である。公式仕様の確認を実API疎通・実商品受入の代わりにしない。画像選択順序、取得制限・timeout、prompt、正式schemaとbindingの検証ケースは次の実装で具体化する。これらは本決定を前提とする実装詳細・検証事項であり、provider選定を再開する別工程にはしない。外部API・実商品検証は別途オーナー承認を得る。
+- 決定: 技術選定は完了とし、次の単一作業を「DEC-0054に基づくPH画像Safety Minimum Beta実装」とする。Gate P / PH Minimum BetaはHOLDを継続し、本決定を実装完了・Beta受入PASSとは扱わない。
+- 理由: 既存の事業ルールとselectorを変更せず、1 provider・1 API・専用sidecarに絞り、AIの意味上の出力、未実行、商品単位の失敗、全体停止、人間判断の境界を保った最小実装へ進むため。
+- 影響: DECISION_LOGへの追記、CURRENT_WORKの技術選定済み・次作業・停止条件、PROJECT_ROADMAPの必要な工程差分だけを更新する。snapshotは既存手順で再生成・検証し、Git管理対象外を維持する。関連文書検証後のローカルcommitまでを今回の承認範囲とし、push / PR / mergeは別途オーナー承認を得る。Guardrail Rule・辞書、既存判定ロジック、Candidate 15列、画像AI実装コードは変更せず、外部API実行、実商品処理、deploy、Shopee live書込みは行わない。
+- 再検討条件: 指定model・API・設定を利用できないと判明したとき、最大3画像・追加Keepa requestなしでは承認済み境界を満たせないとき、安全なbindingまたは商品REVIEW / Gate STOPの分離を維持できないとき、あるいは検証Evidenceから事業範囲の変更が必要になったとき。モデル代替、対象拡張、既存Safety解除を暗黙に行わず、別判断として記録する。
