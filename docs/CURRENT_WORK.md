@@ -19,7 +19,7 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 - marketplace: `PH`
 - module: `PH画像Safety / 人間REVIEW（live検証）`
 - phase: `互換性修正ローカル完了・Phase B/C未実行 / Gate P HOLD`
-- next_action: `Keepa画像形式互換性修正のread-only検収`
+- next_action: `訂正後差分のread-only確認`
 
 2026-09-03の継続指示により、既存branchのcleanなHEAD `e50e9d869f3af70ea5ecc95a40d61764b36e6aa7` から互換性修正を実施した。fetch後formal mainは指定の `1fac7ca29c881e45ed368b348ecccd5865a28d97` と一致。e50e9d8のKeepa取得・停止記録とGit外元Evidenceは保持した。
 
@@ -29,7 +29,7 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 検証は関連pytest 167件成功、全pytest 1069件成功・失敗0件、変更コード・testsのruff、git diff --checkがPASS。synthetic / mockテストと保存済み実応答のローカル変換検証を区別する。今回のKeepa request・追加消費token、OpenAI request、Amazon画像download、Shopee書込みはすべて0。商品identity・ASIN一覧・商品本文・画像・credentialはGitへ入れない。変更対象は画像Fact関数、関連tests 2件、本CURRENT_WORKのみとし、新Decision・PROJECT_ROADMAP変更はない。文書・secret・snapshot検証後のローカルcommitまでとし、push / PR / merge / deployは禁止する。
 
-正式な承認状態を訂正する。Keepa 2 tokensはオーナー明示承認済み・実消費2 tokens。OpenAI Responses API / US$3は未承認、OpenAI request実績は0回であり、OpenAI live実行前に改めてオーナー明示承認が必要である。SAMPLE_READY W候補2件という技術結果と、Gate P / PH Minimum BetaのHOLDは維持する。次は本互換性修正のread-only検収とし、実画像確認・人間期待区分の記録・Phase B接続確認は今回実行しない。
+正式な承認状態を訂正する。Keepa 2 tokensはオーナー明示承認済み・実消費2 tokens。OpenAI Responses API / US$3は未承認、OpenAI request実績は0回であり、OpenAI live実行前に改めてオーナー明示承認が必要である。SAMPLE_READY W候補2件という技術結果と、Gate P / PH Minimum BetaのHOLDは維持する。次は訂正後差分のread-only確認とし、実画像確認・人間期待区分の記録・Phase B接続確認は今回実行しない。
 
 c0e2a4f / e50e9d8時点の「OpenAI承認済み」は当時のCodex記録だったが、オーナー明示承認は確認できないため、現在の正式状態では未承認とする。当該記録を承認済み事実として引き継がず、過去のGit外Evidenceにある承認記述もOpenAI実行の承認根拠として扱わない。コード・tests・Evidence実物は変更しない。
 
@@ -314,7 +314,7 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 ## 未完了事項
 
 - Product Textの2件超の取得率とhemp実商品によるlive BLOCKは未確認だが、新しいBeta blockerにはしない
-- PH画像Safety live検証の候補商品と必要なKeepa取得範囲の確定（OpenAI費用・外部APIは承認済み、Keepaは別承認）
+- W候補2件はSAMPLE_READY。Keepa 2 tokensはオーナー明示承認済み・実消費済み。OpenAI Responses API / US$3は未承認、OpenAI requestは0回であり、OpenAI live実行前にオーナー明示承認が必要
 - 別途承認後の実API・画像取得・検出品質・実費確認と実商品での人間REVIEW受入（ローカルmock検証とは区別）
 - 残る画像Safety・人間REVIEWのBeta MUST対応後に行うPH Minimum Betaの最終オーナー受入。Gate PはそれまでHOLD
 - `BETA_AFTER_CANDIDATE`: 画像Safetyのtitle trigger、subcategory細分化、全rootの網羅的画像リスク調査（DEC-0053）
@@ -355,7 +355,7 @@ DEC-0046正本化差分のmain統合確認後、P1cの受入済み229候補をCa
 
 ## 次の単一作業
 
-PH画像Safety live検証の候補商品と必要なKeepa取得範囲の確定
+訂正後差分のread-only確認
 
 ## 停止条件
 
@@ -402,7 +402,9 @@ PH画像Safety live検証の候補商品と必要なKeepa取得範囲の確定
 - 承認済みのCategory Mapper一時認証入力範囲を越えてBrand resolution、Guardrail辞書、Gateロジック、Phase 1の13 Brand rulesを変更しない。Resolver／ExpansionをCanopy v0.1契約外へ拡張しない。
 - Shipping / Operational Filter、Category Batch Builder、mandatory attribute Batchへ進まない。
 - SG / MY / THへ展開せず、Marketplace-neutral schemaを先行確定しない。
-- OpenAIの総費用US$3・公開Amazon画像取得は現計画の上限内で承認済み。Keepa liveは必要ASIN数・request範囲を提示して別承認を得る。費用上限確認不能、サンプル不足、Phase B非PASS、重大見逃し、反復画像取得失敗、認証・契約・binding不正では停止する。記録文書は検証後のローカルcommitまでとし、本作業のpush / PR / merge、deploy、Shopee live書込みは行わない。
+- OpenAI Responses API / US$3および公開Amazon画像をOpenAIへ送るlive検証は未承認であり、オーナー明示承認前はPhase Bを開始しない。
+- 承認後も正式live検証計画のUS$3上限・最大5商品・停止条件を守る。費用上限確認不能、サンプル不足、Phase B非PASS、重大見逃し、反復画像取得失敗、認証・契約・binding不正では停止する。
+- Keepaの2-token承認・実消費はOpenAI承認と分離し、OpenAI実行の承認根拠にしない。
 - 727候補を、設計・根拠の確認なしに正式COMMON_BLOCK、PH_BLOCK、REVIEW辞書として扱わない。
 - 理由不足の一般コミュニティNG 311行を、今回のPHコミュニティ14項目の採用判断だけでBLOCKまたはREVIEWへ昇格しない。
 - 台湾・タイ・マレーシア等の参考資料から具体辞書を作らず、PHルールへ混ぜず、共通項目へ昇格しない。
