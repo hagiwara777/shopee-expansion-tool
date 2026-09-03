@@ -13,13 +13,13 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH画像Safety / Keepa画像形式の互換性修正`
-- current_phase: `images互換性修正・ローカル検証完了 / W候補2件SAMPLE_READY / OpenAI未承認・未実行`
+- current_work_type: `PH画像Safety / Keepa images互換性修正のread-only検収`
+- current_phase: `Keepa images互換性修正read-only検収PASS / W候補2件SAMPLE_READY / OpenAI未承認・未実行`
 - working_branch: `codex/ph-image-safety-live-validation`
 - marketplace: `PH`
 - module: `PH画像Safety / 人間REVIEW（live検証）`
-- phase: `互換性修正ローカル完了・Phase B/C未実行 / Gate P HOLD`
-- next_action: `訂正後差分のread-only確認`
+- phase: `read-only検収PASS・Phase B/C未実行 / Gate P HOLD`
+- next_action: `OpenAI費用・外部APIのオーナー明示承認後、PH画像Safety Phase Bを1商品だけlive検証`
 
 2026-09-03の継続指示により、既存branchのcleanなHEAD `e50e9d869f3af70ea5ecc95a40d61764b36e6aa7` から互換性修正を実施した。fetch後formal mainは指定の `1fac7ca29c881e45ed368b348ecccd5865a28d97` と一致。e50e9d8のKeepa取得・停止記録とGit外元Evidenceは保持した。
 
@@ -27,9 +27,9 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 元EvidenceのSHA-256を確認して保存済みKeepa応答だけをネットワーク無効で再評価した。W1 / W2ともホビーroot `2277721051`、TARGET_ROOT、既存Safety SAFEを維持し、元順序で有効画像URLを各3件生成した。画像以外のFactは前回と一致し、両方SAMPLE_READYとなった。これは画像Fact変換の準備完了であり、画像読込成功・人間事前期待区分・AI品質・LIVE_TECH_PASSではない。旧取得時のIMAGE_FACT_UNAVAILABLEは下記に履歴として保持し、新しい再評価Evidenceは元応答と修正実装ファイルのSHAにbindingしてGit外へ別保存した。
 
-検証は関連pytest 167件成功、全pytest 1069件成功・失敗0件、変更コード・testsのruff、git diff --checkがPASS。synthetic / mockテストと保存済み実応答のローカル変換検証を区別する。今回のKeepa request・追加消費token、OpenAI request、Amazon画像download、Shopee書込みはすべて0。商品identity・ASIN一覧・商品本文・画像・credentialはGitへ入れない。変更対象は画像Fact関数、関連tests 2件、本CURRENT_WORKのみとし、新Decision・PROJECT_ROADMAP変更はない。文書・secret・snapshot検証後のローカルcommitまでとし、push / PR / merge / deployは禁止する。
+検証は関連pytest 167件成功、全pytest 1069件成功・失敗0件、変更コード・testsのruff、git diff --checkがPASS。synthetic / mockテストと保存済み実応答のローカル変換検証を区別する。今回のKeepa request・追加消費token、OpenAI request、Amazon画像download、Shopee書込みはすべて0。商品identity・ASIN一覧・商品本文・画像・credentialはGitへ入れない。変更対象は画像Fact関数、関連tests 2件、本CURRENT_WORKのみとし、新Decision・PROJECT_ROADMAP変更はない。訂正後差分を含むread-only検収はPASSし、同一作業範囲のPR作成・main統合はオーナー承認済みである。Phase B、外部API、画像download、deployは今回実行しない。
 
-正式な承認状態を訂正する。Keepa 2 tokensはオーナー明示承認済み・実消費2 tokens。OpenAI Responses API / US$3は未承認、OpenAI request実績は0回であり、OpenAI live実行前に改めてオーナー明示承認が必要である。SAMPLE_READY W候補2件という技術結果と、Gate P / PH Minimum BetaのHOLDは維持する。次は訂正後差分のread-only確認とし、実画像確認・人間期待区分の記録・Phase B接続確認は今回実行しない。
+正式な承認状態を訂正する。Keepa 2 tokensはオーナー明示承認済み・実消費2 tokens。OpenAI Responses API / US$3は未承認、OpenAI request実績は0回であり、OpenAI live実行前に改めてオーナー明示承認が必要である。SAMPLE_READY W候補2件という技術結果と、Gate P / PH Minimum BetaのHOLDは維持する。次は「OpenAI費用・外部APIのオーナー明示承認後、PH画像Safety Phase Bを1商品だけlive検証」とし、明示承認前は実画像確認・人間期待区分の記録・Phase B接続確認を実行しない。
 
 c0e2a4f / e50e9d8時点の「OpenAI承認済み」は当時のCodex記録だったが、オーナー明示承認は確認できないため、現在の正式状態では未承認とする。当該記録を承認済み事実として引き継がず、過去のGit外Evidenceにある承認記述もOpenAI実行の承認根拠として扱わない。コード・tests・Evidence実物は変更しない。
 
@@ -355,7 +355,7 @@ DEC-0046正本化差分のmain統合確認後、P1cの受入済み229候補をCa
 
 ## 次の単一作業
 
-訂正後差分のread-only確認
+OpenAI費用・外部APIのオーナー明示承認後、PH画像Safety Phase Bを1商品だけlive検証
 
 ## 停止条件
 
