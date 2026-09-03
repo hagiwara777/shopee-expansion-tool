@@ -6,6 +6,7 @@ import json
 import re
 from typing import Any, Iterable
 
+from modules.ph_image_safety import capture_keepa_image_fact, image_fact_from_product
 from modules.cache import KeepaCache, utc_now_iso
 from modules.amazon_data_provider import AmazonDataProviderError, KEEPA_PROVIDER
 from modules.ingredient_safety import (
@@ -716,6 +717,7 @@ class KeepaExpansionClient:
             "note": row_note,
             "ingredient_safety_fact": ingredient_safety_fact_to_payload(ingredient_fact),
             "product_text_safety_fact": product_text_safety_fact_to_payload(product_text_fact),
+            "ph_image_safety_fact": image_fact_from_product(product, candidate_asin=candidate_asin),
         }
 
     def _token_status(self) -> str:
@@ -878,6 +880,9 @@ def _product_to_cache_data(product: Any, fallback_asin: str = "") -> dict[str, A
         _get_value(product, "rootCategory")
     )
     category_id = leaf_category_id or root_category_id
+    raw_tree = _get_value(product, "categoryTree")
+    image_root = _get_value(raw_tree[0], "catId") if isinstance(raw_tree, list) and raw_tree else _get_value(product, "rootCategory")
+    image_fact = capture_keepa_image_fact(product, candidate_asin=asin, root_category_id=image_root)
     category = _extract_category_name(product)
     category_path = _category_path(category_tree)
     fetched_at = utc_now_iso()
@@ -908,6 +913,7 @@ def _product_to_cache_data(product: Any, fallback_asin: str = "") -> dict[str, A
         "leaf_category_id": leaf_category_id,
         "parent_category_id": parent_category_id,
         "root_category_id": root_category_id,
+        "ph_image_safety_fact": image_fact,
         "category_path": category_path,
         "category_tree": category_tree,
         "fetched_at": fetched_at,
@@ -932,6 +938,7 @@ def _product_to_cache_data(product: Any, fallback_asin: str = "") -> dict[str, A
             "leaf_category_id": leaf_category_id,
             "parent_category_id": parent_category_id,
             "root_category_id": root_category_id,
+            "ph_image_safety_fact": image_fact,
             "category_path": category_path,
             "ingredient_safety_payload_version": INGREDIENT_SAFETY_PAYLOAD_VERSION,
             "ingredient_safety_capture_status": ingredient_fact.capture_status,
