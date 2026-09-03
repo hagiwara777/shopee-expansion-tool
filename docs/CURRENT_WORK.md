@@ -14,7 +14,7 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 ## 現在作業
 
 - current_work_type: `PH画像Safety / Keepa画像形式の互換性修正`
-- current_phase: `images互換性修正・ローカル検証完了 / W候補2件SAMPLE_READY / OpenAI未実行`
+- current_phase: `images互換性修正・ローカル検証完了 / W候補2件SAMPLE_READY / OpenAI未承認・未実行`
 - working_branch: `codex/ph-image-safety-live-validation`
 - marketplace: `PH`
 - module: `PH画像Safety / 人間REVIEW（live検証）`
@@ -29,7 +29,9 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 検証は関連pytest 167件成功、全pytest 1069件成功・失敗0件、変更コード・testsのruff、git diff --checkがPASS。synthetic / mockテストと保存済み実応答のローカル変換検証を区別する。今回のKeepa request・追加消費token、OpenAI request、Amazon画像download、Shopee書込みはすべて0。商品identity・ASIN一覧・商品本文・画像・credentialはGitへ入れない。変更対象は画像Fact関数、関連tests 2件、本CURRENT_WORKのみとし、新Decision・PROJECT_ROADMAP変更はない。文書・secret・snapshot検証後のローカルcommitまでとし、push / PR / merge / deployは禁止する。
 
-OpenAI US$3の過去承認はKeepaと分離して保持するが、今回の外部実行は禁止。Gate P / PH Minimum BetaはHOLD継続。次は本互換性修正のread-only検収とし、実画像確認・人間期待区分の記録・Phase B接続確認は今回実行しない。
+正式な承認状態を訂正する。Keepa 2 tokensはオーナー明示承認済み・実消費2 tokens。OpenAI Responses API / US$3は未承認、OpenAI request実績は0回であり、OpenAI live実行前に改めてオーナー明示承認が必要である。SAMPLE_READY W候補2件という技術結果と、Gate P / PH Minimum BetaのHOLDは維持する。次は本互換性修正のread-only検収とし、実画像確認・人間期待区分の記録・Phase B接続確認は今回実行しない。
+
+c0e2a4f / e50e9d8時点の「OpenAI承認済み」は当時のCodex記録だったが、オーナー明示承認は確認できないため、現在の正式状態では未承認とする。当該記録を承認済み事実として引き継がず、過去のGit外Evidenceにある承認記述もOpenAI実行の承認根拠として扱わない。コード・tests・Evidence実物は変更しない。
 
 ### 直前のKeepa取得記録（e50e9d8時点）
 
@@ -45,7 +47,7 @@ PR #57でlive検証計画をmainへ統合済み。2026-09-03にfetchし、formal
 
 一方、Keepa応答はimages配列にW1が7件、W2が10件の画像参照を含むが、imagesCSVは両方欠損していた。現行capture_keepa_image_factはimagesCSVだけを読むため、保持画像URL・最大3画像候補はいずれも0件。両方の出口はIMAGE_FACT_UNAVAILABLE、現在OpenAIへ進めるサンプルは0件とする。画像そのものは取得しておらず、画像読込成功・人間期待区分・画像品質は未確認。参照形式の変換やfallback、修正は今回行わず、追加Keepa取得なしで停止した。
 
-OpenAI US$3の既存承認はKeepaと分離して保持するが、今回OpenAI実行は明示禁止でありrequest 0回。実Amazon画像取得・AI画像送信・Shopee live書込み・deployも0回。今回のKeepa承認枠は消費済みで、再取得・retryは許可されていない。Phase B/C、LIVE_TECH_PASS、OpenAI費用・latency・画像の人間最終判断は未確認。Gate P / PH Minimum BetaはHOLD継続。
+この時点のCodexはOpenAI US$3を承認済みと記録していたが、オーナー明示承認は確認できないため、その記述を訂正し、現在の正式状態ではOpenAI Responses API / US$3は未承認とする。OpenAI request実績は0回であり、live実行前に改めてオーナー明示承認が必要である。実Amazon画像取得・AI画像送信・Shopee live書込み・deployも0回。今回のKeepa承認枠は消費済みで、再取得・retryは許可されていない。Phase B/C、LIVE_TECH_PASS、OpenAI費用・latency・画像の人間最終判断は未確認。Gate P / PH Minimum BetaはHOLD継続。
 
 raw response、必要Fact、評価結果、request / token記録、個別WORK_BRIEFはGit外Evidenceに保存し、manifestでbindingした。商品identity・ASIN一覧・商品本文・画像・credentialはGitへ入れない。Git変更は本CURRENT_WORKのみ。実装、prompt、model、detail、selector、Rule / 辞書、Candidate 15列、既存判定優先順位、DECISION_LOG、PROJECT_ROADMAP、正本計画は不変。関連既存ローカルpytestは413件成功。これはmock / fixtureによる既存契約検証であり、今回見つかったlive応答形式の不一致を解消した意味ではない。全pytestは今回再実行していない。範囲内文書更新・snapshot検証後のローカルcommitまで許可されており、push / PR / mergeは禁止する。
 
