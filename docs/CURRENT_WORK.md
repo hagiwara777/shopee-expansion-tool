@@ -13,13 +13,23 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH画像Safety / Keepa images互換性修正のread-only検収`
-- current_phase: `Keepa images互換性修正read-only検収PASS / W候補2件SAMPLE_READY / OpenAI未承認・未実行`
+- current_work_type: `PH画像Safety / Phase B live検証`
+- current_phase: `W1 Phase B LIVE_TECH_PASS / AI REVIEW / オーナー実画像確認前`
 - working_branch: `codex/ph-image-safety-live-validation`
 - marketplace: `PH`
 - module: `PH画像Safety / 人間REVIEW（live検証）`
-- phase: `read-only検収PASS・Phase B/C未実行 / Gate P HOLD`
-- next_action: `OpenAI費用・外部APIのオーナー明示承認後、PH画像Safety Phase Bを1商品だけlive検証`
+- phase: `Phase B完了・Phase C未実行 / Gate P HOLD`
+- next_action: `W1実画像・Phase B Evidenceのオーナー確認後、Phase C実行可否を判断`
+
+2026-09-04のオーナー明示承認に基づき、正式live検証計画のPhase BをW1一件だけで実施した。fetch後のformal mainと実行HEADは`442b78a939ad9f504cdf5e81dc8a08dd588560d4`、working treeは開始時clean。元Keepa Evidence、保存応答、互換性再評価、現行`ph_image_safety.py`の完全SHA-256 bindingを再確認し、W1はホビーroot `2277721051`、`TARGET_ROOT`、title / Product Text / Ingredient Safetyを含む既存SafetyはSAFE、画像候補3件を維持した。AI結果を見る前の期待区分は「武器・武器形状物の疑義ありを期待」とGit外記録した。これはオーナーの実画像目視確認ではない。
+
+公開Amazon画像3件を現行取得経路で処理し、3件すべて`LOADED`。OpenAI Responses APIは`gpt-5.6-terra`、現行prompt / strict schema / `detail=auto` / `reasoning.effort=low` / `store=false`のまま1 request、retry 0、HTTP 200、応答model一致、system status `COMPLETED`、AI status `REVIEW`となった。Structured Output schema、Candidate SHA-256 / ASIN集合 / 使用画像 / provider-model sidecar binding、Gate反映、既存Safety非解除、評価済みsidecarの通常再利用による再送信0をすべてPASSとした。Gate最終判定は商品単位`REVIEW`であり、AI単独BLOCKまたは人間最終判断ではない。事前期待とは一致し、`IMAGE_FALSE_NEGATIVE`その他のblockerは確認されなかったため、Phase Bは`LIVE_TECH_PASS`とする。
+
+Phase B全体latencyは5.515秒、OpenAI API latencyは5.044秒。usageはinput 9,367 tokens（cache write 9,364、cached 0）、output 60 tokens（reasoning 19）、total 9,427。service tierはdefault。公式料金とcache write 1.25倍を適用したusage算定額はUS$0.024136で、送信前予約US$0.25・承認上限US$3以内。request / response IDはGit外Evidenceへ記録し、credential値・hash、画像bytesは保存していない。Keepa request・追加token、W2以降のOpenAI、Phase C、Shopee書込み、deployは0。オーナーの実画像確認と最終判断は未実施であり、Gate P / PH Minimum BetaはHOLDを継続する。
+
+Git外Evidenceは`ART-PH-IMAGE-SAFETY-PHASE-B-20260903T205538Z`として保存し、manifestと全構成ファイルのSHA-256、secret非混入、画像非保存を検証した。今回コード、tests、Rule、辞書、selector、model、prompt、schema、Candidate 15列、DECISION_LOG、PROJECT_ROADMAPは変更しない。
+
+### 直前の互換性修正・承認訂正記録
 
 2026-09-03の継続指示により、既存branchのcleanなHEAD `e50e9d869f3af70ea5ecc95a40d61764b36e6aa7` から互換性修正を実施した。fetch後formal mainは指定の `1fac7ca29c881e45ed368b348ecccd5865a28d97` と一致。e50e9d8のKeepa取得・停止記録とGit外元Evidenceは保持した。
 
@@ -282,6 +292,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 | artifact_id | 種別・版 | ファイル名 | SHA-256 | producer task | 受入状態 | storage alias | 用途 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| ART-PH-IMAGE-SAFETY-PHASE-B-20260903T205538Z | Phase B W1 live検証 v1 | `EVIDENCE_MANIFEST.json` | `5b0014a57bb271c76be46594883c1db3d34389babb93945bcd81aa07c11c9a16` | `Codex / PH image Safety live validation` | `LIVE_TECH_PASS / AI_REVIEW / OWNER_IMAGE_REVIEW_PENDING` | `LOCAL_ARTIFACT_ROOT/PH_Image_Safety_Live_Validation/20260903T205538Z-phase-b-w1/EVIDENCE_MANIFEST.json` | 3/3画像LOADED、Responses 1 request・retry 0、schema / sidecar / Gate PASS、usage算定US$0.024136。商品identity・request IDはGit外 |
 | ART-PH-IMAGE-SAFETY-IMAGES-COMPAT-20260903T094757Z | 保存応答の画像Fact再評価 v1 | `EVIDENCE_MANIFEST.json` | `a26d641bd50f2a4e30d014b5175b7c3c28eb50096edeecf4876819afdad6905d` | `Codex / PH image Safety compatibility` | `SAMPLE_READY_2 / OPENAI_NOT_RUN` | `LOCAL_ARTIFACT_ROOT/PH_Image_Safety_Live_Validation/20260903T094757Z-images-compatibility/EVIDENCE_MANIFEST.json` | 元応答・実装SHA binding。各3画像候補、追加APIなし。商品identityはGit外 |
 | ART-PH-IMAGE-SAFETY-KEEPA-W-20260903T091817Z | Keepa W候補取得・評価 v1 | `EVIDENCE_MANIFEST.json` | `f6afc0da8fec67d573dc970b318650142bcb97d7ba6d70e7ad7da878d17b2119` | `Codex / PH image Safety live validation` | `IMAGE_FACT_UNAVAILABLE / OPENAI_NOT_RUN` | `LOCAL_ARTIFACT_ROOT/PH_Image_Safety_Live_Validation/20260903T091817Z-keepa-w-samples/EVIDENCE_MANIFEST.json` | 実1 request・2 tokens・retry 0。既存Safety BLOCKなし、images形式不一致で候補0。商品identityはGit外 |
 | ART-PH-IMAGE-SAFETY-KEEPA-ESTIMATE-20260903T075751Z | Keepa取得見積 v1 | `KEEPA_ACQUISITION_ESTIMATE.json` | `98158bddfb0a32b8d89ddd3a47e2cdfc375beb31131bc8a201b7acc12b1fb51d` | `Codex / PH image Safety live validation` | `AWAITING_KEEPA_OWNER_APPROVAL / API_NOT_RUN` | `LOCAL_ARTIFACT_ROOT/PH_Image_Safety_Live_Validation/20260903T075751Z-keepa-estimate/KEEPA_ACQUISITION_ESTIMATE.json` | W候補2件、基本取得1 request・見積2 tokens・再試行0。商品identityはGit外のみ |
@@ -314,8 +325,8 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 ## 未完了事項
 
 - Product Textの2件超の取得率とhemp実商品によるlive BLOCKは未確認だが、新しいBeta blockerにはしない
-- W候補2件はSAMPLE_READY。Keepa 2 tokensはオーナー明示承認済み・実消費済み。OpenAI Responses API / US$3は未承認、OpenAI requestは0回であり、OpenAI live実行前にオーナー明示承認が必要
-- 別途承認後の実API・画像取得・検出品質・実費確認と実商品での人間REVIEW受入（ローカルmock検証とは区別）
+- W候補2件はSAMPLE_READY。Keepa 2 tokensは承認・実消費済み。W1のPhase BはOpenAI 1 request・retry 0で完了し、W2以降のOpenAI実行は0回。Phase Cは未実行
+- W1実画像のオーナー確認と人間最終判断、Phase Cの実行可否判断（今回のAI REVIEWとLIVE_TECH_PASSだけで受入済みとしない）
 - 残る画像Safety・人間REVIEWのBeta MUST対応後に行うPH Minimum Betaの最終オーナー受入。Gate PはそれまでHOLD
 - `BETA_AFTER_CANDIDATE`: 画像Safetyのtitle trigger、subcategory細分化、全rootの網羅的画像リスク調査（DEC-0053）
 - `BETA_AFTER_CANDIDATE`: `gpt-5.6-luna`へのコスト最適化比較、provider複数対応、AI結果cache、その他root拡張（DEC-0054）
@@ -355,7 +366,7 @@ DEC-0046正本化差分のmain統合確認後、P1cの受入済み229候補をCa
 
 ## 次の単一作業
 
-OpenAI費用・外部APIのオーナー明示承認後、PH画像Safety Phase Bを1商品だけlive検証
+W1実画像・Phase B Evidenceのオーナー確認後、Phase C実行可否を判断
 
 ## 停止条件
 
@@ -381,7 +392,7 @@ OpenAI費用・外部APIのオーナー明示承認後、PH画像Safety Phase B�
 - 今回のKeepa Ingredient Safety live技術確認を、オーナー実物受入またはGABA実商品live BLOCK確認として扱わない。
 - GABAを含む実商品によるlive BLOCK確認を、既存unit testsおよび独立security reviewのPASSから推測しない。
 - 実装前の古いClaude Evidence Packageを第三者レビュー用に再利用しない。
-- 外部APIを実行しない。
+- Phase B完了後は外部APIを追加実行しない。Phase Cは別途オーナー判断・明示承認まで開始しない。
 - Candidate物理schemaを推測で変更しない。
 - P5のEvidence Package再生成前に第三者独立レビューへ戻らない。
 - Gate P PASSをPH Minimum Beta正式完成またはmain統合済みと扱わない。
@@ -392,7 +403,7 @@ OpenAI費用・外部APIのオーナー明示承認後、PH画像Safety Phase B�
 - mandatory attributeを自動的にBeta MUSTへ昇格しない。
 - SG / MY / THへ展開しない。
 - 実データによるE2E測定を今回開始しない。
-- 本実装と次の読み取り専用reviewでは、Shopee、Keepa、AIその他の外部APIを呼ばない。
+- 今回完了したW1 Phase B以外で、Shopee、Keepa、AIその他の外部APIを追加実行しない。
 - live Canopy APIを、mock test完了後の別途オーナー承認なしに呼ばない。
 - Canopyを本番標準にせず、通常UIにprovider選択を追加せず、自動provider fallbackを実装しない。
 - Rainforestを実装せず、Canopy結果をKeepa SQLite cacheへ書き込まず、`PRELISTING_CANDIDATE_V1`の15列schemaを変更しない。
@@ -402,7 +413,7 @@ OpenAI費用・外部APIのオーナー明示承認後、PH画像Safety Phase B�
 - 承認済みのCategory Mapper一時認証入力範囲を越えてBrand resolution、Guardrail辞書、Gateロジック、Phase 1の13 Brand rulesを変更しない。Resolver／ExpansionをCanopy v0.1契約外へ拡張しない。
 - Shipping / Operational Filter、Category Batch Builder、mandatory attribute Batchへ進まない。
 - SG / MY / THへ展開せず、Marketplace-neutral schemaを先行確定しない。
-- OpenAI Responses API / US$3および公開Amazon画像をOpenAIへ送るlive検証は未承認であり、オーナー明示承認前はPhase Bを開始しない。
+- W1 Phase BのOpenAI Responses API / US$3上限・公開Amazon画像送信はオーナー明示承認済みで完了した。W2以降とPhase Cは自動開始せず、別途オーナー判断・明示承認まで停止する。
 - 承認後も正式live検証計画のUS$3上限・最大5商品・停止条件を守る。費用上限確認不能、サンプル不足、Phase B非PASS、重大見逃し、反復画像取得失敗、認証・契約・binding不正では停止する。
 - Keepaの2-token承認・実消費はOpenAI承認と分離し、OpenAI実行の承認根拠にしない。
 - 727候補を、設計・根拠の確認なしに正式COMMON_BLOCK、PH_BLOCK、REVIEW辞書として扱わない。
@@ -496,4 +507,4 @@ OpenAI費用・外部APIのオーナー明示承認後、PH画像Safety Phase B�
 
 ## 最終更新日
 
-2026-09-02
+2026-09-04
