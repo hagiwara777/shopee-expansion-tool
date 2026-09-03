@@ -14,14 +14,23 @@ from modules.ph_image_safety import create_image_sidecar, parse_image_sidecar
 from test_keepa_client import FakeKeepaApi, SOURCE_ASIN
 
 
-def test_existing_keepa_response_carries_root_images_through_both_entrypoints(tmp_path):
+@pytest.mark.parametrize(
+    "image_fields",
+    [
+        {"imagesCSV": "one.jpg,two.png,three.webp,four.jpg"},
+        {"images": [{"l": "one.jpg"}, {"m": "two.png"},
+                    {"l": "three.webp"}, {"l": "four.jpg"}]},
+    ],
+    ids=["legacy-imagesCSV", "current-images"],
+)
+def test_existing_keepa_response_carries_root_images_through_both_entrypoints(tmp_path, image_fields):
     api = FakeKeepaApi(
         detail_products=[
             {
                 "asin": "B000000001",
                 "title": "ordinary box",
                 "brand": "Synthetic",
-                "imagesCSV": "one.jpg,two.png,three.webp,four.jpg",
+                **image_fields,
                 "categoryTree": [
                     {"catId": 13299531, "name": "Root"},
                     {"catId": 99999, "name": "Leaf"},

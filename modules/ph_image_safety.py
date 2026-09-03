@@ -53,23 +53,47 @@ def valid_image_url(value: Any) -> bool:
 def capture_keepa_image_fact(
     product: Any, *, candidate_asin: str, root_category_id: Any
 ) -> dict:
-    """Read imagesCSV from the existing response only, in source order (max 3)."""
-    raw = (
-        product.get("imagesCSV")
+    """Read current images, or absent-field legacy imagesCSV, without fetching."""
+    missing = object()
+    images = (
+        product.get("images", missing)
         if isinstance(product, Mapping)
-        else getattr(product, "imagesCSV", None)
+        else getattr(product, "images", missing)
     )
-    error = raw is not None and not isinstance(raw, str)
-    tokens = (
-        list(dict.fromkeys(x.strip() for x in raw.split(",") if x.strip()))[:MAX_IMAGES]
-        if isinstance(raw, str)
-        else []
-    )
+    error = False
+    tokens = []
+    if images is missing:
+        raw = (
+            product.get("imagesCSV")
+            if isinstance(product, Mapping)
+            else getattr(product, "imagesCSV", None)
+        )
+        error = raw is not None and not isinstance(raw, str)
+        tokens = (
+            list(dict.fromkeys(x.strip() for x in raw.split(",") if x.strip()))[:MAX_IMAGES]
+            if isinstance(raw, str)
+            else []
+        )
+    elif not isinstance(images, list):
+        error = True
+    else:
+        for entry in images:
+            if not isinstance(entry, Mapping):
+                error = True
+                continue
+            token = entry.get("l")
+            if token is None or token == "":
+                token = entry.get("m")
+            if not isinstance(token, str):
+                error = True
+                continue
+            tokens.append(token)
     urls = []
     for token in tokens:
         url = "https://m.media-amazon.com/images/I/" + token
         if valid_image_url(url):
-            urls.append(url)
+            if url not in urls and len(urls) < MAX_IMAGES:
+                urls.append(url)
         else:
             error = True
     return {

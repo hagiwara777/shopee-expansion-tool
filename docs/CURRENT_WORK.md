@@ -13,13 +13,27 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH画像Safety live検証 / W候補のKeepa事前取得`
-- current_phase: `Keepa取得完了 / 画像Fact形式不一致・IMAGE_FACT_UNAVAILABLE / OpenAI未実行`
+- current_work_type: `PH画像Safety / Keepa画像形式の互換性修正`
+- current_phase: `images互換性修正・ローカル検証完了 / W候補2件SAMPLE_READY / OpenAI未実行`
 - working_branch: `codex/ph-image-safety-live-validation`
 - marketplace: `PH`
 - module: `PH画像Safety / 人間REVIEW（live検証）`
-- phase: `Keepa事前取得完了・Phase B/C未実行 / Gate P HOLD`
-- next_action: `保存済みKeepa images形式と現行imagesCSV読取の不整合に対する最小修正方針の確定`
+- phase: `互換性修正ローカル完了・Phase B/C未実行 / Gate P HOLD`
+- next_action: `Keepa画像形式互換性修正のread-only検収`
+
+2026-09-03の継続指示により、既存branchのcleanなHEAD `e50e9d869f3af70ea5ecc95a40d61764b36e6aa7` から互換性修正を実施した。fetch後formal mainは指定の `1fac7ca29c881e45ed368b348ecccd5865a28d97` と一致。e50e9d8のKeepa取得・停止記録とGit外元Evidenceは保持した。
+
+[Keepa現行Product Object仕様](https://keepa.com/api-docs/product-object.html)と保存済み応答を確認し、capture_keepa_image_factにimagesのmapping配列読取を追加した。large filenameを優先し、空・不存在時だけmediumを使用する。既存URL検証、元順序、重複除去、最大3画像を維持する。imagesが存在しない場合だけ旧imagesCSVへfallbackし、空list・型不正・不正entry等を旧形式で補わない。不正filenameは補正・採用せずcapture_errorを残す。既存root / selector / BLOCK優先、AI・人間判断境界、Candidate 15列、sidecar schema、Rule / 辞書、API request・retryは不変。
+
+元EvidenceのSHA-256を確認して保存済みKeepa応答だけをネットワーク無効で再評価した。W1 / W2ともホビーroot `2277721051`、TARGET_ROOT、既存Safety SAFEを維持し、元順序で有効画像URLを各3件生成した。画像以外のFactは前回と一致し、両方SAMPLE_READYとなった。これは画像Fact変換の準備完了であり、画像読込成功・人間事前期待区分・AI品質・LIVE_TECH_PASSではない。旧取得時のIMAGE_FACT_UNAVAILABLEは下記に履歴として保持し、新しい再評価Evidenceは元応答と修正実装ファイルのSHAにbindingしてGit外へ別保存した。
+
+検証は関連pytest 167件成功、全pytest 1069件成功・失敗0件、変更コード・testsのruff、git diff --checkがPASS。synthetic / mockテストと保存済み実応答のローカル変換検証を区別する。今回のKeepa request・追加消費token、OpenAI request、Amazon画像download、Shopee書込みはすべて0。商品identity・ASIN一覧・商品本文・画像・credentialはGitへ入れない。変更対象は画像Fact関数、関連tests 2件、本CURRENT_WORKのみとし、新Decision・PROJECT_ROADMAP変更はない。文書・secret・snapshot検証後のローカルcommitまでとし、push / PR / merge / deployは禁止する。
+
+OpenAI US$3の過去承認はKeepaと分離して保持するが、今回の外部実行は禁止。Gate P / PH Minimum BetaはHOLD継続。次は本互換性修正のread-only検収とし、実画像確認・人間期待区分の記録・Phase B接続確認は今回実行しない。
+
+### 直前のKeepa取得記録（e50e9d8時点）
+
+以下は互換性修正前の取得・停止記録であり、画像候補0件・未修正等の記述は当時の結果を示す。
 
 PR #57でlive検証計画をmainへ統合済み。2026-09-03にfetchし、formal mainが指定の `1fac7ca29c881e45ed368b348ecccd5865a28d97` と一致することを確認した。PR #56の実装統合・read-onlyレビューPASSを前提とする。開始HEADは `c0e2a4f33ef49f53b6371f64ef6b1cae33925870`。未commit差分は前回見積の本CURRENT_WORKだけであり、保持して継続した。元cloneの別branchの無関係な変更は保持する。
 
@@ -266,6 +280,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 | artifact_id | 種別・版 | ファイル名 | SHA-256 | producer task | 受入状態 | storage alias | 用途 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| ART-PH-IMAGE-SAFETY-IMAGES-COMPAT-20260903T094757Z | 保存応答の画像Fact再評価 v1 | `EVIDENCE_MANIFEST.json` | `a26d641bd50f2a4e30d014b5175b7c3c28eb50096edeecf4876819afdad6905d` | `Codex / PH image Safety compatibility` | `SAMPLE_READY_2 / OPENAI_NOT_RUN` | `LOCAL_ARTIFACT_ROOT/PH_Image_Safety_Live_Validation/20260903T094757Z-images-compatibility/EVIDENCE_MANIFEST.json` | 元応答・実装SHA binding。各3画像候補、追加APIなし。商品identityはGit外 |
 | ART-PH-IMAGE-SAFETY-KEEPA-W-20260903T091817Z | Keepa W候補取得・評価 v1 | `EVIDENCE_MANIFEST.json` | `f6afc0da8fec67d573dc970b318650142bcb97d7ba6d70e7ad7da878d17b2119` | `Codex / PH image Safety live validation` | `IMAGE_FACT_UNAVAILABLE / OPENAI_NOT_RUN` | `LOCAL_ARTIFACT_ROOT/PH_Image_Safety_Live_Validation/20260903T091817Z-keepa-w-samples/EVIDENCE_MANIFEST.json` | 実1 request・2 tokens・retry 0。既存Safety BLOCKなし、images形式不一致で候補0。商品identityはGit外 |
 | ART-PH-IMAGE-SAFETY-KEEPA-ESTIMATE-20260903T075751Z | Keepa取得見積 v1 | `KEEPA_ACQUISITION_ESTIMATE.json` | `98158bddfb0a32b8d89ddd3a47e2cdfc375beb31131bc8a201b7acc12b1fb51d` | `Codex / PH image Safety live validation` | `AWAITING_KEEPA_OWNER_APPROVAL / API_NOT_RUN` | `LOCAL_ARTIFACT_ROOT/PH_Image_Safety_Live_Validation/20260903T075751Z-keepa-estimate/KEEPA_ACQUISITION_ESTIMATE.json` | W候補2件、基本取得1 request・見積2 tokens・再試行0。商品identityはGit外のみ |
 | ART-PH-IMAGE-SAFETY-PREFLIGHT-20260903T072215Z-PHASE-A | Phase A preflight v1 | `PREFLIGHT_RECORD.json` | `93239fdea99baf13f0bb748f3a3be350fb23fe824ef1f659f5ba2dbcdfa6f573` | `Codex / PH image Safety live validation` | `INCONCLUSIVE_SAMPLE / API_NOT_RUN` | `LOCAL_ARTIFACT_ROOT/PH_Image_Safety_Live_Validation/20260903T072215Z-phase-a/PREFLIGHT_RECORD.json` | 既存cache画像Fact不足。認証存在確認のみ、API・画像取得0回。商品identity・credentialなし |
