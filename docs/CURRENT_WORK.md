@@ -14,20 +14,22 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 ## 現在作業
 
 - current_work_type: `PH画像Safety / Phase B live検証`
-- current_phase: `W1 Phase B LIVE_TECH_PASS / AI REVIEW / オーナー実画像確認前`
+- current_phase: `W1 Phase B PASS / AI REVIEW / オーナー実画像確認PASS / Phase C判断待ち`
 - working_branch: `codex/ph-image-safety-live-validation`
 - marketplace: `PH`
 - module: `PH画像Safety / 人間REVIEW（live検証）`
 - phase: `Phase B完了・Phase C未実行 / Gate P HOLD`
-- next_action: `W1実画像・Phase B Evidenceのオーナー確認後、Phase C実行可否を判断`
+- next_action: `Phase C実行可否のオーナー判断`
 
 2026-09-04のオーナー明示承認に基づき、正式live検証計画のPhase BをW1一件だけで実施した。fetch後のformal mainと実行HEADは`442b78a939ad9f504cdf5e81dc8a08dd588560d4`、working treeは開始時clean。元Keepa Evidence、保存応答、互換性再評価、現行`ph_image_safety.py`の完全SHA-256 bindingを再確認し、W1はホビーroot `2277721051`、`TARGET_ROOT`、title / Product Text / Ingredient Safetyを含む既存SafetyはSAFE、画像候補3件を維持した。AI結果を見る前の期待区分は「武器・武器形状物の疑義ありを期待」とGit外記録した。これはオーナーの実画像目視確認ではない。
 
 公開Amazon画像3件を現行取得経路で処理し、3件すべて`LOADED`。OpenAI Responses APIは`gpt-5.6-terra`、現行prompt / strict schema / `detail=auto` / `reasoning.effort=low` / `store=false`のまま1 request、retry 0、HTTP 200、応答model一致、system status `COMPLETED`、AI status `REVIEW`となった。Structured Output schema、Candidate SHA-256 / ASIN集合 / 使用画像 / provider-model sidecar binding、Gate反映、既存Safety非解除、評価済みsidecarの通常再利用による再送信0をすべてPASSとした。Gate最終判定は商品単位`REVIEW`であり、AI単独BLOCKまたは人間最終判断ではない。事前期待とは一致し、`IMAGE_FALSE_NEGATIVE`その他のblockerは確認されなかったため、Phase Bは`LIVE_TECH_PASS`とする。
 
-Phase B全体latencyは5.515秒、OpenAI API latencyは5.044秒。usageはinput 9,367 tokens（cache write 9,364、cached 0）、output 60 tokens（reasoning 19）、total 9,427。service tierはdefault。公式料金とcache write 1.25倍を適用したusage算定額はUS$0.024136で、送信前予約US$0.25・承認上限US$3以内。request / response IDはGit外Evidenceへ記録し、credential値・hash、画像bytesは保存していない。Keepa request・追加token、W2以降のOpenAI、Phase C、Shopee書込み、deployは0。オーナーの実画像確認と最終判断は未実施であり、Gate P / PH Minimum BetaはHOLDを継続する。
+Phase B全体latencyは5.515秒、OpenAI API latencyは5.044秒。usageはinput 9,367 tokens（cache write 9,364、cached 0）、output 60 tokens（reasoning 19）、total 9,427。service tierはdefault。公式料金とcache write 1.25倍を適用したUS$0.024136はusageベース算定額であり、actual billed costとは断定しない。送信前予約US$0.25・承認上限US$3以内。request / response IDはGit外Evidenceへ記録し、credential値・hash、画像bytesは保存していない。Keepa request・追加token、W2以降のOpenAI、Phase C、Shopee書込み、deployは0。人間最終判断`ALLOW_PREPARATION / EXCLUDE`は未実施であり、Gate P / PH Minimum BetaはHOLDを継続する。
 
 Git外Evidenceは`ART-PH-IMAGE-SAFETY-PHASE-B-20260903T205538Z`として保存し、manifestと全構成ファイルのSHA-256、secret非混入、画像非保存を検証した。今回コード、tests、Rule、辞書、selector、model、prompt、schema、Candidate 15列、DECISION_LOG、PROJECT_ROADMAPは変更しない。
+
+その後、オーナーはW1で実際に使用したexact 3画像を確認し、3枚が同一商品の画像であること、人間目視でも武器・武器形状物の疑義があること、AIの`REVIEW`判定が妥当であることを確認した。W1 owner image reviewとPhase B `LIVE_TECH_PASS`はオーナー確認PASSとする。Phase Cは未実行であり、実行可否は次のオーナー判断とする。
 
 ### 直前の互換性修正・承認訂正記録
 
@@ -292,7 +294,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 | artifact_id | 種別・版 | ファイル名 | SHA-256 | producer task | 受入状態 | storage alias | 用途 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| ART-PH-IMAGE-SAFETY-PHASE-B-20260903T205538Z | Phase B W1 live検証 v1 | `EVIDENCE_MANIFEST.json` | `5b0014a57bb271c76be46594883c1db3d34389babb93945bcd81aa07c11c9a16` | `Codex / PH image Safety live validation` | `LIVE_TECH_PASS / AI_REVIEW / OWNER_IMAGE_REVIEW_PENDING` | `LOCAL_ARTIFACT_ROOT/PH_Image_Safety_Live_Validation/20260903T205538Z-phase-b-w1/EVIDENCE_MANIFEST.json` | 3/3画像LOADED、Responses 1 request・retry 0、schema / sidecar / Gate PASS、usage算定US$0.024136。商品identity・request IDはGit外 |
+| ART-PH-IMAGE-SAFETY-PHASE-B-20260903T205538Z | Phase B W1 live検証 v1 | `EVIDENCE_MANIFEST.json` | `5b0014a57bb271c76be46594883c1db3d34389babb93945bcd81aa07c11c9a16` | `Codex / PH image Safety live validation` | `LIVE_TECH_PASS / AI_REVIEW / OWNER_IMAGE_REVIEW_PASS` | `LOCAL_ARTIFACT_ROOT/PH_Image_Safety_Live_Validation/20260903T205538Z-phase-b-w1/EVIDENCE_MANIFEST.json` | 3/3画像LOADED、Responses 1 request・retry 0、schema / sidecar / Gate / owner image review PASS。US$0.024136はusageベース算定額でありactual billed costではない。商品identity・request IDはGit外 |
 | ART-PH-IMAGE-SAFETY-IMAGES-COMPAT-20260903T094757Z | 保存応答の画像Fact再評価 v1 | `EVIDENCE_MANIFEST.json` | `a26d641bd50f2a4e30d014b5175b7c3c28eb50096edeecf4876819afdad6905d` | `Codex / PH image Safety compatibility` | `SAMPLE_READY_2 / OPENAI_NOT_RUN` | `LOCAL_ARTIFACT_ROOT/PH_Image_Safety_Live_Validation/20260903T094757Z-images-compatibility/EVIDENCE_MANIFEST.json` | 元応答・実装SHA binding。各3画像候補、追加APIなし。商品identityはGit外 |
 | ART-PH-IMAGE-SAFETY-KEEPA-W-20260903T091817Z | Keepa W候補取得・評価 v1 | `EVIDENCE_MANIFEST.json` | `f6afc0da8fec67d573dc970b318650142bcb97d7ba6d70e7ad7da878d17b2119` | `Codex / PH image Safety live validation` | `IMAGE_FACT_UNAVAILABLE / OPENAI_NOT_RUN` | `LOCAL_ARTIFACT_ROOT/PH_Image_Safety_Live_Validation/20260903T091817Z-keepa-w-samples/EVIDENCE_MANIFEST.json` | 実1 request・2 tokens・retry 0。既存Safety BLOCKなし、images形式不一致で候補0。商品identityはGit外 |
 | ART-PH-IMAGE-SAFETY-KEEPA-ESTIMATE-20260903T075751Z | Keepa取得見積 v1 | `KEEPA_ACQUISITION_ESTIMATE.json` | `98158bddfb0a32b8d89ddd3a47e2cdfc375beb31131bc8a201b7acc12b1fb51d` | `Codex / PH image Safety live validation` | `AWAITING_KEEPA_OWNER_APPROVAL / API_NOT_RUN` | `LOCAL_ARTIFACT_ROOT/PH_Image_Safety_Live_Validation/20260903T075751Z-keepa-estimate/KEEPA_ACQUISITION_ESTIMATE.json` | W候補2件、基本取得1 request・見積2 tokens・再試行0。商品identityはGit外のみ |
@@ -325,8 +327,8 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 ## 未完了事項
 
 - Product Textの2件超の取得率とhemp実商品によるlive BLOCKは未確認だが、新しいBeta blockerにはしない
-- W候補2件はSAMPLE_READY。Keepa 2 tokensは承認・実消費済み。W1のPhase BはOpenAI 1 request・retry 0で完了し、W2以降のOpenAI実行は0回。Phase Cは未実行
-- W1実画像のオーナー確認と人間最終判断、Phase Cの実行可否判断（今回のAI REVIEWとLIVE_TECH_PASSだけで受入済みとしない）
+- W候補2件はSAMPLE_READY。Keepa 2 tokensは承認・実消費済み。W1のPhase BはOpenAI 1 request・retry 0、LIVE_TECH_PASS、owner image review PASSで完了し、W2以降のOpenAI実行は0回。Phase Cは未実行
+- Phase Cの実行可否に関するオーナー判断。人間最終判断`ALLOW_PREPARATION / EXCLUDE`は未実施
 - 残る画像Safety・人間REVIEWのBeta MUST対応後に行うPH Minimum Betaの最終オーナー受入。Gate PはそれまでHOLD
 - `BETA_AFTER_CANDIDATE`: 画像Safetyのtitle trigger、subcategory細分化、全rootの網羅的画像リスク調査（DEC-0053）
 - `BETA_AFTER_CANDIDATE`: `gpt-5.6-luna`へのコスト最適化比較、provider複数対応、AI結果cache、その他root拡張（DEC-0054）
@@ -366,7 +368,7 @@ DEC-0046正本化差分のmain統合確認後、P1cの受入済み229候補をCa
 
 ## 次の単一作業
 
-W1実画像・Phase B Evidenceのオーナー確認後、Phase C実行可否を判断
+Phase C実行可否のオーナー判断
 
 ## 停止条件
 
