@@ -13,13 +13,21 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH画像Safety / Phase C N1事前画像確認準備`
-- current_phase: `W1 / W2 疑義ありサンプル2/2確認完了 / blockerなし / N1事前確認待ち`
+- current_work_type: `PH画像Safety / Phase C N1 live検証結果確認`
+- current_phase: `W1 / W2疑義あり2/2完了・N1非該当sanity PASS候補 / blockerなし / N2・A1未実行`
 - working_branch: `codex/ph-image-safety-live-validation`
 - marketplace: `PH`
 - module: `PH画像Safety / 人間REVIEW（live検証）`
-- phase: `Phase B PASS・Phase C W2品質sanity PASS・N1/N2/A1未実行 / Gate P HOLD`
-- next_action: `N1非該当サンプルのexact画像をオーナーがAI実行前に確認し、事前期待区分を確定`
+- phase: `Phase B PASS・Phase C W2品質sanity PASS・N1品質sanity PASS候補・N2/A1未実行 / Gate P HOLD`
+- next_action: `N1 live検証結果のread-only確認とオーナー受入判断`
+
+2026-09-08、オーナー承認済みのPhase C N1をformal main `5bb7432e8608ebc64fa67d61a5e03c7a03a53d49`と同一tree上で実施した。N1はKeepa 1 request・1 token・retry 0で取得済みのおもちゃroot `13299531`、`TARGET_ROOT`、既存Safety `SAFE`、exact画像3件の`SAMPLE_READY`商品である。オーナーはAI実行前に3画像が同一商品で武器・武器形状物の疑義なしと確認し、期待区分「非該当」をexact画像SHA-256へbindingしてGit外Evidenceに固定した。
+
+送信前runnerで正規化時刻が再評価ごとに変わりCandidate SHAが不一致となった初回は、OpenAI marker作成前に停止し、画像取得・OpenAI requestとも0回だった。Git外runnerだけを、保存済みKeepa取得開始時刻を固定Fact時刻として使うよう局所修正し、offline binding PASS後に実行した。repo内core、Rule、selector、model、prompt、schemaは変更していない。
+
+N1は現行選択順の3画像すべて`LOADED`。OpenAI Responses APIは`gpt-5.6-terra`、現行prompt / strict schema / `detail=auto` / `reasoning.effort=low` / `store=false`のまま1 request、retry 0、HTTP 200、応答status / system status `completed` / `COMPLETED`、AI status `NO_SIGNAL`となった。schema、Candidate / ASIN集合 / 使用画像 / provider-model sidecar binding、Gate反映、既存Safety非解除、通常rerun再送信0はすべてPASS。事前期待と一致し、N1品質sanityはPASS候補、blockerなしとする。`NO_SIGNAL`はSAFE保証または人間最終判断ではない。
+
+N1全体latencyは4.347秒。usageはinput 8,095 tokens（standard 3、cache write 8,092、cached 0）、output 55 tokens（reasoning 0）、total 8,150。N1のUS$0.020896とW1 / W2を含む累計US$0.052162はusageベース算定額であり、actual billed costとは断定しない。Git外Evidence `ART-PH-IMAGE-SAFETY-PHASE-C-N1-20260907T230455Z`のmanifest完全SHA-256は`2f245fce5d5b0dd7fd37cbe630500628d0610343c50c6a2021b3881eb6a8b4f9`。credential値・hashと画像bytesは保存していない。追加Keepa、N2 / A1 OpenAI、Shopee書込み、deployは0。Gate P / PH Minimum BetaはHOLDを継続する。
 
 2026-09-04にformal main `c859e81887c6959e156471ae26abc545cdfacc8c`上のW2 Phase C記録をread-only確認しPASSとした。W1とW2の疑義ありサンプルは2/2確認完了、blockerなし。N1 / N2 / A1は未実行で、Gate P / PH Minimum BetaはHOLDを継続する。この同期ではOpenAI / Keepa API、N1 AI実行、コード・Rule・selector変更を行っていない。
 
@@ -340,8 +348,8 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 ## 未完了事項
 
 - Product Textの2件超の取得率とhemp実商品によるlive BLOCKは未確認だが、新しいBeta blockerにはしない
-- W候補2件はSAMPLE_READY。Keepa 2 tokensは承認・実消費済み。W1 Phase BはLIVE_TECH_PASS / owner image review PASS。W2 Phase CはOpenAI 1 request・retry 0、AI REVIEW、品質sanity PASS、blockerなし。N1 / N2 / A1のOpenAI実行は0回
-- W2 Phase C結果のread-only確認はPASS。次はN1非該当サンプルのexact画像をAI実行前にオーナー確認し、事前期待区分を確定する。人間最終判断`ALLOW_PREPARATION / EXCLUDE`は未実施
+- W候補2件はSAMPLE_READY。Keepa 2 tokensは承認・実消費済み。W1 Phase BはLIVE_TECH_PASS / owner image review PASS。W2 Phase CはAI REVIEW・品質sanity PASS。N1はKeepa 1 token取得後、OpenAI 1 request・retry 0、AI NO_SIGNAL・品質sanity PASS候補。blockerなし。N2 / A1は未実行
+- W2 Phase C結果のread-only確認はPASS。N1はexact画像の事前期待「非該当」とAI `NO_SIGNAL`が一致し、技術確認もPASS。次はN1 live結果のread-only確認とオーナー受入判断。人間最終判断`ALLOW_PREPARATION / EXCLUDE`は未実施
 - 残る画像Safety・人間REVIEWのBeta MUST対応後に行うPH Minimum Betaの最終オーナー受入。Gate PはそれまでHOLD
 - `BETA_AFTER_CANDIDATE`: 画像Safetyのtitle trigger、subcategory細分化、全rootの網羅的画像リスク調査（DEC-0053）
 - `BETA_AFTER_CANDIDATE`: `gpt-5.6-luna`へのコスト最適化比較、provider複数対応、AI結果cache、その他root拡張（DEC-0054）
@@ -381,7 +389,7 @@ DEC-0046正本化差分のmain統合確認後、P1cの受入済み229候補をCa
 
 ## 次の単一作業
 
-N1非該当サンプルのexact画像をオーナーがAI実行前に確認し、事前期待区分を確定
+N1 live検証結果のread-only確認とオーナー受入判断
 
 ## 停止条件
 
@@ -407,7 +415,7 @@ N1非該当サンプルのexact画像をオーナーがAI実行前に確認し�
 - 今回のKeepa Ingredient Safety live技術確認を、オーナー実物受入またはGABA実商品live BLOCK確認として扱わない。
 - GABAを含む実商品によるlive BLOCK確認を、既存unit testsおよび独立security reviewのPASSから推測しない。
 - 実装前の古いClaude Evidence Packageを第三者レビュー用に再利用しない。
-- N1はexact画像のオーナー事前確認と期待区分確定までに限定し、OpenAI実行は別途オーナー判断・明示承認まで開始しない。N2 / A1も自動開始しない。
+- N1はオーナー明示承認の範囲内で完了済み。N1を再実行せず、N2 / A1は別途オーナー判断・明示承認まで開始しない。
 - Candidate物理schemaを推測で変更しない。
 - P5のEvidence Package再生成前に第三者独立レビューへ戻らない。
 - Gate P PASSをPH Minimum Beta正式完成またはmain統合済みと扱わない。
@@ -418,7 +426,7 @@ N1非該当サンプルのexact画像をオーナーがAI実行前に確認し�
 - mandatory attributeを自動的にBeta MUSTへ昇格しない。
 - SG / MY / THへ展開しない。
 - 実データによるE2E測定を今回開始しない。
-- 今回完了したW1 Phase BおよびW2 Phase C以外で、Shopee、Keepa、AIその他の外部APIを追加実行しない。
+- 今回完了したW1 Phase B、W2 Phase C、N1 Phase C以外で、Shopee、Keepa、AIその他の外部APIを追加実行しない。
 - live Canopy APIを、mock test完了後の別途オーナー承認なしに呼ばない。
 - Canopyを本番標準にせず、通常UIにprovider選択を追加せず、自動provider fallbackを実装しない。
 - Rainforestを実装せず、Canopy結果をKeepa SQLite cacheへ書き込まず、`PRELISTING_CANDIDATE_V1`の15列schemaを変更しない。
@@ -428,7 +436,7 @@ N1非該当サンプルのexact画像をオーナーがAI実行前に確認し�
 - 承認済みのCategory Mapper一時認証入力範囲を越えてBrand resolution、Guardrail辞書、Gateロジック、Phase 1の13 Brand rulesを変更しない。Resolver／ExpansionをCanopy v0.1契約外へ拡張しない。
 - Shipping / Operational Filter、Category Batch Builder、mandatory attribute Batchへ進まない。
 - SG / MY / THへ展開せず、Marketplace-neutral schemaを先行確定しない。
-- W1 Phase BとW2 Phase CのOpenAI Responses API / US$3上限・公開Amazon画像送信は、それぞれオーナー明示承認済みで完了した。N1の事前画像確認ではOpenAIを実行せず、N1 / N2 / A1のOpenAI実行は別途オーナー判断・明示承認まで停止する。
+- W1 Phase B、W2 Phase C、N1 Phase CのOpenAI Responses API / US$3上限・公開Amazon画像送信は、それぞれオーナー明示承認済みで完了した。N1を再実行せず、N2 / A1のOpenAI実行は別途オーナー判断・明示承認まで停止する。
 - 承認後も正式live検証計画のUS$3上限・最大5商品・停止条件を守る。費用上限確認不能、サンプル不足、Phase B非PASS、重大見逃し、反復画像取得失敗、認証・契約・binding不正では停止する。
 - Keepaの2-token承認・実消費はOpenAI承認と分離し、OpenAI実行の承認根拠にしない。
 - 727候補を、設計・根拠の確認なしに正式COMMON_BLOCK、PH_BLOCK、REVIEW辞書として扱わない。
@@ -522,4 +530,4 @@ N1非該当サンプルのexact画像をオーナーがAI実行前に確認し�
 
 ## 最終更新日
 
-2026-09-04
+2026-09-08
