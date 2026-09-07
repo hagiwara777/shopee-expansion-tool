@@ -13,13 +13,15 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH画像Safety / Phase C N1 live検証結果確認`
-- current_phase: `W1 / W2疑義あり2/2完了・N1非該当sanity PASS候補 / blockerなし / N2・A1未実行`
+- current_work_type: `PH画像Safety / Phase C N2事前画像確認準備`
+- current_phase: `W1 / W2疑義あり2/2完了・N1非該当1/1正式受入PASS / blockerなし / N2・A1未実行`
 - working_branch: `codex/ph-image-safety-live-validation`
 - marketplace: `PH`
 - module: `PH画像Safety / 人間REVIEW（live検証）`
-- phase: `Phase B PASS・Phase C W2品質sanity PASS・N1品質sanity PASS候補・N2/A1未実行 / Gate P HOLD`
-- next_action: `N1 live検証結果のread-only確認とオーナー受入判断`
+- phase: `Phase B PASS・Phase C W2品質sanity PASS・N1品質sanity / 正式受入PASS・N2/A1未実行 / Gate P HOLD`
+- next_action: `N2非該当サンプルのexact画像をAI実行前にオーナー確認し、事前期待区分を確定`
+
+2026-09-08、formal main `a4346a4be6f990238c46d184965f9edf6a8b13b7`上のN1 Phase C live検証記録をread-only確認し、オーナー受入PASSとした。N1品質sanityはPASS、blockerなし。W1 / W2疑義あり2/2とN1非該当1/1を確認完了し、N2 / A1は未実行、Gate P / PH Minimum BetaはHOLDを継続する。
 
 2026-09-08、オーナー承認済みのPhase C N1をformal main `5bb7432e8608ebc64fa67d61a5e03c7a03a53d49`と同一tree上で実施した。N1はKeepa 1 request・1 token・retry 0で取得済みのおもちゃroot `13299531`、`TARGET_ROOT`、既存Safety `SAFE`、exact画像3件の`SAMPLE_READY`商品である。オーナーはAI実行前に3画像が同一商品で武器・武器形状物の疑義なしと確認し、期待区分「非該当」をexact画像SHA-256へbindingしてGit外Evidenceに固定した。
 
@@ -348,8 +350,8 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 ## 未完了事項
 
 - Product Textの2件超の取得率とhemp実商品によるlive BLOCKは未確認だが、新しいBeta blockerにはしない
-- W候補2件はSAMPLE_READY。Keepa 2 tokensは承認・実消費済み。W1 Phase BはLIVE_TECH_PASS / owner image review PASS。W2 Phase CはAI REVIEW・品質sanity PASS。N1はKeepa 1 token取得後、OpenAI 1 request・retry 0、AI NO_SIGNAL・品質sanity PASS候補。blockerなし。N2 / A1は未実行
-- W2 Phase C結果のread-only確認はPASS。N1はexact画像の事前期待「非該当」とAI `NO_SIGNAL`が一致し、技術確認もPASS。次はN1 live結果のread-only確認とオーナー受入判断。人間最終判断`ALLOW_PREPARATION / EXCLUDE`は未実施
+- W候補2件はSAMPLE_READY。Keepa 2 tokensは承認・実消費済み。W1 Phase BはLIVE_TECH_PASS / owner image review PASS。W2 Phase CはAI REVIEW・品質sanity PASS。N1はKeepa 1 token取得後、OpenAI 1 request・retry 0、AI NO_SIGNAL・品質sanity / 正式受入PASS。疑義あり2/2、非該当1/1を確認完了し、blockerなし。N2 / A1は未実行
+- W2 Phase C結果のread-only確認はPASS。N1はexact画像の事前期待「非該当」とAI `NO_SIGNAL`が一致し、品質sanity / 正式受入PASS。次はN2非該当サンプルのexact画像事前確認。人間最終判断`ALLOW_PREPARATION / EXCLUDE`は未実施
 - 残る画像Safety・人間REVIEWのBeta MUST対応後に行うPH Minimum Betaの最終オーナー受入。Gate PはそれまでHOLD
 - `BETA_AFTER_CANDIDATE`: 画像Safetyのtitle trigger、subcategory細分化、全rootの網羅的画像リスク調査（DEC-0053）
 - `BETA_AFTER_CANDIDATE`: `gpt-5.6-luna`へのコスト最適化比較、provider複数対応、AI結果cache、その他root拡張（DEC-0054）
@@ -389,7 +391,7 @@ DEC-0046正本化差分のmain統合確認後、P1cの受入済み229候補をCa
 
 ## 次の単一作業
 
-N1 live検証結果のread-only確認とオーナー受入判断
+N2非該当サンプルのexact画像をAI実行前にオーナー確認し、事前期待区分を確定
 
 ## 停止条件
 
