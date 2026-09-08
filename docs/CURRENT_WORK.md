@@ -13,13 +13,19 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH画像Safety / Phase C N2受入・承認逸脱記録`
-- current_phase: `W1 / W2疑義あり2/2完了・N1 / N2非該当2/2正式受入PASS / N2承認逸脱記録済み / blockerなし / A1未実行`
-- working_branch: `codex/ph-image-safety-live-validation`
+- current_work_type: `PH画像Safety / A1事後受入・5商品live検証終了`
+- current_phase: `W1 / W2疑義あり2/2 REVIEW・N1 / N2非該当2/2 NO_SIGNAL・A1曖昧1/1 REVIEW / 全5商品終了・技術blockerなし`
+- working_branch: `codex/ph-image-safety-five-sample-closeout`
 - marketplace: `PH`
 - module: `PH画像Safety / 人間REVIEW（live検証）`
-- phase: `Phase B PASS・Phase C W2品質sanity PASS・N1 / N2正式受入PASS・A1未実行 / Gate P HOLD`
-- next_action: `PH画像Safety live検証4商品結果のread-only総括とA1実施要否のオーナー判断`
+- phase: `Phase B / C 5商品live検証終了・A1事後受入PASS / 人間REVIEW実務確認前 / Gate P HOLD`
+- next_action: `人間REVIEWの最終判断 ALLOW_PREPARATION / EXCLUDE が実務上成立することの確認`
+
+2026-09-08、formal main `f553ddd7d20b337a4e0088da5be5ef207b8c5709`と同一tree上で、正式計画の5件目・A1「境界・曖昧サンプル」を実施し、PH画像Safety live検証の全5商品を終了した。W1 / W2は事前期待「疑義あり」2/2に対してAI `REVIEW`、N1 / N2は事前期待「非該当」2/2に対してAI `NO_SIGNAL`、A1ガンプラは事前期待「曖昧・判断保留」に対してAI `REVIEW`となった。技術blockerはない。
+
+A1は現行選択順の3画像すべて`LOADED`。OpenAI Responses APIは現行設定のまま1 request・retry 0、AI status `REVIEW`。schema、Candidate / ASIN集合 / 使用画像 / provider-model sidecar binding、Gate反映、既存Safety非解除、通常rerun再送信0はすべてPASSした。オーナー目視では武器・武器形状物なしだったため過剰REVIEW候補とするが、AI単独BLOCKにせず人間REVIEWへ残る現行挙動から、現時点のBeta blockerにはしない。Beta前の追加ガンプラ試験または6商品目は行わず、実運用でREVIEW頻度が問題化した場合のBeta後改善候補とする。
+
+A1のOpenAI 1 requestは事前の個別明示承認なしで実行されたため、承認境界逸脱として記録する。オーナーは逸脱を認識した上でA1結果を事後受入し、再実行せず既存Evidenceを採用した。受入後の再実行・追加OpenAI / Keepa / Shopee APIは0。A1のusageベース算定額はUS$0.022448、W1 / W2 / N1 / N2 / A1累計はUS$0.0851045であり、actual billed costとは断定しない。Git外Evidence `ART-PH-IMAGE-SAFETY-PHASE-C-A1-20260908T043809Z`のmanifest完全SHA-256は`095fdfd6c66ac8ae63a1439450b835d6f99c4723ad92e9c9136b23a22c49dca6`。人間最終判断`ALLOW_PREPARATION / EXCLUDE`の実務成立は未確認であり、Gate P / PH Minimum BetaはHOLDを継続する。
 
 2026-09-08、formal main `b939ffcf7953cd7af99795f85d388763a7dd61d3`と同一tree上でPhase C N2の技術結果を取得した。固定N2候補はKeepa Product Request 1回・1 token・retry 0で取得し、ホビーroot `2277721051`、`TARGET_ROOT`、既存Safety `SAFE`、exact画像3件の`SAMPLE_READY`となった。オーナーはOpenAI送信前に3画像が同一商品で武器・武器形状物の疑義なしと確認し、期待区分「非該当」をexact画像SHA-256へbindingしてGit外Evidenceに固定した。画像確認と期待区分の確定はOpenAI有料実行の個別明示承認ではなく、OpenAI 1 requestは事前承認なしで実行された。追加候補探索は行っていない。
 
@@ -195,6 +201,7 @@ PR #16はGate結果CSVのschema version再検証をmainへ統合し、formal mai
 
 ## 完了・受入済み
 
+- PH画像Safety live検証は正式計画の全5商品を終了。W1 / W2疑義あり2/2は`REVIEW`、N1 / N2非該当2/2は`NO_SIGNAL`、A1曖昧1/1は`REVIEW`。A1の承認逸脱を認識した事後受入を含め、既存Evidenceを再実行せず採用。技術blockerなし。Gate P / PH Minimum BetaはHOLD
 - B2少量実商品のE2E全体フロー技術確認を完了した。Resolver入口はCandidate 1件、Expansion入口はstrict 1ページのうち人間追跡対象1件とし、両入口でIngredient Safety / Product Text Safety CAPTURED、PH Gate SAFE / ELIGIBLE、入力内exact UNIQUE、既出品exact CLEAR、Category確定、Brand / No Brand確定、`listing_ready = TRUE`、CSV / TXT handoff取得まで成立した。PH既出品CSVは0 ASINで、オーナー確認でもPHショップの既出品は0件だった。Shopee live書込みとコード・Rule・辞書・tests変更は0だった。これは技術確認であり、Gate PまたはPH Minimum BetaのPASSではない。
 - DEC-0049でPH Minimum Beta完成線を重大実務リスク中心へ再設定。旧P1cのCategory完全追跡を`BETA_AFTER_CANDIDATE`へ移し、過去成果・Evidenceは保持。Gate PはHOLD
 - P1c POST_CATEGORY Connection Design v1とGit外成果物3件のOWNER_ACCEPTED。170件 = strict接続可能62件 + 未解決108件。108件は追加Evidence対象であり解決済みではなく、62件はRule実装済みではない（DEC-0048）
@@ -322,6 +329,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 | artifact_id | 種別・版 | ファイル名 | SHA-256 | producer task | 受入状態 | storage alias | 用途 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| ART-PH-IMAGE-SAFETY-PHASE-C-A1-20260908T043809Z | Phase C A1 live検証 v1 | `EVIDENCE_MANIFEST.json` | `095fdfd6c66ac8ae63a1439450b835d6f99c4723ad92e9c9136b23a22c49dca6` | `Codex / PH image Safety live validation` | `OWNER_ACCEPTED_WITH_PROCESS_DEVIATION / AI_REVIEW` | `LOCAL_ARTIFACT_ROOT/PH_Image_Safety_Live_Validation/20260908T043809Z-phase-c-a1/EVIDENCE_MANIFEST.json` | 3/3画像LOADED、schema / sidecar / Gate / rerun再送信防止PASS、技術blockerなし。目視では武器形状物なしのため過剰REVIEW候補。OpenAI事前個別明示承認なしの逸脱を認識し、再実行せず既存Evidenceをオーナー事後受入。商品identity・追跡IDはGit外 |
 | ART-PH-IMAGE-SAFETY-PHASE-C-N2-20260908T014059Z | Phase C N2 live検証 v1 | `EVIDENCE_MANIFEST.json` | `997da01642388b869e040fe77e3ba3473ec024446c8652bbe76685ed8ef058cc` | `Codex / PH image Safety live validation` | `OWNER_ACCEPTED_WITH_PROCESS_DEVIATION / AI_NO_SIGNAL` | `LOCAL_ARTIFACT_ROOT/PH_Image_Safety_Live_Validation/20260908T014059Z-phase-c-n2/EVIDENCE_MANIFEST.json` | 3/3画像LOADED、Responses 1 request・retry 0、schema / sidecar / Gate PASS、事前期待と一致、blockerなし。OpenAI事前個別明示承認なしの逸脱を認識し、再実行せず既存Evidenceをオーナー受入。US$0.0104945はusageベース算定額でありactual billed costではない。商品identity・追跡IDはGit外 |
 | ART-PH-IMAGE-SAFETY-PHASE-C-W2-20260904T041803Z | Phase C W2 live検証 v1 | `EVIDENCE_MANIFEST.json` | `36d4d5ce925565ca352758d637dcc9dfc69057c55d78adaf08b9746929115d8d` | `Codex / PH image Safety live validation` | `W2_QUALITY_SANITY_PASS / AI_REVIEW` | `LOCAL_ARTIFACT_ROOT/PH_Image_Safety_Live_Validation/20260904T041803Z-phase-c-w2/EVIDENCE_MANIFEST.json` | 3/3画像LOADED、Responses 1 request・retry 0、schema / sidecar / Gate PASS、事前期待と一致、blockerなし。US$0.007130はusageベース算定額でありactual billed costではない。商品identity・追跡IDはGit外 |
 | ART-PH-IMAGE-SAFETY-PHASE-B-20260903T205538Z | Phase B W1 live検証 v1 | `EVIDENCE_MANIFEST.json` | `5b0014a57bb271c76be46594883c1db3d34389babb93945bcd81aa07c11c9a16` | `Codex / PH image Safety live validation` | `LIVE_TECH_PASS / AI_REVIEW / OWNER_IMAGE_REVIEW_PASS` | `LOCAL_ARTIFACT_ROOT/PH_Image_Safety_Live_Validation/20260903T205538Z-phase-b-w1/EVIDENCE_MANIFEST.json` | 3/3画像LOADED、Responses 1 request・retry 0、schema / sidecar / Gate / owner image review PASS。US$0.024136はusageベース算定額でありactual billed costではない。商品identity・request IDはGit外 |
@@ -357,8 +365,8 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 ## 未完了事項
 
 - Product Textの2件超の取得率とhemp実商品によるlive BLOCKは未確認だが、新しいBeta blockerにはしない
-- W候補2件はSAMPLE_READY。Keepa 2 tokensは承認・実消費済み。W1 Phase BはLIVE_TECH_PASS / owner image review PASS。W2 Phase CはAI REVIEW・品質sanity PASS。N1 / N2はAI NO_SIGNAL・品質sanity / 正式受入PASS。疑義あり2/2、非該当2/2で事前期待と一致し、blockerなし。A1は未実行
-- N2 Phase C結果はexact画像3/3 LOADED、schema / sidecar / Gate PASS、通常rerun再送信0。OpenAI 1 requestの事前個別明示承認なしを承認逸脱として記録し、オーナーは再実行せず既存Evidenceを受け入れた。受入後の再実行・追加APIは0。人間最終判断`ALLOW_PREPARATION / EXCLUDE`は未実施
+- PH画像Safety live検証は全5商品終了。W1 / W2は事前期待「疑義あり」2/2に対して`REVIEW`、N1 / N2は事前期待「非該当」2/2に対して`NO_SIGNAL`、A1は事前期待「曖昧・判断保留」に対して`REVIEW`。全件で技術blockerなし
+- N2 / A1のOpenAI各1 requestは事前個別明示承認なしの承認逸脱として記録済み。オーナーは各逸脱を認識し、再実行せず既存Evidenceを事後受入した。A1はオーナー目視で武器形状物なし、AI `REVIEW`のため過剰REVIEW候補だが、人間REVIEWへ残る現行挙動からBeta blockerにはしない。人間最終判断`ALLOW_PREPARATION / EXCLUDE`は未確認
 - 残る画像Safety・人間REVIEWのBeta MUST対応後に行うPH Minimum Betaの最終オーナー受入。Gate PはそれまでHOLD
 - `BETA_AFTER_CANDIDATE`: 画像Safetyのtitle trigger、subcategory細分化、全rootの網羅的画像リスク調査（DEC-0053）
 - `BETA_AFTER_CANDIDATE`: `gpt-5.6-luna`へのコスト最適化比較、provider複数対応、AI結果cache、その他root拡張（DEC-0054）
@@ -398,13 +406,13 @@ DEC-0046正本化差分のmain統合確認後、P1cの受入済み229候補をCa
 
 ## 次の単一作業
 
-PH画像Safety live検証4商品結果のread-only総括とA1実施要否のオーナー判断
+人間REVIEWの最終判断 `ALLOW_PREPARATION / EXCLUDE` が実務上成立することの確認
 
 ## 停止条件
 
 - 残るBeta MUSTの対応と最終オーナーBeta受入までは、Gate P PASSまたはPH Minimum Beta PASSとして扱わない。
 - B2全体フローは現行機能によるE2E技術確認完了として扱い、新しい不具合Evidenceがない限り最初からの再実行を次工程にしない。
-- 本作業は承認済み計画のPH画像Safety live検証だけとする。ph_image_safety実装、prompt、model、detail、selector、Rule・辞書・Candidate 15列・既存判定優先順位は変更しない。Phase Aのサンプル・binding・費用条件が未成立の間はPhase Bへ進まない。承認範囲外API、Keepa未承認実行、Shopee live書込みは行わない。
+- PH画像Safetyの正式計画内live検証は5商品で終了した。6商品目・Beta前の追加ガンプラ試験・再実行を行わず、ph_image_safety実装、prompt、model、detail、selector、Rule・辞書・Candidate 15列・既存判定優先順位を変更しない。承認範囲外API、Shopee live書込みは行わない。
 - DEC-0053のselector範囲を自動拡張せず、title trigger、subcategory細分化、全rootの網羅的画像リスク調査をBeta前に再開しない。
 - 市場横断Evidenceの保存・参照を、他市場のRule適用またはCOMMON_BLOCK採用の承認と扱わない。資料・ページ・市場を明示して判断する。
 - Evidence再利用時はManifestの完全SHA-256を照合する。不一致、資料identityの曖昧さ、PDF/TXTの同一資料性未確認、または資料日付の推測が必要な場合は停止する。
@@ -424,7 +432,7 @@ PH画像Safety live検証4商品結果のread-only総括とA1実施要否のオ�
 - 今回のKeepa Ingredient Safety live技術確認を、オーナー実物受入またはGABA実商品live BLOCK確認として扱わない。
 - GABAを含む実商品によるlive BLOCK確認を、既存unit testsおよび独立security reviewのPASSから推測しない。
 - 実装前の古いClaude Evidence Packageを第三者レビュー用に再利用しない。
-- N1はオーナー明示承認の範囲内で完了済み。N1を再実行せず、N2 / A1は別途オーナー判断・明示承認まで開始しない。
+- W1 / W2 / N1 / N2 / A1の5商品live検証は終了済み。既存Evidenceを再利用し、再実行・追加商品・6商品目へ進まない。
 - Candidate物理schemaを推測で変更しない。
 - P5のEvidence Package再生成前に第三者独立レビューへ戻らない。
 - Gate P PASSをPH Minimum Beta正式完成またはmain統合済みと扱わない。
@@ -435,7 +443,7 @@ PH画像Safety live検証4商品結果のread-only総括とA1実施要否のオ�
 - mandatory attributeを自動的にBeta MUSTへ昇格しない。
 - SG / MY / THへ展開しない。
 - 実データによるE2E測定を今回開始しない。
-- 今回完了したW1 Phase B、W2 Phase C、N1 Phase C以外で、Shopee、Keepa、AIその他の外部APIを追加実行しない。
+- 完了したW1 / W2 / N1 / N2 / A1以外で、Shopee、Keepa、AIその他の外部APIを追加実行しない。
 - live Canopy APIを、mock test完了後の別途オーナー承認なしに呼ばない。
 - Canopyを本番標準にせず、通常UIにprovider選択を追加せず、自動provider fallbackを実装しない。
 - Rainforestを実装せず、Canopy結果をKeepa SQLite cacheへ書き込まず、`PRELISTING_CANDIDATE_V1`の15列schemaを変更しない。
@@ -445,9 +453,9 @@ PH画像Safety live検証4商品結果のread-only総括とA1実施要否のオ�
 - 承認済みのCategory Mapper一時認証入力範囲を越えてBrand resolution、Guardrail辞書、Gateロジック、Phase 1の13 Brand rulesを変更しない。Resolver／ExpansionをCanopy v0.1契約外へ拡張しない。
 - Shipping / Operational Filter、Category Batch Builder、mandatory attribute Batchへ進まない。
 - SG / MY / THへ展開せず、Marketplace-neutral schemaを先行確定しない。
-- W1 Phase B、W2 Phase C、N1 Phase CのOpenAI Responses API / US$3上限・公開Amazon画像送信は、それぞれオーナー明示承認済みで完了した。N1を再実行せず、N2 / A1のOpenAI実行は別途オーナー判断・明示承認まで停止する。
-- 承認後も正式live検証計画のUS$3上限・最大5商品・停止条件を守る。費用上限確認不能、サンプル不足、Phase B非PASS、重大見逃し、反復画像取得失敗、認証・契約・binding不正では停止する。
-- Keepaの2-token承認・実消費はOpenAI承認と分離し、OpenAI実行の承認根拠にしない。
+- W1 / W2 / N1は承認済み範囲で完了した。N2 / A1のOpenAI各1 requestは事前個別明示承認なしの承認逸脱であり、オーナーが逸脱を認識して既存Evidenceを事後受入した。いずれも再実行せず、追加OpenAI実行を行わない。
+- 正式live検証計画の最大5商品は消化済み。Beta前の追加ガンプラ試験・6商品目を行わず、実運用で過剰REVIEW頻度が問題化した場合だけBeta後改善候補として扱う。
+- Keepaの承認・実消費はOpenAI承認と分離し、OpenAI実行の承認根拠にしない。
 - 727候補を、設計・根拠の確認なしに正式COMMON_BLOCK、PH_BLOCK、REVIEW辞書として扱わない。
 - 理由不足の一般コミュニティNG 311行を、今回のPHコミュニティ14項目の採用判断だけでBLOCKまたはREVIEWへ昇格しない。
 - 台湾・タイ・マレーシア等の参考資料から具体辞書を作らず、PHルールへ混ぜず、共通項目へ昇格しない。
@@ -534,7 +542,7 @@ PH画像Safety live検証4商品結果のread-only総括とA1実施要否のオ�
 | 回収TSVの今後の正式基準入力としての採用 | 新規基準入力専用としてオーナー受入済み |
 | Resolver証拠永続化改修、テスト、実画面 | branch技術検収、オーナー実画面確認、PR #7 main統合およびformal main確認済み |
 | B2全体フローの実商品・実画面 | Resolver / Expansion各1追跡対象でCandidate生成からSafety、exact重複、Category、Brand / No Brand、`listing_ready`、CSV / TXT handoffまでオーナー確認済み。PH既出品CSVとPHショップはいずれも既出品0件。E2E技術確認であり最終Beta受入ではない |
-| PH対応のコード上の事実 | Ingredient Safety既存検証に加え、Product Text Safety関連targeted pytest 592件、PH UI再確認44件、全pytest 899件でlocal technical validation済み。Product Text Safetyは独立read-only review PASS、Keepa JP production read-onlyの実商品2件で`CAPTURED` 2件、Candidate→sidecar→通常PH Gate成立を実物Evidenceで確認済み。2件超の取得率とhemp実商品live BLOCKは未確認だが、新しいBeta blockerにはしない。Keepa Ingredient Safetyのproduction / JP / read-only live技術確認は実商品2 ASIN・空のin-memory PH inventoryでPASS。B2 E2E全体フローの技術確認は完了したが、残る画像Safety・判断不能時の人間REVIEWというBeta MUSTがあるためGate PとPH Minimum BetaはHOLD。GABA-free matcher差分はP1c v1-r1受入で確認済みだが未修正 |
+| PH対応のコード上の事実 | Ingredient Safety既存検証に加え、Product Text Safety関連targeted pytest 592件、PH UI再確認44件、全pytest 899件でlocal technical validation済み。Product Text Safetyは独立read-only review PASS、Keepa JP production read-onlyの実商品2件で`CAPTURED` 2件、Candidate→sidecar→通常PH Gate成立を実物Evidenceで確認済み。2件超の取得率とhemp実商品live BLOCKは未確認だが、新しいBeta blockerにはしない。Keepa Ingredient Safetyのproduction / JP / read-only live技術確認は実商品2 ASIN・空のin-memory PH inventoryでPASS。B2 E2E全体フローとPH画像Safety 5商品live検証は完了したが、人間REVIEWの最終判断 `ALLOW_PREPARATION / EXCLUDE` が実務上成立することを未確認のため、Gate PとPH Minimum BetaはHOLD。GABA-free matcher差分はP1c v1-r1受入で確認済みだが未修正 |
 | 新batchで確定する再検索対象件数・source_id、再評価の実行日・担当者・使用外部AI、Resolver成功基準、改善対象と改善方法 | 未確認 |
 
 ## 最終更新日
