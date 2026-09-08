@@ -33,7 +33,7 @@ Category Mapperは出品可否の最終判断者ではなく、Safety判定を�
 
 PHではPhase 1 deterministic BLOCKのmain技術受入後、PH Beta Minimum Definitionを先に置く。Beta Minimum Coreは、(B1) ExpansionとResolverの両入口による候補ASIN取得、(B2) PH Safety、(B3) 確認済みShopee Category IDへの経路、(B4) 確認済みShopee Brand IDまたはNo Brandへの経路、(B5) 未確定を推測で準備完了にしない停止能力、(B6) ASIN・Category ID・Brand ID / No Brandの揃い具合の一意な判別、(B7) 人間が確認済み情報を取得して既存出品ツールへの手入力準備に利用できるhandoffとする。これは外部出品ツールへの自動投入や実際の出品可能を意味しない。
 
-PH Beta Minimum Feasibility Auditと、B1〜B7完成定義に対する旧差分監査は完了し、確認済み`MISSING_IMPLEMENTATION`は0件だった。この結果は履歴として保持する。DEC-0049で切り替えた新Beta完成線のB0 read-only差分監査も完了し、description / features等が現行Gateへ届かないこととPH hemp Rule未実装を確認した。B1では固定15列Candidateを維持した`PRODUCT_TEXT_SAFETY_FACT_V1` sidecarとPH限定hemp Ruleを必要最小限で実装し、独立read-only reviewとKeepa JP production read-onlyのlive技術確認をPASSした。実商品2件でProduct Text Safety Factが`CAPTURED` 2件となり、Candidateからsidecarを経て通常PH Gateまで成立した。Product Textの2件超の取得率とhemp実商品live BLOCKは未確認だが、新しいBeta blockerにはしない。B2ではResolver / Expansionの両入口について、Candidate生成からSafety、exact重複、Category、Brand / No Brand、`listing_ready`、CSV / TXT handoffまで少量実商品で成立した。これはE2E技術確認であり、画像Safetyと重大Safety判断不能時の人間REVIEWという残るBeta MUSTがあるため、Gate PとPH Minimum BetaはHOLDを継続する。Amazon Data Provider Test Bridge Design Gateでは、Keepaを本番標準として維持し、Canopyを明示設定時だけ用いる開発・試験専用providerとして採用した（DEC-0033）。Canopy Test Provider v0.1はmain上の正式技術成果であり、CanopyはKeepa本番確認を代替せず、Safety / Category / Brandの責務は変更しない。外部出品ツールの正式入力契約はBeta MUSTではなく、mandatory attribute全面対応はconditionalのままとする。
+PH Beta Minimum Feasibility Auditと、B1〜B7完成定義に対する旧差分監査は完了し、確認済み`MISSING_IMPLEMENTATION`は0件だった。この結果は履歴として保持する。DEC-0049で切り替えた新Beta完成線のB0 read-only差分監査も完了し、description / features等が現行Gateへ届かないこととPH hemp Rule未実装を確認した。B1では固定15列Candidateを維持した`PRODUCT_TEXT_SAFETY_FACT_V1` sidecarとPH限定hemp Ruleを必要最小限で実装し、独立read-only reviewとKeepa JP production read-onlyのlive技術確認をPASSした。実商品2件でProduct Text Safety Factが`CAPTURED` 2件となり、Candidateからsidecarを経て通常PH Gateまで成立した。Product Textの2件超の取得率とhemp実商品live BLOCKは未確認だが、新しいBeta blockerにはしない。B2ではResolver / Expansionの両入口について、Candidate生成からSafety、exact重複、Category、Brand / No Brand、`listing_ready`、CSV / TXT handoffまで少量実商品で成立した。B3ではPH画像Safety 5商品live検証と人間REVIEWの`EXCLUDE` / `ALLOW_PREPARATION`実務確認を完了し、技術blockerなしを確認した。DEC-0055でオーナーがDEC-0049のBeta MUST 10項目を最終受入したため、Gate PとPH Minimum Betaは`PASS / OWNER_ACCEPTED`とし、PHの少量Beta実利用フェーズへ移行する。Amazon Data Provider Test Bridge Design Gateでは、Keepaを本番標準として維持し、Canopyを明示設定時だけ用いる開発・試験専用providerとして採用した（DEC-0033）。Canopy Test Provider v0.1はmain上の正式技術成果であり、CanopyはKeepa本番確認を代替せず、Safety / Category / Brandの責務は変更しない。外部出品ツールの正式入力契約はBeta MUSTではなく、mandatory attribute全面対応はconditionalのままとする。
 
 Beta前に詳細なE2E人間作業時間測定、`CORE_INFO_READY ASIN / human hour`、Human Touch Rate、固定工数削減目標を必須Gateにしない。Beta後は実利用、オーナーによる実務ボトルネック報告、次versionでの改善を反復する。必要になったE2E時間測定はこのBeta後の改善手段候補とし、既存の件数、status、未解決理由等の自動出力を優先して、人間へ詳細な時間記録を常時要求しない。他市場への共通化はPH Betaの成立確認後に別途判断する。
 ## 正式完成済み
@@ -119,19 +119,23 @@ Resolver入口ではCandidate 1件、Expansion入口ではstrict 1ページか�
 
 この結果は現行機能でE2E全体フローが成立した技術確認であり、Gate P PASSまたはPH Minimum Beta PASSではない。B2を最初から再実行することは次工程にせず、残るBeta MUST対応後に最終オーナーBeta受入を行う。
 
-### B3 — PH 画像Safety・人間REVIEW（最小実装・mock検証済み／外部受入前）
+### B3 — PH 画像Safety・人間REVIEW（実装・live検証・実務確認完了）
 
 DEC-0051で、対象を画像上で見える武器・武器形状物の疑義発見に限定し、AI単独ではBLOCK、SAFE保証、既存BLOCK解除を行わず、画像AI対象商品の`NO_SIGNAL`以外のAI結果を原則商品単位REVIEWへ止める事業ルールを確定した。人間最終判断は`ALLOW_PREPARATION`と`EXCLUDE`とし、前者は画像由来REVIEWだけを解除し、後者は対象商品だけを準備対象から外す。固定15列Candidateを維持し、画像Safetyは独立sidecarを基本方針とする。
 
 DEC-0052で販売規制ガイドを市場横断のGit外Evidenceとして登録し、DEC-0053でPH画像Safety selectorのBeta範囲を確定した。対象4 root、root不明時の対象化、既存BLOCK優先、未実行とNO_SIGNALの分離はDEC-0053を正本とし、資料索引は `docs/evidence/GUARDRAIL_SOURCE_MANIFEST.csv` を参照する。
 
-DEC-0054でOpenAI Responses API、`gpt-5.6-terra`の画像入力、最大3画像・原則1商品1 request、Structured Outputs、保存不要設定を基本方式として確定した。既存Keepa応答からのroot・画像情報搬送、未実行・AI結果・システム状態の分離、安全なCandidate bindingを持つ専用sidecarを最小実装の境界とする。DEC-0054に基づく最小実装として、両入口の画像情報搬送、専用JSON sidecar、Responses API接続、既存Safety後の画像判定、人間REVIEW UIを追加し、synthetic / mock / AppTestで検証した。次の単一作業は「PH画像Safety Minimum Beta実装差分のread-onlyレビュー」とする。実API・画像取得・検出品質・実費と実商品受入は未確認であり、外部検証は別途承認とする。Gate P / PH Minimum BetaはHOLDを継続する。
+DEC-0054でOpenAI Responses API、`gpt-5.6-terra`の画像入力、最大3画像・原則1商品1 request、Structured Outputs、保存不要設定を基本方式として確定した。既存Keepa応答からのroot・画像情報搬送、未実行・AI結果・システム状態の分離、安全なCandidate bindingを持つ専用sidecarを最小実装の境界とする。DEC-0054に基づく最小実装として、両入口の画像情報搬送、専用JSON sidecar、Responses API接続、既存Safety後の画像判定、人間REVIEW UIを追加し、synthetic / mock / AppTestで検証した。続く正式計画では5商品live検証を完了し、疑義あり2/2を`REVIEW`、非該当2/2を`NO_SIGNAL`、境界1件を`REVIEW`として技術blockerなしを確認した。人間REVIEWではW1 `EXCLUDE`とA1 `ALLOW_PREPARATION`からの`ELIGIBLE`復帰、binding、sidecar再読込、rerun保持、既存`BLOCK` / `REVIEW`非解除を実物確認した。
 
 Category 170 / 108 / 62件、Category Safety網羅化、高度な重複判定、確定NGリスト外の広範な知財AI推測、他marketplace、自動出品を新しいBeta blockerへ追加しない。GABA-free matcher差分は既知差分として保持するが本工程に含めない。Boseは既存Evidence上の未接続事項として保持し、画像Safety設計へ混在させず、Beta前の追加実装要否を別途判断する。
 
-### B4 — 残るBeta MUST対応後の最終オーナー受入
+### B4 — 最終オーナー受入（完了）
 
-B3で確定した設計に基づく必要最小限の対応と検証が完了した後、オーナーへPH Minimum Betaを実務投入してよいかの最終判断を求める。受入まではGate PとPH Minimum BetaをHOLDとする。
+DEC-0055でオーナーがDEC-0049のBeta MUST 10項目を基準にPH Minimum Betaを最終受入した。Gate Pは`PASS`、PH Minimum Betaは`PASS / OWNER_ACCEPTED`であり、PHに限定した少量実務投入を承認済みとする。これは完全なSafety保証、規約適合保証、自動出品完成、外部出品ツール正式契約確認、他marketplace受入、Resolver成功判定を意味しない。
+
+### Beta実利用
+
+PH Minimum Betaを少量の実務へ投入し、最初の実運用で重大事故または実務ボトルネックが発生するかを確認する。改善は実利用で観測した頻度、被害、運用負荷、修正コストに基づいて判断し、既存の`BETA_AFTER_CANDIDATE`をBeta前blockerへ戻さない。
 
 ### BETA_AFTER_CANDIDATE
 

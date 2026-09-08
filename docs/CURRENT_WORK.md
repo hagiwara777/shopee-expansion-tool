@@ -13,13 +13,17 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH画像Safety / 人間REVIEW実務確認完了`
-- current_phase: `5商品live検証終了・W1 EXCLUDE / A1 ALLOW_PREPARATION実物確認PASS・技術blockerなし`
-- working_branch: `codex/ph-image-safety-human-review-validation`
+- current_work_type: `PH Minimum Beta / 最終オーナー受入完了`
+- current_phase: `DEC-0049 Beta MUST 10項目受入・Gate P PASS・PH Minimum Beta OWNER_ACCEPTED・少量実務投入承認済み`
+- working_branch: `codex/ph-minimum-beta-owner-acceptance`
 - marketplace: `PH`
-- module: `PH画像Safety / 人間REVIEW（実務確認）`
-- phase: `人間最終判断・binding・Gate反映・再読込確認PASS / 最終オーナー受入前 / Gate P HOLD`
-- next_action: `PH Minimum Beta最終オーナー受入可否の判断`
+- module: `PH Minimum Beta / Beta実務投入`
+- phase: `最終オーナー受入完了 / Gate P PASS / PH Minimum Beta PASS / OWNER_ACCEPTED`
+- next_action: `PH Minimum Betaを少量の実務へ投入し、最初の実運用で重大事故または実務ボトルネックが発生するか確認する`
+
+2026-09-08、formal main `8bfc46a2fe35b4492fe4365dbcb30353b3b9404f`上で、オーナーがDEC-0049のBeta MUST 10項目に基づくPH Minimum Betaを最終受入した。Gate Pを`PASS`、PH Minimum Betaを`PASS / OWNER_ACCEPTED`へ更新し、PHに限定した少量実務投入を承認済みとする。Product Text Safety必要最小対応、Resolver / Expansion両入口の少量実商品E2E、PH画像Safety 5商品live検証、人間REVIEWの`EXCLUDE` / `ALLOW_PREPARATION`実務確認を受入根拠とする。
+
+この受入は完全なSafety保証、規約適合保証、自動出品完成、外部出品ツール正式契約の確認、他marketplaceの受入、Resolver成功判定を意味しない。画像Safety追加サンプル検証は終了し、既存の`BETA_AFTER_CANDIDATE`をBeta前blockerへ戻さない。OpenAI / Keepa / Shopee API、実商品処理、Shopee書込み、deploy、Beta実運用開始は今回0。DecisionはDEC-0055を参照する。
 
 2026-09-08、formal main `94b69ec26a688e12fc08b767fed6b2bd3ba76b4b`上で、既存Evidence内のAI `REVIEW`商品2件を用いて人間最終判断の実務確認を行った。オーナーはW1を、刀の鞘と柄が見えることを理由に`EXCLUDE`と判断した。入力の`XCLUDE`は文脈上の表記ゆれとして`EXCLUDE`へ正規化した。A1は、ビームサーベルの全体が見える場合は除外の可能性があるが一部だけでは問題なしとの理由で`ALLOW_PREPARATION`と判断した。銃器系・戦車系への所感は判断理由の一部としてのみ記録し、Rule・selector・model・prompt・schema・core仕様は変更していない。
 
@@ -207,9 +211,9 @@ PR #16はGate結果CSVのschema version再検証をmainへ統合し、formal mai
 
 ## 完了・受入済み
 
-- PH画像Safety live検証は正式計画の全5商品を終了。W1 / W2疑義あり2/2は`REVIEW`、N1 / N2非該当2/2は`NO_SIGNAL`、A1曖昧1/1は`REVIEW`。A1の承認逸脱を認識した事後受入を含め、既存Evidenceを再実行せず採用。技術blockerなし。Gate P / PH Minimum BetaはHOLD
-- B2少量実商品のE2E全体フロー技術確認を完了した。Resolver入口はCandidate 1件、Expansion入口はstrict 1ページのうち人間追跡対象1件とし、両入口でIngredient Safety / Product Text Safety CAPTURED、PH Gate SAFE / ELIGIBLE、入力内exact UNIQUE、既出品exact CLEAR、Category確定、Brand / No Brand確定、`listing_ready = TRUE`、CSV / TXT handoff取得まで成立した。PH既出品CSVは0 ASINで、オーナー確認でもPHショップの既出品は0件だった。Shopee live書込みとコード・Rule・辞書・tests変更は0だった。これは技術確認であり、Gate PまたはPH Minimum BetaのPASSではない。
-- DEC-0049でPH Minimum Beta完成線を重大実務リスク中心へ再設定。旧P1cのCategory完全追跡を`BETA_AFTER_CANDIDATE`へ移し、過去成果・Evidenceは保持。Gate PはHOLD
+- PH画像Safety live検証は正式計画の全5商品を終了。W1 / W2疑義あり2/2は`REVIEW`、N1 / N2非該当2/2は`NO_SIGNAL`、A1曖昧1/1は`REVIEW`。A1の承認逸脱を認識した事後受入を含め、既存Evidenceを再実行せず採用。技術blockerなし。人間REVIEW実務確認と最終オーナー受入を経て、Gate P / PH Minimum Betaは`PASS / OWNER_ACCEPTED`
+- B2少量実商品のE2E全体フロー技術確認を完了した。Resolver入口はCandidate 1件、Expansion入口はstrict 1ページのうち人間追跡対象1件とし、両入口でIngredient Safety / Product Text Safety CAPTURED、PH Gate SAFE / ELIGIBLE、入力内exact UNIQUE、既出品exact CLEAR、Category確定、Brand / No Brand確定、`listing_ready = TRUE`、CSV / TXT handoff取得まで成立した。PH既出品CSVは0 ASINで、オーナー確認でもPHショップの既出品は0件だった。Shopee live書込みとコード・Rule・辞書・tests変更は0だった。このB2技術確認単独ではGate PまたはPH Minimum BetaのPASS根拠とせず、DEC-0055の最終オーナー受入と合わせて現在は`PASS / OWNER_ACCEPTED`とする。
+- DEC-0049でPH Minimum Beta完成線を重大実務リスク中心へ再設定。旧P1cのCategory完全追跡を`BETA_AFTER_CANDIDATE`へ移し、過去成果・Evidenceは保持。当時のGate PはHOLDであり、DEC-0055の最終オーナー受入により現在は`PASS`
 - P1c POST_CATEGORY Connection Design v1とGit外成果物3件のOWNER_ACCEPTED。170件 = strict接続可能62件 + 未解決108件。108件は追加Evidence対象であり解決済みではなく、62件はRule実装済みではない（DEC-0048）
 - Shopee PH Category Taxonomy Freshness AuditとCategory ID exact照合完了（2026-08-29 read-only audit）
 - PH Safety二段階設計のCodex・Claude独立レビュー完了（ともに`ACCEPT_WITH_REQUIRED_CHANGES`）とオーナー採用
@@ -374,7 +378,7 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 - Product Textの2件超の取得率とhemp実商品によるlive BLOCKは未確認だが、新しいBeta blockerにはしない
 - PH画像Safety live検証は全5商品終了。W1 / W2は事前期待「疑義あり」2/2に対して`REVIEW`、N1 / N2は事前期待「非該当」2/2に対して`NO_SIGNAL`、A1は事前期待「曖昧・判断保留」に対して`REVIEW`。全件で技術blockerなし
 - N2 / A1のOpenAI各1 requestは事前個別明示承認なしの承認逸脱として記録済み。オーナーは各逸脱を認識し、再実行せず既存Evidenceを事後受入した。A1はオーナー目視で武器形状物なし、AI `REVIEW`の過剰REVIEW候補だが、今回の人間判断で`ALLOW_PREPARATION`へ進められることを確認した。W1の`EXCLUDE`と合わせ、人間最終判断の実務確認はPASS
-- 画像Safety・人間REVIEWのBeta MUST実務確認後に行うPH Minimum Betaの最終オーナー受入。Gate PはそれまでHOLD
+- PH Minimum Beta最終オーナー受入は完了。初回の少量実運用で重大事故または実務ボトルネックが発生するかは未確認
 - `BETA_AFTER_CANDIDATE`: 画像Safetyのtitle trigger、subcategory細分化、全rootの網羅的画像リスク調査（DEC-0053）
 - `BETA_AFTER_CANDIDATE`: `gpt-5.6-luna`へのコスト最適化比較、provider複数対応、AI結果cache、その他root拡張（DEC-0054）
 - `BETA_AFTER_CANDIDATE`: P1c POST_CATEGORY 170件（strict接続可能62件、未解決108件）の完全追跡、Seller Centre Category Evidenceの追加照合、62件の個別Rule scope review、Category依存Safetyの網羅的Rule化、古いCategoryの後継Category完全特定
@@ -385,8 +389,8 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 - GABAを含む実商品によるlive BLOCK確認
 - Canopyの長期品質・安定性、実商品の網羅確認
 - Category ID等を扱うGuardrail候補データ構造・判定単位・根拠種別の設計
-- Gate P branch全体の第三者独立レビュー（P5で、Ingredient Safetyと最新Guardrailを含むEvidence Packageを再生成した後に実施する。実装前の古いClaude Evidence Packageは使用しない）
-- 残るBeta MUST対応後のPH Minimum Beta正式技術判定とオーナー最終事業決裁
+- 旧P5のGate P branch全体第三者独立レビューはDEC-0049でBeta前必須順序から外れた。必要性が生じた場合のBeta後候補として保持し、実装前の古いClaude Evidence Packageは使用しない
+- PH Minimum Betaの初回少量実運用結果に基づく重大事故・実務ボトルネックの確認
 - ASIN到達性能の評価
 - 出品後商品改善ツールの将来優先順位判断
 - Amazon仕入れ支援ツールの将来優先順位判断
@@ -413,11 +417,11 @@ DEC-0046正本化差分のmain統合確認後、P1cの受入済み229候補をCa
 
 ## 次の単一作業
 
-PH Minimum Beta最終オーナー受入可否の判断
+PH Minimum Betaを少量の実務へ投入し、最初の実運用で重大事故または実務ボトルネックが発生するか確認する
 
 ## 停止条件
 
-- 残るBeta MUSTの対応と最終オーナーBeta受入までは、Gate P PASSまたはPH Minimum Beta PASSとして扱わない。
+- Gate P / PH Minimum Betaの`PASS / OWNER_ACCEPTED`はPHの少量実務投入に限定し、完全なSafety保証、規約適合保証、自動出品完成、他marketplace受入へ拡張しない。
 - B2全体フローは現行機能によるE2E技術確認完了として扱い、新しい不具合Evidenceがない限り最初からの再実行を次工程にしない。
 - PH画像Safetyの正式計画内live検証は5商品で終了した。6商品目・Beta前の追加ガンプラ試験・再実行を行わず、ph_image_safety実装、prompt、model、detail、selector、Rule・辞書・Candidate 15列・既存判定優先順位を変更しない。承認範囲外API、Shopee live書込みは行わない。
 - DEC-0053のselector範囲を自動拡張せず、title trigger、subcategory細分化、全rootの網羅的画像リスク調査をBeta前に再開しない。
@@ -442,7 +446,7 @@ PH Minimum Beta最終オーナー受入可否の判断
 - W1 / W2 / N1 / N2 / A1の5商品live検証は終了済み。既存Evidenceを再利用し、再実行・追加商品・6商品目へ進まない。
 - Candidate物理schemaを推測で変更しない。
 - P5のEvidence Package再生成前に第三者独立レビューへ戻らない。
-- Gate P PASSをPH Minimum Beta正式完成またはmain統合済みと扱わない。
+- Gate P / PH Minimum Beta PASSを、自動出品、外部出品ツール正式契約、他marketplace受入、Resolver成功判定の根拠にしない。
 - 人間作業時間measurement logを作らず、E2E時間測定を開始しない。
 - Phase 2へ自動直進しない。
 - AI Shadowを開始しない。
@@ -549,7 +553,7 @@ PH Minimum Beta最終オーナー受入可否の判断
 | 回収TSVの今後の正式基準入力としての採用 | 新規基準入力専用としてオーナー受入済み |
 | Resolver証拠永続化改修、テスト、実画面 | branch技術検収、オーナー実画面確認、PR #7 main統合およびformal main確認済み |
 | B2全体フローの実商品・実画面 | Resolver / Expansion各1追跡対象でCandidate生成からSafety、exact重複、Category、Brand / No Brand、`listing_ready`、CSV / TXT handoffまでオーナー確認済み。PH既出品CSVとPHショップはいずれも既出品0件。E2E技術確認であり最終Beta受入ではない |
-| PH対応のコード上の事実 | Ingredient Safety既存検証に加え、Product Text Safety関連targeted pytest 592件、PH UI再確認44件、全pytest 899件でlocal technical validation済み。Product Text Safetyは独立read-only review PASS、Keepa JP production read-onlyの実商品2件で`CAPTURED` 2件、Candidate→sidecar→通常PH Gate成立を実物Evidenceで確認済み。2件超の取得率とhemp実商品live BLOCKは未確認だが、新しいBeta blockerにはしない。Keepa Ingredient Safetyのproduction / JP / read-only live技術確認は実商品2 ASIN・空のin-memory PH inventoryでPASS。B2 E2E全体フロー、PH画像Safety 5商品live検証、人間REVIEWの最終判断 `ALLOW_PREPARATION / EXCLUDE` の実務確認は完了した。最終オーナー受入前のため、Gate PとPH Minimum BetaはHOLD。GABA-free matcher差分はP1c v1-r1受入で確認済みだが未修正 |
+| PH対応のコード上の事実 | Ingredient Safety既存検証に加え、Product Text Safety関連targeted pytest 592件、PH UI再確認44件、全pytest 899件でlocal technical validation済み。Product Text Safetyは独立read-only review PASS、Keepa JP production read-onlyの実商品2件で`CAPTURED` 2件、Candidate→sidecar→通常PH Gate成立を実物Evidenceで確認済み。2件超の取得率とhemp実商品live BLOCKは未確認だが、新しいBeta blockerにはしない。Keepa Ingredient Safetyのproduction / JP / read-only live技術確認は実商品2 ASIN・空のin-memory PH inventoryでPASS。B2 E2E全体フロー、PH画像Safety 5商品live検証、人間REVIEWの最終判断 `ALLOW_PREPARATION / EXCLUDE` の実務確認、PH Minimum Beta最終オーナー受入は完了した。Gate PとPH Minimum Betaは`PASS / OWNER_ACCEPTED`で、PHの少量実務投入を承認済み。GABA-free matcher差分はP1c v1-r1受入で確認済みだが未修正 |
 | 新batchで確定する再検索対象件数・source_id、再評価の実行日・担当者・使用外部AI、Resolver成功基準、改善対象と改善方法 | 未確認 |
 
 ## 最終更新日
