@@ -651,3 +651,16 @@
 - 理由: 既存の事業ルールとselectorを変更せず、1 provider・1 API・専用sidecarに絞り、AIの意味上の出力、未実行、商品単位の失敗、全体停止、人間判断の境界を保った最小実装へ進むため。
 - 影響: DECISION_LOGへの追記、CURRENT_WORKの技術選定済み・次作業・停止条件、PROJECT_ROADMAPの必要な工程差分だけを更新する。snapshotは既存手順で再生成・検証し、Git管理対象外を維持する。関連文書検証後のローカルcommitまでを今回の承認範囲とし、push / PR / mergeは別途オーナー承認を得る。Guardrail Rule・辞書、既存判定ロジック、Candidate 15列、画像AI実装コードは変更せず、外部API実行、実商品処理、deploy、Shopee live書込みは行わない。
 - 再検討条件: 指定model・API・設定を利用できないと判明したとき、最大3画像・追加Keepa requestなしでは承認済み境界を満たせないとき、安全なbindingまたは商品REVIEW / Gate STOPの分離を維持できないとき、あるいは検証Evidenceから事業範囲の変更が必要になったとき。モデル代替、対象拡張、既存Safety解除を暗黙に行わず、別判断として記録する。
+
+## DEC-0055 — PH Minimum Betaを最終受入し少量実務投入へ移行する
+
+- 日付: 2026-09-08
+- 背景: DEC-0049はPH Minimum Beta前のMUSTを重大実務リスク中心の10項目へ限定し、少量実商品で一連の流れを確認した後にオーナーがBeta受入を判断する完成線を定めた。Product Text Safetyの必要最小対応、Resolver / Expansion両入口の少量実商品E2E、PH画像Safetyと人間REVIEWの実務確認が完了したため、formal main `8bfc46a2fe35b4492fe4365dbcb30353b3b9404f`上で最終事業決裁を行う。
+- 確認事実: Product Text Safetyは固定15列Candidateを維持したsidecarとPH限定hemp Ruleの必要最小対応を完了し、独立read-only reviewとKeepa JP production read-onlyの少量live技術確認をPASSした。Resolver / Expansion両入口では、少量実商品でCandidate生成からSafety、exact重複、Category、Brand / No Brand、`listing_ready`、CSV / TXT handoffまでのE2E成立を確認した。
+- 確認事実: PH画像Safetyは正式計画の5商品live検証を終了し、技術blockerは確認されなかった。疑義ありW1 / W2は2/2で`REVIEW`、非該当N1 / N2は2/2で`NO_SIGNAL`、境界A1は`REVIEW`となった。人間REVIEWではW1を`EXCLUDE`、A1を`ALLOW_PREPARATION`として元の`ELIGIBLE`へ戻す操作を実物確認した。Candidate SHA、ASIN集合、評価、人間判断のbinding、sidecar再読込、rerun保持、判断取消時の`REVIEW`復帰、既存`BLOCK` / `REVIEW`非解除をPASSした。
+- 決定: オーナーはDEC-0049の現行Beta MUST 10項目を基準としてPH Minimum Betaを最終受入する。Gate Pを`PASS`、PH Minimum Betaを`PASS / OWNER_ACCEPTED`とし、PHに限定した少量実務投入を承認する。画像Safety追加サンプル検証は終了し、6商品目またはBeta前の追加ガンプラ試験を開始しない。
+- 境界: この受入は、完全なSafety保証、Shopeeその他の規約適合保証、自動出品の完成または承認、外部出品ツールの正式契約確認、PH以外のmarketplace受入を意味しない。ASIN到達性能およびResolver成功基準は別の未確認事項として保持し、本受入から成功判定を推測しない。GABA-free matcher差分、Bose、Category 170 / 108 / 62件、`ADDITIONAL_FACT_REQUIRED` 59件、その他の既知課題を完了扱いにしない。
+- 決定: DEC-0049、DEC-0053、DEC-0054で`BETA_AFTER_CANDIDATE`とした項目はその区分を維持し、今回の最終受入を理由にBeta前blockerへ戻さない。Beta後の改善は、実利用で観測した発生頻度、被害、実務ボトルネック、修正コストに基づいて優先順位を判断する。
+- 理由: 承認済みの重大リスク中心の完成線に対して、必要最小実装、少量実商品E2E、画像Safety品質sanity、人間safe stopと最終判断が成立し、少量実務投入を妨げる技術blockerが確認されなかったため。
+- 影響: `CURRENT_WORK.md`を最終受入完了・Beta実務投入へ切り替え、`PROJECT_ROADMAP.md`のB4を完了としてPH Minimum BetaをBeta実利用フェーズへ移す。今回の正本化ではOpenAI / Keepa / Shopee API、実商品処理、Shopee書込み、deploy、Beta実運用を実行せず、コード、Rule、辞書、selector、model、prompt、schemaを変更しない。snapshotを既存手順で再生成・検証し、検証済み文書差分をローカルcommitまで行う。push / PR / mergeは別途オーナー承認を得る。
+- 再検討条件: 初回または継続するBeta実利用で重大事故、重大な見逃し、許容できない過剰REVIEW、実務不能なボトルネック、費用・遅延・外部契約上の障害が確認されたとき、またはPH以外へ範囲を広げる判断が必要になったとき。発生時はGate停止または改善要否を個別に判断し、本受入を完全保証として扱わない。
