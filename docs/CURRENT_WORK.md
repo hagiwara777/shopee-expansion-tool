@@ -13,13 +13,19 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH画像Safety / Phase C N2事前画像確認準備`
-- current_phase: `W1 / W2疑義あり2/2完了・N1非該当1/1正式受入PASS / blockerなし / N2・A1未実行`
+- current_work_type: `PH画像Safety / Phase C N2受入・承認逸脱記録`
+- current_phase: `W1 / W2疑義あり2/2完了・N1 / N2非該当2/2正式受入PASS / N2承認逸脱記録済み / blockerなし / A1未実行`
 - working_branch: `codex/ph-image-safety-live-validation`
 - marketplace: `PH`
 - module: `PH画像Safety / 人間REVIEW（live検証）`
-- phase: `Phase B PASS・Phase C W2品質sanity PASS・N1品質sanity / 正式受入PASS・N2/A1未実行 / Gate P HOLD`
-- next_action: `N2非該当サンプルのexact画像をAI実行前にオーナー確認し、事前期待区分を確定`
+- phase: `Phase B PASS・Phase C W2品質sanity PASS・N1 / N2正式受入PASS・A1未実行 / Gate P HOLD`
+- next_action: `PH画像Safety live検証4商品結果のread-only総括とA1実施要否のオーナー判断`
+
+2026-09-08、formal main `b939ffcf7953cd7af99795f85d388763a7dd61d3`と同一tree上でPhase C N2の技術結果を取得した。固定N2候補はKeepa Product Request 1回・1 token・retry 0で取得し、ホビーroot `2277721051`、`TARGET_ROOT`、既存Safety `SAFE`、exact画像3件の`SAMPLE_READY`となった。オーナーはOpenAI送信前に3画像が同一商品で武器・武器形状物の疑義なしと確認し、期待区分「非該当」をexact画像SHA-256へbindingしてGit外Evidenceに固定した。画像確認と期待区分の確定はOpenAI有料実行の個別明示承認ではなく、OpenAI 1 requestは事前承認なしで実行された。追加候補探索は行っていない。
+
+N2は現行選択順の3画像すべて`LOADED`。OpenAI Responses APIは`gpt-5.6-terra`、現行prompt / strict schema / `detail=auto` / `reasoning.effort=low` / `store=false`のまま1 request、retry 0、HTTP 200、応答status / system status `completed` / `COMPLETED`、AI status `NO_SIGNAL`となった。schema、Candidate / ASIN集合 / 使用画像 / provider-model sidecar binding、Gate反映、既存Safety非解除、通常rerun再送信0はすべてPASS。事前期待「非該当」と一致し、blockerなし。N2品質sanityはオーナー受入PASSとする。`NO_SIGNAL`はSAFE保証または人間最終判断ではない。
+
+N2全体latencyは4.158秒。usageはinput 3,920 tokens（standard 3、cache write 3,917、cached 0）、output 58 tokens（reasoning 0）、total 3,978。N2のUS$0.0104945とW1 / W2 / N1を含む累計US$0.0626565はusageベース算定額であり、actual billed costとは断定しない。OpenAI 1 requestは事前の個別明示承認なしで実行されたため、承認逸脱として記録する。オーナーは逸脱を認識した上で、再実行せず既存N2 Evidenceを受け入れた。受入後の再実行・OpenAI / Keepa追加APIは0。Git外Evidence `ART-PH-IMAGE-SAFETY-PHASE-C-N2-20260908T014059Z`の更新後manifest完全SHA-256は`997da01642388b869e040fe77e3ba3473ec024446c8652bbe76685ed8ef058cc`。credential値・hashと画像bytesは保存していない。A1 OpenAI、Shopee書込み、deployは0。Gate P / PH Minimum BetaはHOLDを継続する。
 
 2026-09-08、formal main `a4346a4be6f990238c46d184965f9edf6a8b13b7`上のN1 Phase C live検証記録をread-only確認し、オーナー受入PASSとした。N1品質sanityはPASS、blockerなし。W1 / W2疑義あり2/2とN1非該当1/1を確認完了し、N2 / A1は未実行、Gate P / PH Minimum BetaはHOLDを継続する。
 
@@ -316,6 +322,7 @@ CI成果物で再確認された事実ではありません。コード機能の
 
 | artifact_id | 種別・版 | ファイル名 | SHA-256 | producer task | 受入状態 | storage alias | 用途 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| ART-PH-IMAGE-SAFETY-PHASE-C-N2-20260908T014059Z | Phase C N2 live検証 v1 | `EVIDENCE_MANIFEST.json` | `997da01642388b869e040fe77e3ba3473ec024446c8652bbe76685ed8ef058cc` | `Codex / PH image Safety live validation` | `OWNER_ACCEPTED_WITH_PROCESS_DEVIATION / AI_NO_SIGNAL` | `LOCAL_ARTIFACT_ROOT/PH_Image_Safety_Live_Validation/20260908T014059Z-phase-c-n2/EVIDENCE_MANIFEST.json` | 3/3画像LOADED、Responses 1 request・retry 0、schema / sidecar / Gate PASS、事前期待と一致、blockerなし。OpenAI事前個別明示承認なしの逸脱を認識し、再実行せず既存Evidenceをオーナー受入。US$0.0104945はusageベース算定額でありactual billed costではない。商品identity・追跡IDはGit外 |
 | ART-PH-IMAGE-SAFETY-PHASE-C-W2-20260904T041803Z | Phase C W2 live検証 v1 | `EVIDENCE_MANIFEST.json` | `36d4d5ce925565ca352758d637dcc9dfc69057c55d78adaf08b9746929115d8d` | `Codex / PH image Safety live validation` | `W2_QUALITY_SANITY_PASS / AI_REVIEW` | `LOCAL_ARTIFACT_ROOT/PH_Image_Safety_Live_Validation/20260904T041803Z-phase-c-w2/EVIDENCE_MANIFEST.json` | 3/3画像LOADED、Responses 1 request・retry 0、schema / sidecar / Gate PASS、事前期待と一致、blockerなし。US$0.007130はusageベース算定額でありactual billed costではない。商品identity・追跡IDはGit外 |
 | ART-PH-IMAGE-SAFETY-PHASE-B-20260903T205538Z | Phase B W1 live検証 v1 | `EVIDENCE_MANIFEST.json` | `5b0014a57bb271c76be46594883c1db3d34389babb93945bcd81aa07c11c9a16` | `Codex / PH image Safety live validation` | `LIVE_TECH_PASS / AI_REVIEW / OWNER_IMAGE_REVIEW_PASS` | `LOCAL_ARTIFACT_ROOT/PH_Image_Safety_Live_Validation/20260903T205538Z-phase-b-w1/EVIDENCE_MANIFEST.json` | 3/3画像LOADED、Responses 1 request・retry 0、schema / sidecar / Gate / owner image review PASS。US$0.024136はusageベース算定額でありactual billed costではない。商品identity・request IDはGit外 |
 | ART-PH-IMAGE-SAFETY-IMAGES-COMPAT-20260903T094757Z | 保存応答の画像Fact再評価 v1 | `EVIDENCE_MANIFEST.json` | `a26d641bd50f2a4e30d014b5175b7c3c28eb50096edeecf4876819afdad6905d` | `Codex / PH image Safety compatibility` | `SAMPLE_READY_2 / OPENAI_NOT_RUN` | `LOCAL_ARTIFACT_ROOT/PH_Image_Safety_Live_Validation/20260903T094757Z-images-compatibility/EVIDENCE_MANIFEST.json` | 元応答・実装SHA binding。各3画像候補、追加APIなし。商品identityはGit外 |
@@ -350,8 +357,8 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 ## 未完了事項
 
 - Product Textの2件超の取得率とhemp実商品によるlive BLOCKは未確認だが、新しいBeta blockerにはしない
-- W候補2件はSAMPLE_READY。Keepa 2 tokensは承認・実消費済み。W1 Phase BはLIVE_TECH_PASS / owner image review PASS。W2 Phase CはAI REVIEW・品質sanity PASS。N1はKeepa 1 token取得後、OpenAI 1 request・retry 0、AI NO_SIGNAL・品質sanity / 正式受入PASS。疑義あり2/2、非該当1/1を確認完了し、blockerなし。N2 / A1は未実行
-- W2 Phase C結果のread-only確認はPASS。N1はexact画像の事前期待「非該当」とAI `NO_SIGNAL`が一致し、品質sanity / 正式受入PASS。次はN2非該当サンプルのexact画像事前確認。人間最終判断`ALLOW_PREPARATION / EXCLUDE`は未実施
+- W候補2件はSAMPLE_READY。Keepa 2 tokensは承認・実消費済み。W1 Phase BはLIVE_TECH_PASS / owner image review PASS。W2 Phase CはAI REVIEW・品質sanity PASS。N1 / N2はAI NO_SIGNAL・品質sanity / 正式受入PASS。疑義あり2/2、非該当2/2で事前期待と一致し、blockerなし。A1は未実行
+- N2 Phase C結果はexact画像3/3 LOADED、schema / sidecar / Gate PASS、通常rerun再送信0。OpenAI 1 requestの事前個別明示承認なしを承認逸脱として記録し、オーナーは再実行せず既存Evidenceを受け入れた。受入後の再実行・追加APIは0。人間最終判断`ALLOW_PREPARATION / EXCLUDE`は未実施
 - 残る画像Safety・人間REVIEWのBeta MUST対応後に行うPH Minimum Betaの最終オーナー受入。Gate PはそれまでHOLD
 - `BETA_AFTER_CANDIDATE`: 画像Safetyのtitle trigger、subcategory細分化、全rootの網羅的画像リスク調査（DEC-0053）
 - `BETA_AFTER_CANDIDATE`: `gpt-5.6-luna`へのコスト最適化比較、provider複数対応、AI結果cache、その他root拡張（DEC-0054）
@@ -391,7 +398,7 @@ DEC-0046正本化差分のmain統合確認後、P1cの受入済み229候補をCa
 
 ## 次の単一作業
 
-N2非該当サンプルのexact画像をAI実行前にオーナー確認し、事前期待区分を確定
+PH画像Safety live検証4商品結果のread-only総括とA1実施要否のオーナー判断
 
 ## 停止条件
 
