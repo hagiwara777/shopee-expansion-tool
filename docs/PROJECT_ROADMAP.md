@@ -137,6 +137,21 @@ DEC-0055でオーナーがDEC-0049のBeta MUST 10項目を基準にPH Minimum Be
 
 PH Minimum Betaを少量の実務へ投入し、最初の実運用で重大事故または実務ボトルネックが発生するかを確認する。改善は実利用で観測した頻度、被害、運用負荷、修正コストに基づいて判断し、既存の`BETA_AFTER_CANDIDATE`をBeta前blockerへ戻さない。
 
+### Category AI Benchmark Ver1（完了 / Luna採用）
+
+現行Category Mapperの判断を入力にせず、商品Evidenceとmarketplace別Shopee Category snapshotだけで
+rootからleafまで探索する汎用AI Category Coreを、正式Mapper・AI Shadowと分離して実装する。
+local実装、PH / SG合成catalog、Fake Provider tests、独立Streamlit UIは完了した。Fake Providerの
+PASSは入力・schema・ABSTAIN・fail closed等の契約確認であり、AI意味理解精度を示さない。
+
+固定100商品でLuna / Terraを同一Prompt V1・Traversal V1・request条件により比較し、モデル選定を
+完了した。Minimum BetaのCategory候補提示には`gpt-5.6-luna`を採用し、Terraは精度差が小さい一方で
+実コストが約10倍だったため不採用、Solは検証しない。AIは候補提示だけを担当し、Category自動確定、
+Safety判断、`manual_review_required`や`listing_ready`等の既存安全機構の解除には使用しない。
+Hobbies & CollectionsはLuna / Terraとも0/10の既知弱点として手動確認する。Prompt / Traversal / Hobbies
+改善は先行せず、実運用で真のボトルネックになった場合だけ別Version・別判断で行う。次工程は新規
+CodexタスクでCategory MapperへAI CoreをMinimum Betaとして最小統合する。
+
 ### BETA_AFTER_CANDIDATE
 
 - 画像Safetyのtitle trigger、subcategory細分化、全rootの網羅的画像リスク調査（DEC-0053）

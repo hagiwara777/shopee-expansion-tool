@@ -1,0 +1,45 @@
+{
+  "config_version": "CATEGORY_AI_BENCHMARK_REQUEST_PROFILES_V1",
+  "profiles": [
+    {
+      "model": "gpt-5.6-terra",
+      "reasoning_effort": "low",
+      "text_verbosity": "low",
+      "max_output_tokens": 512,
+      "service_tier": "default",
+      "timeout_seconds": 30.0,
+      "provider": "openai_responses",
+      "endpoint_path": "/v1/responses",
+      "stream": false,
+      "truncation": "disabled",
+      "tool_choice": "none",
+      "parallel_tool_calls": false,
+      "profile_version": "CATEGORY_AI_BENCHMARK_REQUEST_PROFILE_V1",
+      "prompt_version": "CATEGORY_AI_BENCHMARK_PROMPT_V1",
+      "prompt_sha256": "7fb5dfb95f3c9293b96acd1c50fbb382e12e4f715d0e77d0d7e93da3f587983d",
+      "response_schema_version": "CATEGORY_AI_BENCHMARK_RESPONSE_SCHEMA_V1",
+      "traversal_version": "HIERARCHICAL_TRAVERSAL_V1",
+      "store": false
+    },
+    {
+      "model": "gpt-5.6-luna",
+      "reasoning_effort": "low",
+      "text_verbosity": "low",
+      "max_output_tokens": 512,
+      "service_tier": "default",
+      "timeout_seconds": 30.0,
+      "provider": "openai_responses",
+      "endpoint_path": "/v1/responses",
+      "stream": false,
+      "truncation": "disabled",
+      "tool_choice": "none",
+      "parallel_tool_calls": false,
+      "profile_version": "CATEGORY_AI_BENCHMARK_REQUEST_PROFILE_V1",
+      "prompt_version": "CATEGORY_AI_BENCHMARK_PROMPT_V1",
+      "prompt_sha256": "7fb5dfb95f3c9293b96acd1c50fbb382e12e4f715d0e77d0d7e93da3f587983d",
+      "response_schema_version": "CATEGORY_AI_BENCHMARK_RESPONSE_SCHEMA_V1",
+      "traversal_version": "HIERARCHICAL_TRAVERSAL_V1",
+      "store": false
+    }
+  ]
+}

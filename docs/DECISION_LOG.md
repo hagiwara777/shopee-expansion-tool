@@ -664,3 +664,134 @@
 - 理由: 承認済みの重大リスク中心の完成線に対して、必要最小実装、少量実商品E2E、画像Safety品質sanity、人間safe stopと最終判断が成立し、少量実務投入を妨げる技術blockerが確認されなかったため。
 - 影響: `CURRENT_WORK.md`を最終受入完了・Beta実務投入へ切り替え、`PROJECT_ROADMAP.md`のB4を完了としてPH Minimum BetaをBeta実利用フェーズへ移す。今回の正本化ではOpenAI / Keepa / Shopee API、実商品処理、Shopee書込み、deploy、Beta実運用を実行せず、コード、Rule、辞書、selector、model、prompt、schemaを変更しない。snapshotを既存手順で再生成・検証し、検証済み文書差分をローカルcommitまで行う。push / PR / mergeは別途オーナー承認を得る。
 - 再検討条件: 初回または継続するBeta実利用で重大事故、重大な見逃し、許容できない過剰REVIEW、実務不能なボトルネック、費用・遅延・外部契約上の障害が確認されたとき、またはPH以外へ範囲を広げる判断が必要になったとき。発生時はGate停止または改善要否を個別に判断し、本受入を完全保証として扱わない。
+
+## DEC-0056 — Category AI Benchmark Ver1の比較契約とmock / 実AI評価境界を確定する
+
+- 日付: 2026-09-11
+- 背景: 現行Mapperの誤判断を伝播させず、商品EvidenceからShopee Category Treeを独立探索する汎用Coreで複数OpenAI modelの精度と商品単価を比較する。オーナーはPlanを3条件付きで承認し、反映後の新branch/worktree、local実装、mock test開始を明示承認した。
+- 決定: `benchmark_request_profile`をversion管理し、exact model ID、reasoning effort、text verbosity、max output tokens、service tier、timeout、Responses endpoint、store / stream / truncation / tool条件、Prompt version / SHA-256、schema / traversal versionを固定する。各Predictionへ完全profile、profile hash、model以外の比較条件hashを保存する。モデル比較中にmodel ID以外の条件を変更せず、条件差のある結果を同一比較へ混在させない。
+- 決定: Fake Providerは台本型とし、Prompt入力、許可field、strict schema、candidate allowlist、ABSTAIN、fail closed、step trace、token / cost / hash / Gold分離等のプログラム契約だけを検証する。product titleの意味的優先、resolver title非上書き、Tablet / Powder誤分類防止、main product / accessory / replacement / set識別等のAI精度はmock成功条件にしない。これらは実API smoke、35件、100件Benchmarkで初めて評価する。
+- 決定: Hierarchical Traversalの各stepにparent ID / path、候補数、decision、selected category ID / name / path / leaf、confidence、reason、summary、usage、calls、latency、応答service tierを保存する。最終`prediction_confidence`はSELECTした全stepの最小confidenceとする。選択stepのないroot ABSTAINではnullとし、ABSTAIN応答confidenceはstepへ残す。confidenceは100件Benchmarkで信頼性を検証し、それまではCategory確定、自動承認、Safety判断へ使用しない。
+- 決定: 固定Promptは`CATEGORY_AI_BENCHMARK_PROMPT_V1`を変更せず一元管理する。Goldは全Predictionのhash固定後に評価層だけで読む。AI入力はmarketplace、product title、Keepa category / brand、resolver title、現在path、現在child候補だけとし、Mapper判断、過去選択、Gold、評価結果を含めない。候補外ID、schema / API / catalog / traversal異常はfail closedとし、Mapper fallbackを作らない。
+- 境界: 本CoreはPH / SG / MY / THのcatalog差替えに対応する独立Benchmarkで、正式Category Mapper、既存AI Shadow、Safety、Brand、Resolver、Expansion、Listing Tool、Shopee書込API、production SQLiteを変更しない。local実装・mock testまでを承認済みとし、実OpenAI API、費用、実商品、commit、push、PR、merge、deployは別承認とする。
+- 理由: モデル以外の条件を固定して比較可能性を保ち、ソフトウェア契約の正しさとモデルの意味理解精度を混同せず、confidenceを未校正のまま業務確定へ使わないため。
+- 影響: 固定base `03a35772a0f513cffec72ef8a4b2ea814aae6fdb`から`feature/category-ai-benchmark-v1`を作成し、独立Core / provider / config / UI / tests /文書を追加する。実API smoke直前で停止し、1モデル×3〜5商品、exact profile hash、catalog hash、最大request数、概算上限額を提示してオーナー承認を得る。smoke成功後も35件・100件へ自動進行しない。
+- 再検討条件: 指定model・request field・Structured Outputsが利用できない、catalog snapshotが契約を満たさない、実APIで意味精度・confidence・費用・latencyに問題が出る、または正式Category Mapper統合の責務・interfaceを決める段階。
+
+## DEC-0057 — 新規Benchmark 100商品のlocal auditとKeepa補充承認境界を確定する
+
+- 日付: 2026-09-11
+- 背景: Luna / Terra / Sol等を未知商品で公平に比較するため、既存35件と独立した10 genre x 10商品のBenchmark Set作成をオーナーが指示した。今回はCategory AI Core変更とmodel評価を行わず、Amazon候補からKeepa確認済みEvidenceを作る前段だけを対象とする。
+- 確認事実: ASIN Resolver / Expansion、Keepa確認済みCSV、Prelisting候補、関連JSON / SQLite / Excel artifactをread-only監査した。既存35件、smoke 5件、synthetic fixture、blank template、同一ASIN、同一商品の近接variantを除外すると、必要Evidence 5 fieldを持つ候補は6商品だった。凍結PH catalogの指定10 root名はすべてexact一致した。genre内訳はBeauty 1、Hobbies & Collections 5、その他8 genre 0で、94商品が不足する。
+- 決定: 100商品未達のため正式Source CSV、Gold Review Packet、Gold Truth Review、manifestを作成しない。Difficulty、Codex Category候補、ABSTAIN候補、Gold reviewer fieldもDataset完成前に確定しない。local mock / live smoke Predictionを商品選定へ使用しない。
+- 決定: 補充は、AIを使わずAmazon候補ASINと実際のresolver input titleを先に固定した後、Keepa JP Product endpointでASIN、固有title、category、brand、必要ならroot category / product groupをbatch取得する。94商品が全採用なら94 tokens、25% buffer想定118 tokens、1不足枠につき最大2候補のhard cap 188 tokensとする。Product Finder単独発見はresolver_titleのprovenanceを満たさないため現契約の正式Sourceには使わない。
+- 境界: Keepa、OpenAI、Shopee APIは今回0 request。Keepa補充は別途オーナー明示承認を得る。Category AI Core、Prompt V1、Traversal、model profile、正式Category Mapper、Brand、Guardrail、Resolver、Expansion、Listing、production SQLite、AI Shadow、precision branchを変更しない。commit、push、PR、mergeを行わない。
+- 理由: 100件の件数を優先してEvidence provenanceや未知評価データ性を崩さず、API費用発生前に不足と最大消費を明示して承認を得るため。
+- 再検討条件: Amazon候補ASIN + resolver_titleを94採用分とbuffer分まで用意できない、Keepa Product responseで必要Evidenceが揃わない、実質variant除外後に10 genre x 10を満たせない、またはProduct Finder等の別取得方式を採用する判断が必要になったとき。
+
+## DEC-0058 — Product FinderをBenchmark候補発見だけに限定し専用runnerを採用する
+
+- 日付: 2026-09-12
+- 背景: DEC-0057のlocal auditでは新規100商品に94件不足し、既知ASINを確認するProduct APIの前にAmazon.co.jp候補ASINを発見する工程が必要になった。汎用Keepa clientはProduct Finder失敗時の診断・fallbackと候補詳細の一括取得を持ち、今回承認されたno-fallback、hard cap、選抜候補だけProduct確認する契約とは一致しない。
+- 決定: Product FinderはCategory AI Benchmark V1の評価Source候補ASIN発見だけに使用する。Finder結果は正式Sourceではなく、ASIN dedupe、既存35件、smoke 5件、seed、family / variant除外後に選抜し、Keepa JP Product APIでASIN、title、category等の商品データを確認できた候補だけをSource採用候補へ進める。既存の「Product Finderを正式ソースとしない」方針は維持する。
+- 決定: Product API確認結果は「Keepa JPでASIN・title・category等の商品データが確認できた」と表現する。Amazon.co.jpの現在のlive page、販売中、在庫、購入可能性を確認済みとは表現しない。
+- 決定: `resolver_title`列は維持し、実在するResolver入力値がある場合はその値を保存する。実在するResolver入力値がない新規Keepa商品では、Category AI Benchmark V1 Sourceに限り空文字`""`を正式に許容する。Keepa titleのコピー、推測補完、NULLとの意味混在を禁止する。この限定判断はResolver正式仕様または他工程のprovenance要件を変更しない。
+- 決定: EASY / MEDIUM / HARDの4 / 4 / 2、同一brand最大2、同一leaf最大4、複数Product Typeは多様性確保の目標とする。目標未達を黙って大幅緩和せず報告する一方、100件作成を不必要に長期化させる反復取得は行わない。商品選定にLuna / Terra / Sol、過去Prediction、Category AI Benchmark結果を使用しない。
+- 決定: 既存の汎用Keepa clientは変更せず、固定10 genre / 32 leafのBenchmark専用runnerを追加する。retry 0、concurrency 1、自動fallbackなし、page 0を全leafで先行、不足leafだけpage 1を1回、選抜候補だけProduct確認、responseごとの実測`tokensConsumed`、request前token予約、hard cap 1,140 tokens / 77 requests、partial artifact保存を必須とする。page 1を使用した場合はASINリスト、取得時刻、leaf ID、page、selection条件とhashを固定する。
+- 境界: 専用runnerはproduction SQLiteを使用・変更せず、API key、token残高値、raw responseを保存・表示しない。残高は実行前にmemory上でhard cap充足可否だけを判定し、artifactにはbooleanだけを残す。OpenAI API、正式Category Mapper、Resolver、Expansion、Guardrail、Brand、Listing、Prompt V1、Traversal、model profileを変更しない。今回の承認はlocal実装とFake / Mock検証までで、実Keepa API、Benchmark CSV、100商品Source確定、commit、push、PR、mergeは含まない。
+- 確認事実: 専用runnerとFake transport testsをlocal実装し、seed確認、Category Lookup batch、Finder page 0 / 不足leafだけpage 1、ASIN・既存35・smoke 5・seed除外、Product batch、family / identifier重複除外、有効pool不足停止、token台帳、hard cap、no-fallback、partial保存、`resolver_title=""`、secret非保存の11 testsをPASSした。通常mock経路は617 tokens / 42 requestsである。実Keepa API、OpenAI API、production SQLite writeは0であり、mock成功をKeepa契約または実商品確認と扱わない。
+- 理由: Product Finderの責務を候補発見に限定し、正式Source採用をProduct確認後へ分離しながら、API費用、無限追加取得、fallbackによる条件変化、secret漏洩を機械的に防ぐため。
+- 再検討条件: 固定seed / category / Finder条件が現Keepa契約で成立しない、実測tokenが予約値を超える、page 1後も必要poolを確保できない、多様性目標を大幅に外れる、またはhard cap内で実行できない場合。その時点のpartial結果と代替案を報告して停止し、別endpointや条件緩和を自動実行しない。
+
+## DEC-0059 — 電気ケトルseedのAmazon root計画だけを最小修正する
+
+- 日付: 2026-09-12
+- 背景: オーナー承認済みの実Keepa候補取得は、32 seed一括Product確認後に`B0CHHYQHGP`の`SEED_CATEGORY_MISMATCH`で正常停止した。Finder、Category Lookup、候補Product確認には進まず、runnerはraw responseを保存しない契約のため、実応答のroot / leaf / path値そのものはpartial artifactから再現できない。
+- 確認事実: 事前計画はAmazon root `124048011`、leaf `16245081`、path `生活家電 > 小型家電 > 電気ケトル`だった。公開Amazonカテゴリの補助確認では、同ASINは電気ケトル商品であり、leaf `16245081`はroot `3828871`のHome & Kitchen配下に表示される。商品種別が当初目的の電気ケトルから外れたEvidenceはない。これは保存済みKeepa実応答の完全復元ではなく、次回seed確認で再検証する計画値である。
+- 決定: A対応とし、`B0CHHYQHGP`は維持する。当該planだけAmazon rootを`3828871`、表示pathを`ホーム＆キッチン > 家電 > キッチン家電 > 電気ケトル`へ修正し、leaf `16245081`は維持する。他31 seed / plan、Finder条件、Product確認条件、除外、選抜、runner logicは変更しない。
+- 境界: resume機能、fallback、追加endpoint、他seed再調査、別seed選定を行わない。通常617 tokens、hard cap 1,140 tokens / 77 requests、retry 0、concurrency 1を維持する。今回の修正工程ではKeepa / OpenAI / Shopee APIを追加実行せず、production SQLiteを使用・変更しない。実Keepa再実行は別途オーナー承認を得る。
+- 理由: 商品種別とleafを維持したまま、rootとして扱っていた中間node `124048011`を実際の上位rootに合わせる最小変更でStop Conditionの原因を解消し、runner作り込みや条件変更を避けるため。
+- 再検討条件: 次回実Keepa seed確認で`B0CHHYQHGP`がroot `3828871`かつleaf `16245081`として確認できない、または別のseed / category mismatchが発生した場合。その時点で再びpartial artifactを保持して停止し、自動修正しない。
+
+## DEC-0060 — Seed Product 1 responseから32 planを一括診断する
+
+- 日付: 2026-09-12
+- 背景: Seed Product APIは32 seedを1 batchで返すが、従来runnerはplan順の最初のmismatchで検査を終了していた。このためplan 13、plan 14のroot mismatchを1件ずつ発見し、同じ32-token requestを反復した。費用・requestを増やさず、全seedの不一致を一度に確認する必要がある。
+- 決定: Seed Product response取得後は全32 planについて、plan番号、genre、ASIN存在、title存在、expected / actual root、expected / actual最深leaf、root / leaf一致、status、安全に取得できたcategory pathを派生診断として保持する。全件検査後、1件でも欠損、title欠損、root / leaf mismatchがあれば診断全体を`seed_diagnostic.json`へ保存し、Category Lookup / Finder / 候補Product確認前に停止する。
+- 決定: mismatchを根拠とする自動plan修正、別seedへの差替え、fallback、resume、追加requestを実装しない。plan 14 `B099242274`のroot `3828871`は修正候補として保持し、32 seedの実一括診断後に他のmismatchとまとめて別判断する。今回の変更でleaf plan値は変更しない。
+- 確認事実: Mockで全32件一致時はSeed ValidationがPASSして既存次工程へ進むこと、plan 5 / 20が不一致の場合は両方を診断へ保存し、最初の不一致後もplan 32まで検査したうえでseed Product 1 request / 32 tokensだけで停止することを確認した。Seed runner 13 tests、Category AI関連55 testsは既存Python 3.13環境でPASSした。
+- 境界: Finder条件、Product API条件、retry 0、concurrency 1、自動fallbackなし、通常617 tokens、hard cap 1,140 tokens / 77 requests、Category AI Core、Prompt、OpenAI関連、正式Keepa client、production SQLiteを変更しない。今回の工程では実Keepa / OpenAI / Shopee API、commit、push、PRを実行しない。
+- 理由: 既に支払った1 batchの応答を全件検査し、安全なFinder前停止を維持したまま、同じseed requestの反復だけを除去するため。
+- 再検討条件: 実一括診断でProduct response自体が不完全、categoryTreeから最深leafを安全に導出できない、または診断artifact契約を満たせない場合。その時点でpartial artifactを保持して停止し、自動修正しない。
+
+## DEC-0061 — Category AI Benchmark V1のHard StopとDiagnostic運用を分離する
+
+- 日付: 2026-09-12
+- 背景: Category AI Benchmark V1は正式Category Mapper、main、production SQLite、Shopee書込APIから隔離した実験branchである。taxonomy mismatch等を1件ずつ停止・承認・再実行すると、同じAPI requestと管理更新を反復し、Minimum Beta投入までを不必要に長期化させる。秘密情報、費用上限、外部API異常、正式系への影響は即時停止を維持しながら、通常のデータ品質問題は一括診断する運用が必要になった。
+- 決定: Hard Stopは、API key・秘密情報の漏洩懸念、production SQLite / main / 正式Category MapperまたはGit変更禁止範囲への変更、Keepa / OpenAI token・cost hard cap超過見込み、HTTP / API異常・429・認証異常、未承認endpoint・fallbackの必要、データ・schema破損とする。該当時は安全なpartial artifactだけを保持して即時停止し、後続requestへ進まない。
+- 決定: seed root / leaf mismatch、古いAmazon taxonomy、variant / family重複、candidate不足、genre内の商品構成偏り、difficulty / brand / leaf比率未達はDiagnosticとする。単独では即時停止せず、当該工程の対象全件について可能な限り収集する。承認済み条件内で安全かつ決定的に処理できるものだけを処理し、安全に自動修正できない事項を一覧化する。
+- 決定: DiagnosticによりFinder等の次工程の前提条件を満たさない場合は、診断完了後に一度停止してまとめて報告する。個々のtaxonomy mismatchごとに「停止、文書更新、承認、再実行」を繰り返さない。DEC-0060の32 seed一括診断はこの運用に適合し、全seedを検査した後、mismatchがあればFinder前で一度停止する。
+- 決定: `CURRENT_WORK.md`、`DECISION_LOG.md`、`CONTEXT_SNAPSHOT.md`の通常更新は、Benchmark runner完成、100商品Source完成、Gold Truth完成、100商品model比較完成、Category Mapper統合判断のマイルストーン単位を原則とする。Hard Stop、安全・integrity上の重大変更、承認境界そのものの変更は例外とする。
+- 境界: 本決定は外部APIの新規実行承認、token / request / cost capの変更、endpoint・fallbackの追加、production系への統合、commit / push / PRを意味しない。現在の32 seed実Keepa一括診断は引き続き別途オーナー承認待ちとし、今回runner logic、leaf plan、Prompt、Category AI Coreを変更しない。
+- 理由: 本当に即時停止すべき安全・費用・integrity事象と、Benchmark作成中に通常発生するデータ診断を分離し、保護境界を弱めずに反復作業と管理負荷を減らしてAI Category判定のMinimum Beta投入を早めるため。
+- 再検討条件: Diagnosticとして続行した事象が秘密情報、費用上限、API健全性、schema・データintegrity、正式系への影響へ波及することが判明した場合、または一括診断では次工程の前提を安全に判定できない場合。その事象はHard Stopへ昇格して扱う。
+
+## DEC-0062 — Keepa実値へtaxonomyを修正しBenchmark 100商品Sourceを固定する
+
+- 日付: 2026-09-12
+- 背景: DEC-0060の実Seed一括診断で32件中29件が一致し、plan 14、15、23の3件に古いAmazon taxonomy由来のrootまたはleaf不一致が確認された。オーナーは3 seedの商品Genre上の役割を維持し、Keepa実返却値へまとめて最小修正した後、承認済みrunnerで100商品Source完成まで進めることを承認した。
+- 決定: plan 14 `B099242274`はrootを`3828871`へ、plan 15 `B0CKWQQXLB`はrootを`3828871`、leafを`15691411`へ、plan 23 `B0F2NZL4FK`はleafを`10395289051`へ変更し、実Category pathも診断値へ合わせる。seed差替え、resume、validation skip、fallbackは追加しない。修正後planが保存済み32件診断のactual root / leafと全件一致することをlocal確認した。
+- 確認事実: 固定runnerをretry 0、concurrency 1、fallbackなし、hard cap 1,140 tokens / 77 requestsで実行した。seed Product 32 tokens / 1 request、Category Lookup 4 tokens / 4 requests、Finder page 0 352 tokens / 32 requests、候補Product 229 tokens / 5 requestsで合計617 tokens / 42 runner requestsだった。page 1は0、Hard Stopは0。Finderは32 leafから1,600 ASIN entryを取得し、選抜229件をProduct確認した。Keepa JPでASIN、title、category等の商品データを確認できた候補は224件、rejectはleaf mismatch 2、substantial duplicate 1、duplicate family 2だった。これはAmazon.co.jpの現在のlive page、在庫または購入可能性の確認ではない。
+- 決定: 既存local 6件と新規Keepa 94件を、AI Prediction・Goldを使わず10 genre x 10へ選定し、100 unique ASINの`BENCHMARK_100_SOURCE_V1.csv`を固定する。Source SHA-256は`743b32eb2c8e7835b4ad2ada8cdbf0ca7cbbdb453320c024322af6c1b766ee48`。新規94件は`resolver_title=""`とし、Keepa titleをコピーしない。既存local 6件は実在する保存済み入力値を保持する。
+- 確認事実: 同一brand最大2と、IDを確認できるleaf最大4は全genreで達成し、制約緩和または追加取得は不要だった。既存local 5件は保存Evidenceにleaf IDがないためleaf比率の完全検証対象外と明示する。difficulty 4 / 4 / 2は商品選定時に推測せず、100件を`UNASSESSED`としてGold Truth工程へ引き継ぐ。Category AI source parserで100件、100 unique case ID、100 unique ASIN、genre各10、新規94件のblank resolver titleを再検証し、関連56 testsをPASSした。
+- 境界: Product Finderは本Benchmarkの候補発見専用であり、正式Source採用はProduct確認後に限定する。OpenAI / Shopee API、Gold Truth作成、Category Mapper統合、production SQLite、commit、push、PRは実行しない。追加Keepa request、Source差替え、model Benchmarkは別工程・別承認とする。
+- 理由: 実データで確認したtaxonomyだけを修正し、diversity目標を過剰な追加取得なしで満たしながら、モデル比較の固定入力を早く完成させるため。
+- 再検討条件: Source hash不一致、重複またはprovenance不整合が判明した場合、Gold Truth作成で商品Evidenceが不足した場合、または既存localの未確認leaf IDを比較設計上必須とする判断が生じた場合。Source変更は既存hashを上書きせず別versionとして扱う。
+
+## DEC-0063 — family / variant候補5組を解消してBenchmark Source V1.1を固定する
+
+- 日付: 2026-09-12
+- 背景: Source V1のGold Review Packet作成時、異なるASINながら同一product familyまたはvariantとしてBenchmark上の重みが重複する可能性がある5組を検出した。オーナーはGold Truth確定前に各組を1件へ削減し、追加APIなしで保存済みverified unused candidate poolから同Genreの商品へ差し替えることを指示した。
+- 決定: V1は監査証跡として上書きせず保持する。B100-022、B100-065、B100-073、B100-074、B100-091を残し、B100-025、B100-068、B100-079、B100-077、B100-095のcase枠を、それぞれ`B0FR8LBTTF`、`B0GVY7TCCM`、`B0FKGNS9F9`、`B0BTD6RCJV`、`B083W2XW3V`へ差し替える。差替えは同Genre、V1未採用、既存35件・smoke 5件と非重複、verified family key非衝突を必須とし、brandと確認可能なAmazon leafの多様性目標を維持する。
+- 確認事実: `BENCHMARK_100_SOURCE_V1_1.csv`は100 rows、100 unique case ID / ASIN、10 genre x 10、既存35件・smoke 5件とのASIN重複0。新規94件の`resolver_title=""`と既存local 6件の保存値を維持し、verified family key衝突0、exact title重複0、再監査で新規近似family候補0、同一brand最大2、確認可能なAmazon leaf最大4を確認した。Source V1.1 SHA-256は`a128aa7b5cad87e08397bdc09e0b2cdd656270c00be025b58d4f2e2419cccae0`。
+- 決定: Source V1基準のGold Review Packetは正式採用せず、V1.1基準でReview PacketとTruth Reviewを再生成する。正式Gold欄`expected_category_id`、`expected_category_path`、`truth_status`、`truth_note`は全件空欄とし、Codex候補をGold Truthへ昇格しない。review confidenceはHIGH 74 / MEDIUM 21 / LOW 5、candidate statusはCONFIRMED 84 / ABSTAIN 5 / NEEDS_REVIEW 11で、人間レビュー待ちとする。
+- 境界: 既存verified pool以外を使用せず、Keepa / OpenAI / Shopee API、production SQLite、正式Category Mapper、Gold Truth確定、model Benchmark、commit、push、PRを実行しない。AI Prediction、過去Benchmark結果、Mapper推薦を商品選定またはGold候補の根拠へ使用しない。
+- 理由: 同系統商品の反復で特定Product Typeを過大評価することを避けながら、追加取得やDataset全体の作り直しをせず、比較可能な100商品Sourceを早く確定するため。
+- 再検討条件: V1.1 hash不一致、追加の実質family / variant重複、Source / Gold Review間のASIN・case不整合、正式Gold欄への事前混入、または人間レビューで商品Evidence不足が判明した場合。Source変更が必要ならV1.1を上書きせず新versionとして扱う。
+
+## DEC-0064 — 人間レビュー済みGold Truth V1.1を92 CONFIRMED / 8 ABSTAINで固定する
+
+- 日付: 2026-09-12
+- 背景: Source V1.1とGold Review Packet V1.1についてオーナー確認が完了し、全100件の正式Goldをmodel比較前に固定する条件が整った。Gold確定中はPredictionを参照せず、Review Packetで採用したCategoryを再推測しないことが条件である。
+- 決定: B100-001、B100-004、B100-005、B100-032、B100-035、B100-038、B100-054、B100-079の8件を`ABSTAIN_REQUIRED`とし、expected Category ID / pathを空欄にする。各truth noteにはReview Packetの候補・代替Categoryと人間判断に基づく、一つのleafへ安全に確定できない理由を記録する。
+- 決定: 残り92件を`CONFIRMED`とし、Review Packet V1.1のcandidate expected Category ID / pathをそのまま正式expected Categoryへ固定する。B100-012、B100-018、B100-036、B100-039、B100-067、B100-075、B100-078、B100-087も`NEEDS_REVIEW`または`ABSTAIN_CANDIDATE`を正式statusへ持ち越さず、人間確定どおり`CONFIRMED`とする。
+- 確認事実: 正式Goldは100 rows、100 unique case ID / ASIN、Source対応100/100、CONFIRMED 92、ABSTAIN_REQUIRED 8、UNCONFIRMED 0。CONFIRMED全件は固定PH Catalog上の実在leafでID / pathが一致し、ABSTAIN全件はexpected ID / pathが空欄である。Source V1.1のbytesと全Source field差分は0で、Source SHA-256は`a128aa7b5cad87e08397bdc09e0b2cdd656270c00be025b58d4f2e2419cccae0`。Gold Truth SHA-256は`1faf1365ac0bb83566ea0347c12b9505895fcb9fed2cf4e5ba3964e62e28e93b`、Catalog normalized hashは`d694271a244bf743547d8cf9b1711f14618032954bae2cc81645f35ea65d72e6`。
+- 境界: Source V1 / V1.1、旧Review Packet、旧Truth Reviewは上書き・削除しない。OpenAI / Keepa / Shopee API、Luna / Terra / Sol、過去Prediction、smoke Prediction、model Benchmark、production SQLite、正式Category Mapper、commit、push、PRを実行しない。現行`parse_gold_csv`はpositive expected Category IDのGoldだけを扱い、ABSTAIN_REQUIRED行をまだ受理しないため、model比較前に採点契約とloader対応を別工程で確認する。
+- 理由: model出力をGold作成へ混入させず、人間が確定した正解と必要なABSTAINを不変hashで先に固定し、公平なmodel比較の基準を成立させるため。
+- 再検討条件: Source / Gold hash不一致、case対応不整合、CONFIRMED leafのCatalog不一致、ABSTAIN expected欄への値混入、またはmodel比較の採点契約でABSTAIN_REQUIREDの扱いが未定義の場合。SourceまたはGoldを変更する必要があれば既存versionを上書きせず新versionとして扱う。
+
+## DEC-0065 — ABSTAIN_REQUIRED採点とLuna / Terra比較契約を固定する
+
+- 日付: 2026-09-12
+- 背景: Gold V1.1は92件の`CONFIRMED`と8件の`ABSTAIN_REQUIRED`を含むが、既存loaderと評価はpositive expected Category IDだけを扱い、正式100件比較を採点できなかった。GoldをPrediction生成へ漏らさず、Category exactnessと必要なABSTAINを同時評価する契約が必要になった。
+- 決定: 正式Gold loaderは`CONFIRMED`でexpected leaf ID / pathを必須かつ固定Catalog一致、`ABSTAIN_REQUIRED`で両欄を空必須とし、`UNCONFIRMED`と未定義statusを拒否する。Source / Goldは全case ID・ASINの一致と重複なしを必須とする。
+- 決定: `CONFIRMED`はexact SELECTを`CORRECT_SELECT`、別leafを`WRONG_CATEGORY`、ABSTAINを`FALSE_ABSTAIN`とする。`ABSTAIN_REQUIRED`はABSTAINだけを`CORRECT_ABSTAIN`、いずれのleaf SELECTも部分点なしの`OVERCONFIDENT_SELECT`とする。Provider / API / Traversal異常は`FAILED`とし、ABSTAINへ合算しない。
+- 決定: 主要指標は100件全体を分母とする`overall_success_rate`とし、`confirmed_exact_accuracy`、`abstain_accuracy`、`select_precision`、各outcome件数、token、cost、API call、latencyをmodel別に集計する。FAILED除外のcompleted-decision success rateは参考値として区別する。
+- 決定: 処理順をSource、全Prediction個別hash、Prediction batch hash、Gold load、Evaluatorとする。Gold object、expected Category、truth statusをCategory AI Core、Provider、Prompt serializer、Traversal requestへ渡さない。比較対象は`gpt-5.6-luna`と`gpt-5.6-terra`の2つだけとし、model ID以外のrequest profile、Source、Gold、Catalog、Prompt、Traversalを比較完了まで変更しない。実行順はLuna 100件、結果hash固定、Terra 100件、結果hash固定、Gold評価とする。
+- 確認事実: 正式100件fixtureをCONFIRMED 92 / ABSTAIN_REQUIRED 8として読み込み、全outcome、loader矛盾、Source / Gold identity、重複、Gold非混入、batch hash、model別KPIをFake Provider / offline testsで確認した。Category AI関連72 testsをPASSした。Source SHA-256は`a128aa7b5cad87e08397bdc09e0b2cdd656270c00be025b58d4f2e2419cccae0`、Gold SHA-256は`1faf1365ac0bb83566ea0347c12b9505895fcb9fed2cf4e5ba3964e62e28e93b`、Catalog hashは`d694271a244bf743547d8cf9b1711f14618032954bae2cc81645f35ea65d72e6`、Prompt hashは`7fb5dfb95f3c9293b96acd1c50fbb382e12e4f715d0e77d0d7e93da3f587983d`。
+- 確認事実: 2026-09-12のOpenAI公式model docsでLuna $0.20 / $0.02 / $1.20、Terra $2.00 / $0.20 / $12.00（input / cached input / output、各1M tokens）とcache write 1.25倍を確認し、既存price configと一致した。最大5 traversal stepsから各model 500 requests、2-model 1,000 requests。最大serialized requestを全requestへ適用する保守上限はLuna US$1.585075、Terra US$15.852、合計US$17.437075。
+- 境界: 今回はOpenAI / Keepa / Shopee API、Source / Gold / Prompt / Traversal、production SQLite、正式Category Mapper、commit、push、PRを変更・実行しない。実API比較は別途オーナー明示承認までHOLDする。
+- 理由: Goldを事前に固定した公平なblind predictionを維持しながら、無理にleafを選ぶ挙動を明示的に罰し、Category正解率、適切なABSTAIN、失敗、費用を同じ100商品E2Eで比較するため。
+- 再検討条件: 固定hashまたはprofile共通条件の不一致、公式料金とprice configの不一致、API key・秘密情報漏洩懸念、最大cost / request cap超過見込み、HTTP / API / schema / response model / service tier異常、または全100件のPrediction batchを安全に固定できない場合。該当時は後続modelまたはGold評価へ進まず停止する。
+
+## DEC-0066 — Category AI Benchmark V1を完了しLunaを候補提示モデルに採用する
+
+- 日付: 2026-09-13
+- 背景: 固定Source V1.1、Gold V1.1、PH Catalog、Prompt V1、Traversal V1、共通request条件を変更せず、Luna / Terra各100商品の実API比較を完了した。Minimum Betaへ進むため、精度、費用、安全境界を合わせてモデル選定を確定する必要がある。
+- 確認事実: Lunaはoverall 81%、CONFIRMED exact 79/92（85.87%）、Hobbies & Collections 0/10、100商品の実コストUS$0.12669125。Terraはoverall 82%、CONFIRMED exact 79/92（85.87%）、Hobbies & Collections 0/10、実コストUS$1.202226で、Lunaの約9.5倍だった。両モデルともFAILED / Hard Stopは0だった。
+- 決定: Category Mapper Minimum BetaのCategory候補提示モデルとして`gpt-5.6-luna`を採用する。Terraは精度差が小さい一方で約10倍の費用を要したため今回は不採用とし、Solは検証しない。
+- 決定: AIの責務はCategory候補提示に限定し、自動Category確定を許可しない。`manual_review_required`、`listing_ready`、既存Safety、Category Confirmationその他の安全機構を維持し、AI predictionやconfidenceだけで解除・通過・準備完了にしない。
+- 決定: Hobbies & Collectionsは両モデルとも0/10だった既知弱点として、Minimum Betaで特に手動確認する。Prompt V1、Traversal V1、Hobbies固有改善は今回行わず、実運用後に頻度・被害・運用負荷上の真のボトルネックと確認できた場合だけ別Version・別判断で改善する。
+- 境界: 本決定はCategory Mapper統合の実装、追加OpenAI API実行、Prompt / Traversal変更、Safety / Brand / Resolver変更、自動Category確定、自動出品、push、PR、mergeを許可しない。Mapperへの最小統合は新規Codexタスクで開始する。
+- 理由: LunaとTerraの全体精度差は1ポイント、CONFIRMED exactは同率であり、Hobbies弱点も共通だった一方、Lunaは実コストが大幅に低い。人間確認を残すMinimum Betaの候補提示用途では、Lunaが費用対効果に優れるため。
+- 再検討条件: Minimum Beta実運用でCategory候補品質、Hobbies、手動確認負荷、失敗率または費用が真のボトルネックになった場合。その時点で実運用Evidenceに基づき、Prompt / Traversal改善、モデル再比較その他の対応を別タスクで判断する。

@@ -85,6 +85,16 @@ ELIGIBLEはShopee規約上の安全を保証するものではなく、出力CSV
 
 Category Mapperの「Shopee ACCESS_TOKEN（一時利用）」には、既存管理シートで更新済みのtokenを伏字で貼り付けられます。入力値はそのブラウザsessionのCategory / Brand / Attribute参照だけに使い、設定ファイルやローカルDBへ保存しません。空欄の場合は既存の認証設定を使用します。token更新、refresh、OAuthはCategory Mapperの責務に含みません。
 
+### Category AI Benchmark Ver1（独立実験）
+
+Category AI Benchmarkは、現行Category Mapperの推薦を入力にせず、商品Evidenceと指定した
+Shopee Category snapshotだけからroot → child → leafを探索する独立アプリです。AI結果は
+Category候補であり、Safety、出品可否、正式Category確定には使用しません。
+
+Source CSV、Catalog snapshot CSV、固定request profile、任意Goldを使い、Prediction全件を
+hash固定した後だけGold評価を追加します。実行方法、CSV schema、固定profile、mock検証と
+実AI精度評価の境界は [Category AI Benchmark Ver1](docs/CATEGORY_AI_BENCHMARK_V1.md) を参照してください。
+
 ## 出品前保安ゲートのGuardrail
 
 Guardrailは候補生成の結果を直接出品候補にするための機能ではなく、出品前保安ゲートが
@@ -229,6 +239,13 @@ cd shopee-expansion-tool
 ```
 
 ブラウザで表示された `localhost` のURLを開いて使います。
+
+Category AI Benchmarkの独立画面は次で起動します。実行ボタンはOpenAI Responses APIを
+呼び出すため、追加の実API実行は目的・モデル・件数・上限額を定めて別途明示承認を得ます。
+
+```powershell
+.\.venv\Scripts\python.exe -m streamlit run category_ai_benchmark_app.py
+```
 
 スマホからChrome Remote DesktopやTailscale経由で操作する可能性を考え、UIは縦並びにしています。ただし、Ver1ではリモートアクセス機能そのものは実装していません。
 
