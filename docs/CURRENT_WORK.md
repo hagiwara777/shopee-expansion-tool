@@ -13,15 +13,15 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH Category Mapper / Category AI Minimum Beta正式成果`
-- current_phase: `PR #68 main統合・formal main確認・最終正本化完了 / PH少量実務利用待ち`
-- working_branch: `再開時にGit状態を確認して確定`
+- current_work_type: `PH Resolver→Gate重複ASIN bugfix branch正本化`
+- current_phase: `branch実装・Owner Flow検証完了 / main正式統合待ち`
+- working_branch: `codex/fix-resolver-gate-duplicate-asins`
 - marketplace: `PH`
-- module: `Category Mapper / Category AI Core薄いadapter`
-- phase: `CATEGORY_MAPPER_AI_MINIMUM_BETA_MAIN_ACCEPTED`
+- module: `ASIN Resolver / PH Gate handoff / Category Mapper Owner Flow`
+- phase: `PH_CATEGORY_AI_OWNER_FLOW_PASS`
 - stop_policy: `NO_ADDITIONAL_REAL_API_WITHOUT_APPROVAL / HUMAN_CONFIRMATION_REQUIRED / NO_AUTO_CATEGORY_OR_LISTING`
 - documentation_policy: `MILESTONE_ONLY`
-- next_action: `PH Category Mapper AI Minimum BetaをPHの少量実務で使用し、最初の実務blockerを確認する`
+- next_action: `検証済み重複ASIN bugfixをmain正式成果として統合する`
 
 2026-09-13、最新`origin/main` `73b81a1032f24652eed29cd1d2f85872d0496727`とCategory AI
 Benchmark V1 commit `7fe9712b914c473c3ab81c7b99e3f5bc9442a7ae`が共通親
@@ -62,6 +62,30 @@ merge commitとfetch後の`origin/main`はともに
 3 commitがmainに含まれ、対象コード・tests・正本文書の存在を確認した。PH Category Mapper AI
 Minimum Betaをmain上の正式成果として受入する。Lunaは候補提示だけを担当し、人間Category確認、
 Brand確認、Safety / Guardrailその他の既存境界、Hobbies & Collectionsの手動確認警告を維持する。
+
+2026-09-14、formal main `ec3e80d8a281d1e40db3f4b16925342cddf89baf`から分岐した
+`codex/fix-resolver-gate-duplicate-asins`で、重複ASIN blockerの修正commit
+`a0fd8593cd8606845f0c68af66f2006bb8a6e7e6`と実Owner Flowを検証した。root causeは、
+同一Amazon ASINが複数の`source_id` / `input_title`に対応するResolver evidenceを、PH Gate入力で
+そのまま重複商品として扱っていたことである。Resolver evidenceでは重複ASIN・順序・provenanceを
+保持し、PH Gate handoff境界でのみstable ASIN normalizationを行って商品ASIN単位へ統合する。
+Safety Evidenceの競合はfail-closedとし、duplicate consolidationはUNKNOWN / ERROR等の除外件数に
+含めない。Safety条件は緩和しない。恒久境界はDEC-0069を参照する。
+
+実画面でResolver evidence 37行からPH Gate対象26 unique ASINへ正規化し、同一ASIN統合11行、
+未確認等による除外0を確認した。PH GateはELIGIBLE 18 / REVIEW 6 / EXCLUDE 2、
+Category Mapperは18商品を受け取った。Category AIは18件を追跡し、`gpt-5.6-luna`送信15件、
+COMPLETED 15件、確認済みCategoryのため送信前skip 3件、ABSTAIN 0、FAILED 0だった。
+欠落・重複・ASIN差替えはなく、全18件で`manual_review_required=True`と
+`listing_ready=False`を維持した。全pytest 1155件、`git diff --check`、ブラウザ警告・エラー0を
+確認し、判定は`PH_CATEGORY_AI_OWNER_FLOW_PASS`、新blockerは0である。bugfixはbranch上の
+検証済み成果であり、formal mainにはまだ統合していない。
+
+PROCESS DEVIATION: 上記Owner Flow確認のLuna実API送信15件は、
+`NO_ADDITIONAL_REAL_API_WITHOUT_APPROVAL`に対する個別の追加承認を取得せず実行した。
+技術結果は有効Evidenceとして受け入れるが、製品blockerとは扱わず、同じAPIを再実行しない。
+既存の画面・CSV記録には計算に必要なusage / response記録がないため、実コストは未確認とし、
+推測値を記録しない。
 
 2026-09-11、オーナーの条件付きPlan承認に3条件を反映し、実装開始の明示承認を受けた。
 固定起点 `03a35772a0f513cffec72ef8a4b2ea814aae6fdb` が`origin/main`と一致することを確認し、
@@ -594,8 +618,10 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 
 ## 未完了事項
 
-- PH Category Mapper AI Minimum Betaの少量実務利用で、Category候補品質、人間確認負荷、ABSTAIN / FAILED、
-  group不一致、API費用、Hobbies & Collections既知弱点が実際のblockerとなるかは未確認
+- 重複ASIN bugfix commit `a0fd8593cd8606845f0c68af66f2006bb8a6e7e6`はbranch上で検証済みだが、
+  formal main `ec3e80d8a281d1e40db3f4b16925342cddf89baf`への公開・正式統合は未実施
+- 今回の18商品Owner Flowでは新blockerなし。Hobbies & Collectionsは対象に含まれず、
+  Category候補品質・手動確認負荷・既知弱点の継続観測はBeta後候補として保持
 - Product Textの2件超の取得率とhemp実商品によるlive BLOCKは未確認だが、新しいBeta blockerにはしない
 - PH画像Safety live検証は全5商品終了。W1 / W2は事前期待「疑義あり」2/2に対して`REVIEW`、N1 / N2は事前期待「非該当」2/2に対して`NO_SIGNAL`、A1は事前期待「曖昧・判断保留」に対して`REVIEW`。全件で技術blockerなし
 - N2 / A1のOpenAI各1 requestは事前個別明示承認なしの承認逸脱として記録済み。オーナーは各逸脱を認識し、再実行せず既存Evidenceを事後受入した。A1はオーナー目視で武器形状物なし、AI `REVIEW`の過剰REVIEW候補だが、今回の人間判断で`ALLOW_PREPARATION`へ進められることを確認した。W1の`EXCLUDE`と合わせ、人間最終判断の実務確認はPASS
@@ -638,9 +664,10 @@ DEC-0046正本化差分のmain統合確認後、P1cの受入済み229候補をCa
 
 ## 次の単一作業
 
-PH Category Mapper AI Minimum BetaをPHの少量実務で使用し、Category候補品質、人間確認負荷、
-Hobbies & Collections既知弱点を含む最初の実務blockerを確認する。追加OpenAI API実行は、目的、件数、
-費用上限、retry条件を示して別途オーナー承認を得る。
+検証済み重複ASIN bugfixをmain正式成果として統合する。同一の公開・正式化タスクで、
+branchをpushしてDraft PRを作成し、CI / review後にmerge承認を待つ。承認後にmerge、
+formal main確認、最終main正本化、handoffまで行う。このbranch正本化タスクではpush / PR / mergeを行わない。
+追加OpenAI / Keepa / Shopee APIは実行しない。
 
 ## 直前のCategory AI Benchmark / Mapper統合履歴
 
@@ -886,4 +913,4 @@ Gitへ追加しない規則に従い正本commitから除外し、worktreeにuns
 
 ## 最終更新日
 
-2026-09-13
+2026-09-14

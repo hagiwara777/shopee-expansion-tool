@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+from copy import deepcopy
 from dataclasses import dataclass
 from io import StringIO
 from typing import Any, Iterable, Mapping
@@ -76,6 +77,10 @@ class PrelistingCandidateCsvError(RuntimeError):
     """Raised when a pre-listing candidate CSV cannot be trusted."""
 
 
+class ResolverGateHandoffError(PrelistingCandidateCsvError):
+    """Raised when duplicate Resolver evidence cannot be safely consolidated."""
+
+
 @dataclass(frozen=True)
 class PrelistingCandidateRow:
     """One validated candidate row in the shared pre-listing CSV contract."""
@@ -105,6 +110,17 @@ class ResolverCandidateConversionResult:
     input_row_count: int
     eligible_row_count: int
     excluded_row_count: int
+
+
+@dataclass(frozen=True)
+class ResolverGateHandoffNormalizationResult:
+    """Unique product rows used only at the Resolver-to-Gate handoff boundary."""
+
+    candidate_rows: tuple[PrelistingCandidateRow, ...]
+    source_rows: tuple[dict[str, Any], ...]
+    verified_row_count: int
+    unique_candidate_count: int
+    consolidated_row_count: int
 
 
 @dataclass(frozen=True)
@@ -199,6 +215,79 @@ def resolver_rows_to_prelisting_candidates(
         input_row_count=len(materialized_rows),
         eligible_row_count=len(output_rows),
         excluded_row_count=len(materialized_rows) - len(output_rows),
+    )
+
+
+def normalize_resolver_gate_handoff(
+    candidate_rows: Iterable[PrelistingCandidateRow],
+    source_rows: Iterable[Mapping[str, Any]],
+) -> ResolverGateHandoffNormalizationResult:
+    """Consolidate duplicate ASINs only for the Resolver-to-Gate handoff.
+
+    Resolver evidence remains row-oriented. Gate candidates and all Safety
+    sidecars are product-oriented and therefore require one row per ASIN.
+    """
+
+    candidates = tuple(
+        _canonicalize_row(row, f"Resolver Gate handoff {row_number}行目")
+        for row_number, row in enumerate(candidate_rows, 1)
+    )
+    eligible_sources: list[Mapping[str, Any]] = []
+    for row_number, source in enumerate(source_rows, 1):
+        values = _mapping_values(source, f"Resolver Gate source {row_number}行目")
+        if (
+            values["status"].strip().upper() == RESOLVER_FOUND_STATUS
+            and values["verification"].strip().upper() in RESOLVER_SOURCE_BY_VERIFICATION
+        ):
+            eligible_sources.append(source)
+
+    if len(candidates) != len(eligible_sources):
+        raise ResolverGateHandoffError(
+            "Resolver Gate handoff candidate/source row counts do not match"
+        )
+
+    unique_candidates: list[PrelistingCandidateRow] = []
+    unique_sources: list[dict[str, Any]] = []
+    index_by_asin: dict[str, int] = {}
+    for row_number, (candidate, source) in enumerate(
+        zip(candidates, eligible_sources), 1
+    ):
+        source_asin = _normalize_required_asin(
+            _text(source.get("candidate_asin") or source.get("asin")),
+            f"Resolver Gate source {row_number}行目: candidate_asin",
+        )
+        if source_asin != candidate.candidate_asin:
+            raise ResolverGateHandoffError(
+                f"{candidate.candidate_asin}: Resolver candidate/source ASIN mismatch"
+            )
+
+        source_verification = _text(source.get("verification")).strip().upper()
+        if source_verification != candidate.source_verification:
+            raise ResolverGateHandoffError(
+                f"{candidate.candidate_asin}: duplicate Resolver rows contain "
+                "conflicting provider/verification evidence"
+            )
+
+        existing_index = index_by_asin.get(candidate.candidate_asin)
+        if existing_index is None:
+            index_by_asin[candidate.candidate_asin] = len(unique_candidates)
+            unique_candidates.append(candidate)
+            unique_sources.append(deepcopy(dict(source)))
+            continue
+
+        unique_candidates[existing_index] = _merge_candidate_product_evidence(
+            unique_candidates[existing_index], candidate
+        )
+        unique_sources[existing_index] = _merge_resolver_safety_evidence(
+            unique_sources[existing_index], source, candidate.candidate_asin
+        )
+
+    return ResolverGateHandoffNormalizationResult(
+        candidate_rows=tuple(unique_candidates),
+        source_rows=tuple(unique_sources),
+        verified_row_count=len(candidates),
+        unique_candidate_count=len(unique_candidates),
+        consolidated_row_count=len(candidates) - len(unique_candidates),
     )
 
 
@@ -311,6 +400,57 @@ def _mapping_values(row: Mapping[str, Any], context: str) -> dict[str, str]:
     if not isinstance(row, Mapping):
         raise PrelistingCandidateCsvError(f"{context}: 入力行が辞書ではありません。")
     return {key: _text(row.get(key)) for key in _INPUT_ROW_KEYS}
+
+
+def _merge_candidate_product_evidence(
+    first: PrelistingCandidateRow, duplicate: PrelistingCandidateRow
+) -> PrelistingCandidateRow:
+    asin = first.candidate_asin
+    if duplicate.candidate_asin != asin:
+        raise ResolverGateHandoffError(
+            f"{asin}: Resolver duplicate consolidation ASIN mismatch"
+        )
+    merged = first.__dict__.copy()
+    for field, label in (
+        ("source_verification", "provider/verification"),
+        ("source", "provider/verification"),
+        ("product_title", "product title"),
+        ("brand", "brand"),
+        ("category", "category"),
+        ("fetched_at", "product fetch timestamp"),
+    ):
+        existing = _text(merged[field])
+        incoming = _text(getattr(duplicate, field))
+        if existing and incoming and existing != incoming:
+            raise ResolverGateHandoffError(
+                f"{asin}: duplicate Resolver rows contain conflicting {label} evidence"
+            )
+        if not existing and incoming:
+            merged[field] = incoming
+    return PrelistingCandidateRow(**merged)
+
+
+def _merge_resolver_safety_evidence(
+    first: dict[str, Any], duplicate: Mapping[str, Any], asin: str
+) -> dict[str, Any]:
+    merged = deepcopy(first)
+    for field, label in (
+        ("ingredient_safety_fact", "Ingredient Safety"),
+        ("product_text_safety_fact", "Product Text Safety"),
+        ("ph_image_safety_fact", "PH Image Safety"),
+    ):
+        existing = merged.get(field)
+        incoming = duplicate.get(field)
+        if existing is None:
+            if incoming is not None:
+                merged[field] = deepcopy(incoming)
+            continue
+        if incoming is None or existing == incoming:
+            continue
+        raise ResolverGateHandoffError(
+            f"{asin}: duplicate Resolver rows contain conflicting {label} evidence"
+        )
+    return merged
 
 
 def _canonicalize_row(row: PrelistingCandidateRow, context: str) -> PrelistingCandidateRow:
