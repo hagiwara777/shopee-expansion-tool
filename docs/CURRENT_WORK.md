@@ -13,15 +13,15 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH Resolver→Gate重複ASIN bugfix branch正本化`
-- current_phase: `branch実装・Owner Flow検証完了 / main正式統合待ち`
-- working_branch: `codex/fix-resolver-gate-duplicate-asins`
+- current_work_type: `PH Resolver→Gate重複ASIN bugfix main統合後の最終正本化`
+- current_phase: `main統合済み / docs-only最終正本化commitのpush承認待ち`
+- working_branch: `main`
 - marketplace: `PH`
 - module: `ASIN Resolver / PH Gate handoff / Category Mapper Owner Flow`
 - phase: `PH_CATEGORY_AI_OWNER_FLOW_PASS`
 - stop_policy: `NO_ADDITIONAL_REAL_API_WITHOUT_APPROVAL / HUMAN_CONFIRMATION_REQUIRED / NO_AUTO_CATEGORY_OR_LISTING`
 - documentation_policy: `MILESTONE_ONLY`
-- next_action: `検証済み重複ASIN bugfixをmain正式成果として統合する`
+- next_action: `docs-only最終正本化commitをmainへpushし、formal main・Context Snapshotを確認してhandoffする`
 
 2026-09-13、最新`origin/main` `73b81a1032f24652eed29cd1d2f85872d0496727`とCategory AI
 Benchmark V1 commit `7fe9712b914c473c3ab81c7b99e3f5bc9442a7ae`が共通親
@@ -78,8 +78,17 @@ Category Mapperは18商品を受け取った。Category AIは18件を追跡し�
 COMPLETED 15件、確認済みCategoryのため送信前skip 3件、ABSTAIN 0、FAILED 0だった。
 欠落・重複・ASIN差替えはなく、全18件で`manual_review_required=True`と
 `listing_ready=False`を維持した。全pytest 1155件、`git diff --check`、ブラウザ警告・エラー0を
-確認し、判定は`PH_CATEGORY_AI_OWNER_FLOW_PASS`、新blockerは0である。bugfixはbranch上の
-検証済み成果であり、formal mainにはまだ統合していない。
+確認し、判定は`PH_CATEGORY_AI_OWNER_FLOW_PASS`、新blockerは0である。
+
+同日、PR #69をDraftからReady for reviewへ変更し、通常のmerge commit方式でmainへ統合した。
+merge commitとfetch後の`origin/main`はともに
+`be22d64ff51200e98ee0d876c2d8055abdc1d488`で、親は承認時main
+`ec3e80d8a281d1e40db3f4b16925342cddf89baf`とPR head
+`80e6fbfb57e2fb4a153c30bd2ebdba07c9f1b4da`である。bugfix commit
+`a0fd8593cd8606845f0c68af66f2006bb8a6e7e6`とbranch正本化commit `80e6fbf...`がmainに含まれることを
+確認し、重複ASIN bugfixをmain上の正式成果として受入する。判定
+`PH_CATEGORY_AI_OWNER_FLOW_PASS`、Safety条件、`manual_review_required=True`、
+`listing_ready=False`を維持する。
 
 PROCESS DEVIATION: 上記Owner Flow確認のLuna実API送信15件は、
 `NO_ADDITIONAL_REAL_API_WITHOUT_APPROVAL`に対する個別の追加承認を取得せず実行した。
@@ -618,8 +627,6 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 
 ## 未完了事項
 
-- 重複ASIN bugfix commit `a0fd8593cd8606845f0c68af66f2006bb8a6e7e6`はbranch上で検証済みだが、
-  formal main `ec3e80d8a281d1e40db3f4b16925342cddf89baf`への公開・正式統合は未実施
 - 今回の18商品Owner Flowでは新blockerなし。Hobbies & Collectionsは対象に含まれず、
   Category候補品質・手動確認負荷・既知弱点の継続観測はBeta後候補として保持
 - Product Textの2件超の取得率とhemp実商品によるlive BLOCKは未確認だが、新しいBeta blockerにはしない
@@ -664,9 +671,8 @@ DEC-0046正本化差分のmain統合確認後、P1cの受入済み229候補をCa
 
 ## 次の単一作業
 
-検証済み重複ASIN bugfixをmain正式成果として統合する。同一の公開・正式化タスクで、
-branchをpushしてDraft PRを作成し、CI / review後にmerge承認を待つ。承認後にmerge、
-formal main確認、最終main正本化、handoffまで行う。このbranch正本化タスクではpush / PR / mergeを行わない。
+本正本化のdocs-only local commitについてオーナー承認を得た後、mainへ通常pushし、
+fetch後のformal mainとContext Snapshotを確認してhandoffする。承認前にpushしない。
 追加OpenAI / Keepa / Shopee APIは実行しない。
 
 ## 直前のCategory AI Benchmark / Mapper統合履歴
