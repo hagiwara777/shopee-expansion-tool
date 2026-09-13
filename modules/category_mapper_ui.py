@@ -8,6 +8,8 @@ from typing import Any, Iterable, Mapping
 
 import streamlit as st
 
+from modules.category_ai_core import CategoryAIEngine
+from modules.category_ai_openai import OpenAIResponsesCategoryProvider
 from modules.category_mapper import (
     CategoryMapperInputError,
     MapperRecommendation,
@@ -21,6 +23,18 @@ from modules.category_mapper import (
     parse_resolver_title_csv,
     summarize_output_blockers,
 )
+from modules.category_mapper_ai import (
+    AI_ABSTAIN,
+    AI_CATALOG_MISMATCH,
+    AI_FAILED,
+    AI_SKIPPED_CONFIRMED,
+    AI_SUGGESTED,
+    AICategorySuggestionBatch,
+    build_category_ai_catalog,
+    generate_ai_category_suggestions,
+    group_consensus_suggestion,
+    load_luna_request_profile,
+)
 from modules.category_mapper_store import CategoryMapperStore
 from modules.shopee_catalog_client import (
     ShopeeCatalogClient,
@@ -33,8 +47,9 @@ from modules.shopee_catalog_client import (
 _RESULT_KEY = "category_mapper_recommendations"
 _FINGERPRINT_KEY = "category_mapper_input_fingerprint"
 _SOURCE_TYPE_KEY = "category_mapper_source_type"
+_AI_RESULT_KEY = "category_mapper_ai_suggestions"
 _ACCESS_TOKEN_KEY = "category_mapper_temporary_access_token"
-_STATE_KEYS = (_RESULT_KEY, _FINGERPRINT_KEY, _SOURCE_TYPE_KEY)
+_STATE_KEYS = (_RESULT_KEY, _FINGERPRINT_KEY, _SOURCE_TYPE_KEY, _AI_RESULT_KEY)
 CATALOG_ADMIN_UI_ENABLED_ENV = "CATEGORY_MAPPER_CATALOG_ADMIN_UI_ENABLED"
 
 
@@ -80,6 +95,7 @@ def render_category_mapper_tab() -> None:
         icon=":material/playlist_add_check:",
         key="category_mapper_build",
     ):
+        st.session_state.pop(_AI_RESULT_KEY, None)
         try:
             source = parse_category_mapper_input(source_content or b"", filename=source_file.name)
             resolver_titles = (
@@ -109,6 +125,7 @@ def render_category_mapper_tab() -> None:
     recommendations = st.session_state.get(_RESULT_KEY)
     if not recommendations or st.session_state.get(_FINGERPRINT_KEY) != fingerprint:
         return
+    _render_ai_suggestion_action(tuple(recommendations), store)
     _render_recommendations(
         tuple(recommendations),
         store=store,
@@ -128,6 +145,72 @@ def _catalog_client() -> ShopeeCatalogClient:
     if temporary_token:
         return ShopeeCatalogClient.from_local_audit_env(access_token_override=temporary_token)
     return ShopeeCatalogClient.from_local_audit_env()
+
+
+def _category_ai_engine() -> CategoryAIEngine:
+    """Create the paid provider only after the explicit AI action is clicked."""
+
+    provider = OpenAIResponsesCategoryProvider.from_environment()
+    return CategoryAIEngine(provider)
+
+
+def _render_ai_suggestion_action(
+    recommendations: tuple[MapperRecommendation, ...], store: CategoryMapperStore
+) -> None:
+    st.subheader("AI Category候補")
+    st.caption(
+        "gpt-5.6-lunaは候補提示だけを行います。候補だけではCategoryを確定せず、"
+        "出品準備完了にもなりません。"
+    )
+    eligible_count = sum(not item.category_is_confirmed for item in recommendations)
+    if st.button(
+        "AI Category候補を作成（Luna）",
+        icon=":material/psychology:",
+        key="category_mapper_build_ai_suggestions",
+        disabled=eligible_count == 0,
+    ):
+        st.session_state.pop(_AI_RESULT_KEY, None)
+        try:
+            catalog = build_category_ai_catalog(store)
+            profile = load_luna_request_profile()
+            engine = _category_ai_engine()
+            batch = generate_ai_category_suggestions(
+                recommendations,
+                store=store,
+                engine=engine,
+                catalog=catalog,
+                profile=profile,
+            )
+        except Exception:
+            st.error(
+                "AI Category候補を作成できませんでした。OpenAI設定とPH Category Treeを"
+                "確認してください。既存の手動Category経路はそのまま利用できます。"
+            )
+        else:
+            st.session_state[_AI_RESULT_KEY] = batch
+
+    batch = st.session_state.get(_AI_RESULT_KEY)
+    if not isinstance(batch, AICategorySuggestionBatch):
+        return
+    first, second, third = st.columns(3)
+    first.metric("成功", batch.success_count)
+    second.metric("失敗", batch.failure_count)
+    third.metric("スキップ", batch.skip_count)
+    st.dataframe(
+        [
+            {
+                "ASIN": item.candidate_asin,
+                "AI状態": _ai_status_label(item.status),
+                "Category ID": item.predicted_category_id or "",
+                "Category候補": item.predicted_category_path,
+                "confidence": "" if item.confidence is None else f"{item.confidence:.3f}",
+                "理由": item.short_reason,
+                "error": item.error_code,
+            }
+            for item in batch.suggestions
+        ],
+        hide_index=True,
+    )
 
 
 def _render_catalog_status(store: CategoryMapperStore, marketplace: str) -> None:
@@ -290,6 +373,10 @@ def _render_category_controls(
         _render_attribute_summary(first, store)
         return
 
+    batch = st.session_state.get(_AI_RESULT_KEY)
+    if isinstance(batch, AICategorySuggestionBatch):
+        _render_ai_group_suggestion(index, members, store, batch)
+
     if first.category_recommendation_status == "SUGGESTED" and first.recommended_category_id:
         candidate = store.get_category("PH", first.recommended_category_id)
         if candidate is not None:
@@ -407,7 +494,62 @@ def _apply_category_choice(
         )
         st.caption(f"次回以降、PHの「{first.keepa_category}」商品へ再利用します。")
     _replace_group(members, updated)
+    _discard_ai_suggestions(members)
     return True
+
+
+def _render_ai_group_suggestion(
+    index: int,
+    members: tuple[MapperRecommendation, ...],
+    store: CategoryMapperStore,
+    batch: AICategorySuggestionBatch,
+) -> None:
+    by_asin = batch.by_asin()
+    group_suggestions = tuple(
+        by_asin[item.candidate_asin]
+        for item in members
+        if item.candidate_asin in by_asin
+    )
+    if not group_suggestions:
+        return
+    st.markdown("###### AI候補（未確定）")
+    if any(item.requires_hobbies_warning for item in group_suggestions):
+        st.warning(
+            "Benchmark弱点カテゴリのため特に手動確認が必要です：Hobbies & Collections"
+        )
+    consensus = group_consensus_suggestion(
+        tuple(item.candidate_asin for item in members),
+        group_suggestions,
+    )
+    if consensus is None:
+        st.info(
+            "全memberが同じ有効leaf Categoryへ一致していないため、AI候補をGroup採用できません。"
+            "既存の手動Category経路を使用してください。"
+        )
+        return
+    category = store.get_category("PH", consensus.predicted_category_id)
+    if (
+        category is None
+        or not bool(category.get("is_leaf"))
+        or str(category.get("category_path") or "") != consensus.predicted_category_path
+    ):
+        st.warning("AI候補が現在のPH catalogと一致しないため採用できません。")
+        return
+    st.write(consensus.predicted_category_path)
+    st.caption(
+        f"ID {consensus.predicted_category_id} / confidence "
+        f"{consensus.confidence if consensus.confidence is not None else '未取得'}"
+    )
+    if st.button(
+        "AI候補のCategoryを採用",
+        type="primary",
+        icon=":material/fact_check:",
+        key=f"category_mapper_apply_ai_category_{index}",
+    ):
+        if _apply_category_choice(
+            members[0], members, store, int(consensus.predicted_category_id)
+        ):
+            st.rerun()
 
 
 def _render_attribute_summary(
@@ -669,6 +811,17 @@ def _replace_group(
     st.session_state[_RESULT_KEY] = tuple(replacements)
 
 
+def _discard_ai_suggestions(members: Iterable[MapperRecommendation]) -> None:
+    batch = st.session_state.get(_AI_RESULT_KEY)
+    if not isinstance(batch, AICategorySuggestionBatch):
+        return
+    remaining = batch.without_asins({item.candidate_asin for item in members})
+    if remaining.suggestions:
+        st.session_state[_AI_RESULT_KEY] = remaining
+    else:
+        st.session_state.pop(_AI_RESULT_KEY, None)
+
+
 def replace_from_group(
     item: MapperRecommendation, updated: MapperRecommendation
 ) -> MapperRecommendation:
@@ -711,6 +864,16 @@ def _category_status_label(status: str) -> str:
         "UNMAPPED": "Category未選択",
         "MIXED": "確認状態が混在",
     }.get(status, status or "未確認")
+
+
+def _ai_status_label(status: str) -> str:
+    return {
+        AI_SUGGESTED: "候補あり",
+        AI_ABSTAIN: "ABSTAIN（採用不可）",
+        AI_FAILED: "FAILED（採用不可）",
+        AI_CATALOG_MISMATCH: "catalog不整合（採用不可）",
+        AI_SKIPPED_CONFIRMED: "確認済みCategoryのためスキップ",
+    }.get(status, status)
 
 
 def _brand_status_label(status: str) -> str:

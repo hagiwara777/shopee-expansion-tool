@@ -13,13 +13,220 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH Minimum Beta / 最終オーナー受入完了`
-- current_phase: `DEC-0049 Beta MUST 10項目受入・Gate P PASS・PH Minimum Beta OWNER_ACCEPTED・少量実務投入承認済み`
-- working_branch: `codex/ph-minimum-beta-owner-acceptance`
+- current_work_type: `PH Category Mapper / Category AI Minimum Beta受入準備`
+- current_phase: `local実装・mock/full回帰・3商品live smoke完了 / 技術PASS・実務受入候補PASS / main未統合`
+- working_branch: `codex/ph-category-mapper-ai-minimum-beta`
 - marketplace: `PH`
-- module: `PH Minimum Beta / Beta実務投入`
-- phase: `最終オーナー受入完了 / Gate P PASS / PH Minimum Beta PASS / OWNER_ACCEPTED`
-- next_action: `PH Minimum Betaを少量の実務へ投入し、最初の実運用で重大事故または実務ボトルネックが発生するか確認する`
+- module: `Category Mapper / Category AI Core薄いadapter`
+- phase: `CATEGORY_MAPPER_AI_MINIMUM_BETA_LIVE_SMOKE_PASS`
+- stop_policy: `NO_ADDITIONAL_REAL_API / HUMAN_CONFIRMATION_REQUIRED / NO_PUSH_PR_MERGE`
+- documentation_policy: `MILESTONE_ONLY`
+- next_action: `新規Codexタスクで実装commitと正本化commitを確認し、オーナーとChatGPTがMinimum Betaの最終受入およびpush / Draft PRの要否を判断する`
+
+2026-09-13、最新`origin/main` `73b81a1032f24652eed29cd1d2f85872d0496727`とCategory AI
+Benchmark V1 commit `7fe9712b914c473c3ab81c7b99e3f5bc9442a7ae`が共通親
+`03a35772a0f513cffec72ef8a4b2ea814aae6fdb`を持つsiblingであることを確認した。dirtyなBenchmark
+worktreeは使用せず、最新mainからclean branch `codex/ph-category-mapper-ai-minimum-beta`を作成し、
+`7fe9712...`を競合なくcherry-pickした。統合commit `c2031ad239a54bd9dc605915e66ce9c1a8eab22b`
+は`73b81a1...`を親とし、`7fe9712...`との差は最新mainの`AGENTS.md`だけである。
+
+既存Category AI Coreを変更せず、PH Category Mapper用の薄いadapterを追加した。AI Predictionは
+Recommendationを書き換えずsession内の独立候補として保持し、明示ボタン押下前はProvider生成・
+API呼出しとも0、対象はCategory未確定行だけ、modelは`gpt-5.6-luna`固定とした。現在のlocal PH
+Category Tree全体からCategoryCatalogを構築し、有効leaf・ID・path一致を満たす候補だけを表示する。
+ABSTAIN、FAILED、catalog不整合、group全member不一致は採用不可で既存手動経路を維持する。group採用は
+全memberが同一有効leafへ一致した場合だけ既存`apply_manual_category()`へ渡す。Predictionだけでは
+`category_is_confirmed`、`manual_review_required`、`listing_ready`を変更せず、採用後も従来どおりBrand
+確認へ進む。Hobbies & Collections候補にはBenchmark弱点警告を表示する。
+
+実装commitは`64fdce3c2b8745fbdf908db0d7be641a65380372`。外部APIなしの検証はCategory AI
+関連78件、Category Mapper関連60件、全pytest 1148件が成功した。
+変更Pythonの構文検査、`git diff --check`もPASS。初回全pytestの1 failureは新worktree直下に検証
+スクリプト必須の`.venv`がなかった環境要因で、Git除外済みjunctionを既存正式venvへ接続後、当該1件と
+全回帰を再実行してPASSした。DecisionはDEC-0067を参照する。
+
+同日、オーナー承認済み上限内で、PH Gate ELIGIBLEかつCategory未確定の実商品3件を
+`gpt-5.6-luna`で1件ずつlive smokeした。3件とも`COMPLETED`、retry 0、実API総コストは
+US$0.00332790だった。既存RecommendationとAI候補は並列に保持され、Predictionだけでは全件で
+`category_is_confirmed=False`、`manual_review_required=True`、`listing_ready=False`を維持した。
+人間が有効な候補を採用した後だけ既存Category確定経路からBrand確認へ進み、Brand未確認のため
+`listing_ready=False`を維持した。Hobbies & Collections該当候補はliveではなく、弱点警告はmockで
+確認済み。3件を新しい精度指標とは扱わない。技術的live smokeはPASS、実務受入候補はPASS、blockerは
+0。Shopee書込み、追加API、push、PR、mergeは行わず、Minimum Betaの最終受入とmain統合は次タスクの
+オーナー／ChatGPT判断に残す。DecisionはDEC-0068を参照する。
+
+2026-09-11、オーナーの条件付きPlan承認に3条件を反映し、実装開始の明示承認を受けた。
+固定起点 `03a35772a0f513cffec72ef8a4b2ea814aae6fdb` が`origin/main`と一致することを確認し、
+cleanな専用worktree / branch `feature/category-ai-benchmark-v1`を作成した。既存dirty worktree、
+`feature/ph-category-mapper-precision-v1`、`feature/ph-category-mapper-ai-shadow-v0.2.1`、
+正式Category Mapper、Guardrail、Resolver、Expansion、Brand、Listing Tool、production SQLiteは
+変更していない。
+
+Marketplace非依存のHierarchical Traversal Core、Responses Provider、意味推論を行わないFake
+Provider、固定Prompt / strict schema、CSV/catalog/Gold分離、versioned request profile・料金、
+step trace、Prediction hash、集計、独立Streamlit UIをlocal実装した。各Predictionはexact model ID、
+reasoning effort、text verbosity、max output tokens、service tier等を含む完全profileとhashを保存する。
+比較時はmodel ID以外の条件を同じ`comparison_contract_hash`で固定する。各stepはparent、候補数、
+selected category、confidence、reasonを保存し、最終confidenceはSELECT済みstepの最小値とする。
+confidenceをCategory確定基準へ使用しない。
+
+新規mock/unit/AppTest 42件と既存test 1069件、合計1111件を外部APIなしでPASSした。一括pytestは
+既存PowerShell清掃を含む環境で親processのsummaryが残らないため、全test fileを重複なく分割実行し
+合計件数を照合した。変更Python 9件の構文検査と`git diff --check`もPASS。Fake Provider testsの
+合格はPrompt入力、schema、allowlist、ABSTAIN、fail closed、記録・集計契約の確認だけを意味し、
+product title優先、Tablet / Powder、main product / accessory等の意味理解精度は未確認である。
+OpenAI / Keepa / Shopee API実行、実商品処理、commit、push、PR、merge、deployは0。
+
+2026-09-11、実OpenAI APIを呼ばずに5件smokeのpreflightをGit外へ固定した。Sourceは
+Official Before 35件から許可されたEvidence 4 fieldだけを抽出し、Gold、Mapper推薦、Mapper
+Product Typeを含めていない。固定Source SHA-256は
+`5f4fa1a77a80967724a5a6fa1a23d05a31757bfb763f25389509f0513b3eeebb`。Official Beforeの凍結
+SQLite snapshot SHA-256は`cd57d90964411a91227ed2e2b58bd68ed6e52e2e93cc19ec6ad2a338d3e9bd7e`、
+同snapshotから生成した正規化catalog hashは
+`d694271a244bf743547d8cf9b1711f14618032954bae2cc81645f35ea65d72e6`。production SQLiteは
+開いておらず変更0である。
+
+使用候補はexact model `gpt-5.6-luna`、固定profile hash
+`a64162f384470c34a773b533b8415e57b93a377c4a161141ed44a3f348248c13`、comparison contract hash
+`426e2273c512bfd12910ae9757bdccf9a69dc93ad43fe613d2b557db0b71b980`。Prompt V1、request profile、
+Traversal V1は変更していない。凍結catalogの最大depthは5、5件の最大API requestは25。
+最大request payloadを全25回に適用し、UTF-8 1 byteを1 input token、全inputをcache-write料金、
+全requestを512 output tokensとして見積もった保守的上限はUS$0.072585である。Git外preflight
+manifestは`LOCAL_ARTIFACT_ROOT/PH_Category_AI_Benchmark_V1/smoke_5_luna_a64162f3/`に保存した。
+OpenAI API request、credential読取、35件・100件実行、commit、push、PRは0。
+
+同日、オーナーの明示承認後、上記preflight契約を変更せず`gpt-5.6-luna` 1モデル×固定5件を
+concurrency 1、retry 0で実行した。全5件がleafまで`COMPLETED`し、ABSTAIN / FAILEDは0。
+API requestは16回、全responseのmodelは`gpt-5.6-luna`、service tierは`default`、HTTP 200で
+契約一致した。総usageはinput 17,312、cached 0、cache write 8,336、output 1,530 tokens。
+料金configによる総推定額はUS$0.0057152、API latency合計42.244532秒、wall latency
+42.283805秒で、25 request・US$0.08上限内だった。Stop Conditionは発生せず、固定5件完了を
+理由に停止した。
+
+Git外Prediction CSV SHA-256は`bb19d55d118cca730cf67763522a4aeb02ee0233c627e7047dcac632503e5744`、
+execution manifest SHA-256は`52e7e74837edfdffd692bf640c2cbe0fd6ddfc67a0d518762a5d71015fd39ac9`。
+API key、raw responseは保存せず、production SQLiteと正式Category Mapperは変更していない。
+全Prediction hash固定後に既存Gold truthを初めて読み取ったが、対象5件はすべて
+`truth_status=UNCONFIRMED`でexpected Categoryは空欄だった。既存review packetのCategory候補との
+対応はオーナー確認用に提示し、正式Gold exact-matchとは扱わない。35件・100件実行、commit、
+push、PR、mergeは0。
+
+同日、オーナーが別工程として指示した、既存35件とは独立した10 genre x 10商品の新規Benchmark
+Setについて、既存ローカルartifactだけをread-only監査した。Official Before 35 ASINとそのsubset
+であるLuna smoke 5 ASIN、synthetic fixture、blank template、同一ASINの重複保存、同一商品の近接
+variantを除外した結果、必要Evidence 5 fieldを持つAmazon.co.jp / Keepa確認済み候補は6商品だった。
+凍結PH catalogの指定10 root名はすべてexact一致した。genre内訳はBeauty 1、Hobbies & Collections
+5、その他8 genre 0であり、合計94商品が不足する。
+
+不足のため、`BENCHMARK_100_SOURCE_V1.csv`、Gold Review Packet、Gold Truth Review、manifestは作成
+していない。Keepa / OpenAI / Shopee API request、AI Prediction参照、production SQLite writeは0。
+補充は、AIを使わずにAmazon候補ASINと実際のresolver input titleを先に固定し、Keepa JP
+Product endpointでbasic product factsだけをbatch取得する案とする。94商品を一度で採用できた場合は
+94 tokens、25% bufferの想定は118 tokens、1枠2候補までのhard capは188 tokens。Product Finderだけ
+で発見した商品はresolver_titleの由来を満たさないため、現契約では補充方式にしない。実行は別途
+オーナー明示承認を得る。
+
+2026-09-12、オーナーはDEC-0057の補充方式をBenchmark Source限定で更新し、既存の汎用Keepa
+clientを変更せず、Category AI Benchmark V1候補発見専用runnerをlocal実装することを承認した。
+専用runnerは固定10 genre / 32 leaf、retry 0、concurrency 1、自動fallbackなし、page 0優先、
+不足leafだけpage 1、選抜229候補だけProduct確認、実測`tokensConsumed`台帳、request前予約、
+hard cap 1,140 tokens / 77 requests、partial artifact保存を実装した。production SQLite、正式Resolver、
+汎用`keepa_client.py`は変更していない。
+
+同日、オーナーの明示承認後に実Keepa取得を開始し、残高がhard cap以上であることを具体値を
+保存・表示せず確認した。32 seedの一括Product確認で32 tokensを消費した後、`B0CHHYQHGP`の
+`SEED_CATEGORY_MISMATCH`を検出して停止した。Finder、Category Lookup、候補Product確認、Source作成、
+OpenAI / Shopee API実行は0である。raw response非保存契約のため実応答のcategory tree値はpartial
+artifactから再現できないが、公開Amazonカテゴリで同ASINが電気ケトルleaf `16245081`、上位root
+`3828871`に属することを補助確認した。A対応として当該planだけrootを`3828871`、表示pathを
+`ホーム＆キッチン > 家電 > キッチン家電 > 電気ケトル`へ修正し、seed / leafと他31 plan、runner
+logic、617-token通常見積り、1,140-token / 77-request hard capは変更していない。実Keepa再実行は
+別途オーナー承認までHOLDとする。
+
+同日、オーナーの明示承認後、同じ固定runnerを通常経路で再実行した。残高がhard cap以上で
+あることを具体値を保存・表示せず確認し、32 seed一括Product確認で32 tokensを消費した。
+plan 13 `B0CHHYQHGP`は修正後root `3828871` / leaf `16245081`の検査を通過したため、この2 IDは
+Keepa応答と一致した。実path文字列は当該seedの診断artifactへ保存していないため完全一致未確認と
+する。次のplan 14 `B099242274`で`SEED_CATEGORY_MISMATCH`となり停止した。安全に保存した派生値は
+実root `3828871`、実leaf `2275305051`、実path
+`ホーム＆キッチン > 家電 > キッチン家電 > 炊飯器・精米器 > 炊飯器`であり、計画root
+`124048011`だけが不一致、leafは一致した。Finder、Category Lookup、候補Product確認、Source作成、
+OpenAI / Shopee API実行は0で、自動修正・fallbackは行っていない。次の対応と実Keepa再実行は
+別途オーナー承認までHOLDとする。
+
+同日、オーナー承認によりSeed Validationだけを最小修正した。Seed Product APIの32件応答後、
+最初のmismatchで検査を打ち切らず、全32 planについてASIN存在、title存在、expected / actual
+root、expected / actual最深leaf、root / leaf一致、status、安全に得たpathを派生診断へ保存する。
+1件以上の失敗があれば全診断を`seed_diagnostic.json`へ固定後、Category Lookup / Finder / 候補
+Product確認前に停止する。自動修正、seed差替え、fallback、追加requestは行わない。Mockでは全32
+PASSで次工程へ進むことと、plan 5 / 20の同時root mismatchを両方記録してplan 32まで検査し、seed
+Product 1 request / 32 tokensで停止することを確認した。Seed runner 13 testsとCategory AI関連55 tests
+は既存Python 3.13環境でPASSした。plan 14のroot `3828871`は修正候補のまま未反映である。通常617
+tokens、hard cap 1,140 tokens / 77 requests、retry 0、concurrency 1は不変。実Keepa / OpenAI /
+Shopee API追加実行、production SQLite、commit、push、PRは0で、実Keepa一括診断は別承認までHOLDとする。
+
+同日、オーナー承認により32 seed実診断で確認した3件のtaxonomyをKeepa実返却値へまとめて
+最小修正した。修正後planは保存済み32件診断と全件一致し、runner Mock 14件、Category AI関連
+56件をPASSした。その後、固定runnerをretry 0、concurrency 1、fallbackなしで実行し、seed 32、
+Category Lookup 4、Finder page 0を32 leaf、選抜229候補のProduct確認を完了した。page 1は不要、
+実消費617 tokens、runner 42 requestsで、Hard Stopは発生しなかった。Keepa JPで商品情報を確認
+できた候補は224件、rejectは5件だった。
+
+既存local 6件と新規Keepa 94件を非AIで選定し、10 genre x 10、100 unique ASINの
+`BENCHMARK_100_SOURCE_V1.csv`をGit外へ固定した。Source SHA-256は
+`743b32eb2c8e7835b4ad2ada8cdbf0ca7cbbdb453320c024322af6c1b766ee48`。新規94件の
+`resolver_title`はすべて空文字で、Keepa titleをコピーしていない。同一brand最大2、既知leaf
+最大4は全genreで達成した。既存local 5件はleaf ID未保持のため、leaf目標の完全検証対象外と
+明示した。difficultyは商品選定時に推測せず全件`UNASSESSED`とし、Gold Truth工程へ残した。
+ OpenAI / Shopee API、Gold Truth、production SQLite、正式Category Mapper、commit、push、PRは0。
+
+同日、Goldレビュー前のSource品質診断で示された同一product family / variant候補5組を、各1件だけ
+残し、既存verified unused candidate poolから同Genreの5件へ差し替えた。追加Keepa / OpenAI /
+Shopee APIは0で、V1は監査証跡として保持した。`BENCHMARK_100_SOURCE_V1_1.csv`は100 rows、
+100 unique ASIN、10 genre x 10、既存35件・smoke 5件とのASIN重複0を維持し、SHA-256は
+`a128aa7b5cad87e08397bdc09e0b2cdd656270c00be025b58d4f2e2419cccae0`。verified family key衝突、
+exact title重複、新規の近似family候補はいずれも0で、同一brand最大2、確認可能なAmazon leaf最大4も
+維持した。V1.1基準のGold Review Packet / Gold Truth Reviewを再生成し、正式Gold 4欄は全100件で
+空欄のまま、review confidenceはHIGH 74 / MEDIUM 21 / LOW 5、candidate statusは
+CONFIRMED 84 / ABSTAIN 5 / NEEDS_REVIEW 11とした。Gold Truth確定、モデルBenchmark、
+production SQLite、正式Category Mapper、commit、push、PRは0で、人間Goldレビュー待ちHOLDとする。
+
+同日、オーナーがSource V1.1の全100件を人間レビューし、92件を`CONFIRMED`、指定8件を
+`ABSTAIN_REQUIRED`として正式確定した。92件はReview Packet V1.1の採用Categoryを再推測せず
+expected ID / pathへ固定し、8件はexpected ID / pathを空欄として複数leafから安全に1つを選べない
+理由を記録した。`BENCHMARK_100_GOLD_TRUTH_V1_1.csv`のSHA-256は
+`1faf1365ac0bb83566ea0347c12b9505895fcb9fed2cf4e5ba3964e62e28e93b`、Source V1.1は
+`a128aa7b5cad87e08397bdc09e0b2cdd656270c00be025b58d4f2e2419cccae0`のままbytes・全Source fieldの
+差分0。100 rows、100 unique case ID / ASIN、Source対応100/100、UNCONFIRMED 0、CONFIRMED全92件の
+固定PH Catalog leaf ID / path一致、ABSTAIN 8件のexpected欄空を機械検証した。現行Gold parserは
+positive expected IDだけを扱いABSTAIN_REQUIRED行を未対応のため、model Benchmark前に採点契約と
+loader対応を別工程で確認する。今回OpenAI / Keepa / Shopee API、Prediction参照、model Benchmark、
+production SQLite、正式Category Mapper、commit、push、PRは0で、model Benchmark未承認HOLDとする。
+
+同日、正式Gold loaderを`CONFIRMED`と`ABSTAIN_REQUIRED`へ対応し、`UNCONFIRMED` / 未定義status、
+expected欄矛盾、非leaf・ID / path不一致、Source / Goldのcase ID・ASIN不一致と重複を拒否するよう
+最小更新した。採点は`CORRECT_SELECT`、`WRONG_CATEGORY`、`FALSE_ABSTAIN`、
+`CORRECT_ABSTAIN`、`OVERCONFIDENT_SELECT`、`FAILED`を分離し、全件E2Eを主要指標、FAILED除外の
+completed-decision結果を参考値としてmodel別に集計する。全Predictionの個別hash後にbatch hashを
+固定し、その後だけGoldをparseする順序をUIとtestで固定した。正式100件fixtureはCONFIRMED 92 /
+ABSTAIN_REQUIRED 8として読込PASSし、Category AI関連72 testsを外部APIなしでPASSした。
+
+Luna / Terra 100件比較preflightでは、Source / Gold / Catalog / Prompt hashとprofile共通条件の不変を
+再確認した。凍結Catalog最大depth 5から最大requestは各model 500、2モデル合計1,000。全500 requestに
+最大serialized payloadを適用し、1 UTF-8 byteを1 input token、全inputをcache-write単価、全requestを
+512 output tokensとする保守上限はLuna US$1.585075、Terra US$15.852、合計US$17.437075である。
+2026-09-12のOpenAI公式model docsでdefault tierのLuna $0.20 / $0.02 / $1.20、Terra $2.00 /
+$0.20 / $12.00（input / cached input / output、各1M tokens）とcache write 1.25倍を再確認し、既存
+`OPENAI_TEXT_PRICES_2026-09-11_V1`と一致した。OpenAI / Keepa / Shopee API、production SQLite、
+Source / Gold / Prompt / Traversal変更、commit、push、PRは0。実API比較は別途明示承認までHOLDする。
+
+Fake transport / HTTP transport fakeによる新規11 testsは全件PASSした。seed一括確認、Category Lookup 10件batch、Finder
+page 0、不足leafだけpage 1、ASIN dedupe、既存35 / smoke 5 / 全seed除外、Product API 50件batch、
+parent family / EAN実質重複除外、617-token通常経路、token / request capのrequest前停止、想定外
+token消費停止、有効pool不足停止、fallbackなし、partial result、`resolver_title=""`、API key / `tokensLeft`値 / raw
+response非保存をmockで確認した。これはrunner契約の確認であり、Keepa契約、実データ取得、現在の
+token残高、Amazon.co.jp live page、購入可能性を確認したものではない。Keepa / OpenAI / Shopee
+API、Benchmark CSV作成、production SQLite write、commit、push、PRは0。
 
 2026-09-08、formal main `8bfc46a2fe35b4492fe4365dbcb30353b3b9404f`上で、オーナーがDEC-0049のBeta MUST 10項目に基づくPH Minimum Betaを最終受入した。Gate Pを`PASS`、PH Minimum Betaを`PASS / OWNER_ACCEPTED`へ更新し、PHに限定した少量実務投入を承認済みとする。Product Text Safety必要最小対応、Resolver / Expansion両入口の少量実商品E2E、PH画像Safety 5商品live検証、人間REVIEWの`EXCLUDE` / `ALLOW_PREPARATION`実務確認を受入根拠とする。
 
@@ -380,7 +587,7 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 - N2 / A1のOpenAI各1 requestは事前個別明示承認なしの承認逸脱として記録済み。オーナーは各逸脱を認識し、再実行せず既存Evidenceを事後受入した。A1はオーナー目視で武器形状物なし、AI `REVIEW`の過剰REVIEW候補だが、今回の人間判断で`ALLOW_PREPARATION`へ進められることを確認した。W1の`EXCLUDE`と合わせ、人間最終判断の実務確認はPASS
 - PH Minimum Beta最終オーナー受入は完了。初回の少量実運用で重大事故または実務ボトルネックが発生するかは未確認
 - `BETA_AFTER_CANDIDATE`: 画像Safetyのtitle trigger、subcategory細分化、全rootの網羅的画像リスク調査（DEC-0053）
-- `BETA_AFTER_CANDIDATE`: `gpt-5.6-luna`へのコスト最適化比較、provider複数対応、AI結果cache、その他root拡張（DEC-0054）
+- `BETA_AFTER_CANDIDATE`: provider複数対応、AI結果cache、その他root拡張（Luna / Terra比較とLuna採用は完了）
 - `BETA_AFTER_CANDIDATE`: P1c POST_CATEGORY 170件（strict接続可能62件、未解決108件）の完全追跡、Seller Centre Category Evidenceの追加照合、62件の個別Rule scope review、Category依存Safetyの網羅的Rule化、古いCategoryの後継Category完全特定
 - `BETA_AFTER_CANDIDATE`: P1c `ADDITIONAL_FACT_REQUIRED` 59件のうち、新Beta MUSTの重大リスク対応を越えるFact取得・搬送設計
 - `BETA_AFTER_CANDIDATE`: 確定済みNGリスト外の知財の広範推測、高度な重複商品判定、他marketplace、自動出品、および旧P0〜P6のうち新Beta MUSTに含まれない全面工程
@@ -417,10 +624,109 @@ DEC-0046正本化差分のmain統合確認後、P1cの受入済み229候補をCa
 
 ## 次の単一作業
 
-PH Minimum Betaを少量の実務へ投入し、最初の実運用で重大事故または実務ボトルネックが発生するか確認する
+2026-09-12、オーナーの明示承認により、固定Source V1.1、Gold V1.1、PH Catalog、Prompt V1、
+Traversal V1、Luna request profileを変更せず、`gpt-5.6-luna`の固定100商品だけを実OpenAI APIで
+実行した。全100商品を処理し、315 requests、input 374,416、cached input 0、output 31,934
+tokens、総コストUS$0.12669125、API latency合計694.35772秒だった。FAILED / Hard Stopは0、response
+modelは全件`gpt-5.6-luna`、service tierは全件`default`だった。Goldは全Prediction生成とbatch hash
+`55dc9aab2d7bd03cce50d4c0c47c65afd60d75eaedfa3d4d5426525565936ae6`固定後に読み込んだ。
+
+採点結果はCORRECT_SELECT 79、CORRECT_ABSTAIN 2、WRONG_CATEGORY 7、FALSE_ABSTAIN 6、
+OVERCONFIDENT_SELECT 6、overall success 81%。Git外成果物は
+`LOCAL_ARTIFACT_ROOT/PH_Category_AI_Benchmark_V1/luna_100_live_v1_1_20260912T102914Z/`へ保存した。
+API key、raw response、keyの一部またはhashは保存していない。Terra / Sol、Keepa / Shopee API、
+production SQLite、正式Category Mapper、commit、push、PRは0である。
+
+同日、オーナーの明示承認により、比較契約を変更せず`gpt-5.6-terra`の同じ固定100商品を実行した。
+全100商品、313 requests、input 371,908、cached input 0、output 27,063 tokens、総コスト
+US$1.202226、API latency合計582.2158695秒だった。FAILED / Hard Stopは0、response modelは全件
+`gpt-5.6-terra`、service tierは全件`default`だった。Prediction batch hash
+`5f0cb5e055b7d6e1e8f0958b8217822b3287bd2b996656dbbb2ae92aa6c5b580`固定後にGoldを読み込んだ。
+採点結果はCORRECT_SELECT 79、CORRECT_ABSTAIN 3、WRONG_CATEGORY 4、FALSE_ABSTAIN 9、
+OVERCONFIDENT_SELECT 5、overall success 82%。Git外成果物は
+`LOCAL_ARTIFACT_ROOT/PH_Category_AI_Benchmark_V1/terra_100_live_v1_1_20260912T112730Z/`へ保存した。
+
+固定100件比較ではLuna 81%、Terra 82%で、CONFIRMED exact accuracyはいずれも79/92だった。
+TerraはWRONG_CATEGORY 4、ABSTAIN_REQUIRED正解3/8、LunaはWRONG_CATEGORY 7、同2/8だった一方、
+TerraのFALSE_ABSTAINは9でLunaの6より多く、Terra実コストはUS$1.202226、Lunaは
+US$0.12669125だった。これは採用決定ではなく比較事実だけである。API key、raw response、keyの一部・
+hashは保存していない。Sol、Luna再実行、Keepa / Shopee API、production SQLite、正式Category Mapper、
+commit、push、PRは0である。
+
+2026-09-13、オーナーはCategory AI Benchmark V1のモデル選定を完了し、Minimum BetaのCategory候補
+提示に`gpt-5.6-luna`を採用した。Terraは精度差が小さく実コストが約10倍のため不採用、Solは
+検証しない。AIによるCategory自動確定は禁止し、`manual_review_required`、`listing_ready`等の
+既存安全機構を維持する。Hobbies & CollectionsはLuna / Terraとも0/10だった既知弱点として手動確認
+対象とする。Prompt V1、Traversal V1、Hobbies改善は今回行わず、実運用で真のボトルネックになった
+場合だけ再検討する。
+
+Category MapperへのMinimum Beta最小統合はlocal実装・mock回帰検証まで完了した。次は差分を
+オーナー確認し、最大3商品の実APIスモーク要否を別途判断する。実APIを行う場合も新しい明示承認を
+必須とし、実商品・最大件数・費用境界を実行前に固定する。
+
+同日の正本化検証では、Category AI関連72 tests、全回帰1141 testsを外部APIなしでPASSした。
+`git diff --check`もPASSし、実secret、API key、CSV / TSV、DB / SQLite、JSONL、cache、Git外artifact
+の混入0を確認した。`config/.env.example`のplaceholder追加は実secretを含まないが、`.env.*`を
+Gitへ追加しない規則に従い正本commitから除外し、worktreeにunstagedで保持した。正本文書更新後に
+`scripts/Update-ContextSnapshot.ps1`で派生snapshotを再生成した。
 
 ## 停止条件
 
+### Category Mapper AI Minimum Beta Hard Stop
+
+- 実OpenAI API、Keepa、Shopee API、実商品処理を新しい明示承認なしに実行しない。
+- AI PredictionまたはconfidenceだけでCategoryを確定せず、`manual_review_required`または
+  `listing_ready`を解除しない。
+- 確認済みCategoryをAIで再判定・上書きしない。ABSTAIN、FAILED、catalog不整合、group不一致を
+  採用可能候補へ昇格しない。
+- group採用は全memberが同じ有効leafへ一致する場合だけ人間操作で行い、採用後は既存Brand確認を省略しない。
+- Prompt V1、Traversal V1、Hobbies改善、Brand、Safety、Guardrail、Resolver、Expansion、Listing Tool、
+  自動出品を変更しない。
+- local実装・mock回帰PASSだけで実データ有用性、ユーザー受入、Minimum Beta正式完成を宣言しない。
+- push、PR、merge、deployを明示承認なしに行わない。
+
+### Category AI Benchmark V1 Hard Stop
+
+- API key・credential・token残高その他の秘密情報に漏洩懸念がある場合は即時停止する。
+- production SQLite、main、正式Category MapperまたはGit上の変更禁止範囲への変更が必要、または
+  発生した場合は即時停止する。
+- Keepa / OpenAIのtoken・cost hard cap超過見込み、HTTP / API異常、429、認証異常、response
+  schema・保存データの破損がある場合は即時停止する。
+- 未承認endpoint、fallbackまたは承認範囲外の外部API実行が必要な場合は即時停止する。
+- Hard Stop時は安全に保持できるpartial artifactだけを保存し、後続request・次工程へ進まない。
+
+### Category AI Benchmark V1 Diagnostic / 続行可能
+
+- seed root / leaf mismatch、古いAmazon taxonomy、variant / family重複、candidate不足、genre内の
+  商品構成偏り、difficulty / brand / leaf比率未達は、単独では即時Hard Stopにしない。
+- Diagnosticは当該工程の対象全件について可能な限り収集する。承認済み条件内で安全かつ決定的に
+  処理できるものだけを処理し、安全に自動修正できない事項を一覧化する。
+- Finder等の次工程の前提条件を満たさない場合は、全件診断後に一度停止してまとめて報告する。
+  1件ごとの「停止、文書更新、承認、再実行」を繰り返さない。
+- `CURRENT_WORK.md`、`DECISION_LOG.md`、`CONTEXT_SNAPSHOT.md`の通常更新は、Benchmark runner完成、
+  100商品Source完成、Gold Truth完成、100商品model比較完成、Category Mapper統合判断のマイルストーン
+  単位を原則とする。Hard Stop、安全・integrity上の重大変更、承認境界変更は例外とする。
+
+- 固定済み`BENCHMARK_100_SOURCE_V1.csv`のbytes、case ID、ASIN、Evidence、順序をGold作成または
+  model比較中に変更しない。Source SHA-256不一致時はGold作成・比較を開始しない。
+- 追加Keepa request、再取得、候補差替えは別途明示承認前に実行しない。Product FinderはCategory
+  AI Benchmark V1のSource候補発見だけに限定し、Finder結果単独を正式Sourceとして扱わない。
+- Benchmark Sourceに実在するResolver入力値がない場合だけ`resolver_title=""`を許容する。この
+  限定許容をResolver正式仕様、Resolver provenance要件、他のSourceへ拡張しない。
+- 実Keepa実行は固定32 leaf、retry 0、concurrency 1、自動fallbackなし、hard cap 1,140 tokens /
+  77 requestsとする。page 0を全leafで先行し、page 1は不足leafだけ1回までとする。
+- 上限不足、想定外token消費、HTTP / schema異常はHard Stopとする。seed / category不一致、page 1後の
+  候補不足は全件Diagnosticを収集した後、次工程の前提を満たさなければ一度停止する。別endpoint
+  または追加pageへ自動fallbackしない。
+- 100商品Source作成中はOpenAI API、Luna / Terra / Sol、Category AI Benchmark、Shopee APIを
+  実行せず、AI Predictionを候補選定またはdifficulty決定へ使用しない。
+- 固定5件smokeは完了済み。再実行、6件目、35件・100件その他の追加OpenAI APIは、次のオーナー明示承認前に開始しない。
+- 5件smokeは最大25 requestまたはUS$0.072585へ到達する前に停止し、FAILED、timeout、network、HTTP、rate limit、schema、model、service tier、catalogの不一致・異常が1件でもあれば後続商品へ進まない。
+- 5件smoke終了後は結果にかかわらず停止し、35件・100件Benchmarkへ自動で進まない。
+- local実装・mock結果をAI意味理解精度、confidence信頼性、Category確定可否の確認と扱わない。
+- commit、push、PR、merge、正式Category Mapper統合は別途明示承認前に行わない。
+- model比較中にPrompt、catalog snapshot、traversal、request profileのmodel ID以外を変更しない。
+- Gold、Mapper推薦・status・canonical product type・Domain・confidence・過去選択をAI入力へ入れない。
 - Gate P / PH Minimum Betaの`PASS / OWNER_ACCEPTED`はPHの少量実務投入に限定し、完全なSafety保証、規約適合保証、自動出品完成、他marketplace受入へ拡張しない。
 - B2全体フローは現行機能によるE2E技術確認完了として扱い、新しい不具合Evidenceがない限り最初からの再実行を次工程にしない。
 - PH画像Safetyの正式計画内live検証は5商品で終了した。6商品目・Beta前の追加ガンプラ試験・再実行を行わず、ph_image_safety実装、prompt、model、detail、selector、Rule・辞書・Candidate 15列・既存判定優先順位を変更しない。承認範囲外API、Shopee live書込みは行わない。
@@ -558,4 +864,4 @@ PH Minimum Betaを少量の実務へ投入し、最初の実運用で重大事�
 
 ## 最終更新日
 
-2026-09-08
+2026-09-13

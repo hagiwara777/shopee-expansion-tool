@@ -204,6 +204,27 @@ class CategoryMapperStore:
         with self._connect() as connection:
             return [dict(row) for row in connection.execute(sql, values)]
 
+    def list_categories_for_category_ai_catalog(
+        self, marketplace: str
+    ) -> list[dict[str, Any]]:
+        """Read the complete local tree solely for Category AI Core catalog creation."""
+
+        marketplace = _marketplace(marketplace)
+        with self._connect() as connection:
+            return [
+                dict(row)
+                for row in connection.execute(
+                    """
+                    SELECT category_id, parent_category_id, category_name, category_path,
+                           is_leaf, synced_at
+                    FROM catalog_categories
+                    WHERE marketplace = ?
+                    ORDER BY category_id
+                    """,
+                    (marketplace,),
+                )
+            ]
+
     def get_category(self, marketplace: str, category_id: int | str | None) -> dict[str, Any] | None:
         marketplace = _marketplace(marketplace)
         numeric_id = _positive_int(category_id)
