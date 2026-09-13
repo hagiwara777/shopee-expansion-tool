@@ -322,7 +322,7 @@ VARIANT_MATCHは完全一致率に含めない。
 
 ## 進行禁止
 
-- Category Mapper
+- AI PredictionによるCategory自動確定
 - AI Shadow実評価
 - 大機能追加
 - SG / MY / TH情報の使用

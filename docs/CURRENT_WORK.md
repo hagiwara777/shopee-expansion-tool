@@ -13,15 +13,38 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `Category AI Benchmark Ver1 / 汎用AIカテゴリ判定Core`
-- current_phase: `Category AI Benchmark / モデル選定完了 / 次タスク待ち`
-- working_branch: `feature/category-ai-benchmark-v1`
-- marketplace: `PH実catalog / PH・SG合成catalog mock確認済み`
-- module: `Category AI Benchmark（正式Category Mapper・AI Shadowとは独立）`
-- phase: `CATEGORY_AI_BENCHMARK_V1_COMPLETE_LUNA_SELECTED`
-- stop_policy: `TASK_COMPLETE / NO_ADDITIONAL_API_OR_INTEGRATION`
+- current_work_type: `PH Category Mapper / Category AI Minimum Beta最小統合`
+- current_phase: `local実装・mock回帰検証完了 / 実API・実データ有用性・ユーザー受入未実施`
+- working_branch: `codex/ph-category-mapper-ai-minimum-beta`
+- marketplace: `PH`
+- module: `Category Mapper / Category AI Core薄いadapter`
+- phase: `CATEGORY_MAPPER_AI_MINIMUM_BETA_LOCAL_VALIDATED`
+- stop_policy: `NO_REAL_API / HUMAN_CONFIRMATION_REQUIRED / NO_PUSH_PR_MERGE`
 - documentation_policy: `MILESTONE_ONLY`
-- next_action: `新規CodexタスクでCategory MapperへAI CoreをMinimum Betaとして最小統合する`
+- next_action: `local実装差分をオーナー確認し、mock検収後の最大3商品実APIスモーク要否を別途判断する`
+
+2026-09-13、最新`origin/main` `73b81a1032f24652eed29cd1d2f85872d0496727`とCategory AI
+Benchmark V1 commit `7fe9712b914c473c3ab81c7b99e3f5bc9442a7ae`が共通親
+`03a35772a0f513cffec72ef8a4b2ea814aae6fdb`を持つsiblingであることを確認した。dirtyなBenchmark
+worktreeは使用せず、最新mainからclean branch `codex/ph-category-mapper-ai-minimum-beta`を作成し、
+`7fe9712...`を競合なくcherry-pickした。統合commit `c2031ad239a54bd9dc605915e66ce9c1a8eab22b`
+は`73b81a1...`を親とし、`7fe9712...`との差は最新mainの`AGENTS.md`だけである。
+
+既存Category AI Coreを変更せず、PH Category Mapper用の薄いadapterを追加した。AI Predictionは
+Recommendationを書き換えずsession内の独立候補として保持し、明示ボタン押下前はProvider生成・
+API呼出しとも0、対象はCategory未確定行だけ、modelは`gpt-5.6-luna`固定とした。現在のlocal PH
+Category Tree全体からCategoryCatalogを構築し、有効leaf・ID・path一致を満たす候補だけを表示する。
+ABSTAIN、FAILED、catalog不整合、group全member不一致は採用不可で既存手動経路を維持する。group採用は
+全memberが同一有効leafへ一致した場合だけ既存`apply_manual_category()`へ渡す。Predictionだけでは
+`category_is_confirmed`、`manual_review_required`、`listing_ready`を変更せず、採用後も従来どおりBrand
+確認へ進む。Hobbies & Collections候補にはBenchmark弱点警告を表示する。
+
+外部APIなしの検証はCategory AI関連78件、Category Mapper関連60件、全pytest 1148件が成功した。
+変更Pythonの構文検査、`git diff --check`もPASS。初回全pytestの1 failureは新worktree直下に検証
+スクリプト必須の`.venv`がなかった環境要因で、Git除外済みjunctionを既存正式venvへ接続後、当該1件と
+全回帰を再実行してPASSした。実OpenAI / Keepa / Shopee API、実商品処理、Shopee書込み、push、PR、
+mergeは0。これはlocal技術検証であり、実データ有用性確認、ユーザー受入、Minimum Beta正式完成を
+意味しない。DecisionはDEC-0067を参照する。
 
 2026-09-11、オーナーの条件付きPlan承認に3条件を反映し、実装開始の明示承認を受けた。
 固定起点 `03a35772a0f513cffec72ef8a4b2ea814aae6fdb` が`origin/main`と一致することを確認し、
@@ -628,10 +651,9 @@ commit、push、PRは0である。
 対象とする。Prompt V1、Traversal V1、Hobbies改善は今回行わず、実運用で真のボトルネックになった
 場合だけ再検討する。
 
-Category AI Benchmark / モデル選定はこの独立タスクで完了する。次は新規Codexタスクで
-「Category MapperへAI CoreをMinimum Betaとして最小統合する」を開始する。本タスクではMapper、
-Safety、Brand、Resolver、Prompt V1、Traversal V1を変更せず、追加OpenAI API、push、PR、mergeも
-行わない。
+Category MapperへのMinimum Beta最小統合はlocal実装・mock回帰検証まで完了した。次は差分を
+オーナー確認し、最大3商品の実APIスモーク要否を別途判断する。実APIを行う場合も新しい明示承認を
+必須とし、実商品・最大件数・費用境界を実行前に固定する。
 
 同日の正本化検証では、Category AI関連72 tests、全回帰1141 testsを外部APIなしでPASSした。
 `git diff --check`もPASSし、実secret、API key、CSV / TSV、DB / SQLite、JSONL、cache、Git外artifact
@@ -640,6 +662,19 @@ Gitへ追加しない規則に従い正本commitから除外し、worktreeにuns
 `scripts/Update-ContextSnapshot.ps1`で派生snapshotを再生成した。
 
 ## 停止条件
+
+### Category Mapper AI Minimum Beta Hard Stop
+
+- 実OpenAI API、Keepa、Shopee API、実商品処理を新しい明示承認なしに実行しない。
+- AI PredictionまたはconfidenceだけでCategoryを確定せず、`manual_review_required`または
+  `listing_ready`を解除しない。
+- 確認済みCategoryをAIで再判定・上書きしない。ABSTAIN、FAILED、catalog不整合、group不一致を
+  採用可能候補へ昇格しない。
+- group採用は全memberが同じ有効leafへ一致する場合だけ人間操作で行い、採用後は既存Brand確認を省略しない。
+- Prompt V1、Traversal V1、Hobbies改善、Brand、Safety、Guardrail、Resolver、Expansion、Listing Tool、
+  自動出品を変更しない。
+- local実装・mock回帰PASSだけで実データ有用性、ユーザー受入、Minimum Beta正式完成を宣言しない。
+- push、PR、merge、deployを明示承認なしに行わない。
 
 ### Category AI Benchmark V1 Hard Stop
 

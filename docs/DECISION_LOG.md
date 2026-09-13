@@ -795,3 +795,16 @@
 - 境界: 本決定はCategory Mapper統合の実装、追加OpenAI API実行、Prompt / Traversal変更、Safety / Brand / Resolver変更、自動Category確定、自動出品、push、PR、mergeを許可しない。Mapperへの最小統合は新規Codexタスクで開始する。
 - 理由: LunaとTerraの全体精度差は1ポイント、CONFIRMED exactは同率であり、Hobbies弱点も共通だった一方、Lunaは実コストが大幅に低い。人間確認を残すMinimum Betaの候補提示用途では、Lunaが費用対効果に優れるため。
 - 再検討条件: Minimum Beta実運用でCategory候補品質、Hobbies、手動確認負荷、失敗率または費用が真のボトルネックになった場合。その時点で実運用Evidenceに基づき、Prompt / Traversal改善、モデル再比較その他の対応を別タスクで判断する。
+
+## DEC-0067 — Category Mapperへ独立AI候補としてMinimum Beta最小統合する
+
+- 日付: 2026-09-13
+- 背景: DEC-0066で`gpt-5.6-luna`を候補提示モデルに採用した。最新mainとBenchmark V1 commitが共通親から分岐したsiblingだったため、dirtyなBenchmark worktreeを避け、最新mainを基点にCategory AI Coreを安全に取り込んだ上で、既存Category Mapperの人間確認と出力安全条件を維持する最小統合が必要だった。
+- 決定: 最新`origin/main` `73b81a1032f24652eed29cd1d2f85872d0496727`からclean branch `codex/ph-category-mapper-ai-minimum-beta`を作り、Benchmark V1 `7fe9712b914c473c3ab81c7b99e3f5bc9442a7ae`をcherry-pickした統合commit `c2031ad239a54bd9dc605915e66ce9c1a8eab22b`を実装baseとする。正本文書競合は発生せず、最新mainとCategory AI Coreの双方を保持する。
+- 決定: AI Predictionは既存Recommendationを書き換えず、session内の独立候補として保持する。Category未確定行だけを対象とし、確認済みCategoryはProviderへ渡さない。model選択UIを作らず`gpt-5.6-luna`に固定し、明示ボタン押下までProvider生成・API呼出しを行わない。
+- 決定: Category Mapperのlocal PH Category Tree全体を目的限定interfaceで読み、既存Category AI CoreのCategoryCatalogを構築する。Predictionは現在catalogの実在ID、path一致、有効leafを満たす場合だけ候補表示し、ABSTAIN、FAILED、catalog不整合は採用不可とする。商品単位失敗でbatch全体を止めず、該当行の既存Recommendationと手動経路を維持する。
+- 決定: group採用は全memberが同じ有効leafへ一致した場合だけ表示し、人間が採用した時点で既存`apply_manual_category()`へ渡す。Predictionやconfidenceだけでは`category_is_confirmed`、`manual_review_required`、`listing_ready`を変更しない。採用後は既存どおりBrand未確定へ戻してBrand確認へ進む。Hobbies & Collections候補にはBenchmark弱点警告を表示する。
+- 確認事実: 外部APIなしでCategory AI関連78 tests、Category Mapper関連60 tests、全pytest 1148 testsがPASSした。変更Python構文と`git diff --check`もPASSした。初回全pytestの1 failureは新worktreeに`.venv`がない環境要因で、Git除外済みjunction接続後に当該testと全回帰を再実行してPASSした。
+- 境界: Prompt V1、Traversal V1、Category AI Core、`category_mapper.py`本体、Brand、Safety、Guardrail、Resolver、Expansion、Listing Tool、自動出品は変更しない。実OpenAI / Keepa / Shopee API、実商品処理、push、PR、merge、deployは行わない。local実装・mock検証完了を実データ有用性、ユーザー受入、Minimum Beta正式完成とは扱わない。
+- 理由: AIなしの従来経路を残し、API費用と障害を明示操作へ隔離しながら、候補の有用性だけを早く実務評価できる形にするため。Category確定・Brand確認・出力準備の既存安全条件を変更しないことで、AI誤分類が自動出品準備へ進む経路を作らない。
+- 再検討条件: mock検収後に実APIスモークを行う明示承認が得られた場合、実利用で候補品質・Hobbies・失敗率・費用・group不一致が真のボトルネックと確認された場合、または正式PH catalogからCategoryCatalogを安全に構築できない具体例が確認された場合。改善は既存Prompt / Traversalを黙って変更せず別Version・別判断とする。

@@ -149,8 +149,10 @@ PASSは入力・schema・ABSTAIN・fail closed等の契約確認であり、AI�
 実コストが約10倍だったため不採用、Solは検証しない。AIは候補提示だけを担当し、Category自動確定、
 Safety判断、`manual_review_required`や`listing_ready`等の既存安全機構の解除には使用しない。
 Hobbies & CollectionsはLuna / Terraとも0/10の既知弱点として手動確認する。Prompt / Traversal / Hobbies
-改善は先行せず、実運用で真のボトルネックになった場合だけ別Version・別判断で行う。次工程は新規
-CodexタスクでCategory MapperへAI CoreをMinimum Betaとして最小統合する。
+改善は先行せず、実運用で真のボトルネックになった場合だけ別Version・別判断で行う。Category Mapperへの
+Minimum Beta最小統合は、Recommendationを変更しない独立候補、明示実行、未確定行限定、同一leafへの
+group consensus、人間採用後の既存Brand確認を維持する方式でlocal実装・mock回帰検証まで完了した。
+実OpenAI API、実データ有用性確認、ユーザー受入は未実施であり、Minimum Beta正式完成とは扱わない。
 
 ### BETA_AFTER_CANDIDATE
 

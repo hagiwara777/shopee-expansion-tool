@@ -6,6 +6,12 @@ from pathlib import Path
 import pytest
 from streamlit.testing.v1 import AppTest
 
+import modules.category_mapper_ui as category_mapper_ui
+from modules.category_ai_core import (
+    CategoryAIEngine,
+    FakeCategoryAIProvider,
+    make_fake_select,
+)
 from modules.category_mapper_store import CategoryMapperStore
 from modules.prelisting_candidate_csv import PRELISTING_CANDIDATE_COLUMNS
 from modules.prelisting_gate_csv import PRELISTING_GATE_RESULT_COLUMNS
@@ -99,6 +105,32 @@ def _seed_conditioner_leaf(tmp_path: Path) -> None:
                 "is_others": False,
             },
         ],
+    )
+
+
+def _seed_hobbies_leaf(tmp_path: Path) -> None:
+    store = CategoryMapperStore(
+        tmp_path / "localappdata" / "ShopeeCategoryMapper" / "category_mapper.sqlite3"
+    )
+    store.save_categories(
+        "PH",
+        [
+            {
+                "category_id": 200000,
+                "parent_category_id": None,
+                "category_name": "Hobbies & Collections",
+                "is_leaf": False,
+                "is_others": False,
+            },
+            {
+                "category_id": 200001,
+                "parent_category_id": 200000,
+                "category_name": "Collectible Figures",
+                "is_leaf": True,
+                "is_others": False,
+            },
+        ],
+        synced_at="2026-09-13T00:00:00+00:00",
     )
 
 
@@ -332,11 +364,79 @@ def test_category_mapper_builds_downloads_and_clears_stale_results(monkeypatch, 
         'file_name=f"category_mapper_recommendations_ph_{source_type}.csv"'
         in (PROJECT_ROOT / "modules" / "category_mapper_ui.py").read_text(encoding="utf-8")
     )
+    app.session_state["category_mapper_ai_suggestions"] = "stale"
 
     app.file_uploader(key="category_mapper_source_csv").set_value(
         ("changed.csv", _expansion_csv("Different shampoo"), "text/csv")
     ).run()
     assert "category_mapper_recommendations" not in app.session_state
+    assert "category_mapper_ai_suggestions" not in app.session_state
+
+
+def test_category_mapper_ai_is_explicit_independent_and_human_confirmed(
+    monkeypatch, tmp_path
+):
+    _seed_hobbies_leaf(tmp_path)
+    provider = FakeCategoryAIProvider(
+        [make_fake_select(200000, confidence=1.0), make_fake_select(200001, confidence=1.0)]
+    )
+    engine_factory_calls = []
+
+    def fake_engine_factory():
+        engine_factory_calls.append(True)
+        return CategoryAIEngine(provider)
+
+    monkeypatch.setattr(
+        category_mapper_ui,
+        "_category_ai_engine",
+        fake_engine_factory,
+    )
+    app = _test_app(monkeypatch, tmp_path)
+    app.file_uploader(key="category_mapper_source_csv").set_value(
+        (
+            "eligible.csv",
+            _gate_csv(category="Collectibles", title="Collectible figure"),
+            "text/csv",
+        )
+    ).run()
+    app.button(key="category_mapper_build").click().run()
+
+    assert provider.requests == []
+    assert engine_factory_calls == []
+    before = app.session_state["category_mapper_recommendations"][0]
+    assert before.category_is_confirmed is False
+    assert before.manual_review_required is True
+    assert before.listing_ready is False
+    assert app.button(key="category_mapper_build_ai_suggestions").label == (
+        "AI Category候補を作成（Luna）"
+    )
+
+    app.button(key="category_mapper_build_ai_suggestions").click().run()
+
+    assert not app.exception
+    assert engine_factory_calls == [True]
+    assert len(provider.requests) == 2
+    after_prediction = app.session_state["category_mapper_recommendations"][0]
+    assert after_prediction == before
+    assert after_prediction.listing_ready is False
+    batch = app.session_state["category_mapper_ai_suggestions"]
+    assert batch.success_count == 1
+    assert any("Benchmark弱点カテゴリ" in str(item.value) for item in app.warning)
+    assert app.button(key="category_mapper_apply_ai_category_0").label == (
+        "AI候補のCategoryを採用"
+    )
+
+    app.button(key="category_mapper_apply_ai_category_0").click().run()
+
+    confirmed = app.session_state["category_mapper_recommendations"][0]
+    assert confirmed.recommended_category_id == 200001
+    assert confirmed.category_is_confirmed is True
+    assert confirmed.category_verification_status == "USER_CONFIRMED"
+    assert confirmed.listing_ready is False
+    assert "category_mapper_ai_suggestions" not in app.session_state
+    assert any(
+        button.key == "category_mapper_fetch_brands_0" for button in app.button
+    )
 
 
 def test_category_mapper_applies_no_brand_to_gate_group_and_enables_outputs(monkeypatch, tmp_path):
