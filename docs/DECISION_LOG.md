@@ -819,3 +819,15 @@
 - 境界: 本決定はMinimum Betaの正式main受入、push、PR、merge、追加OpenAI API実行、自動出品を許可しない。最終受入は新規Codexタスクで本記録と実装commitを確認した上で、オーナーとChatGPTが判断する。
 - 理由: 実APIと実画面でも、AI候補の有用性を人間確認へ限定し、既存のCategory・Brand・出力安全条件を壊さない最小経路が、承認済み費用上限内で成立したため。
 - 再検討条件: 実務投入後に候補品質、Hobbies、手動確認負荷、ABSTAIN / FAILED、group不一致、API費用または操作性が実際のblockerとなるEvidenceが得られた場合。改善は先行せず、別Version・別判断とする。
+
+## DEC-0069 — Resolver evidenceとPH Gate handoffの重複ASIN境界を固定する
+
+- 日付: 2026-09-14
+- 背景: 実Owner Flowで、同一Amazon ASINが複数の`source_id` / `input_title`に対応するResolver evidenceをPH Gate入力へそのまま渡すと、Gateが求める商品ASIN単位と衝突することを確認した。Evidenceのprovenance保持とGate入力の一意性を両立させる恒久境界が必要である。
+- 決定: Resolver evidence層では、重複ASIN、元の順序、`source_id` / `input_title`等のprovenanceを保持する。Resolverの証拠を商品単位へ破壊的に集約しない。
+- 決定: PH Gate handoff境界でのみstable ASIN normalizationを行い、Resolver evidenceからPH Gate CandidateとSafety sidecarを商品ASIN単位へ統合する。duplicate consolidationは正常な境界変換であり、UNKNOWN / ERROR等による除外件数に含めない。
+- 決定: 同一ASINのSafety Evidenceが競合する場合は一方を推測採用せずfail-closedで停止する。信頼できるSafety Factが一方にだけある場合の保持は許容するが、Safety条件、Gate判定、sidecar bindingを緩和しない。
+- 確認事実: bugfix commitは`a0fd8593cd8606845f0c68af66f2006bb8a6e7e6`。実画面でResolver evidence 37行から26 unique ASIN、duplicate consolidation 11行、未確認等による除外0、PH Gate ELIGIBLE 18 / REVIEW 6 / EXCLUDE 2、Category Mapper 18商品、Category AI追跡18件の成立を確認した。Luna送信15件はCOMPLETED 15、確認済みCategoryのため送信前skip 3、ABSTAIN 0、FAILED 0で、欠落・重複・ASIN差替えはない。全18件の`manual_review_required=True`と`listing_ready=False`を維持し、全pytest 1155件がPASSした。
+- 境界: 本決定はResolver evidenceの保存契約、Safety / Guardrail仕様、Category AI Core、Category Mapper AI、自動Category確定、`manual_review_required`、`listing_ready`、外部API承認ポリシーを変更しない。bugfixはbranch上の検証済み成果であり、main統合前に正式成果と扱わない。
+- 理由: 行単位の証拠を失わずに、Gate以降の商品単位不変条件を満たし、Safetyの競合だけは見逃さず停止できるため。
+- 再検討条件: Resolver evidenceのprovenanceを保持できない例、stable normalizationでSafety sidecarのASIN集合または値が不一致となる例、または同一ASINで信頼できるSafety Evidenceが競合する実例が確認された場合。別Version・別判断で扱い、自動緩和しない。
