@@ -5,6 +5,12 @@ from io import StringIO
 
 import pytest
 
+from modules.ingredient_safety import (
+    facts_for_candidate_rows as ingredient_facts_for_candidate_rows,
+    parse_ingredient_safety_sidecar,
+    rows_to_ingredient_safety_sidecar,
+)
+from modules.ph_image_safety import create_image_sidecar, parse_image_sidecar
 from modules.prelisting_candidate_csv import (
     CANOPY_RESOLVER_SOURCE,
     CANOPY_RESOLVER_VERIFICATION,
@@ -15,10 +21,17 @@ from modules.prelisting_candidate_csv import (
     RESOLVER_SOURCE_TYPE,
     PrelistingCandidateCsvError,
     PrelistingCandidateRow,
+    ResolverGateHandoffError,
     expansion_rows_to_prelisting_candidates,
+    normalize_resolver_gate_handoff,
     parse_prelisting_candidate_csv,
     resolver_rows_to_prelisting_candidates,
     rows_to_prelisting_candidate_csv,
+)
+from modules.product_text_safety import (
+    facts_for_candidate_rows as product_text_facts_for_candidate_rows,
+    parse_product_text_safety_sidecar,
+    rows_to_product_text_safety_sidecar,
 )
 
 
@@ -53,6 +66,39 @@ def _resolver_input_row(**overrides: str) -> dict[str, str]:
     }
     row.update(overrides)
     return row
+
+
+def _resolver_safety_evidence(asin: str) -> dict[str, object]:
+    fetched_at = "2026-09-13T00:00:00+00:00"
+    return {
+        "ingredient_safety_fact": {
+            "candidate_asin": asin,
+            "provider": "keepa",
+            "capture_status": "CAPTURED",
+            "ingredients": ["trusted ingredient"],
+            "activeIngredients": [],
+            "specialIngredients": [],
+            "fetched_at": fetched_at,
+        },
+        "product_text_safety_fact": {
+            "candidate_asin": asin,
+            "provider": "keepa",
+            "capture_status": "CAPTURED",
+            "description": ["trusted description"],
+            "features": [],
+            "shortDescription": [],
+            "safetyWarning": [],
+            "itemHighlights": [],
+            "fetched_at": fetched_at,
+        },
+        "ph_image_safety_fact": {
+            "candidate_asin": asin,
+            "provider": "keepa",
+            "root_category_id": 13299531,
+            "image_urls": [],
+            "capture_error": False,
+        },
+    }
 
 
 def _raw_expansion_row(**overrides: str) -> dict[str, str]:
@@ -224,6 +270,183 @@ def test_resolver_conversion_filters_ineligible_rows_and_preserves_eligible_orde
     assert result.output_rows[0].source_verification == "KEEPA_VERIFIED"
     assert result.output_rows[1].source_id == ""
     assert result.output_rows[1].product_title == ""
+
+
+def test_resolver_gate_handoff_normalizes_37_rows_to_26_bound_products():
+    source_rows = []
+    for index in range(1, 27):
+        asin = f"B{index:09d}"
+        row = _resolver_input_row(
+            source_id=f"R{index:04d}",
+            asin=asin,
+            amazon_url=f"https://www.amazon.co.jp/dp/{asin}",
+            input_title=f"Input {index}",
+            keepa_title=f"Product {index}",
+            keepa_fetched_at="2026-09-13T00:00:00+00:00",
+        )
+        row.update(_resolver_safety_evidence(asin))
+        source_rows.append(row)
+    for index in range(1, 12):
+        duplicate = dict(source_rows[index - 1])
+        duplicate["source_id"] = f"R{index + 26:04d}"
+        duplicate["input_title"] = f"Other provenance {index}"
+        source_rows.append(duplicate)
+
+    conversion = resolver_rows_to_prelisting_candidates(source_rows)
+    normalized = normalize_resolver_gate_handoff(conversion.output_rows, source_rows)
+
+    assert len(conversion.output_rows) == 37
+    assert normalized.verified_row_count == 37
+    assert normalized.unique_candidate_count == 26
+    assert normalized.consolidated_row_count == 11
+    assert [row.candidate_asin for row in normalized.candidate_rows] == [
+        f"B{index:09d}" for index in range(1, 27)
+    ]
+    assert normalized.candidate_rows[0].source_id == "R0001"
+    assert normalized.candidate_rows[0].input_title == "Input 1"
+
+    candidate_csv = rows_to_prelisting_candidate_csv(normalized.candidate_rows)
+    parsed = parse_prelisting_candidate_csv(candidate_csv, filename="candidate.csv")
+    ingredient_sidecar = rows_to_ingredient_safety_sidecar(
+        candidate_csv,
+        normalized.candidate_rows,
+        ingredient_facts_for_candidate_rows(
+            normalized.candidate_rows, normalized.source_rows
+        ),
+    )
+    product_text_sidecar = rows_to_product_text_safety_sidecar(
+        candidate_csv,
+        normalized.candidate_rows,
+        product_text_facts_for_candidate_rows(
+            normalized.candidate_rows, normalized.source_rows
+        ),
+    )
+    image_sidecar = create_image_sidecar(
+        candidate_csv, normalized.candidate_rows, normalized.source_rows
+    )
+
+    expected_asins = {f"B{index:09d}" for index in range(1, 27)}
+    assert {row.candidate_asin for row in parsed.rows} == expected_asins
+    assert set(
+        parse_ingredient_safety_sidecar(
+            ingredient_sidecar,
+            filename="ingredient.csv",
+            candidate_content=candidate_csv,
+            candidates=parsed,
+        ).facts_by_asin
+    ) == expected_asins
+    assert set(
+        parse_product_text_safety_sidecar(
+            product_text_sidecar,
+            filename="product-text.csv",
+            candidate_content=candidate_csv,
+            candidates=parsed,
+        ).facts_by_asin
+    ) == expected_asins
+    assert {
+        row["fact"]["candidate_asin"]
+        for row in parse_image_sidecar(
+            image_sidecar, candidate_content=candidate_csv, candidates=parsed
+        )["rows"]
+    } == expected_asins
+
+
+def test_resolver_gate_handoff_retains_trusted_fact_when_other_row_has_none():
+    asin = "B000000002"
+    first = _resolver_input_row(source_id="R0001", asin=asin)
+    second = _resolver_input_row(
+        source_id="R0002", input_title="Other provenance", asin=asin
+    )
+    trusted = _resolver_safety_evidence(asin)
+    second.update(trusted)
+    unknown = _resolver_input_row(
+        source_id="R0003",
+        asin="B000000003",
+        status="UNKNOWN",
+        verification="KEEPA_NOT_FOUND",
+    )
+    source_rows = [first, second, unknown]
+
+    conversion = resolver_rows_to_prelisting_candidates(source_rows)
+    normalized = normalize_resolver_gate_handoff(conversion.output_rows, source_rows)
+
+    assert len(conversion.output_rows) == 2
+    assert conversion.excluded_row_count == 1
+    assert normalized.unique_candidate_count == 1
+    assert normalized.consolidated_row_count == 1
+    assert normalized.source_rows[0]["ingredient_safety_fact"] == trusted[
+        "ingredient_safety_fact"
+    ]
+    assert normalized.source_rows[0]["product_text_safety_fact"] == trusted[
+        "product_text_safety_fact"
+    ]
+    assert normalized.source_rows[0]["ph_image_safety_fact"] == trusted[
+        "ph_image_safety_fact"
+    ]
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement", "label"),
+    [
+        (
+            "ingredient_safety_fact",
+            {
+                "candidate_asin": "B000000002",
+                "provider": "keepa",
+                "capture_status": "CAPTURED",
+                "ingredients": ["conflicting ingredient"],
+                "activeIngredients": [],
+                "specialIngredients": [],
+                "fetched_at": "2026-09-13T00:00:00+00:00",
+            },
+            "Ingredient Safety",
+        ),
+        (
+            "product_text_safety_fact",
+            {
+                "candidate_asin": "B000000002",
+                "provider": "keepa",
+                "capture_status": "CAPTURED",
+                "description": ["conflicting description"],
+                "features": [],
+                "shortDescription": [],
+                "safetyWarning": [],
+                "itemHighlights": [],
+                "fetched_at": "2026-09-13T00:00:00+00:00",
+            },
+            "Product Text Safety",
+        ),
+        (
+            "ph_image_safety_fact",
+            {
+                "candidate_asin": "B000000002",
+                "provider": "keepa",
+                "root_category_id": 2277721051,
+                "image_urls": [],
+                "capture_error": False,
+            },
+            "PH Image Safety",
+        ),
+    ],
+)
+def test_resolver_gate_handoff_fails_closed_on_conflicting_safety_fact(
+    field, replacement, label
+):
+    asin = "B000000002"
+    first = _resolver_input_row(source_id="R0001", asin=asin)
+    first.update(_resolver_safety_evidence(asin))
+    second = _resolver_input_row(
+        source_id="R0002", input_title="Other provenance", asin=asin
+    )
+    second.update(_resolver_safety_evidence(asin))
+    second[field] = replacement
+    conversion = resolver_rows_to_prelisting_candidates([first, second])
+
+    with pytest.raises(ResolverGateHandoffError) as captured:
+        normalize_resolver_gate_handoff(conversion.output_rows, [first, second])
+
+    assert asin in str(captured.value)
+    assert label in str(captured.value)
 
 
 def test_canopy_resolver_conversion_preserves_v1_columns_and_distinct_provenance():

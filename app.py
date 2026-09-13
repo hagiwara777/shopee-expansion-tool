@@ -75,7 +75,9 @@ from modules.product_text_safety import (
 )
 from modules.prelisting_candidate_csv import (
     PrelistingCandidateCsvError,
+    ResolverGateHandoffError,
     expansion_rows_to_prelisting_candidates,
+    normalize_resolver_gate_handoff,
     parse_prelisting_candidate_csv,
     resolver_rows_to_prelisting_candidates,
     rows_to_prelisting_candidate_csv,
@@ -1355,47 +1357,76 @@ with resolver_tab:
             )
             try:
                 resolver_prelisting = resolver_rows_to_prelisting_candidates(resolver_rows)
-                st.write(f"保安ゲートCSV対象件数: {resolver_prelisting.eligible_row_count}件")
+                st.write(
+                    "Amazon実在確認済み候補行: "
+                    f"{resolver_prelisting.eligible_row_count}件"
+                )
                 st.write(
                     "未確認・不明・エラー等による除外件数: "
                     f"{resolver_prelisting.excluded_row_count}件"
                 )
                 if resolver_prelisting.eligible_row_count > 0:
+                    resolver_gate_handoff = normalize_resolver_gate_handoff(
+                        resolver_prelisting.output_rows, resolver_rows
+                    )
+                    st.write(
+                        "保安ゲート対象商品: "
+                        f"{resolver_gate_handoff.unique_candidate_count}件"
+                    )
+                    st.write(
+                        "同一ASIN統合: "
+                        f"{resolver_gate_handoff.consolidated_row_count}行"
+                    )
                     resolver_prelisting_csv = rows_to_prelisting_candidate_csv(
-                        resolver_prelisting.output_rows
+                        resolver_gate_handoff.candidate_rows
                     )
                     resolver_safety_facts = facts_for_candidate_rows(
-                        resolver_prelisting.output_rows,
-                        resolver_rows,
+                        resolver_gate_handoff.candidate_rows,
+                        resolver_gate_handoff.source_rows,
                     )
                     resolver_safety_sidecar = rows_to_ingredient_safety_sidecar(
                         resolver_prelisting_csv,
-                        resolver_prelisting.output_rows,
+                        resolver_gate_handoff.candidate_rows,
                         resolver_safety_facts,
                     )
                     resolver_product_text_facts = product_text_facts_for_candidate_rows(
-                        resolver_prelisting.output_rows,
-                        resolver_rows,
+                        resolver_gate_handoff.candidate_rows,
+                        resolver_gate_handoff.source_rows,
                     )
                     resolver_product_text_sidecar = rows_to_product_text_safety_sidecar(
                         resolver_prelisting_csv,
-                        resolver_prelisting.output_rows,
+                        resolver_gate_handoff.candidate_rows,
                         resolver_product_text_facts,
                     )
                     resolver_image_sidecar = create_image_sidecar(
-                        resolver_prelisting_csv, resolver_prelisting.output_rows, resolver_rows,
+                        resolver_prelisting_csv,
+                        resolver_gate_handoff.candidate_rows,
+                        resolver_gate_handoff.source_rows,
                     )
-            except PrelistingCandidateCsvError:
+            except ResolverGateHandoffError as exc:
                 st.error(
-                    "出品前保安ゲート用CSVを生成できませんでした。確認結果を確認してください。"
+                    "Resolver重複Evidenceを保安ゲート用に統合できませんでした: "
+                    f"{exc}"
                 )
-            except IngredientSafetyError:
+            except PrelistingCandidateCsvError as exc:
                 st.error(
-                    "出品前保安ゲート用CSVを生成できませんでした。確認結果を確認してください。"
+                    "出品前保安ゲート用Candidate CSVを生成できませんでした: "
+                    f"{exc}"
                 )
-            except (ProductTextSafetyError, ImageSafetyError):
+            except IngredientSafetyError as exc:
                 st.error(
-                    "出品前保安ゲート用CSVを生成できませんでした。確認結果を確認してください。"
+                    "Ingredient Safety sidecarを生成できませんでした: "
+                    f"{exc}"
+                )
+            except ProductTextSafetyError as exc:
+                st.error(
+                    "Product Text Safety sidecarを生成できませんでした: "
+                    f"{exc}"
+                )
+            except ImageSafetyError as exc:
+                st.error(
+                    "PH Image Safety sidecarを生成できませんでした: "
+                    f"{exc}"
                 )
             else:
                 if resolver_prelisting.eligible_row_count == 0:

@@ -48,6 +48,27 @@ def _test_app(monkeypatch, tmp_path):
     return AppTest.from_file(str(APP_PATH), default_timeout=10).run()
 
 
+def _verified_resolver_row(index, asin, *, source_id=None):
+    fetched_at = "2026-09-13T00:00:00+00:00"
+    return {
+        "source_id": source_id or f"R{index:04d}",
+        "input_title": f"Input {index}",
+        "amazon_url": f"https://www.amazon.co.jp/dp/{asin}",
+        "asin": asin,
+        "status": "FOUND",
+        "verification": "KEEPA_VERIFIED",
+        "note": "",
+        "product_title": f"Product {asin}",
+        "product_brand": "Brand",
+        "product_category": "Category",
+        "product_fetched_at": fetched_at,
+        "keepa_title": f"Product {asin}",
+        "keepa_brand": "Brand",
+        "keepa_category": "Category",
+        "keepa_fetched_at": fetched_at,
+    }
+
+
 def _resume_evidence_batch(app, manifest_path):
     app.text_input(key="asin_resolver_evidence_resume_path").set_value(str(manifest_path))
     next(
@@ -149,6 +170,84 @@ def test_resolver_ui_handles_30_synthetic_tsv_lines_and_malformed_url(monkeypatc
     assert preview_rows[0]["note"] == "No Amazon.co.jp URL or ASIN"
     assert preview_rows[1]["source_id"] == "R0002"
     assert preview_rows[1]["asin"] == "B07TSC47PH"
+
+
+def test_resolver_gate_handoff_consolidates_duplicates_without_counting_excluded(
+    monkeypatch, tmp_path
+):
+    app = _test_app(monkeypatch, tmp_path)
+    resolver_rows = [
+        _verified_resolver_row(index, f"B{index:09d}") for index in range(1, 27)
+    ]
+    resolver_rows.extend(
+        _verified_resolver_row(
+            index + 26,
+            f"B{index:09d}",
+            source_id=f"R{index + 26:04d}",
+        )
+        for index in range(1, 12)
+    )
+    app.session_state["asin_resolver_rows"] = resolver_rows
+
+    app.run()
+
+    assert not app.exception
+    messages = "\n".join(
+        str(item.value)
+        for collection in (
+            app.markdown,
+            app.info,
+            app.success,
+            app.error,
+            app.caption,
+        )
+        for item in collection
+    )
+    assert "Amazon実在確認済み候補行: 37件" in messages
+    assert "保安ゲート対象商品: 26件" in messages
+    assert "同一ASIN統合: 11行" in messages
+    assert "未確認・不明・エラー等による除外件数: 0件" in messages
+    labels = {button.label for button in app.download_button}
+    assert {
+        "出品前保安ゲート用CSVダウンロード",
+        "Ingredient Safety Fact sidecarダウンロード",
+        "Product Text Safety Fact sidecarダウンロード",
+        "PH画像確認ファイルをダウンロード",
+    } <= labels
+    assert not app.error
+
+
+def test_resolver_gate_handoff_conflict_is_shown_with_asin(monkeypatch, tmp_path):
+    asin = "B000000001"
+    first = _verified_resolver_row(1, asin)
+    second = _verified_resolver_row(2, asin)
+    first["ingredient_safety_fact"] = {
+        "candidate_asin": asin,
+        "provider": "keepa",
+        "capture_status": "CAPTURED",
+        "ingredients": ["ingredient one"],
+        "activeIngredients": [],
+        "specialIngredients": [],
+        "fetched_at": "2026-09-13T00:00:00+00:00",
+    }
+    second["ingredient_safety_fact"] = {
+        **first["ingredient_safety_fact"],
+        "ingredients": ["conflicting ingredient"],
+    }
+    app = _test_app(monkeypatch, tmp_path)
+    app.session_state["asin_resolver_rows"] = [first, second]
+
+    app.run()
+
+    assert not app.exception
+    error_text = "\n".join(str(item.value) for item in app.error)
+    assert "Resolver重複Evidenceを保安ゲート用に統合できませんでした" in error_text
+    assert asin in error_text
+    assert "Ingredient Safety" in error_text
+    assert not any(
+        button.label == "出品前保安ゲート用CSVダウンロード"
+        for button in app.download_button
+    )
 
 
 def test_source_map_saved_resume_uses_saved_input_with_an_empty_widget_once(monkeypatch, tmp_path):

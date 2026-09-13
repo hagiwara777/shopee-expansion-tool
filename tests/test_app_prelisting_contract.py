@@ -44,7 +44,7 @@ def _keyword_value(call: ast.Call, name: str) -> ast.expr:
     raise AssertionError(f"keyword not found: {name}")
 
 
-def test_app_imports_only_the_phase2a_and_phase4a1_public_adapter_functions():
+def test_app_imports_only_the_public_candidate_and_resolver_gate_functions():
     imports = next(
         node
         for node in ast.walk(APP_TREE)
@@ -54,7 +54,9 @@ def test_app_imports_only_the_phase2a_and_phase4a1_public_adapter_functions():
 
     assert imported_names == {
         "PrelistingCandidateCsvError",
+        "ResolverGateHandoffError",
         "expansion_rows_to_prelisting_candidates",
+        "normalize_resolver_gate_handoff",
         "parse_prelisting_candidate_csv",
         "resolver_rows_to_prelisting_candidates",
         "rows_to_prelisting_candidate_csv",
