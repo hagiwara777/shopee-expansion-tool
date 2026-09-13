@@ -13,15 +13,15 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH Category Mapper / Category AI Minimum Beta最小統合`
-- current_phase: `local実装・mock回帰検証完了 / 実API・実データ有用性・ユーザー受入未実施`
+- current_work_type: `PH Category Mapper / Category AI Minimum Beta受入準備`
+- current_phase: `local実装・mock/full回帰・3商品live smoke完了 / 技術PASS・実務受入候補PASS / main未統合`
 - working_branch: `codex/ph-category-mapper-ai-minimum-beta`
 - marketplace: `PH`
 - module: `Category Mapper / Category AI Core薄いadapter`
-- phase: `CATEGORY_MAPPER_AI_MINIMUM_BETA_LOCAL_VALIDATED`
-- stop_policy: `NO_REAL_API / HUMAN_CONFIRMATION_REQUIRED / NO_PUSH_PR_MERGE`
+- phase: `CATEGORY_MAPPER_AI_MINIMUM_BETA_LIVE_SMOKE_PASS`
+- stop_policy: `NO_ADDITIONAL_REAL_API / HUMAN_CONFIRMATION_REQUIRED / NO_PUSH_PR_MERGE`
 - documentation_policy: `MILESTONE_ONLY`
-- next_action: `local実装差分をオーナー確認し、mock検収後の最大3商品実APIスモーク要否を別途判断する`
+- next_action: `新規Codexタスクで実装commitと正本化commitを確認し、オーナーとChatGPTがMinimum Betaの最終受入およびpush / Draft PRの要否を判断する`
 
 2026-09-13、最新`origin/main` `73b81a1032f24652eed29cd1d2f85872d0496727`とCategory AI
 Benchmark V1 commit `7fe9712b914c473c3ab81c7b99e3f5bc9442a7ae`が共通親
@@ -39,12 +39,21 @@ ABSTAIN、FAILED、catalog不整合、group全member不一致は採用不可で�
 `category_is_confirmed`、`manual_review_required`、`listing_ready`を変更せず、採用後も従来どおりBrand
 確認へ進む。Hobbies & Collections候補にはBenchmark弱点警告を表示する。
 
-外部APIなしの検証はCategory AI関連78件、Category Mapper関連60件、全pytest 1148件が成功した。
+実装commitは`64fdce3c2b8745fbdf908db0d7be641a65380372`。外部APIなしの検証はCategory AI
+関連78件、Category Mapper関連60件、全pytest 1148件が成功した。
 変更Pythonの構文検査、`git diff --check`もPASS。初回全pytestの1 failureは新worktree直下に検証
 スクリプト必須の`.venv`がなかった環境要因で、Git除外済みjunctionを既存正式venvへ接続後、当該1件と
-全回帰を再実行してPASSした。実OpenAI / Keepa / Shopee API、実商品処理、Shopee書込み、push、PR、
-mergeは0。これはlocal技術検証であり、実データ有用性確認、ユーザー受入、Minimum Beta正式完成を
-意味しない。DecisionはDEC-0067を参照する。
+全回帰を再実行してPASSした。DecisionはDEC-0067を参照する。
+
+同日、オーナー承認済み上限内で、PH Gate ELIGIBLEかつCategory未確定の実商品3件を
+`gpt-5.6-luna`で1件ずつlive smokeした。3件とも`COMPLETED`、retry 0、実API総コストは
+US$0.00332790だった。既存RecommendationとAI候補は並列に保持され、Predictionだけでは全件で
+`category_is_confirmed=False`、`manual_review_required=True`、`listing_ready=False`を維持した。
+人間が有効な候補を採用した後だけ既存Category確定経路からBrand確認へ進み、Brand未確認のため
+`listing_ready=False`を維持した。Hobbies & Collections該当候補はliveではなく、弱点警告はmockで
+確認済み。3件を新しい精度指標とは扱わない。技術的live smokeはPASS、実務受入候補はPASS、blockerは
+0。Shopee書込み、追加API、push、PR、mergeは行わず、Minimum Betaの最終受入とmain統合は次タスクの
+オーナー／ChatGPT判断に残す。DecisionはDEC-0068を参照する。
 
 2026-09-11、オーナーの条件付きPlan承認に3条件を反映し、実装開始の明示承認を受けた。
 固定起点 `03a35772a0f513cffec72ef8a4b2ea814aae6fdb` が`origin/main`と一致することを確認し、
@@ -855,4 +864,4 @@ Gitへ追加しない規則に従い正本commitから除外し、worktreeにuns
 
 ## 最終更新日
 
-2026-09-12
+2026-09-13

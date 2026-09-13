@@ -808,3 +808,14 @@
 - 境界: Prompt V1、Traversal V1、Category AI Core、`category_mapper.py`本体、Brand、Safety、Guardrail、Resolver、Expansion、Listing Tool、自動出品は変更しない。実OpenAI / Keepa / Shopee API、実商品処理、push、PR、merge、deployは行わない。local実装・mock検証完了を実データ有用性、ユーザー受入、Minimum Beta正式完成とは扱わない。
 - 理由: AIなしの従来経路を残し、API費用と障害を明示操作へ隔離しながら、候補の有用性だけを早く実務評価できる形にするため。Category確定・Brand確認・出力準備の既存安全条件を変更しないことで、AI誤分類が自動出品準備へ進む経路を作らない。
 - 再検討条件: mock検収後に実APIスモークを行う明示承認が得られた場合、実利用で候補品質・Hobbies・失敗率・費用・group不一致が真のボトルネックと確認された場合、または正式PH catalogからCategoryCatalogを安全に構築できない具体例が確認された場合。改善は既存Prompt / Traversalを黙って変更せず別Version・別判断とする。
+
+## DEC-0068 — Category Mapper AI Minimum Betaのlive smokeを技術PASS・実務受入候補PASSとする
+
+- 日付: 2026-09-13
+- 背景: DEC-0067のlocal実装・mock回帰検証後、オーナー承認済みの実商品最大3件、`gpt-5.6-luna`限定、総コストUS$0.05以下、retry禁止という条件で、実際のPH Category Mapperにおける候補取得、人間確認、Category採用、Brand確認までのMinimum Beta経路を確認した。
+- 確認事実: PH Gate ELIGIBLEかつCategory未確定の実商品3件を1件ずつ実行し、3件とも`COMPLETED`、retry 0、実API総コストUS$0.00332790だった。既存RecommendationとAI候補は並列に保持され、AI Predictionだけでは`category_is_confirmed=False`、`manual_review_required=True`、`listing_ready=False`を維持した。人間採用後だけ既存Category確定経路へ入り、Brand未確認中は`listing_ready=False`を維持した。Hobbies & Collectionsはlive該当なしで、弱点警告はmock確認済みだった。
+- 決定: Category Mapper AI Minimum Betaの技術的live smokeを`PASS`、実務受入候補を`PASS`、blockerなしとする。3商品の結果を新しいCategory精度指標にはせず、Benchmark V1の評価と既知のHobbies弱点を置き換えない。実装commitは`64fdce3c2b8745fbdf908db0d7be641a65380372`とする。
+- 維持: AIは候補提示だけを担当し、AI単独のCategory確定、manual review解除、`listing_ready`化を許可しない。Category採用は人間操作時だけ既存経路へ渡し、Brand確認、Safety、Guardrail、Resolver、Expansion、Listing Tool、自動出品の境界を変更しない。
+- 境界: 本決定はMinimum Betaの正式main受入、push、PR、merge、追加OpenAI API実行、自動出品を許可しない。最終受入は新規Codexタスクで本記録と実装commitを確認した上で、オーナーとChatGPTが判断する。
+- 理由: 実APIと実画面でも、AI候補の有用性を人間確認へ限定し、既存のCategory・Brand・出力安全条件を壊さない最小経路が、承認済み費用上限内で成立したため。
+- 再検討条件: 実務投入後に候補品質、Hobbies、手動確認負荷、ABSTAIN / FAILED、group不一致、API費用または操作性が実際のblockerとなるEvidenceが得られた場合。改善は先行せず、別Version・別判断とする。

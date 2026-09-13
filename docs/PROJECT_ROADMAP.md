@@ -152,7 +152,9 @@ Hobbies & CollectionsはLuna / Terraとも0/10の既知弱点として手動確�
 改善は先行せず、実運用で真のボトルネックになった場合だけ別Version・別判断で行う。Category Mapperへの
 Minimum Beta最小統合は、Recommendationを変更しない独立候補、明示実行、未確定行限定、同一leafへの
 group consensus、人間採用後の既存Brand確認を維持する方式でlocal実装・mock回帰検証まで完了した。
-実OpenAI API、実データ有用性確認、ユーザー受入は未実施であり、Minimum Beta正式完成とは扱わない。
+続く実商品3件の`gpt-5.6-luna` live smokeでは全件`COMPLETED`、retry 0、費用上限内で、人間採用前の
+安全条件と採用後のBrand確認を維持した。技術的live smokeと実務受入候補はPASS、blockerなしであり、
+最終受入とmain統合の判断は次の新規タスクに残す。
 
 ### BETA_AFTER_CANDIDATE
 
