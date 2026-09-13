@@ -13,15 +13,15 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH Category Mapper / Category AI Minimum Beta受入準備`
-- current_phase: `local実装・mock/full回帰・3商品live smoke完了 / 技術PASS・実務受入候補PASS / main未統合`
-- working_branch: `codex/ph-category-mapper-ai-minimum-beta`
+- current_work_type: `PH Category Mapper / Category AI Minimum Beta正式成果`
+- current_phase: `PR #68 main統合・formal main確認・最終正本化完了 / PH少量実務利用待ち`
+- working_branch: `再開時にGit状態を確認して確定`
 - marketplace: `PH`
 - module: `Category Mapper / Category AI Core薄いadapter`
-- phase: `CATEGORY_MAPPER_AI_MINIMUM_BETA_LIVE_SMOKE_PASS`
-- stop_policy: `NO_ADDITIONAL_REAL_API / HUMAN_CONFIRMATION_REQUIRED / NO_PUSH_PR_MERGE`
+- phase: `CATEGORY_MAPPER_AI_MINIMUM_BETA_MAIN_ACCEPTED`
+- stop_policy: `NO_ADDITIONAL_REAL_API_WITHOUT_APPROVAL / HUMAN_CONFIRMATION_REQUIRED / NO_AUTO_CATEGORY_OR_LISTING`
 - documentation_policy: `MILESTONE_ONLY`
-- next_action: `新規Codexタスクで実装commitと正本化commitを確認し、オーナーとChatGPTがMinimum Betaの最終受入およびpush / Draft PRの要否を判断する`
+- next_action: `PH Category Mapper AI Minimum BetaをPHの少量実務で使用し、最初の実務blockerを確認する`
 
 2026-09-13、最新`origin/main` `73b81a1032f24652eed29cd1d2f85872d0496727`とCategory AI
 Benchmark V1 commit `7fe9712b914c473c3ab81c7b99e3f5bc9442a7ae`が共通親
@@ -52,8 +52,16 @@ US$0.00332790だった。既存RecommendationとAI候補は並列に保持され
 人間が有効な候補を採用した後だけ既存Category確定経路からBrand確認へ進み、Brand未確認のため
 `listing_ready=False`を維持した。Hobbies & Collections該当候補はliveではなく、弱点警告はmockで
 確認済み。3件を新しい精度指標とは扱わない。技術的live smokeはPASS、実務受入候補はPASS、blockerは
-0。Shopee書込み、追加API、push、PR、mergeは行わず、Minimum Betaの最終受入とmain統合は次タスクの
-オーナー／ChatGPT判断に残す。DecisionはDEC-0068を参照する。
+0。DecisionはDEC-0068を参照する。
+
+同日、PR #68をDraftからReady for reviewへ変更し、通常のmerge commit方式でmainへ統合した。
+merge commitとfetch後の`origin/main`はともに
+`f9426d41961206ad3c2574d74d7b55f16df2304e`で、親は承認時main
+`73b81a1032f24652eed29cd1d2f85872d0496727`とPR head
+`94608a441d9d46055d48c2d46cf27ea6f7ec063d`である。Benchmark / Core、Mapper統合、live smoke正本化の
+3 commitがmainに含まれ、対象コード・tests・正本文書の存在を確認した。PH Category Mapper AI
+Minimum Betaをmain上の正式成果として受入する。Lunaは候補提示だけを担当し、人間Category確認、
+Brand確認、Safety / Guardrailその他の既存境界、Hobbies & Collectionsの手動確認警告を維持する。
 
 2026-09-11、オーナーの条件付きPlan承認に3条件を反映し、実装開始の明示承認を受けた。
 固定起点 `03a35772a0f513cffec72ef8a4b2ea814aae6fdb` が`origin/main`と一致することを確認し、
@@ -418,6 +426,10 @@ PR #16はGate結果CSVのschema version再検証をmainへ統合し、formal mai
 
 ## 完了・受入済み
 
+- PR #68を通常のmerge commit方式でmainへ統合し、PH Category Mapper AI Minimum Betaをformal main
+  `f9426d41961206ad3c2574d74d7b55f16df2304e`上の正式成果として受入。Category AI関連78件、Category
+  Mapper関連60件、全pytest 1148件、実商品3件のLuna live smoke 3/3 `COMPLETED`・retry 0を確認済み。
+  3件をCategory精度100%とは扱わず、AI単独のCategory確定・manual review解除・`listing_ready`化を禁止する
 - PH画像Safety live検証は正式計画の全5商品を終了。W1 / W2疑義あり2/2は`REVIEW`、N1 / N2非該当2/2は`NO_SIGNAL`、A1曖昧1/1は`REVIEW`。A1の承認逸脱を認識した事後受入を含め、既存Evidenceを再実行せず採用。技術blockerなし。人間REVIEW実務確認と最終オーナー受入を経て、Gate P / PH Minimum Betaは`PASS / OWNER_ACCEPTED`
 - B2少量実商品のE2E全体フロー技術確認を完了した。Resolver入口はCandidate 1件、Expansion入口はstrict 1ページのうち人間追跡対象1件とし、両入口でIngredient Safety / Product Text Safety CAPTURED、PH Gate SAFE / ELIGIBLE、入力内exact UNIQUE、既出品exact CLEAR、Category確定、Brand / No Brand確定、`listing_ready = TRUE`、CSV / TXT handoff取得まで成立した。PH既出品CSVは0 ASINで、オーナー確認でもPHショップの既出品は0件だった。Shopee live書込みとコード・Rule・辞書・tests変更は0だった。このB2技術確認単独ではGate PまたはPH Minimum BetaのPASS根拠とせず、DEC-0055の最終オーナー受入と合わせて現在は`PASS / OWNER_ACCEPTED`とする。
 - DEC-0049でPH Minimum Beta完成線を重大実務リスク中心へ再設定。旧P1cのCategory完全追跡を`BETA_AFTER_CANDIDATE`へ移し、過去成果・Evidenceは保持。当時のGate PはHOLDであり、DEC-0055の最終オーナー受入により現在は`PASS`
@@ -582,6 +594,8 @@ P1a対象のGit外一次Evidence 3件は、上記の`LOCAL_ARTIFACT_ROOT/PH_Guar
 
 ## 未完了事項
 
+- PH Category Mapper AI Minimum Betaの少量実務利用で、Category候補品質、人間確認負荷、ABSTAIN / FAILED、
+  group不一致、API費用、Hobbies & Collections既知弱点が実際のblockerとなるかは未確認
 - Product Textの2件超の取得率とhemp実商品によるlive BLOCKは未確認だが、新しいBeta blockerにはしない
 - PH画像Safety live検証は全5商品終了。W1 / W2は事前期待「疑義あり」2/2に対して`REVIEW`、N1 / N2は事前期待「非該当」2/2に対して`NO_SIGNAL`、A1は事前期待「曖昧・判断保留」に対して`REVIEW`。全件で技術blockerなし
 - N2 / A1のOpenAI各1 requestは事前個別明示承認なしの承認逸脱として記録済み。オーナーは各逸脱を認識し、再実行せず既存Evidenceを事後受入した。A1はオーナー目視で武器形状物なし、AI `REVIEW`の過剰REVIEW候補だが、今回の人間判断で`ALLOW_PREPARATION`へ進められることを確認した。W1の`EXCLUDE`と合わせ、人間最終判断の実務確認はPASS
@@ -623,6 +637,14 @@ DEC-0046正本化差分のmain統合確認後、P1cの受入済み229候補をCa
 本正本化差分のmain統合確認後、108件を解決するためのSeller Centre Category Evidenceのidentity確定とstrict再照合をread-onlyで実施する。DEC-0049により、このCategory調査はBeta前の次作業ではなく`BETA_AFTER_CANDIDATE`とする。
 
 ## 次の単一作業
+
+PH Category Mapper AI Minimum BetaをPHの少量実務で使用し、Category候補品質、人間確認負荷、
+Hobbies & Collections既知弱点を含む最初の実務blockerを確認する。追加OpenAI API実行は、目的、件数、
+費用上限、retry条件を示して別途オーナー承認を得る。
+
+## 直前のCategory AI Benchmark / Mapper統合履歴
+
+以下はBenchmark比較とMapper local統合時点の履歴であり、現在の次作業または承認状態を示さない。
 
 2026-09-12、オーナーの明示承認により、固定Source V1.1、Gold V1.1、PH Catalog、Prompt V1、
 Traversal V1、Luna request profileを変更せず、`gpt-5.6-luna`の固定100商品だけを実OpenAI APIで

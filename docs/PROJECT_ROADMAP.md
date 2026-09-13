@@ -137,7 +137,7 @@ DEC-0055でオーナーがDEC-0049のBeta MUST 10項目を基準にPH Minimum Be
 
 PH Minimum Betaを少量の実務へ投入し、最初の実運用で重大事故または実務ボトルネックが発生するかを確認する。改善は実利用で観測した頻度、被害、運用負荷、修正コストに基づいて判断し、既存の`BETA_AFTER_CANDIDATE`をBeta前blockerへ戻さない。
 
-### Category AI Benchmark Ver1（完了 / Luna採用）
+### Category AI Benchmark Ver1 / Category Mapper AI Minimum Beta（main正式受入済み / Luna採用）
 
 現行Category Mapperの判断を入力にせず、商品Evidenceとmarketplace別Shopee Category snapshotだけで
 rootからleafまで探索する汎用AI Category Coreを、正式Mapper・AI Shadowと分離して実装する。
@@ -153,8 +153,9 @@ Hobbies & CollectionsはLuna / Terraとも0/10の既知弱点として手動確�
 Minimum Beta最小統合は、Recommendationを変更しない独立候補、明示実行、未確定行限定、同一leafへの
 group consensus、人間採用後の既存Brand確認を維持する方式でlocal実装・mock回帰検証まで完了した。
 続く実商品3件の`gpt-5.6-luna` live smokeでは全件`COMPLETED`、retry 0、費用上限内で、人間採用前の
-安全条件と採用後のBrand確認を維持した。技術的live smokeと実務受入候補はPASS、blockerなしであり、
-最終受入とmain統合の判断は次の新規タスクに残す。
+安全条件と採用後のBrand確認を維持した。技術的live smokeと実務受入候補はPASS、blockerなしである。
+PR #68を通常のmerge commit方式でmainへ統合し、formal main
+`f9426d41961206ad3c2574d74d7b55f16df2304e`上の正式成果として受入済みである。
 
 ### BETA_AFTER_CANDIDATE
 
