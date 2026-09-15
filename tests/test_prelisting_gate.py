@@ -243,12 +243,12 @@ def test_sg_rule_does_not_leak_into_ph_guardrails():
         marketplace="PH",
     )
     sg_ph_only_result = evaluate(
-        [candidate(product_title="medicated cleanser")],
+        [candidate(product_title="diagnostic test kit")],
         [sg_inventory],
         marketplace="SG",
     )
     ph_only_result = evaluate(
-        [candidate(product_title="medicated cleanser")],
+        [candidate(product_title="diagnostic test kit")],
         [ph_inventory],
         marketplace="PH",
     )

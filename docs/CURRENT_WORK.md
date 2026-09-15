@@ -13,15 +13,44 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 ## 現在作業
 
-- current_work_type: `PH Minimum Beta少量実務継続`
-- current_phase: `Resolver実務検証正本化完了 / 少量実務継続`
-- working_branch: `main`
-- marketplace: `PH`
-- module: `ASIN Resolver / PH Gate handoff / Category Mapper Owner Flow`
-- phase: `PH_CATEGORY_AI_OWNER_FLOW_PASS`
-- stop_policy: `NO_ADDITIONAL_REAL_API_WITHOUT_APPROVAL / HUMAN_CONFIRMATION_REQUIRED / NO_AUTO_CATEGORY_OR_LISTING`
+- current_work_type: `SG Safety Baseline 40 Rule独立実装`
+- current_phase: `local実装・回帰検証完了 / main未統合`
+- working_branch: `codex/sg-safety-baseline-40-rule`
+- marketplace: `SG`
+- module: `Guardrail / Prelisting Gate regression`
+- phase: `SG_SAFETY_BASELINE_40_RULE_LOCAL_PASS`
+- stop_policy: `NO_PUSH_OR_PR_OR_MERGE_WITHOUT_APPROVAL / NO_EXTERNAL_API / PRESERVE_PH_TEST_OPERATION`
 - documentation_policy: `MILESTONE_ONLY`
-- next_action: `formal mainの更新済みツールを少量実務で継続使用し、新しい実務blockerが発生するか観測する`
+- next_action: `オーナー承認後に検証済みlocal commitをpushしてDraft PRを作成し、main統合は別承認で行う`
+- 固定評価コホート: `該当なし（確定済み40 Ruleの合成test）`
+- Amazon候補を取得できた元Shopee商品: `該当なし`
+- Amazon候補: `該当なし`
+- Keepa確認: `未実施（外部API禁止）`
+- PH Prelisting Gate: `既存回帰test PASS / live実行なし`
+
+## 停止条件
+
+- push / Draft PR / mergeはオーナーの明示承認まで実行しない。
+- 外部API、実商品、実運用SQLiteを使用しない。
+- SG Category / Brand設計、matcher、Gate優先順位、PH辞書・PH処理へ変更を広げない。
+- SG Category Mapper設計は、本実装のformal main統合後に別タスクで開始する。
+
+## SG Safety Baseline 40 Ruleの独立実装
+
+- status: `LOCAL_VALIDATED / NOT_FORMAL_MAIN`
+- base_formal_main: `2318f0cb6f94938afb288f83b1e8a18671ce1274`
+- working_branch: `codex/sg-safety-baseline-40-rule`
+- marketplace: `SG`
+- module: `Guardrail / Prelisting Gate regression`
+- implementation: `確定済み40 RuleをSG title限定REVIEWとして追加`
+- validation: `関連pytest 465件PASS / 全pytest 1199件PASS / 既存182行不変 / 40行追加 / 総222行 / 有効217行`
+- unchanged_boundaries: `既存SG BLOCK、PH辞書・PH判定、matcher、Candidate schema、Gate優先順位、Resolver、Expansion、Category、Brand、sidecar`
+- next_action: `オーナー承認後に検証済みlocal commitをpushしてDraft PRを作成し、main統合は別承認で行う`
+- following_phase: `formal main統合後、PH Beta Test-Operation Compatibility Gateを必須条件とするSG Category Mapper設計を新規タスクで開始する`
+- stop_policy: `NO_PUSH_OR_PR_OR_MERGE_WITHOUT_APPROVAL / NO_EXTERNAL_API / NO_CATEGORY_OR_BRAND_WORK_IN_THIS_TASK`
+
+DecisionはDEC-0071を参照する。この独立実装はPH Minimum Betaの少量実務継続を停止・変更せず、
+SG Minimum Beta全体の完成、出品可能保証、Category / Brand工程の開始承認を意味しない。
 
 2026-09-15、PH Minimum Betaのformal mainを約60件のShopee由来タイトルで少量実務利用し、
 initialでAIが明示的に`UNKNOWN`を返したsourceだけを現行A retry対象として抽出する実装、検索タイトル、
