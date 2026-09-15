@@ -494,6 +494,7 @@ def test_prelisting_gate_marketplace_switches_run_ph_empty_inventory_and_clear_r
     assert app.session_state["prelisting_gate_result"].marketplace == "SG"
     assert [button.label for button in app.download_button] == [
         "出品可能CSVをダウンロード",
+        "要確認CSVをダウンロード",
         "全件監査CSVをダウンロード",
     ]
 

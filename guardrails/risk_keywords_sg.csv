@@ -181,3 +181,43 @@ hoverboard,REVIEW,license_or_certification_required,title,contains,shopee_policy
 self defence baton,REVIEW,license_or_certification_required,title,contains,shopee_policy,"LIC-007; Category: Self-defence products; title alone cannot determine the product body; physical target is company-policy BLOCK in normal cross-border operations.",TRUE
 自己防衛用スティック,REVIEW,license_or_certification_required,title,contains,shopee_policy,"LIC-007; Category: Self-defence products; title alone cannot determine the product body; physical target is company-policy BLOCK in normal cross-border operations.",TRUE
 護身用バトン,REVIEW,license_or_certification_required,title,contains,shopee_policy,"LIC-007; Category: Self-defence products; title alone cannot determine the product body; physical target is company-policy BLOCK in normal cross-border operations.",TRUE
+contact lens,REVIEW,medical_or_therapeutic,title,contains,shopee_policy,SG2026 2(vii); レンズ本体か関連用品か未確定のため人間確認,TRUE
+contact lenses,REVIEW,medical_or_therapeutic,title,contains,shopee_policy,SG2026 2(vii); レンズ本体か関連用品か未確定のため人間確認,TRUE
+コンタクトレンズ,REVIEW,medical_or_therapeutic,title,contains,shopee_policy,SG2026 2(vii); レンズ本体か関連用品か未確定のため人間確認,TRUE
+electronic cigarette,REVIEW,tobacco_or_vape,title,contains,shopee_policy,SG2026 2(xxv); 本体・専用品・禁止対象への該当性が語句だけでは未確定のため人間確認,TRUE
+electronic cigarettes,REVIEW,tobacco_or_vape,title,contains,shopee_policy,SG2026 2(xxv); 本体・専用品・禁止対象への該当性が語句だけでは未確定のため人間確認,TRUE
+electric cigarette,REVIEW,tobacco_or_vape,title,contains,shopee_policy,SG2026 2(xxv); 本体・専用品・禁止対象への該当性が語句だけでは未確定のため人間確認,TRUE
+electric cigarettes,REVIEW,tobacco_or_vape,title,contains,shopee_policy,SG2026 2(xxv); 本体・専用品・禁止対象への該当性が語句だけでは未確定のため人間確認,TRUE
+firearm,REVIEW,weapon,title,contains,shopee_policy,SG2026 2(xii); 武器・部品・レプリカ等の実体が未確定のため用途を人間確認,TRUE
+firearms,REVIEW,weapon,title,contains,shopee_policy,SG2026 2(xii); 武器・部品・レプリカ等の実体が未確定のため用途を人間確認,TRUE
+weapon parts,REVIEW,weapon,title,contains,shopee_policy,SG2026 2(xii); 武器・部品・レプリカ等の実体が未確定のため用途を人間確認,TRUE
+replica weapon,REVIEW,weapon,title,contains,shopee_policy,SG2026 2(xii); 武器・部品・レプリカ等の実体が未確定のため用途を人間確認,TRUE
+replica weapons,REVIEW,weapon,title,contains,shopee_policy,SG2026 2(xii); 武器・部品・レプリカ等の実体が未確定のため用途を人間確認,TRUE
+pepper spray,REVIEW,weapon,title,contains,shopee_policy,SG2026 2(xii); 武器・部品・レプリカ等の実体が未確定のため用途を人間確認,TRUE
+stun gun,REVIEW,weapon,title,contains,shopee_policy,SG2026 2(xii); 武器・部品・レプリカ等の実体が未確定のため用途を人間確認,TRUE
+stun guns,REVIEW,weapon,title,contains,shopee_policy,SG2026 2(xii); 武器・部品・レプリカ等の実体が未確定のため用途を人間確認,TRUE
+medical devices,REVIEW,license_or_certification_required,title,contains,shopee_policy,SG2026 2(vii); 医療機器本体・対象製品・許可要件が未確定のため人間確認,TRUE
+medical supply,REVIEW,license_or_certification_required,title,contains,internal_rule,SG2026 2(vii)関連; 社内運用として医療機器等への該当性と許可要件を確認し医療用品を一律禁止しない,TRUE
+prescription drug,REVIEW,license_or_certification_required,title,contains,shopee_policy,SG2026 2(vii); 処方薬本体か関連用品か未確定のため商品区分を人間確認,TRUE
+prescription drugs,REVIEW,license_or_certification_required,title,contains,shopee_policy,SG2026 2(vii); 処方薬本体か関連用品か未確定のため商品区分を人間確認,TRUE
+OTC drug,REVIEW,license_or_certification_required,title,contains,internal_rule,SG2026 2(vii)関連; 社内運用としてSGの商品分類と許可要件を確認しOTCを一律禁止しない,TRUE
+OTC drugs,REVIEW,license_or_certification_required,title,contains,internal_rule,SG2026 2(vii)関連; 社内運用としてSGの商品分類と許可要件を確認しOTCを一律禁止しない,TRUE
+quasi drug,REVIEW,medical_or_therapeutic,title,contains,internal_rule,社内保守運用; 日本の医薬部外品とSG禁止区分を同一視せず成分・用途・商品区分を人間確認,TRUE
+quasi drugs,REVIEW,medical_or_therapeutic,title,contains,internal_rule,社内保守運用; 日本の医薬部外品とSG禁止区分を同一視せず成分・用途・商品区分を人間確認,TRUE
+medicated,REVIEW,medical_or_therapeutic,title,contains,internal_rule,社内保守運用; 薬用表現だけではSG禁止を確定せず成分・効能・商品区分を人間確認,TRUE
+medical claim,REVIEW,medical_or_therapeutic,title,contains,internal_rule,SG2026 2(xiv)(a)関連; 社内運用として対象商品区分と実際の効能表示を確認し語句だけで禁止claimを確定しない,TRUE
+therapeutic claim,REVIEW,medical_or_therapeutic,title,contains,internal_rule,SG2026 2(xiv)(a)関連; 社内運用として対象商品区分と実際の効能表示を確認し語句だけで禁止claimを確定しない,TRUE
+medicinal claim,REVIEW,medical_or_therapeutic,title,contains,internal_rule,SG2026 2(xiv)(a)関連; 社内運用として対象商品区分と実際の効能表示を確認し語句だけで禁止claimを確定しない,TRUE
+pesticide,REVIEW,pesticide_or_hazardous,title,contains,shopee_policy,SG2026 2(xix); 薬剤本体・登録・使用対象が未確定のため人間確認し農薬を一律禁止しない,TRUE
+pesticides,REVIEW,pesticide_or_hazardous,title,contains,shopee_policy,SG2026 2(xix); 薬剤本体・登録・使用対象が未確定のため人間確認し農薬を一律禁止しない,TRUE
+insecticide,REVIEW,pesticide_or_hazardous,title,contains,shopee_policy,SG2026 2(xix); 薬剤本体・登録・使用対象が未確定のため人間確認し農薬を一律禁止しない,TRUE
+insecticides,REVIEW,pesticide_or_hazardous,title,contains,shopee_policy,SG2026 2(xix); 薬剤本体・登録・使用対象が未確定のため人間確認し農薬を一律禁止しない,TRUE
+chewing gum,REVIEW,food_restricted,title,contains,shopee_policy,SG2026 2(xiv)(f); 食用ガム本体か香り等の表現か未確定のため人間確認,TRUE
+bubble gum,REVIEW,food_restricted,title,contains,shopee_policy,SG2026 2(xiv)(f); 食用ガム本体か香り等の表現か未確定のため人間確認,TRUE
+チューイングガム,REVIEW,food_restricted,title,contains,shopee_policy,SG2026 2(xiv)(f); 食用ガム本体か香り等の表現か未確定のため人間確認,TRUE
+used cosmetics,REVIEW,other,title,contains,shopee_policy,SG2026 2(iii); 化粧品への該当性と実際の使用状態が未確定のため人間確認,TRUE
+used makeup,REVIEW,other,title,contains,shopee_policy,SG2026 2(iii); 化粧品への該当性と実際の使用状態が未確定のため人間確認,TRUE
+使用済み化粧品,REVIEW,other,title,contains,shopee_policy,SG2026 2(iii); 化粧品への該当性と実際の使用状態が未確定のため人間確認,TRUE
+alcoholic beverage,REVIEW,alcohol,title,contains,shopee_policy,SG2026 2(xiii); 飲用酒類への該当性とライセンス・Shopee承認が未確定のため人間確認,TRUE
+alcoholic beverages,REVIEW,alcohol,title,contains,shopee_policy,SG2026 2(xiii); 飲用酒類への該当性とライセンス・Shopee承認が未確定のため人間確認,TRUE
+water beads,REVIEW,other,title,contains,shopee_policy,SG2026 2(xxxiii); 子ども向け玩具等の危険対象への該当性が未確定のため用途を人間確認,TRUE

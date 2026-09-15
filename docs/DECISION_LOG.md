@@ -845,3 +845,13 @@
 - 境界: 本決定はResolver prompt、parser、UI、Guardrail、Category Mapper、Expansion、外部API、検索結果CSV、商品名・ASIN一覧、検索ログを変更・追加・保存しない。Web Searchの有効性、batch size最適値、候補到達率の精度指標化、URL起点方式の技術可否を確定しない。
 - 理由: A retryには人間確認済みの追加有用候補という救済価値がある一方、比較結果は追加prompt、Web設定、分割、反復の一律最適解を支持せず、候補数だけでは品質を判断できない。小さい手動コピペ負荷を先行自動化せず、実利用の真のblockerへ開発投資を残すため。
 - 再検討条件: 少量実務でA retryの手動負荷、残存`UNKNOWN`、検索結果の揺らぎ、batch size、またはvariation情報不足が、頻度・影響・売上機会を伴う実blockerと確認された場合。再検討は実データの範囲と人間同一性確認を分けた別タスクで行い、外部API実行や機能変更には別途承認を要する。
+
+## DEC-0071 — SG Safety Baseline 40 Ruleをtitle限定REVIEWで固定する
+
+- 日付: 2026-09-15
+- 背景: PH Minimum Betaの少量実務を維持しながらSG Minimum Betaへ進む前に、現行SG Guardrailで未検出だった重大な規制疑義を、既存BLOCKや市場分離を緩めず人間確認へ止める必要がある。設計で列挙された候補は43ではなく40語句であり、formal mainのSG辞書との重複は0件、DROPは0件と確認済みだったが、設計結果はGit正本化されていなかった。
+- 決定: `guardrails/risk_keywords_sg.csv`と`tests/test_guardrails.py`で固定した40行の8列値をSG Safety Baselineとする。全行を`action=REVIEW`、`match_field=title`、`match_type=contains`、`enabled=TRUE`とし、商品実体・用途・許認可等を語句だけでは確定しない。公式規制を根拠とする行と当社保守運用の`internal_rule`を`source_type`およびnoteで区別する。
+- 確認事実: fetch後のformal main `2318f0cb6f94938afb288f83b1e8a18671ce1274`は設計baseと一致した。既存182行を順序・8列値とも変更せず40行だけ追加し、総222行、有効217行、正規化term重複0件となった。40語すべてでSG titleはREVIEW、brand / categoryだけでは不一致、新規Rule由来BLOCKは0、既存BLOCK同時一致ではBLOCK優先、加美乃素Penalty BLOCK維持、SG REVIEWはGateでELIGIBLEにならず、PHへの新Rule漏洩がないことを合成testで確認した。関連pytest 465件、全pytest 1199件、`git diff --check`をPASSした。
+- 境界: 新規の広範囲BLOCK、既存BLOCKの緩和・削除・変更、SG brand辞書、matcher、Candidate schema、Gate優先順位、COMMON_BLOCK、PH辞書・PH処理、Resolver、Expansion、Category AI、Category / Brand、sidecar、自動出品、外部APIを変更・実行しない。本決定はbranch上のlocal実装であり、push、PR、merge、formal main受入、SG Minimum Beta全体の完成を許可または確定しない。
+- 理由: 重大疑義をSAFEのまま流さず、名称一致だけで禁止商品本体と断定しない最小差分により、既存Penalty保護とPH実務運用を維持できるため。
+- 再検討条件: 実務で過剰REVIEWまたは表記漏れが具体的Evidenceとして確認された場合、現行Shopee SG Policyまたはmatcher契約が変わった場合、もしくは商品Factに基づくCategory依存Safetyを別設計で開始する場合。既存BLOCKを自動降格せず、別Version・別判断として扱う。

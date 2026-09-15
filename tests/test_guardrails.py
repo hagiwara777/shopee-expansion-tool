@@ -369,6 +369,116 @@ V12_LIC_RULE_COUNTS = {
     "LIC-007": 3,
 }
 
+SG_SAFETY_BASELINE_GROUPS = (
+    (
+        ("contact lens", "contact lenses", "コンタクトレンズ"),
+        "medical_or_therapeutic",
+        "shopee_policy",
+        "SG2026 2(vii); レンズ本体か関連用品か未確定のため人間確認",
+    ),
+    (
+        ("electronic cigarette", "electronic cigarettes", "electric cigarette", "electric cigarettes"),
+        "tobacco_or_vape",
+        "shopee_policy",
+        "SG2026 2(xxv); 本体・専用品・禁止対象への該当性が語句だけでは未確定のため人間確認",
+    ),
+    (
+        ("firearm", "firearms", "weapon parts", "replica weapon", "replica weapons", "pepper spray", "stun gun", "stun guns"),
+        "weapon",
+        "shopee_policy",
+        "SG2026 2(xii); 武器・部品・レプリカ等の実体が未確定のため用途を人間確認",
+    ),
+    (
+        ("medical devices",),
+        "license_or_certification_required",
+        "shopee_policy",
+        "SG2026 2(vii); 医療機器本体・対象製品・許可要件が未確定のため人間確認",
+    ),
+    (
+        ("medical supply",),
+        "license_or_certification_required",
+        "internal_rule",
+        "SG2026 2(vii)関連; 社内運用として医療機器等への該当性と許可要件を確認し医療用品を一律禁止しない",
+    ),
+    (
+        ("prescription drug", "prescription drugs"),
+        "license_or_certification_required",
+        "shopee_policy",
+        "SG2026 2(vii); 処方薬本体か関連用品か未確定のため商品区分を人間確認",
+    ),
+    (
+        ("OTC drug", "OTC drugs"),
+        "license_or_certification_required",
+        "internal_rule",
+        "SG2026 2(vii)関連; 社内運用としてSGの商品分類と許可要件を確認しOTCを一律禁止しない",
+    ),
+    (
+        ("quasi drug", "quasi drugs"),
+        "medical_or_therapeutic",
+        "internal_rule",
+        "社内保守運用; 日本の医薬部外品とSG禁止区分を同一視せず成分・用途・商品区分を人間確認",
+    ),
+    (
+        ("medicated",),
+        "medical_or_therapeutic",
+        "internal_rule",
+        "社内保守運用; 薬用表現だけではSG禁止を確定せず成分・効能・商品区分を人間確認",
+    ),
+    (
+        ("medical claim", "therapeutic claim", "medicinal claim"),
+        "medical_or_therapeutic",
+        "internal_rule",
+        "SG2026 2(xiv)(a)関連; 社内運用として対象商品区分と実際の効能表示を確認し語句だけで禁止claimを確定しない",
+    ),
+    (
+        ("pesticide", "pesticides", "insecticide", "insecticides"),
+        "pesticide_or_hazardous",
+        "shopee_policy",
+        "SG2026 2(xix); 薬剤本体・登録・使用対象が未確定のため人間確認し農薬を一律禁止しない",
+    ),
+    (
+        ("chewing gum", "bubble gum", "チューイングガム"),
+        "food_restricted",
+        "shopee_policy",
+        "SG2026 2(xiv)(f); 食用ガム本体か香り等の表現か未確定のため人間確認",
+    ),
+    (
+        ("used cosmetics", "used makeup", "使用済み化粧品"),
+        "other",
+        "shopee_policy",
+        "SG2026 2(iii); 化粧品への該当性と実際の使用状態が未確定のため人間確認",
+    ),
+    (
+        ("alcoholic beverage", "alcoholic beverages"),
+        "alcohol",
+        "shopee_policy",
+        "SG2026 2(xiii); 飲用酒類への該当性とライセンス・Shopee承認が未確定のため人間確認",
+    ),
+    (
+        ("water beads",),
+        "other",
+        "shopee_policy",
+        "SG2026 2(xxxiii); 子ども向け玩具等の危険対象への該当性が未確定のため用途を人間確認",
+    ),
+)
+
+
+def sg_safety_baseline_rules():
+    return [
+        {
+            "term": term,
+            "action": "REVIEW",
+            "risk_category": risk_category,
+            "match_field": "title",
+            "match_type": "contains",
+            "source_type": source_type,
+            "note": note,
+            "enabled": "TRUE",
+        }
+        for terms, risk_category, source_type, note in SG_SAFETY_BASELINE_GROUPS
+        for term in terms
+    ]
+
 
 def v12_risk_rows():
     with RISK_KEYWORDS_PATH.open("r", encoding="utf-8-sig", newline="") as csv_file:
@@ -426,6 +536,74 @@ def test_v12_dictionary_rows_are_unique_complete_and_use_the_approved_contract()
             assert row["risk_category"] == "license_or_certification_required"
             assert "Category:" in row["note"]
             assert "normal cross-border operations" in row["note"]
+
+
+def test_sg_safety_baseline_contains_exactly_the_approved_40_rules_and_metadata():
+    expected_rows = sg_safety_baseline_rules()
+    expected_terms = {row["term"] for row in expected_rows}
+    with RISK_KEYWORDS_PATH.open("r", encoding="utf-8-sig", newline="") as csv_file:
+        all_rows = list(csv.DictReader(csv_file))
+    actual_rows = [row for row in all_rows if row["term"] in expected_terms]
+
+    assert len(expected_rows) == 40
+    assert len(expected_terms) == 40
+    assert actual_rows == expected_rows
+    assert len(all_rows) == 222
+    assert sum(row["enabled"] == "TRUE" for row in all_rows) == 217
+    assert len({normalize_text(row["term"]) for row in all_rows}) == len(all_rows)
+
+
+@pytest.mark.parametrize("rule", sg_safety_baseline_rules(), ids=lambda rule: rule["term"])
+def test_every_sg_safety_baseline_term_is_title_only_review(rule):
+    title_row = apply_guardrails([candidate(title=rule["term"])], marketplace="SG")[0]
+    brand_row = apply_guardrails(
+        [candidate(brand=rule["term"], title="ordinary household item")],
+        marketplace="SG",
+    )[0]
+    category_row = apply_guardrails(
+        [candidate(title="ordinary household item", category=rule["term"])],
+        marketplace="SG",
+    )[0]
+
+    assert title_row["guardrail_status"] == "REVIEW"
+    assert title_row["guardrail_status"] != "BLOCK"
+    assert rule["term"] in title_row["guardrail_matched_terms"].split("|")
+    assert brand_row["guardrail_status"] == "SAFE"
+    assert category_row["guardrail_status"] == "SAFE"
+
+
+def test_sg_safety_baseline_review_does_not_override_existing_block():
+    row = apply_guardrails(
+        [candidate(asin="B000FQTRS0", title="water beads")],
+        marketplace="SG",
+    )[0]
+
+    assert row["guardrail_status"] == "BLOCK"
+    assert row["guardrail_matched_terms"] == "B000FQTRS0|water beads"
+
+
+def test_sg_safety_baseline_preserves_formal_penalty_blocks():
+    rows = apply_guardrails(
+        [
+            candidate(asin="B000FQTRS0"),
+            candidate(title="薬用加美乃素S-II"),
+            candidate(title="薬用加美乃素S-2"),
+            candidate(brand="Kaminomoto"),
+            candidate(brand="加美乃素"),
+        ],
+        marketplace="SG",
+    )
+
+    assert [row["guardrail_status"] for row in rows] == ["BLOCK"] * 5
+    assert all("own_penalty_case" in row["guardrail_source"].split("|") for row in rows)
+
+
+def test_sg_safety_baseline_does_not_leak_water_beads_rule_into_ph():
+    sg_row = apply_guardrails([candidate(title="water beads")], marketplace="SG")[0]
+    ph_row = apply_guardrails([candidate(title="water beads")], marketplace="PH")[0]
+
+    assert sg_row["guardrail_status"] == "REVIEW"
+    assert ph_row["guardrail_status"] == "SAFE"
 
 
 @pytest.mark.parametrize("term", [row["term"] for row in v12_risk_rows()])
@@ -575,8 +753,8 @@ def test_marketplace_defaults_to_existing_sg_dictionaries_and_normalizes_marketp
         sg_keyword_rows = list(csv.DictReader(csv_file))
 
     assert len(default_dictionaries.brand_rules) == 60
-    assert len(sg_keyword_rows) == 182
-    assert len(default_dictionaries.keyword_rules) == 177
+    assert len(sg_keyword_rows) == 222
+    assert len(default_dictionaries.keyword_rules) == 217
     assert default_dictionaries == explicit_sg_dictionaries == normalized_sg_dictionaries
     assert {rule.file_name for rule in default_dictionaries.brand_rules} == {"prohibited_brands_sg.csv"}
     assert {rule.file_name for rule in default_dictionaries.keyword_rules} == {"risk_keywords_sg.csv"}
