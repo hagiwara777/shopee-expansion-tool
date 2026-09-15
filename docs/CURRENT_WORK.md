@@ -15,7 +15,7 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 
 - current_work_type: `PH Minimum Beta少量実務継続`
 - current_phase: `Resolver実務検証正本化完了 / 少量実務継続`
-- working_branch: `codex/ph-resolver-operational-formalization`
+- working_branch: `main`
 - marketplace: `PH`
 - module: `ASIN Resolver / PH Gate handoff / Category Mapper Owner Flow`
 - phase: `PH_CATEGORY_AI_OWNER_FLOW_PASS`
