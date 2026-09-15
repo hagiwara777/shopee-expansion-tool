@@ -831,3 +831,17 @@
 - 境界: 本決定はResolver evidenceの保存契約、Safety / Guardrail仕様、Category AI Core、Category Mapper AI、自動Category確定、`manual_review_required`、`listing_ready`、外部API承認ポリシーを変更しない。bugfixはbranch上の検証済み成果であり、main統合前に正式成果と扱わない。
 - 理由: 行単位の証拠を失わずに、Gate以降の商品単位不変条件を満たし、Safetyの競合だけは見逃さず停止できるため。
 - 再検討条件: Resolver evidenceのprovenanceを保持できない例、stable normalizationでSafety sidecarのASIN集合または値が不一致となる例、または同一ASINで信頼できるSafety Evidenceが競合する実例が確認された場合。別Version・別判断で扱い、自動緩和しない。
+
+## DEC-0070 — PH Resolverの手動retry運用とShopee URL起点Evidenceの優先順位を固定する
+
+- 日付: 2026-09-15
+- 背景: PH Minimum Betaをformal mainで約60件のShopee由来タイトルに少量実務利用し、初回でAIが明示的に`UNKNOWN`を返した28 sourceについて、現行retryの実務上の救済価値と追加開発の費用対効果を確認した。現行コードには、AI明示`UNKNOWN`だけをretry対象とする抽出、検索タイトル、A retry promptが存在する。
+- 確認事実: 以下はオーナー提示の実務検証結果であり、今回Git・テストで再実行した精度評価ではない。固定12商品の比較は、A（現行retry）が`EXACT_SUCCESS` 4、`VARIANT_ONLY_SUCCESS` 3、`MISMATCH_ONLY` 2、`UNKNOWN` 3、B（複数検索表現追加）が4/3/0/5、C（Bに日本語検索追加）が4/4/0/4だった。`MATCH`と`VARIANT_MATCH`を分け、後者を完全一致に含めないDEC-0002を維持する。
+- 確認事実: 同じ12商品ではA retryの5/5/2分割は有用候補到達7/12、12件一括は少なくとも8/12で、検索結果には入れ替わりがあった。同一28 UNKNOWNのA retryでは、Web Search明示ONはcandidate source 15/28、OFFは20/28だったが、候補数には人間確認済み`MISMATCH`の再出力も含まれ、再検索ごとの非再現性があった。Web Search OFFでのA retryは1回目にcandidate source 20/28、残り`UNKNOWN` 8、同条件の2回目は追加候補2/8、残り6だった。追加2件は人間確認で各1件の`MATCH`と`VARIANT_MATCH`だった。28件の候補全件を同一性監査していないため、候補到達件数をaccuracy、recallまたは正解件数として扱わない。
+- 決定: Resolverの成功目的を`UNKNOWN`ゼロではなく、少ない人手で十分な有用種ASINを確保することとする。現行A retryを維持し、標準は原則1回、2回目は商品価値・必要性に応じた手動救済、3回目以降は標準化しない。限界効用が低い`UNKNOWN`は許容し、次の商品候補へ進む。
+- 決定: B promptを標準採用せず、CはAで`UNKNOWN`となった日本商品の人間による任意fallbackに限定する。D/E/F等を含む追加prompt探索を継続せず、Cへの全面置換もしない。
+- 決定: Web Search明示ONを標準必須条件にしない。Web Search OFFが常に優れるとは一般化しない。5件等への自動小分け、retry自動化、retry回数の自動ループを実装しない。適切な最大batch title数は未確定のまま残し、実務上のblockerが確認された場合だけ再検討する。
+- 決定: Shopee検索URLから商品ページ、variation等のEvidenceを経てAmazon商品を特定する方式は、技術的不可能との判定ではなく、開発・保守コスト、売上寄与未確認、1万商品投入の遅延リスクを踏まえたHOLDとする。Resolverの目的はShopee listing完全再現ではなく有用種ASINの確保であり、タイトル型Resolverが実務上不足し、売れ筋商品のvariation展開等が人手負荷または売上機会のblockerと確認された場合だけ再検討する。
+- 境界: 本決定はResolver prompt、parser、UI、Guardrail、Category Mapper、Expansion、外部API、検索結果CSV、商品名・ASIN一覧、検索ログを変更・追加・保存しない。Web Searchの有効性、batch size最適値、候補到達率の精度指標化、URL起点方式の技術可否を確定しない。
+- 理由: A retryには人間確認済みの追加有用候補という救済価値がある一方、比較結果は追加prompt、Web設定、分割、反復の一律最適解を支持せず、候補数だけでは品質を判断できない。小さい手動コピペ負荷を先行自動化せず、実利用の真のblockerへ開発投資を残すため。
+- 再検討条件: 少量実務でA retryの手動負荷、残存`UNKNOWN`、検索結果の揺らぎ、batch size、またはvariation情報不足が、頻度・影響・売上機会を伴う実blockerと確認された場合。再検討は実データの範囲と人間同一性確認を分けた別タスクで行い、外部API実行や機能変更には別途承認を要する。

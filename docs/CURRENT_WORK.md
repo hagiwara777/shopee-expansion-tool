@@ -14,14 +14,23 @@ Git、重要判断の理由は `docs/DECISION_LOG.md`、長期工程は
 ## 現在作業
 
 - current_work_type: `PH Minimum Beta少量実務継続`
-- current_phase: `重複ASIN bugfix main正式統合・最終正本化完了 / 少量実務継続`
-- working_branch: `main`
+- current_phase: `Resolver実務検証正本化完了 / 少量実務継続`
+- working_branch: `codex/ph-resolver-operational-formalization`
 - marketplace: `PH`
 - module: `ASIN Resolver / PH Gate handoff / Category Mapper Owner Flow`
 - phase: `PH_CATEGORY_AI_OWNER_FLOW_PASS`
 - stop_policy: `NO_ADDITIONAL_REAL_API_WITHOUT_APPROVAL / HUMAN_CONFIRMATION_REQUIRED / NO_AUTO_CATEGORY_OR_LISTING`
 - documentation_policy: `MILESTONE_ONLY`
 - next_action: `formal mainの更新済みツールを少量実務で継続使用し、新しい実務blockerが発生するか観測する`
+
+2026-09-15、PH Minimum Betaのformal mainを約60件のShopee由来タイトルで少量実務利用し、
+initialでAIが明示的に`UNKNOWN`を返したsourceだけを現行A retry対象として抽出する実装、検索タイトル、
+retry promptが現行コードに存在することを確認した。固定12商品のA/B/C比較、同一28 UNKNOWNのbatch、Web
+Search ON/OFF、A retry反復の実務検証結果はオーナー提示Evidenceとして受け入れ、恒久的な運用判断は
+DEC-0070に記録した。現行A retryを原則1回、必要時だけ2回目の手動救済として維持する。`UNKNOWN`の
+ゼロ化、prompt探索、5件等への自動分割、retry自動化、Web Search必須化、Shopee URL起点Evidence取得の
+先行開発は行わない。PH Minimum Betaの少量実務利用を続け、Resolverで実際にblockerとなる頻度・影響・
+人手負荷が確認された場合だけ別Version・別判断で再検討する。
 
 2026-09-13、最新`origin/main` `73b81a1032f24652eed29cd1d2f85872d0496727`とCategory AI
 Benchmark V1 commit `7fe9712b914c473c3ab81c7b99e3f5bc9442a7ae`が共通親
