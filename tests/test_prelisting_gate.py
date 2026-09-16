@@ -655,7 +655,7 @@ def test_v12_dictionary_review_and_existing_block_propagate_to_gate_results():
     assert block_row.reason_codes == ("GUARDRAIL_BLOCK",)
 
 
-def test_phase1_v2_brand_block_routes_ph_candidate_to_guardrail_exclude():
+def test_community_ng_brand_block_routes_ph_candidate_to_guardrail_exclude():
     ph_inventory = inventory(
         (),
         marketplace="PH",
@@ -674,8 +674,8 @@ def test_phase1_v2_brand_block_routes_ph_candidate_to_guardrail_exclude():
     assert row.guardrail_status == "BLOCK"
     assert row.guardrail_risk_category == "community_report"
     assert row.guardrail_matched_terms == "LEGO"
-    assert row.guardrail_source == "community_report"
-    assert "PH-V2-BRAND-008" in row.guardrail_note
+    assert row.guardrail_source == "community_ng"
+    assert "source_id=COMMUNITY_NG_BRAND_20260916" in row.guardrail_note
     assert row.final_eligibility == "EXCLUDE"
     assert row.reason_codes == ("GUARDRAIL_BLOCK",)
 

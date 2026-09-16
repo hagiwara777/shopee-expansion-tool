@@ -101,6 +101,15 @@ jobs:
           python-version: "3.12"
       - run: python -m pip install -r requirements.txt
       - run: python -m pytest -q
+      - shell: powershell
+        if: github.event_name == 'pull_request'
+        run: .\scripts\Generate-GovernanceEvidence.ps1 -GateId tests.offline -OutputDirectory evidence
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'pull_request' && success()
+        with:
+          name: governance-evidence-offline-tests
+          path: evidence/*.json
+          if-no-files-found: error
 
   protected-capabilities:
     name: protected.ph + protected.sg
@@ -117,3 +126,14 @@ jobs:
           python-version: "3.12"
       - run: python -m pip install -r requirements.txt
       - run: python -m pytest tests/test_governance_v2.py tests/test_guardrails.py tests/test_prelisting_gate.py -q
+      - shell: powershell
+        if: github.event_name == 'pull_request'
+        run: |
+          .\scripts\Generate-GovernanceEvidence.ps1 -GateId protected.ph -OutputDirectory evidence
+          .\scripts\Generate-GovernanceEvidence.ps1 -GateId protected.sg -OutputDirectory evidence
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'pull_request' && success()
+        with:
+          name: governance-evidence-protected-capabilities
+          path: evidence/*.json
+          if-no-files-found: error

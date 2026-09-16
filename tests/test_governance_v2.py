@@ -71,6 +71,19 @@ def test_gv2_config_001_machine_state_and_manifest_validate() -> None:
     assert "active_task" not in bundle.state
 
 
+def test_gv2_ci_workflow_emits_evidence_for_every_mandatory_check() -> None:
+    generator = (ROOT / "scripts" / "Generate-GovernanceEvidence.ps1").read_text(
+        encoding="utf-8"
+    )
+    workflow = (ROOT / ".github" / "workflows" / "governance-v2.yml").read_text(
+        encoding="utf-8"
+    )
+    check_ids = {check["id"] for check in engine.load_bundle(ROOT).gates["checks"]}
+
+    assert all(f'"{check_id}"' in generator for check_id in check_ids)
+    assert all(f"-GateId {check_id} " in workflow for check_id in check_ids)
+
+
 @pytest.mark.parametrize(
     ("test_id", "changes", "expected"),
     [
@@ -307,8 +320,8 @@ def formal_context(tmp_path: Path, provider: dict[str, object]) -> dict[str, obj
 
 def formal_evidence(bundle: engine.GovernanceBundle, context: dict[str, object]) -> list[dict[str, object]]:
     return [
-        make_evidence(bundle, context, check_id, profile_id="formal-acceptance")
-        for check_id in ("governance.validate", "governance.ps51", "governance.ps7")
+        make_evidence(bundle, context, check["id"], profile_id="formal-acceptance")
+        for check in engine._required_checks(bundle, context, "formal-acceptance")
     ]
 
 

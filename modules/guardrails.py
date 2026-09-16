@@ -8,6 +8,15 @@ import re
 from typing import Any, Iterable
 import unicodedata
 
+from modules.community_ng import (
+    CommunityNgAsinBlock,
+    CommunityNgBrandBlock,
+    CommunityNgDataError,
+    load_community_ng_assets,
+    normalize_asin as normalize_community_asin,
+    normalize_brand_match,
+)
+
 
 GUARDRAIL_COLUMNS = [
     "guardrail_status",
@@ -139,6 +148,13 @@ class DeterministicBlockMatchV2:
     matched_value: str
 
 
+@dataclass(frozen=True)
+class CommunityNgMatch:
+    block: CommunityNgAsinBlock | CommunityNgBrandBlock
+    match_field: str
+    matched_value: str
+
+
 def apply_guardrails(
     rows: Iterable[dict[str, Any]],
     dictionary_dir: str | Path | None = None,
@@ -155,6 +171,11 @@ def apply_guardrails(
         if normalized_marketplace == "PH"
         else []
     )
+    base_dir = Path(dictionary_dir) if dictionary_dir is not None else _default_dictionary_dir()
+    try:
+        community_assets = load_community_ng_assets(base_dir / "community_ng")
+    except CommunityNgDataError as exc:
+        raise GuardrailDictionaryError(f"Community NG asset is invalid: {exc}") from exc
     guarded_rows: list[dict[str, str]] = []
 
     for row in rows:
@@ -165,7 +186,14 @@ def apply_guardrails(
             v2_rules,
             marketplace=normalized_marketplace,
         )
-        guarded_rows.append(_apply_v2_matches_to_row(v1_row, v2_matches))
+        v2_row = _apply_v2_matches_to_row(v1_row, v2_matches)
+        community_matches = _find_community_ng_matches(
+            row,
+            community_assets.asin_blocks,
+            community_assets.brand_blocks,
+            marketplace=normalized_marketplace,
+        )
+        guarded_rows.append(_apply_community_ng_matches_to_row(v2_row, community_matches))
 
     return guarded_rows
 
@@ -877,6 +905,74 @@ def _apply_v2_matches_to_row(
     return guarded_row
 
 
+def _find_community_ng_matches(
+    row: dict[str, Any],
+    asin_blocks: Iterable[CommunityNgAsinBlock],
+    brand_blocks: Iterable[CommunityNgBrandBlock],
+    *,
+    marketplace: str,
+) -> list[CommunityNgMatch]:
+    candidate_asin = normalize_community_asin(row.get("candidate_asin"))
+    candidate_brand = normalize_brand_match(row.get("brand"))
+    matches: list[CommunityNgMatch] = []
+    if candidate_asin:
+        matches.extend(
+            CommunityNgMatch(block=block, match_field="asin", matched_value=candidate_asin)
+            for block in asin_blocks
+            if block.marketplace == marketplace and block.asin == candidate_asin
+        )
+    if candidate_brand:
+        matches.extend(
+            CommunityNgMatch(
+                block=block,
+                match_field="brand",
+                matched_value=str(row.get("brand") or "").strip(),
+            )
+            for block in brand_blocks
+            if block.marketplace == marketplace
+            and block.normalized_match_value == candidate_brand
+        )
+    return matches
+
+
+def _apply_community_ng_matches_to_row(
+    guarded_input: dict[str, str],
+    matches: list[CommunityNgMatch],
+) -> dict[str, str]:
+    if not matches:
+        return guarded_input
+
+    guarded_row = dict(guarded_input)
+    prior_status = guarded_row.get("guardrail_status", "")
+    if prior_status == "SAFE":
+        risk_values: Iterable[str] = ("community_report",)
+        term_values: Iterable[str] = (_community_ng_term(match) for match in matches)
+        source_values: Iterable[str] = ("community_ng",)
+        note_values: Iterable[str] = (_community_ng_match_note(match) for match in matches)
+    else:
+        risk_values = (guarded_row.get("guardrail_risk_category", ""), "community_report")
+        term_values = (
+            guarded_row.get("guardrail_matched_terms", ""),
+            *(_community_ng_term(match) for match in matches),
+        )
+        source_values = (guarded_row.get("guardrail_source", ""), "community_ng")
+        note_values = (
+            guarded_row.get("guardrail_note", ""),
+            *(_community_ng_match_note(match) for match in matches),
+        )
+
+    guarded_row.update(
+        {
+            "guardrail_status": "BLOCK",
+            "guardrail_risk_category": _join_unique(risk_values),
+            "guardrail_matched_terms": _join_unique(term_values),
+            "guardrail_source": _join_unique(source_values),
+            "guardrail_note": _join_unique(note_values),
+        }
+    )
+    return guarded_row
+
+
 def _match_note(match: GuardrailMatch) -> str:
     prefix = "Brand matched" if match.rule.dictionary_type == "brand" else "Keyword matched"
     note = f"{prefix}: {match.rule.term}"
@@ -892,6 +988,23 @@ def _v2_match_note(match: DeterministicBlockMatchV2) -> str:
         f"matched_value={match.rule.value}; "
         f"fact_field={match.actual_fact_field}; "
         f"evidence_ref={match.rule.evidence_ref}; {match.rule.note})"
+    )
+
+
+def _community_ng_term(match: CommunityNgMatch) -> str:
+    if isinstance(match.block, CommunityNgAsinBlock):
+        return match.block.asin
+    return match.block.match_value
+
+
+def _community_ng_match_note(match: CommunityNgMatch) -> str:
+    block = match.block
+    return (
+        "Community NG matched: "
+        f"marketplace={block.marketplace}; "
+        f"match_field={match.match_field}; "
+        f"matched_value={match.matched_value}; "
+        f"source_id={block.source_id}; source_row={block.source_row}"
     )
 
 
