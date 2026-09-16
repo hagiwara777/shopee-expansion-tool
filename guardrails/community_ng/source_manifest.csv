@@ -1,0 +1,3 @@
+source_id,original_file_name,sha256,provided_date,sheet_name,data_type,source_data_rows,nonblank_records,duplicate_records,excluded_records,quarantined_records,normalized_output_rows,raw_file_storage_policy
+COMMUNITY_NG_ASIN_20260916,Shopee NGリスト - ASIN (1).csv,c60137e6d14dfcaeb70e3059b3f640c9601a60f03260f595a842c34fc7322f5b,2026-09-16,CSV,ASIN,23,49,3,0,0,46,OWNER_PROVIDED_REPO_EXTERNAL_HASH_PINNED
+COMMUNITY_NG_BRAND_20260916,Shopee NGリスト - ブランド (1).csv,9c318615ae693428848733d3e391b6c044ee8a9419e64422f8e1ed2c2a53c74c,2026-09-16,CSV,BRAND,224,279,6,1,225,54,OWNER_PROVIDED_REPO_EXTERNAL_HASH_PINNED

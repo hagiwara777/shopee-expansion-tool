@@ -58,7 +58,7 @@
     },
     {
       "id": "safety.shared",
-      "paths": ["modules/guardrails.py", "modules/ingredient_safety.py", "modules/product_text_safety.py", "guardrails/deterministic_block_rules_v2.csv", "tests/test_guardrails.py", "tests/test_ingredient_safety.py", "tests/test_product_text_safety.py"],
+      "paths": ["modules/community_ng.py", "modules/guardrails.py", "modules/ingredient_safety.py", "modules/product_text_safety.py", "guardrails/community_ng/**", "guardrails/deterministic_block_rules_v2.csv", "docs/evidence/community_ng/**", "tests/test_community_ng.py", "tests/test_guardrails.py", "tests/test_ingredient_safety.py", "tests/test_product_text_safety.py"],
       "scope": "SHARED_RUNTIME", "markets": ["PH", "SG"], "depends_on": ["application"], "owner_role": "safety-maintainer"
     },
     {

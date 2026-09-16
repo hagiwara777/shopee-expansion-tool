@@ -877,3 +877,17 @@
 - 維持: Governance VerifierのHOLD / HARD_STOP、Protected Capability Gate、mandatory technical gateを通常開発承認で無効化・迂回しない。live API / 実商品、有料API・新規費用、deploy、GitHub設定、branch protection / ruleset、GitHub Actions secret / variable、実環境Trust Anchor、credential / secret、復元困難な削除、force push、大幅なscope変更は別承認のままとする。
 - 理由: push / Draft PRはmainを変更せず、CI・reviewはmerge判断に必要なEvidenceを得る工程であるため。細かい承認待ちによる無意味なSTOPとCodex token消費を減らしつつ、formal mainへの最終採用判断と安全gateをオーナーとGovernanceに残すため。
 - 再検討条件: Draft PR公開によるreview負荷、無承認scope逸脱、CI Evidenceの欠落、またはformal main受入での手戻りが実務上のblockerとなった場合。安全gateの緩和ではなく、Evidenceと承認境界を別タスクで再検討する。
+
+## DEC-0074 — Community NGを国別共通Safety資産として正本化する
+
+- 日付: 2026-09-17
+- 背景: オーナー提供の最新CSVにはSG / PH / MY / TH / TW / VNの国別ASIN・ブランドNGと、国が特定できない列が混在していた。従来はSG辞書とPH V2へcommunity由来情報が重複し、国不明データの一部もSG runtimeへ入っていたため、市場境界、更新元、入力hash、正規化判断を一つの契約として固定する必要があった。
+- 決定: guardrails/community_ng/をCommunity NGの正本とし、ASIN 46行、ブランド48 concept / 54 exact match行、source manifest 2行をversioned assetとして保持する。元CSVはGitへ追加せず、元ファイル名、2026-09-16提供日、SHA-256、入力件数、重複・除外・隔離・出力件数をmanifestへ固定し、repo外のオーナー提供Evidenceとして扱う。NG理由列は判定条件やruntime資産へ含めない。
+- 決定: 国別ASINはmarketplace + 10文字ASIN完全一致、国別ブランドはmarketplace + NFKC / casefold / trim / 連続空白統一後の完全一致で常にBLOCKとする。G=SHOCKはcanonical key g-shockのG-SHOCK / G=SHOCK alias、グルマンディーズ / Gourmandiseは同一brand key、PHのBose商品群表現はブランドBose、SUNTORYのサプリメントは除外してSUNTORY全体BLOCKへ拡張しない。VNブランド列のB08DHKD9T4はASIN混入として隔離する。
+- 決定: 国不明の224 recordはUNSCOPED / DEFERREDとし、どのmarketplace runtimeにも展開しない。SG辞書の旧community_report 85行（brand 47、keyword 38）とPH V2の旧community brand 13行は共通正本への移管に伴い削除する。Shopee brand list、SG Safety Baseline 40 REVIEW、own penalty、PH辞書、GABA / hemp V2は維持する。
+- Runtime境界: この変更で共通資産を読むproduct runtimeはSG / PHだけとする。MY / TH / TW / VNは将来利用できるformal data assetに限り、product runtime、Gate、UI、workflowを開始しない。SG / PH間およびdata-only市場からの漏洩を禁止する。Community NG BLOCKは既存REVIEWより優先し、既存BLOCK、Shopee由来、own penalty等の監査証跡を失わない。
+- 検証: loaderは列、source identity、hash形式、日付、件数、marketplace、ASIN、brand key / alias、action、enabled、source row範囲、重複、決定的順序、manifest出力件数をfail-closedで検査する。正規化判断、市場分離、完全一致境界、alias、SUNTORY除外、Bose、国不明非runtime、BLOCK優先、既存Evidence保持、Prelisting Gate EXCLUDEを自動testで固定する。
+- Governance: modules/community_ng.py、guardrails/community_ng/**、関連Evidenceとtestをownershipのsafety.sharedへ登録し、変更全体をSHARED_COREとしてPH ph.beta.operationとSG sg.safety.baselineのprotected gate対象にする。
+- 境界: live Shopee / Keepa / OpenAI API、deploy、GitHub設定、MY / TH / TW / VN runtime、既存Penalty緩和、自動出品を実行・許可しない。Draft PRとCIはDEC-0073の通常開発承認内で行うが、formal mainへのmergeはbound technical gateとOwner Acceptanceを別途必要とする。
+- 理由: 入力provenanceと市場scopeを一つの検証可能な資産へ集約し、国不明情報の誤適用と複数辞書のdriftを防ぎながら、既存SG / PH Safety保護を維持するため。
+- 再検討条件: 新しいオーナー提供source、source hash不一致、marketplace未特定recordの国確定、alias追加、現行Shopee policyとの競合、またはdata-only市場のruntime開始判断が生じた場合。既存source identityを上書きせず、新source IDと別判断で扱う。

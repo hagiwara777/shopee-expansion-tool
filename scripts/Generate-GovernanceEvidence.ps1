@@ -1,7 +1,14 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet("governance.validate", "governance.ps51", "governance.ps7")]
+    [ValidateSet(
+        "governance.validate",
+        "governance.ps51",
+        "governance.ps7",
+        "tests.offline",
+        "protected.ph",
+        "protected.sg"
+    )]
     [string]$GateId,
     [Parameter(Mandatory = $true)]
     [string]$OutputDirectory,

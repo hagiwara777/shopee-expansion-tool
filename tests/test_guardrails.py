@@ -33,11 +33,37 @@ ignored,BLOCK,other,title,contains,internal_rule,Disabled keyword,FALSE
 """
 
 
+def write_empty_community_assets(dictionary_dir):
+    community_dir = dictionary_dir / "community_ng"
+    community_dir.mkdir()
+    (community_dir / "marketplace_asin_blocks.csv").write_text(
+        "marketplace,asin,action,source_id,source_row,enabled\n",
+        encoding="utf-8",
+    )
+    (community_dir / "marketplace_brand_blocks.csv").write_text(
+        "marketplace,brand_key,match_value,action,source_id,source_row,enabled\n",
+        encoding="utf-8",
+    )
+    (community_dir / "source_manifest.csv").write_text(
+        "source_id,original_file_name,sha256,provided_date,sheet_name,data_type,"
+        "source_data_rows,nonblank_records,duplicate_records,excluded_records,"
+        "quarantined_records,normalized_output_rows,raw_file_storage_policy\n"
+        "TEST_ASIN,test-asin.csv,"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,"
+        "2026-09-16,CSV,ASIN,0,0,0,0,0,0,OWNER_PROVIDED_REPO_EXTERNAL_HASH_PINNED\n"
+        "TEST_BRAND,test-brand.csv,"
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb,"
+        "2026-09-16,CSV,BRAND,0,0,0,0,0,0,OWNER_PROVIDED_REPO_EXTERNAL_HASH_PINNED\n",
+        encoding="utf-8",
+    )
+
+
 def write_dictionaries(tmp_path, brand_csv=BRAND_CSV, risk_csv=RISK_CSV):
     dictionary_dir = tmp_path / "guardrails"
     dictionary_dir.mkdir()
     (dictionary_dir / "prohibited_brands_sg.csv").write_text(brand_csv, encoding="utf-8")
     (dictionary_dir / "risk_keywords_sg.csv").write_text(risk_csv, encoding="utf-8")
+    write_empty_community_assets(dictionary_dir)
     return dictionary_dir
 
 
@@ -548,8 +574,8 @@ def test_sg_safety_baseline_contains_exactly_the_approved_40_rules_and_metadata(
     assert len(expected_rows) == 40
     assert len(expected_terms) == 40
     assert actual_rows == expected_rows
-    assert len(all_rows) == 222
-    assert sum(row["enabled"] == "TRUE" for row in all_rows) == 217
+    assert len(all_rows) == 184
+    assert sum(row["enabled"] == "TRUE" for row in all_rows) == 184
     assert len({normalize_text(row["term"]) for row in all_rows}) == len(all_rows)
 
 
@@ -637,9 +663,7 @@ def test_v12_shipping_reclassifications_preserve_existing_match_contracts():
     assert rows_by_term["PowerCore"]["risk_category"] == "shipping_restricted"
     assert rows_by_term["PowerCore"]["match_field"] == "all"
     assert rows_by_term["PowerCore"]["match_type"] == "contains"
-    assert rows_by_term["浄水器"]["risk_category"] == "shipping_restricted"
-    assert rows_by_term["浄水器"]["match_field"] == "all"
-    assert rows_by_term["浄水器"]["match_type"] == "contains"
+    assert "浄水器" not in rows_by_term
 
 
 @pytest.mark.parametrize(
@@ -729,6 +753,7 @@ def write_ph_dictionaries(
     if v2_csv is None:
         v2_csv = PH_V2_RULESET_PATH.read_text(encoding="utf-8-sig")
     (dictionary_dir / guardrails_module.V2_RULESET_FILE).write_text(v2_csv, encoding="utf-8")
+    write_empty_community_assets(dictionary_dir)
     return dictionary_dir
 
 
@@ -752,9 +777,9 @@ def test_marketplace_defaults_to_existing_sg_dictionaries_and_normalizes_marketp
     with RISK_KEYWORDS_PATH.open("r", encoding="utf-8-sig", newline="") as csv_file:
         sg_keyword_rows = list(csv.DictReader(csv_file))
 
-    assert len(default_dictionaries.brand_rules) == 60
-    assert len(sg_keyword_rows) == 222
-    assert len(default_dictionaries.keyword_rules) == 217
+    assert len(default_dictionaries.brand_rules) == 13
+    assert len(sg_keyword_rows) == 184
+    assert len(default_dictionaries.keyword_rules) == 184
     assert default_dictionaries == explicit_sg_dictionaries == normalized_sg_dictionaries
     assert {rule.file_name for rule in default_dictionaries.brand_rules} == {"prohibited_brands_sg.csv"}
     assert {rule.file_name for rule in default_dictionaries.keyword_rules} == {"risk_keywords_sg.csv"}
@@ -999,27 +1024,21 @@ def render_v2_rules(*rows, columns=V2_COLUMNS):
     return output.getvalue()
 
 
-def test_production_v2_ruleset_preserves_brands_gaba_and_adds_one_ph_hemp_rule():
+def test_production_v2_ruleset_keeps_gaba_and_one_ph_hemp_rule_after_brand_migration():
     rules = load_deterministic_block_rules_v2()
     brand_rules = [rule for rule in rules if rule.fact_field == "brand"]
     ingredient_rules = [rule for rule in rules if rule.fact_field == "ingredient_safety"]
     product_text_rules = [rule for rule in rules if rule.fact_field == "product_text"]
 
-    assert [rule.rule_id for rule in brand_rules] == [rule_id for rule_id, _ in PHASE1_V2_BRAND_RULES]
-    assert [rule.value for rule in brand_rules] == [brand for _, brand in PHASE1_V2_BRAND_RULES]
-    assert len(rules) == 20
-    assert len(brand_rules) == 13
+    assert len(rules) == 7
+    assert brand_rules == []
     assert len(ingredient_rules) == 6
     assert len(product_text_rules) == 1
     assert sum(rule.scope == "COMMON_BLOCK" for rule in rules) == 0
-    assert sum(rule.scope == "PH_BLOCK" for rule in rules) == 20
+    assert sum(rule.scope == "PH_BLOCK" for rule in rules) == 7
     assert {rule.schema_version for rule in rules} == {guardrails_module.V2_RULESET_SCHEMA_VERSION}
-    assert all(rule.operator == "exact" for rule in brand_rules)
     assert all(rule.action == "BLOCK" for rule in rules)
-    assert all(rule.risk_category == "community_report" for rule in brand_rules)
-    assert all(rule.source_type == "community_report" for rule in brand_rules + ingredient_rules)
-    assert all(rule.decision_ref == "DEC-0030" for rule in brand_rules)
-    assert all(rule.evidence_ref == "OWNER_SOURCE_COMMUNITY_NG_LIST" for rule in brand_rules)
+    assert all(rule.source_type == "community_report" for rule in ingredient_rules)
     assert {rule.canonical_term for rule in ingredient_rules} == {"GABA"}
     assert all(rule.operator == "contains_term" for rule in ingredient_rules)
     assert all(rule.risk_category == "regulated_ingredient" for rule in ingredient_rules)
@@ -1035,24 +1054,25 @@ def test_production_v2_ruleset_preserves_brands_gaba_and_adds_one_ph_hemp_rule()
     assert "Bose" not in {rule.value for rule in rules}
 
 
-@pytest.mark.parametrize(("rule_id", "brand"), PHASE1_V2_BRAND_RULES, ids=[item[0] for item in PHASE1_V2_BRAND_RULES])
-def test_every_phase1_v2_brand_rule_blocks_ph_by_normalized_exact(rule_id, brand):
+@pytest.mark.parametrize(("_legacy_rule_id", "brand"), PHASE1_V2_BRAND_RULES, ids=[item[0] for item in PHASE1_V2_BRAND_RULES])
+def test_every_migrated_brand_rule_blocks_ph_by_normalized_exact(_legacy_rule_id, brand):
     row = apply_guardrails([candidate(brand=brand)], marketplace="PH")[0]
 
     assert row["guardrail_status"] == "BLOCK"
     assert row["guardrail_risk_category"] == "community_report"
     assert row["guardrail_matched_terms"] == brand
-    assert row["guardrail_source"] == "community_report"
-    assert f"V2 Rule matched: {rule_id}" in row["guardrail_note"]
+    assert row["guardrail_source"] == "community_ng"
+    assert "Community NG matched: marketplace=PH" in row["guardrail_note"]
+    assert "source_id=COMMUNITY_NG_BRAND_20260916" in row["guardrail_note"]
     assert "No guardrail dictionary match" not in row["guardrail_note"]
 
 
 @pytest.mark.parametrize("brand", ["  ｌｅｇｏ  ", "SHU   UEMURA", "ｏｘｏ"])
-def test_phase1_v2_brand_exact_uses_nfkc_case_trim_and_space_normalization(brand):
+def test_migrated_brand_exact_uses_nfkc_case_trim_and_space_normalization(brand):
     row = apply_guardrails([candidate(brand=brand)], marketplace="PH")[0]
 
     assert row["guardrail_status"] == "BLOCK"
-    assert "V2 Rule matched" in row["guardrail_note"]
+    assert "Community NG matched" in row["guardrail_note"]
 
 
 def test_phase1_v2_never_matches_contains_title_blank_or_unrelated_brand():
@@ -1092,7 +1112,7 @@ def test_phase1_v2_no_match_preserves_complete_v1_output_order_and_count():
     assert [row["product_title"] for row in combined] == [row["product_title"] for row in rows]
 
 
-def test_phase1_v2_block_veto_composes_after_v1_without_losing_v1_audit_evidence():
+def test_community_ng_block_veto_composes_after_v1_without_losing_v1_audit_evidence():
     safe_v2 = apply_guardrails(
         [candidate(brand="LEGO", title="ordinary product")],
         marketplace="PH",
@@ -1110,14 +1130,14 @@ def test_phase1_v2_block_veto_composes_after_v1_without_losing_v1_audit_evidence
     assert safe_v2["guardrail_matched_terms"] == "LEGO"
     assert review_v2["guardrail_status"] == "BLOCK"
     assert review_v2["guardrail_matched_terms"] == "medicated|LEGO"
-    assert review_v2["guardrail_source"] == "internal_rule|community_report"
+    assert review_v2["guardrail_source"] == "internal_rule|community_ng"
     assert "PH-D018" in review_v2["guardrail_note"]
-    assert "PH-V2-BRAND-008" in review_v2["guardrail_note"]
+    assert "source_id=COMMUNITY_NG_BRAND_20260916" in review_v2["guardrail_note"]
     assert block_v2["guardrail_status"] == "BLOCK"
     assert block_v2["guardrail_matched_terms"] == "処方薬|LEGO"
-    assert block_v2["guardrail_source"] == "shopee_policy|community_report"
+    assert block_v2["guardrail_source"] == "shopee_policy|community_ng"
     assert "PH-D008" in block_v2["guardrail_note"]
-    assert "PH-V2-BRAND-008" in block_v2["guardrail_note"]
+    assert "source_id=COMMUNITY_NG_BRAND_20260916" in block_v2["guardrail_note"]
 
 
 def test_phase1_v2_is_not_enabled_for_sg_even_when_v2_ruleset_is_missing(tmp_path):
