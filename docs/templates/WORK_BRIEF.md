@@ -53,8 +53,8 @@ pushまたはPRを予定しているだけの明確な変更では原則不要�
 | 実データ | 使用しない / 種類・用途 |
 | 外部サービスへのlive書込み | 行わない / 対象・影響 |
 | データ削除・移行 | 行わない / 対象・バックアップ・復旧方法 |
-| push＋Draft PR | 行わない / 報告後に承認を得る |
-| merge | 行わない / 別途承認を得る |
+| push＋Draft PR | 通常開発承認のscope内で実行可 / scope外は行わない |
+| merge | 行わない / mandatory technical gate、Owner Acceptance Summary、最終承認後のみ実行 |
 | deploy | 行わない / 別途承認を得る |
 
 ## 停止条件
@@ -62,7 +62,8 @@ pushまたはPRを予定しているだけの明確な変更では原則不要�
 - 正式repositoryを特定できない
 - dirtyなworktreeでユーザー変更を上書きする可能性がある
 - 秘密情報または禁止ファイルをGitへ追加する
-- 費用、外部書込み、復元不能操作、push、PR、merge、deployが未承認
+- 費用、外部書込み、復元不能操作、deploy、GitHub設定、Trust Anchor、credential、force push、mergeが未承認
+- pushまたはDraft PRが通常開発承認のscope外、またはVerifierのHOLD / HARD_STOP、Protected Capability Gate、mandatory technical gateを迂回しようとする
 - 承認済みの目的、責務、満足条件から大きく外れる
 
 不明事項が危険性へ直接関係しない場合は、確認済み事実と仮定を区別し、可逆な範囲を続行します。

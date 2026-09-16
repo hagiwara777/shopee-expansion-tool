@@ -63,8 +63,19 @@ Owner Acceptance Summaryは、採用対象、変更、非対象、既存運用�
 通常のローカル作業は引き続き小さく可逆に進める。読み取り、ローカル編集、ローカルテスト、
 ローカルcommitは、ユーザー変更や秘密情報を上書き・収録しない範囲で実行できる。
 
-操作境界として、有料API、外部書込み、復元不能削除、大幅なscope変更、push、Draft PR、merge、deployは
-明示承認を要する。Ver2 GovernanceのHOLD/HARD_STOPはこの境界を緩和しない。
+通常開発承認は、目的とscopeが明確な通常タスクについて、local編集、local test、local commit、push、
+Draft PR作成、CI / checks確認、read-only reviewを一括で許可する。pushまたはDraft PRだけを理由に
+追加承認を求めない。pushとDraft PRはGitHub上で検証可能な候補を公開する工程であり、formal mainへの
+採用承認ではない。
+
+formal mainへのmergeは別境界である。mandatory technical gateを満たし、現在のhead、scope、主要リスク、
+protected capabilityへの影響、Owner Acceptance Summaryのbindingに対するオーナー最終承認を得た場合だけ
+実行する。これらがPR作成後に変わった場合は、merge前に現在対象へのOwner Acceptanceを取り直す。
+
+有料API、外部書込み、復元不能削除、大幅なscope変更、deploy、GitHub repository設定、branch protection /
+ruleset、GitHub Actions secret / variable、実環境Trust Anchor、credential / secret操作、force pushは通常開発承認に
+含めず、別の明示承認を要する。Ver2 GovernanceのHOLD/HARD_STOP、Protected Capability Gate、mandatory technical gateは
+この境界を緩和せず、通常開発承認で無効化または迂回しない。
 
 WORK_BRIEFを使う条件は、目的・責務・満足条件・外部操作が複雑で、短い依頼だけでは安全な実装範囲を
 固定できない場合に限る。すべての作業開始条件にはしない。

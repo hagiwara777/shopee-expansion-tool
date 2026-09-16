@@ -54,9 +54,11 @@ def test_policy_documents_and_internal_scenarios_are_consistent():
         (("Push",), 3, b"POLICY_DECISION: STOP"),
         (("DraftPr",), 3, b"POLICY_DECISION: STOP"),
         (("Merge",), 3, b"POLICY_DECISION: STOP"),
+        (("Merge", "-Approved"), 3, b"POLICY_DECISION: STOP"),
         (("Deploy",), 3, b"POLICY_DECISION: STOP"),
         (("LocalCommit", "-SecretToGit"), 3, b"POLICY_DECISION: STOP"),
         (("Push", "-Approved"), 0, b"POLICY_DECISION: PASS"),
+        (("DraftPr", "-Approved"), 0, b"POLICY_DECISION: PASS"),
     ],
 )
 def test_action_scenarios_return_expected_policy_decision(

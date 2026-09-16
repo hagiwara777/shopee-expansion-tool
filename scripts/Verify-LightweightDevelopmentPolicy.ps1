@@ -94,6 +94,13 @@ function Get-PolicyDecision {
         return "STOP"
     }
 
+    # This lightweight checker never authorizes a formal-main merge.  A merge
+    # must instead satisfy Governance Verifier technical gates and a current
+    # Owner Acceptance Summary with explicit final owner acceptance.
+    if ($Action -eq "Merge") {
+        return "STOP"
+    }
+
     $approvalRequired = $Action -in @(
         "PaidApi",
         "ExternalWrite",
@@ -101,7 +108,6 @@ function Get-PolicyDecision {
         "MajorScopeChange",
         "Push",
         "DraftPr",
-        "Merge",
         "Deploy"
     )
     if ($approvalRequired -and -not $HasApproval) {
@@ -130,20 +136,24 @@ $decisionLog = Get-RequiredContent -RepositoryRoot $repositoryRoot -RelativePath
 
 Assert-ContainsText -Content $agents -DocumentName "AGENTS.md" -RequiredTexts @(
     "軽量開発運用 v1",
-    "ローカルcommit",
-    "pushとDraft PR作成",
+    "local commit",
+    "CI / checks",
+    "通常開発承認",
+    "formal mainへのmerge",
     "GPTは必須の伝言役または承認者にしない"
 )
 Assert-ContainsText -Content $runbook -DocumentName "docs/RUNBOOK_CHATGPT_CODEX.md" -RequiredTexts @(
     "小さく可逆",
-    "操作境界",
+    "通常開発承認",
+    "formal mainへのmerge",
     "WORK_BRIEFを使う条件",
     "GPTは必須の伝言役または承認者ではない"
 )
 Assert-ContainsText -Content $template -DocumentName "docs/templates/WORK_BRIEF.md" -RequiredTexts @(
     "すべての作業の開始条件ではありません",
     "何ができれば満足か",
-    "外部・不可逆操作"
+    "外部・不可逆操作",
+    "通常開発承認のscope内で実行可"
 )
 Assert-ContainsText -Content $decisionLog -DocumentName "docs/DECISION_LOG.md" -RequiredTexts @(
     "DEC-0018",
@@ -175,9 +185,11 @@ $cases = @(
     @{ Description = "無許可のpush"; Action = "Push"; Approved = $false; Overwrite = $false; Secret = $false; Expected = "STOP" },
     @{ Description = "無許可のDraft PR"; Action = "DraftPr"; Approved = $false; Overwrite = $false; Secret = $false; Expected = "STOP" },
     @{ Description = "無許可のmerge"; Action = "Merge"; Approved = $false; Overwrite = $false; Secret = $false; Expected = "STOP" },
+    @{ Description = "通常開発承認だけのmerge"; Action = "Merge"; Approved = $true; Overwrite = $false; Secret = $false; Expected = "STOP" },
     @{ Description = "無許可のdeploy"; Action = "Deploy"; Approved = $false; Overwrite = $false; Secret = $false; Expected = "STOP" },
     @{ Description = "秘密情報のcommit"; Action = "LocalCommit"; Approved = $true; Overwrite = $false; Secret = $true; Expected = "STOP" },
-    @{ Description = "承認済みpush"; Action = "Push"; Approved = $true; Overwrite = $false; Secret = $false; Expected = "PASS" }
+    @{ Description = "通常開発承認内のpush"; Action = "Push"; Approved = $true; Overwrite = $false; Secret = $false; Expected = "PASS" },
+    @{ Description = "通常開発承認内のDraft PR"; Action = "DraftPr"; Approved = $true; Overwrite = $false; Secret = $false; Expected = "PASS" }
 )
 
 foreach ($case in $cases) {

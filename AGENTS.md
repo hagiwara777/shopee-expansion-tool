@@ -52,9 +52,15 @@
 - A scoped local commit is allowed after relevant validation succeeds and the
   changed files, diff, and secret-data checks have been reviewed. Do not stage
   or commit unrelated user changes.
-- Do not push, create a pull request, merge, or deploy unless the user
-  explicitly authorizes the operation. One approval may cover a normal push
-  and Draft PR creation for the same reviewed commit.
+- Do not push, create a Draft PR, merge, or deploy outside the approval that
+  applies to the task. A normal-development approval with a defined purpose
+  and scope may cover local edits, tests, commits, push, Draft PR creation,
+  CI/check review, and read-only review for that scope; it does not authorize
+  a formal-main merge.
+- A formal-main merge requires the mandatory technical gates, a current Owner
+  Acceptance Summary, and the owner's explicit final approval. A changed PR
+  head, scope, risk, protected-capability impact, or summary binding requires
+  renewed final acceptance before merge.
 - Force push with `--force` or `--force-with-lease` is prohibited by default. Make an exception only when the user explicitly authorizes the target branch and exact operation; do not automatically perform ordinary pushes or formalization beyond the requested scope.
 - Never add the following to Git: `.env`, `.env.*`, cache databases, `outputs/`,
   `.venv/`, `__pycache__/`, `.pytest_cache/`, `.pytest_tmp/`, `.agents/`,
@@ -67,16 +73,20 @@
   技術方式、branch、テスト方式の選択をオーナーへ求めない。
 - CodexはGitと正本を実行時に確認し、曖昧な要望を具体化し、技術設計、ローカル編集、
   テスト、平易な完了報告を担当する。GPTは必須の伝言役または承認者にしない。
-- 読み取り専用調査、branch作成、範囲内のローカル編集、ローカルテスト、検証済み差分の
-  ローカルcommitは、目的と禁止範囲が明確で可逆な限りCodexが進められる。
-- 次は実行前にオーナーの明示承認を得る。
+- 通常開発承認では、目的とscopeが明確な通常タスクについて、範囲内のローカル編集、
+  ローカルテスト、local commit、push、Draft PR作成、CI / checks確認、read-only reviewを
+  一括で実行できる。pushまたはDraft PRだけを理由に追加承認を求めない。
+- 次は通常開発承認に含めず、実行前に別の明示承認を得る。
   - 費用または有料API利用
   - Shopee等の外部サービスへのlive書込み
   - 復元不能な削除、上書き、移行
-  - pushとDraft PR作成、merge、deploy
+  - formal mainへのmerge（mandatory technical gate、現在対象のOwner Acceptance Summary、
+    オーナーの最終承認が必要）
+  - deploy、GitHub repository設定、branch protection / ruleset、GitHub Actions secret / variable、
+    実環境Trust Anchor、credential / secret関連操作、force push
   - 承認済みの目的、責務、満足条件を大きく変える変更
-- pushとDraft PR作成は、同一の検証済みcommitについて一度の承認で実行できる。
-  mergeとdeployは別の明示承認を必要とする。
+- Governance VerifierのHOLD / HARD_STOP、Protected Capability Gate、mandatory technical gateは
+  通常開発承認で無効化または迂回しない。
 - `docs/templates/WORK_BRIEF.md` は全作業の開始条件ではない。目的が曖昧、複数module、
   責務変更、外部API、費用、データ移行、復元不能操作等を伴う場合だけ使用する。
   pushまたはPRを行うことだけを理由に必須化しない。
@@ -118,7 +128,8 @@
   6. 長期工程・順序が変わる場合だけ `docs/PROJECT_ROADMAP.md` を更新する。
   7. 恒久的な開発ルールが変わる場合だけ `AGENTS.md` 等へ反映する。
   8. 正本文書更新時は必要なsnapshotを再生成する。
-  9. 検証済みの範囲だけを適切な単位でlocal commitする。push、PR、merge、deployは別途承認規則に従う。
+  9. 検証済みの範囲だけを適切な単位でlocal commitする。pushとDraft PRは通常開発承認の
+     scope内で進め、mergeとdeployは別途承認規則に従う。
 - 正本化の完了条件は、次のCodexタスクが過去会話を読まなくても、リポジトリと正本文書から
   「現在の正式状態」「確認済み事項」「未解決事項」「次の単一作業」を判断できることとする。
 - テスト失敗、無関係なdirty変更、snapshot生成失敗、正本間の矛盾などで正本化できない場合は、
@@ -141,7 +152,7 @@
   `scripts/Update-ContextSnapshot.ps1` でsnapshotを再生成する。生成に失敗した場合は
   作業完了扱いにしない。
 - commit前に変更ファイル、未追跡ファイル、秘密情報の混入、関連テスト結果を確認する。
-  push、PR、merge、deployの許可がない場合は実行しない。
+  pushとDraft PRは通常開発承認のscope内でのみ実行し、mergeとdeployは別途承認がない場合は実行しない。
 
 ## Component boundaries
 
