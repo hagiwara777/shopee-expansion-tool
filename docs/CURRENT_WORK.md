@@ -5,10 +5,10 @@
 
 ## 現在状態
 
-- status: `PR_EVIDENCE_PENDING`
+- status: `WAITING_APPROVAL`
 - work: `通常開発承認とformal main最終受入を二段階へ分離するGovernance-only正本化`
 - scope: `governance / management scripts / tests / formal documentation only`
-- external_operation: `通常開発承認のscope内でpush、Draft PR、CI / checks確認を実行可。formal mainへのmergeは未実施で、最終Owner Acceptanceとmandatory technical gateを要する。`
+- external_operation: `Draft PRとCI / checks確認は完了。formal mainへのmergeは未実施で、現在対象にbindingした最終Owner Acceptanceとmandatory technical gateを要する。`
 
 ## 再開手順
 
@@ -19,7 +19,7 @@
 
 ## 次の単一作業
 
-Draft PRとCI / checksのEvidenceを確認した後、オーナーへformal main採用可否のOwner Acceptance Summaryを提示する。最終承認が得られるまでmergeしない。
+現在のDraft PR headとCI / checksのEvidenceを添えて、オーナーへformal main採用可否のOwner Acceptance Summaryを提示する。最終承認が得られるまでmergeしない。
 
 ## 停止条件
 
