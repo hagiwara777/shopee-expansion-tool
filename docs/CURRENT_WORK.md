@@ -6,32 +6,32 @@
 ## 現在状態
 
 - status: `WAITING_APPROVAL`
-- work: `通常開発承認とformal main最終受入を二段階へ分離するGovernance-only正本化`
-- scope: `governance / management scripts / tests / formal documentation only`
-- external_operation: `Draft PRとCI / checks確認は完了。bound CI Evidence recordによりmandatory technical gateはPASSし、新head用Owner Acceptance Summaryを生成済み。最終Owner Evidenceを待つ。`
+- work: `Community NG ASIN / ブランドを国別共通Safety資産として正本化する`
+- scope: `SG / PH runtime、MY / TH / TW / VN data-only資産、shared safety / SG rules / gate / governance / tests`
+- external_operation: `Draft PR #75とCI / checks確認は完了。最終headへbindingした6 mandatory CI EvidenceがPASSし、Owner Acceptance Summaryを準備済み。formal main採用の最終承認を待つ。`
 
 ## 再開手順
 
 1. `git status`、`git branch --show-current`、`git log -1 --oneline`、対象PRとCI / checksを確認する。
 2. `governance/state.json`、`governance/manifest.json`、repo外Trust AnchorとTask Contextを検証する。
-3. 通常開発承認の目的とscopeから外れていないことを確認し、Draft PRとCI / checks、対象head/tree等にbindingしたCI Evidence recordを確認する。
-4. mandatory technical gateがEvidence recordでPASSとなった後、現在のhead・scope・主要リスク・protected capabilityへの影響にbindingしたOwner Acceptance Summaryを提示して、オーナーの最終承認を得る。
+3. Draft PR #75のhead、全check、6 mandatory CI Evidenceが同じhead / treeへbindingしていることを確認する。
+4. Community NG資産件数、市場境界、既存Safety保護、主要リスクを含むOwner Acceptance Summaryを確認し、オーナーのformal main採用判断を得る。
 
 ## 次の単一作業
 
-現在のDraft PR head、bound CI Evidence、Owner Acceptance Summaryを添えて、オーナーへformal main採用可否を提示する。最終承認が得られるまでmergeしない。
+Draft PR #75の最終head、bound CI Evidence、Owner Acceptance Summaryを添えて、オーナーのformal main採用可否を待つ。最終承認が得られるまでmergeしない。
 
 ## 停止条件
 
 - PH Beta運用を停止・変更しない。
-- SG Category / Brand / Handoff、MY / TH製品開発へ進まない。
+- SG Category / Brand / Handoff、MY / TH / TW / VN製品runtime開発へ進まない。
 - OpenAI、Keepa、Shopeeその他live APIを実行しない。
 - `governance/state.json`へactive task、branch、HEAD、test resultを書かない。
 - Task ContextでGlobal Stateまたはmandatory gateを弱めない。
-- 通常開発承認のscope外のpushまたはDraft PR、formal mainへのmerge、deploy、GitHub設定変更、Trust Anchor変更、credential / secret操作、force pushを実行しない。
+- 承認済みCommunity NG scope外の変更、formal mainへのmerge、deploy、GitHub設定変更、Trust Anchor変更、credential / secret操作、force pushを実行しない。
 - Governance VerifierのHOLD / HARD_STOP、Protected Capability Gate、mandatory technical gateを通常開発承認で無効化または迂回しない。
 - mandatory CI Evidence recordが不足する間は、Owner Acceptance Summaryを生成・要求せず、formal mainへmergeしない。
 
 ## Rollback
 
-このGovernance-only差分は通常のrevert PRで戻す。force pushやdirty worktreeのresetは標準手順にしない。
+このCommunity NG差分は通常のrevert PRで戻す。revert時は共通資産loader、資産、旧辞書移管、Evidence workflowを同じ変更単位として扱い、force pushやdirty worktreeのresetを標準手順にしない。
