@@ -433,8 +433,11 @@ function Write-VerificationReport([string]$Path) {
 
 try {
     $script:RepositoryRoot = Get-FormalRepositoryRoot
-    $python = Join-Path $script:RepositoryRoot ".venv\Scripts\python.exe"
-    if (-not (Test-Path -LiteralPath $python -PathType Leaf)) { throw "正式な .venv のPythonが見つかりません。" }
+    $python = $null
+    if (-not $DryRun) {
+        $python = Join-Path $script:RepositoryRoot ".venv\Scripts\python.exe"
+        if (-not (Test-Path -LiteralPath $python -PathType Leaf)) { throw "正式な .venv のPythonが見つかりません。" }
+    }
     $tempRoot = Join-Path ([IO.Path]::GetTempPath()) "ShopeeChangeVerification"
     $script:ArtifactRoot = Join-Path $tempRoot ("stage-artifacts-{0}" -f (Get-Date -Format "yyyyMMdd-HHmmssfff"))
     New-Item -ItemType Directory -Path $script:ArtifactRoot -Force | Out-Null
