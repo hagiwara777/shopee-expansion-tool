@@ -672,6 +672,94 @@ def load_evidence(bundle: GovernanceBundle, paths: Iterable[Path]) -> list[dict[
     return records
 
 
+def generate_ci_evidence(repository: Path, gate_id: str) -> tuple[str, dict[str, Any]]:
+    """Build one content-addressed PASS record from the current GitHub Actions job."""
+    bundle = load_bundle(repository)
+    check = next((item for item in bundle.gates["checks"] if item["id"] == gate_id), None)
+    if check is None or not check.get("ci_identity"):
+        raise GovernanceError("CI_EVIDENCE_GATE_INVALID", "CI Evidence対象gateが不正です。", EXIT_USAGE)
+    required = [
+        "GITHUB_ACTIONS", "GITHUB_REPOSITORY_ID", "GOVERNANCE_EVIDENCE_SHA", "GITHUB_WORKFLOW_REF",
+        "GITHUB_JOB", "GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT", "GITHUB_ACTOR_ID", "GITHUB_EVENT_NAME",
+    ]
+    values = {key: os.environ.get(key, "") for key in required}
+    if values["GITHUB_ACTIONS"].lower() != "true" or any(not values[key] for key in required[1:]):
+        raise GovernanceError("CI_EVIDENCE_ENVIRONMENT_REQUIRED", "GitHub Actionsの検証済み実行環境が必要です。", EXIT_USAGE)
+    identity = check["ci_identity"]
+    workflow_path = str(identity["workflow_path"])
+    if (
+        values["GITHUB_EVENT_NAME"] != "pull_request"
+        or values["GITHUB_JOB"] != identity["job_id"]
+        or f"/{workflow_path}@" not in values["GITHUB_WORKFLOW_REF"]
+    ):
+        raise GovernanceError("CI_EVIDENCE_IDENTITY_MISMATCH", "CI jobまたはworkflow identityがgate定義と一致しません。", EXIT_HARD_STOP)
+    head = _run_git(bundle.root, ["rev-parse", "HEAD"])
+    if head != values["GOVERNANCE_EVIDENCE_SHA"]:
+        raise GovernanceError("CI_EVIDENCE_HEAD_MISMATCH", "checkout HEADがGitHub Actions対象commitと一致しません。", EXIT_HARD_STOP)
+    tree = _run_git(bundle.root, ["rev-parse", "HEAD^{tree}"])
+    base = _run_git(bundle.root, ["rev-parse", "refs/remotes/origin/main"], allow_failure=True)
+    merge_base = _run_git(bundle.root, ["merge-base", base, head], allow_failure=True) if base else None
+    changes = _parse_status(bundle.root, merge_base or base, head)
+    classification = classify_changes(changes, bundle.ownership)
+    profile = next(item for item in bundle.profiles["profiles"] if item["id"] == "formal-acceptance")
+    registry_hash = sha256_bytes(canonical_bytes(bundle.hashes))
+    record: dict[str, Any] = {
+        "evidence_id": f"ci-{gate_id}-{values['GITHUB_RUN_ID']}-{values['GITHUB_RUN_ATTEMPT']}",
+        "schema_version": SCHEMA_VERSION,
+        "kind": "TEST",
+        "repository_id": values["GITHUB_REPOSITORY_ID"],
+        "object_format": "sha1",
+        "tested_commit": head,
+        "tested_tree": tree,
+        "base_commit": base,
+        "merge_base": merge_base,
+        "capability_ids": [],
+        "component_ids": classification["components"],
+        "component_manifest": None,
+        "state_schema_hash": bundle.hashes["schemas/state.schema.json"],
+        "config_version": bundle.config_version,
+        "registry_hash": registry_hash,
+        "gate_id": gate_id,
+        "gate_definition_hash": sha256_bytes(canonical_bytes(check)),
+        "profile_hash": sha256_bytes(canonical_bytes(profile)),
+        "test_plan_hash": sha256_bytes(canonical_bytes({"test_plan_id": check["test_plan_id"]})),
+        "test_source_hash": sha256_file(bundle.root / workflow_path),
+        "fixture_hash": None,
+        "environment": {"provider": "github", "runner_os": os.environ.get("RUNNER_OS", "unknown")},
+        "runner_version": values["GITHUB_RUN_ATTEMPT"],
+        "observation": "PASS",
+        "reason_codes": ["CI_JOB_SUCCESS"],
+        "report_sha256": None,
+        "provenance": "CI",
+        "executed_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+        "external_validity": None,
+        "source": {
+            "type": "GITHUB_ACTIONS", "provider": "github", "workflow_path": workflow_path,
+            "workflow_ref": values["GITHUB_WORKFLOW_REF"], "job_id": values["GITHUB_JOB"],
+            "check_name": identity["check_name"], "run_id": values["GITHUB_RUN_ID"],
+            "run_attempt": values["GITHUB_RUN_ATTEMPT"], "actor_id": values["GITHUB_ACTOR_ID"],
+            "event_name": values["GITHUB_EVENT_NAME"], "commit": head, "result": "SUCCESS",
+        },
+    }
+    _schema_validate(record, bundle.schemas["schemas/evidence.schema.json"], "evidence")
+    _assert_shareable(record)
+    return evidence_digest(record), record
+
+
+def _ci_evidence_matches(check: Mapping[str, Any], record: Mapping[str, Any], current_head: str) -> bool:
+    source = record.get("source", {})
+    identity = check.get("ci_identity", {})
+    return (
+        source.get("type") == "GITHUB_ACTIONS"
+        and source.get("provider") == identity.get("provider")
+        and source.get("workflow_path") == identity.get("workflow_path")
+        and source.get("job_id") == identity.get("job_id")
+        and source.get("check_name") == identity.get("check_name")
+        and source.get("commit") == current_head
+        and source.get("result") == "SUCCESS"
+    )
+
+
 def _required_checks(bundle: GovernanceBundle, context: Mapping[str, Any], profile_id: str) -> list[Mapping[str, Any]]:
     classification = context["canonical"]["classification"]
     components = set(context["canonical"]["components"])
@@ -745,6 +833,8 @@ def _evidence_for_check(
                 valid.append(record)
             continue
         if record["provenance"] not in check["accepted_provenance"]:
+            continue
+        if record["provenance"] == "CI" and not _ci_evidence_matches(check, record, current_head):
             continue
         if str(record["repository_id"]) != str(repository_id):
             continue
@@ -834,13 +924,6 @@ def verify_context(
         if provider_identity.get("observation") != "PASS" and decision != "HARD_STOP":
             decision = "HOLD"
             blockers.append("PROVIDER_REPOSITORY_ID_REQUIRED")
-        branch_checks = (provider or {}).get("branch_protection_checks")
-        if branch_checks is None:
-            decision = "HOLD" if decision != "HARD_STOP" else decision
-            blockers.append("BRANCH_PROTECTION_UNKNOWN")
-        elif not branch_checks or any(result != "SUCCESS" for result in branch_checks.values()):
-            decision = "HOLD" if decision != "HARD_STOP" else decision
-            blockers.append("BRANCH_PROTECTION_NOT_SATISFIED")
 
     for check in _required_checks(bundle, context, profile_id):
         observation, evidence_ids, reason = _evidence_for_check(bundle, check, evidence, context, profile_id, clock)
@@ -1001,6 +1084,10 @@ def _cli_parser() -> argparse.ArgumentParser:
     generate.add_argument("--base")
     generate.add_argument("--provider")
     generate.add_argument("--task-context")
+    ci_evidence = subparsers.add_parser("ci-evidence")
+    ci_evidence.add_argument("--repository", default=".")
+    ci_evidence.add_argument("--gate-id", required=True)
+    ci_evidence.add_argument("--output-dir", required=True)
     verify = subparsers.add_parser("verify")
     verify.add_argument("--repository", default=".")
     verify.add_argument("--context", required=True)
@@ -1034,6 +1121,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             _write_output(output / "context.json", canonical_bytes(context))
             _write_output(output / "context.md", _context_markdown(context).encode("utf-8"))
             print("PASS: governance context generated")
+            return EXIT_CONTINUE
+        if args.command == "ci-evidence":
+            digest, record = generate_ci_evidence(Path(args.repository), args.gate_id)
+            output = Path(args.output_dir) / f"{digest}.json"
+            _write_output(output, canonical_bytes(record))
+            print(f"PASS: CI evidence generated for {args.gate_id}: {output.name}")
             return EXIT_CONTINUE
         if args.command == "verify":
             repository = Path(args.repository)

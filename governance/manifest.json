@@ -12,6 +12,6 @@
     {"path": "schemas/state.schema.json", "sha256": "b454af8991ae7d5dd12124b3b2a2ef7f77448b26a2cd1f7302b604c48d585abe"},
     {"path": "schemas/task-context.schema.json", "sha256": "10a324f2e43b1e48fb8a8f9f720a99855f98794866b1e163dd46dfc8143ff6d7"},
     {"path": "schemas/verification.schema.json", "sha256": "9c819b3e07ef2502220aed11c37671799379b64d02c43f78ace72bb01d456b11"},
-    {"path": "task-profiles.json", "sha256": "a87e22381a46bec650d2047b2d505cf5ee257790919548e39c895af22d940fb5"}
+    {"path": "task-profiles.json", "sha256": "58e98d5fbe2fcc8ff8638c43e2e7f75d455930768cd19830568d02ccfadc8f12"}
   ]
 }

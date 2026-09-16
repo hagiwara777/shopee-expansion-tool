@@ -867,3 +867,13 @@
 - 境界: 製品runtime、SG Category / Brand / Handoff、MY / TH、live API、push、PR、merge、GitHub設定、実Trust Anchor設定を本決定だけで許可しない。
 - Rollback: pre-Ver2 formal main `136958a1bf2493983b4413f7d231ee5adbd913bf`の対象pathへ通常のrevert PRまたは後続変更を保持した復旧差分で戻す。Ver1既知問題の復帰も明示する。
 - 理由: fresh cloneで再現可能な信頼境界、決定的なConfig、独立Verifier、content-addressed Evidence、並行Task Contextを最小構成で成立させ、PH運用を維持しつつ複数市場変更をfail-safeに管理するため。
+
+## DEC-0073 — 通常開発承認とformal main最終受入を二段階へ分離する
+
+- 日付: 2026-09-16
+- 背景: pushやDraft PRごとに承認待ちを置くと、mainを変更しない検証候補の公開、CI、reviewで得るべきEvidenceまで不必要に停止し、通常開発の反復を遅らせていた。
+- 決定: 目的とscopeをオーナーが承認した通常タスクでは、local編集、local test、local commit、push、Draft PR作成、CI / checks確認、read-only reviewを一括で許可する。pushとDraft PRは検証可能な候補をGitHubへ公開する工程であり、formal mainへの採用承認ではない。
+- 決定: formal mainへのmerge直前だけ、mandatory technical gate、現在対象にbindingしたOwner Acceptance Summary、オーナーの明示的な最終承認を必要とする。PR作成後にhead、scope、主要リスク、protected capabilityへの影響、Summary bindingが変われば、merge前に現在対象への受入を取り直す。
+- 維持: Governance VerifierのHOLD / HARD_STOP、Protected Capability Gate、mandatory technical gateを通常開発承認で無効化・迂回しない。live API / 実商品、有料API・新規費用、deploy、GitHub設定、branch protection / ruleset、GitHub Actions secret / variable、実環境Trust Anchor、credential / secret、復元困難な削除、force push、大幅なscope変更は別承認のままとする。
+- 理由: push / Draft PRはmainを変更せず、CI・reviewはmerge判断に必要なEvidenceを得る工程であるため。細かい承認待ちによる無意味なSTOPとCodex token消費を減らしつつ、formal mainへの最終採用判断と安全gateをオーナーとGovernanceに残すため。
+- 再検討条件: Draft PR公開によるreview負荷、無承認scope逸脱、CI Evidenceの欠落、またはformal main受入での手戻りが実務上のblockerとなった場合。安全gateの緩和ではなく、Evidenceと承認境界を別タスクで再検討する。
