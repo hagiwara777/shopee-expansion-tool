@@ -1,0 +1,17 @@
+{
+  "format_version": "2.0.0",
+  "capabilities": [
+    {
+      "id": "ph.beta.operation", "market": "PH", "definition_version": "1.0.0",
+      "components": ["application", "category", "expansion.provider", "export", "gate.shared", "inventory", "ph.rules", "resolver", "safety.image", "safety.shared"],
+      "invariants": ["candidate-generation-boundary", "safety-not-weakened", "duplicate-normalization", "human-category-confirmation", "brand-confirmation", "listing-readiness-boundary", "handoff-boundary"],
+      "gate_ids": ["protected.ph"]
+    },
+    {
+      "id": "sg.safety.baseline", "market": "SG", "definition_version": "1.0.0",
+      "components": ["application", "expansion.provider", "gate.shared", "inventory", "safety.shared", "sg.rules"],
+      "invariants": ["sg-40-title-review", "block-precedence", "penalty-protection", "sg-review-does-not-pass-gate", "market-isolation"],
+      "gate_ids": ["protected.sg"]
+    }
+  ]
+}

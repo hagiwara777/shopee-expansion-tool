@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "governance-evidence-2.0.0",
+  "type": "object", "additionalProperties": false,
+  "required": ["evidence_id", "schema_version", "kind", "repository_id", "object_format", "tested_commit", "tested_tree", "base_commit", "merge_base", "capability_ids", "component_ids", "component_manifest", "state_schema_hash", "config_version", "registry_hash", "gate_id", "gate_definition_hash", "profile_hash", "test_plan_hash", "test_source_hash", "fixture_hash", "environment", "runner_version", "observation", "reason_codes", "report_sha256", "provenance", "executed_at", "external_validity", "source"],
+  "properties": {
+    "evidence_id": {"type": "string", "pattern": "^[a-zA-Z0-9._-]+$"},
+    "schema_version": {"const": "2.0.0"},
+    "kind": {"enum": ["TEST", "OWNER_ACCEPTANCE", "PROVIDER", "EXTERNAL_POLICY", "LEGACY_ACCEPTANCE", "OVERRIDE", "REVOCATION"]},
+    "repository_id": {"type": "string", "minLength": 1},
+    "object_format": {"enum": ["sha1", "sha256"]},
+    "tested_commit": {"type": ["string", "null"]}, "tested_tree": {"type": ["string", "null"]},
+    "base_commit": {"type": ["string", "null"]}, "merge_base": {"type": ["string", "null"]},
+    "capability_ids": {"$ref": "#/$defs/strings"}, "component_ids": {"$ref": "#/$defs/strings"},
+    "component_manifest": {"type": ["array", "null"], "items": {"type": "object", "additionalProperties": false, "required": ["path", "mode", "blob_oid"], "properties": {"path": {"type": "string"}, "mode": {"type": "string"}, "blob_oid": {"type": "string"}}}},
+    "state_schema_hash": {"type": ["string", "null"]}, "config_version": {"const": "2.0.0"},
+    "registry_hash": {"type": ["string", "null"]}, "gate_id": {"type": ["string", "null"]},
+    "gate_definition_hash": {"type": ["string", "null"]}, "profile_hash": {"type": ["string", "null"]},
+    "test_plan_hash": {"type": ["string", "null"]}, "test_source_hash": {"type": ["string", "null"]},
+    "fixture_hash": {"type": ["string", "null"]}, "environment": {"type": ["object", "null"]},
+    "runner_version": {"type": ["string", "null"]}, "observation": {"enum": ["PASS", "FAIL", "UNKNOWN", "NOT_APPLICABLE", "NOT_RUN"]},
+    "reason_codes": {"$ref": "#/$defs/strings"}, "report_sha256": {"type": ["string", "null"]},
+    "provenance": {"enum": ["LOCAL", "CI", "GITHUB_OWNER", "FORMAL_GIT", "EXTERNAL"]},
+    "executed_at": {"type": ["string", "null"]}, "external_validity": {"type": ["object", "null"]},
+    "source": {"type": "object"}
+  },
+  "$defs": {"strings": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}}
+}

@@ -1,0 +1,66 @@
+name: governance-v2
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  governance:
+    name: governance.validate
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements.txt
+      - run: python -m governance.engine validate --repository .
+
+  powershell-51:
+    name: governance.ps51
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements.txt
+      - shell: powershell
+        run: .\scripts\Invoke-GovernanceV2.ps1 -Mode Validate
+
+  powershell-7:
+    name: governance.ps7
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements.txt
+      - shell: pwsh
+        run: .\scripts\Invoke-GovernanceV2.ps1 -Mode Validate
+
+  offline-tests:
+    name: tests.offline
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements.txt
+      - run: python -m pytest -q
+
+  protected-capabilities:
+    name: protected.ph + protected.sg
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements.txt
+      - run: python -m pytest tests/test_governance_v2.py tests/test_guardrails.py tests/test_prelisting_gate.py -q

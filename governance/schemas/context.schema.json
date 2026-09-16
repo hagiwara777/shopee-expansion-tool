@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "governance-context-2.0.0",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "canonical", "canonical_sha256", "observations"],
+  "properties": {
+    "schema_version": {"const": "2.0.0"},
+    "canonical_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "canonical": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "repository_id", "state", "config_version", "config_hashes", "classification", "components", "protected_capabilities", "task"],
+      "properties": {
+        "schema_version": {"const": "2.0.0"}, "repository_id": {"type": ["string", "null"]},
+        "state": {"type": "object"}, "config_version": {"const": "2.0.0"},
+        "config_hashes": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
+        "classification": {"enum": ["GOVERNANCE_ONLY", "MARKET_LOCAL", "SHARED_CORE"]},
+        "components": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "protected_capabilities": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "task": {"type": ["object", "null"]}
+      }
+    },
+    "observations": {
+      "type": "object", "additionalProperties": false, "required": ["git_identity", "records", "volatile"],
+      "properties": {
+        "git_identity": {
+          "type": "object", "additionalProperties": false,
+          "required": ["head", "tree", "branch", "base", "merge_base", "dirty", "changed_files"],
+          "properties": {
+            "head": {"type": "string"}, "tree": {"type": "string"}, "branch": {"type": ["string", "null"]},
+            "base": {"type": ["string", "null"]}, "merge_base": {"type": ["string", "null"]}, "dirty": {"type": "boolean"},
+            "changed_files": {"type": "array", "items": {"$ref": "#/$defs/change"}}
+          }
+        },
+        "records": {"type": "array", "items": {"$ref": "#/$defs/record"}},
+        "volatile": {"type": "object", "additionalProperties": false, "required": ["generated_at"], "properties": {"generated_at": {"type": "string"}}}
+      }
+    }
+  },
+  "$defs": {
+    "change": {
+      "type": "object", "additionalProperties": false, "required": ["status", "old_path", "new_path", "old_mode", "new_mode"],
+      "properties": {"status": {"type": "string"}, "old_path": {"type": ["string", "null"]}, "new_path": {"type": ["string", "null"]}, "old_mode": {"type": ["string", "null"]}, "new_mode": {"type": ["string", "null"]}}
+    },
+    "record": {
+      "type": "object", "additionalProperties": false, "required": ["id", "observation", "value", "reason_code", "source_ref"],
+      "properties": {"id": {"type": "string"}, "observation": {"enum": ["PASS", "FAIL", "UNKNOWN", "NOT_APPLICABLE", "NOT_RUN"]}, "value": {}, "reason_code": {"type": "string"}, "source_ref": {"type": "string"}}
+    }
+  }
+}

@@ -1,124 +1,80 @@
-# 軽量開発運用 v1
+# 管理基盤Ver2 Runbook
 
-## 目的
+## 正本
 
-個人利用のツールを、小さく可逆に変更し、早く確認して安全に直せるようにする。
-手戻りを完全に排除するための手続きを増やさず、被害が大きい操作だけを止める。
-`AGENTS.md` と矛盾する場合は、Codexの安全規則として `AGENTS.md` を優先する。
+- Git: branch、commit、tree、差分。
+- `governance/state.json`: 長寿命の承認済み市場・capability・停止条件。
+- `governance/manifest.json`以下: versioned Governance Configとschema。
+- repo外Task Context: タスクUUID単位の作業状態。Global Stateは更新しない。
+- `docs/DECISION_LOG.md`: 判断理由。
+- `docs/PROJECT_ROADMAP.md`: 長期工程。
+- `docs/CURRENT_WORK.md`: 再開案内のみ。
 
-## 情報の正本
+`outputs/governance/`はGit管理外の派生出力であり、正本ではありません。
 
-| 確認したい事実 | 正本 |
-| --- | --- |
-| branch・commit・差分・実ファイル | Git |
-| Codexの作業規則・安全制約 | `AGENTS.md` |
-| 現在地・次の単一作業・停止条件 | `docs/CURRENT_WORK.md` |
-| 承認済み判断と理由 | `docs/DECISION_LOG.md` |
-| 中長期の商品工程 | `docs/PROJECT_ROADMAP.md` |
+## Trust Anchor
 
-`docs/CONTEXT_SNAPSHOT.md` は再生成可能な派生物であり、正本として編集・commitしない。
+唯一のbootstrap期待値はowner受入済みのrepo外recordです。ローカルは
+`%LOCALAPPDATA%\ShopeeGovernance\trust\1296080967.json`、CIは
+`GOVERNANCE_TRUST_ANCHOR_JSON`を使用します。repo内の値から生成・上書きせず、
+`--expected-repo`等の本番overrideを設けません。欠落はHOLD、不正・競合・identity不一致はHARD_STOPです。
 
-## 役割
+## Task Context
 
-- オーナーは、何を作りたいか、なぜ必要か、誰がどう使うか、何ができれば満足か、
-  何が起きると困るかを示す。
-- Codexは、要望の具体化、技術設計、実装、テスト、Git確認、平易な完了報告を担当する。
-  技術方式をオーナーへ選ばせず、事業上の違いと推奨案へ翻訳する。
-- GPTは必須の伝言役または承認者ではない。完成定義、大きな設計、優先順位、
-  批判的レビュー、非技術的な翻訳で必要な場合だけ利用する。
-- 技術的に動くかはCodexと自動検証で確認し、目的を満たして役に立つかはオーナーが
-  実物で確認する。
+`%LOCALAPPDATA%\ShopeeGovernance\tasks\<repository-id>\<task-uuid>\context.json`へ保存します。
+schemaは`governance/schemas/task-context.schema.json`です。追加gateと追加停止条件だけを許し、
+既存mandatory gate、Global State、保護capabilityを削除・緩和できません。
 
-## 標準フロー
+## 実行
 
-1. オーナーが目的と理由を自然な言葉で伝える。
-2. CodexがGitと正本を確認し、目的、対象範囲、対象外、完成時の動作を具体化する。
-3. 事業上異なる解釈がある場合だけ、推奨案を添えてオーナーへ確認する。
-4. Codexが小さく可逆な単位で編集し、関連テストを実行する。
-5. Codexができたこと、残ること、確認してほしい実物操作を平易に報告する。
-6. 必要なら安全に修正する。小さな手戻りを失敗扱いしない。
+```powershell
+.\scripts\Invoke-GovernanceV2.ps1 -Mode Validate
+.\scripts\Update-ContextSnapshot.ps1 -TaskContext <repo外context.json>
+.\scripts\Verify-ContextSnapshot.ps1 -Profile local-validation -ContextPath outputs\governance\context.json
+```
 
-## 依存工程前の確定判断の正本化
+Pythonは`-PythonPath`、`GOVERNANCE_PYTHON`、PATHの順に解決します。PowerShell 5.1と7で同じPython共通実装を呼びます。
+Generatorは観測だけを行い、fetch、checkout、branch、index、Stateを変更しません。Verifierは既存contextを評価し、
+Generatorを暗黙実行せず、snapshotを削除しません。
 
-後続の開発、実装、disposition、受入または優先順位判断の前提となるオーナー確定事項は、依存する作業の開始前に適切な正本へ最小限反映する。順序は、会話・検討、オーナー判断確定、正本への最小反映、main統合確認、依存する次工程とする。既存に同一判断がある場合は重複Decisionを作らず参照し、仮説または却下案は正本化しない。
+Exit codeは`0=CONTINUE`、`10=HOLD`、`20=HARD_STOP`、`64=usage`、`70=internal`です。
 
-## 開始時確認
+## Evidence
 
-Codexは新規・継続を問わず、実行時に次を確認する。
+- local Evidenceは一時的で、CIまたはowner証跡へ自動昇格しません。
+- CI artifactはworkflow/job/actor/対象commit/resultを照合します。
+- 永続Evidence recordは`governance/evidence/<canonical-sha256>.json`です。
+- code Evidenceの再利用は日付でなくcommit/tree/config/gate/profile/test plan bindingで決めます。
+- legacy migrationは`LEGACY_ACCEPTANCE`とし、実行していないVer2 TESTを捏造しません。
+- overrideとOwner Acceptanceはexact target bindingが変われば失効します。
 
-- 正式repo rootとremote
-- fetch後の `origin/main` と作業base
-- 現在branchとHEAD
-- clean / dirtyとユーザー変更
-- `CURRENT_WORK.md` のmarketplace、module、phase、次の単一作業、停止条件
-- 今回の対象範囲、対象外、外部・不可逆操作の許可
+## Formal acceptance
 
-mainが進んでいる場合は新しい差分を確認し、今回の目的と両立すれば最新mainを基準に続行する。
-方針、現在作業、責務、対象範囲が競合する場合だけ停止する。
+Governance mandatory checksはbranch protectionと独立して評価します。provider欠落、check欠落、pending、
+skipped、neutral、古いheadはformal acceptanceを満たしません。mandatory technical gate完了前はOwner Acceptanceを要求しません。
 
-## 操作境界
+Owner Acceptance Summaryは、採用対象、変更、非対象、既存運用影響、主要リスク、確認済みEvidence、既知制約、
+承認後の意味、rollbackの9項目を事業用語で説明します。オーナーへhash、SHA、schema等の技術判断を要求しません。
 
-| 操作 | 基本動作 |
-| --- | --- |
-| 読み取り・調査 | Codexが自動実行 |
-| branch作成 | Codexが自動実行 |
-| 範囲内のローカル編集 | Codexが自動実行 |
-| ローカルテスト | Codexが自動実行 |
-| 検証済み差分のローカルcommit | Codexが自動実行 |
-| push＋Draft PR | 平易な報告後、一度のオーナー承認 |
-| merge・deploy | それぞれ別のオーナー承認 |
-| 費用・有料API | 目的、上限、再試行条件を示して事前承認 |
-| 外部サービスへのlive書込み | 対象と影響を示して事前承認 |
-| 復元不能な削除・上書き・移行 | 対象、バックアップ、復旧可否を示して事前承認 |
-| 目的・責務・満足条件の大幅変更 | 事業上の違いと推奨案を示して確認 |
+## Shareable output
 
-dirtyなworktreeではユーザー変更を整理、破棄、上書きせず、重複範囲だけ停止する。
-秘密情報や禁止ファイルは、承認の有無にかかわらずGitへ追加しない。
+## 軽量開発運用v1との互換契約
 
-## WORK_BRIEFを使う条件
+通常のローカル作業は引き続き小さく可逆に進める。読み取り、ローカル編集、ローカルテスト、
+ローカルcommitは、ユーザー変更や秘密情報を上書き・収録しない範囲で実行できる。
 
-`docs/templates/WORK_BRIEF.md` は全作業の開始条件ではない。
+操作境界として、有料API、外部書込み、復元不能削除、大幅なscope変更、push、Draft PR、merge、deployは
+明示承認を要する。Ver2 GovernanceのHOLD/HARD_STOPはこの境界を緩和しない。
 
-次では原則不要とする。
+WORK_BRIEFを使う条件は、目的・責務・満足条件・外部操作が複雑で、短い依頼だけでは安全な実装範囲を
+固定できない場合に限る。すべての作業開始条件にはしない。
 
-- 読み取り専用調査
-- 原因と範囲が明確な局所修正
-- ローカルテスト
-- 小さく可逆なUI調整
-- pushまたはPRを予定しているだけの明確な変更
+GPTは必須の伝言役または承認者ではない。技術的整合性はVerifier、tests、CI、Codexが検証する。
 
-次では使用する。
+`context.json/.md`と`verification.json/.md`にはrepo相対path、repository ID、reason codeだけを出します。
+絶対path、username、hostname、credential、raw exception、raw command output、認証付きURLを含めません。
 
-- 目的または完成条件に事業上異なる解釈がある
-- 複数moduleまたは責務境界へ影響する
-- 外部API、費用、実データを扱う
-- データ削除、移行、復元不能操作を行う
-- 外部サービスへlive書込みする
+## Rollback
 
-## Gitと証拠
-
-- local mainではなくfetch後の `origin/main` をbaseとして使う。
-- local commit前に、変更ファイル、未追跡ファイル、差分、秘密情報、関連テストを確認する。
-- branch HEAD、base commit、テスト結果、PR、CI、formal main commit SHAを技術証拠として残す。
-- GPTがSHAを確認したことを、Git成果の成立条件にしない。
-- pushとDraft PRは同一の検証済みcommitについて一度の承認で実行できる。
-- force pushは対象branchと操作の明示承認がある場合だけ行う。
-
-## 独立レビュー
-
-日常作業では必須にしない。セキュリティ、認証、復元不能なデータ変更、複数moduleの責務変更、
-外部サービス、本番影響、または自動テストだけでは確認できない高リスク変更で利用する。
-レビュー結果は、承認可否、残るリスク、推奨判断、オーナーが実物で確認することへ翻訳する。
-
-## 完了報告
-
-Codexは次の6項目を平易に報告する。
-
-1. 変更したもの
-2. 以前より簡単になったこと
-3. 残した安全策
-4. 実行したテストと結果
-5. 未確認事項またはオーナーが実物で確認すること
-6. 次の単一作業
-
-長いコマンドログは、失敗、異常、判断に必要な場合だけ補足する。
+targetは`136958a1bf2493983b4413f7d231ee5adbd913bf`です。通常のrevert PR、または後続変更を保持した復旧差分で
+Ver2対象pathをpre-Ver2内容へ戻します。force pushとdirty resetは行いません。Ver1へ戻すと既知問題も復帰します。

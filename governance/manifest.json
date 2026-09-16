@@ -1,0 +1,17 @@
+{
+  "config_version": "2.0.0",
+  "engine_major": 2,
+  "supported_state_versions": ["2.0.0"],
+  "files": [
+    {"path": "capabilities.json", "sha256": "dc57d121e40caaf8e8f37e733c7504afcf0691680c856f0941928f5992c6f46c"},
+    {"path": "classification.json", "sha256": "c93895fefb812807e0e4358b0fbbb6adda95c2ee40ffe481796dacf13c1a99d4"},
+    {"path": "gates.json", "sha256": "9b9515e18d4dd51ddd362711c353110521151e24ae583cfc9fed18186cb178b2"},
+    {"path": "ownership.json", "sha256": "772ae32ced7cf63a0e2ecd926a5e4f79ba90950128582ef919f4c125fb196161"},
+    {"path": "schemas/context.schema.json", "sha256": "c2532701d1d6c48ba56243b0e88a0414821589f295d1b72b92a80fdd3a4538a0"},
+    {"path": "schemas/evidence.schema.json", "sha256": "90e437b50215a795308330321025746a03f5348dc73d32cc73682440a9b6c660"},
+    {"path": "schemas/state.schema.json", "sha256": "b454af8991ae7d5dd12124b3b2a2ef7f77448b26a2cd1f7302b604c48d585abe"},
+    {"path": "schemas/task-context.schema.json", "sha256": "10a324f2e43b1e48fb8a8f9f720a99855f98794866b1e163dd46dfc8143ff6d7"},
+    {"path": "schemas/verification.schema.json", "sha256": "9c819b3e07ef2502220aed11c37671799379b64d02c43f78ace72bb01d456b11"},
+    {"path": "task-profiles.json", "sha256": "a87e22381a46bec650d2047b2d505cf5ee257790919548e39c895af22d940fb5"}
+  ]
+}

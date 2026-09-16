@@ -1,0 +1,70 @@
+{
+  "format_version": "2.0.0",
+  "components": [
+    {
+      "id": "application",
+      "paths": ["app.py", "category_ai_benchmark_app.py", "modules/config.py", "modules/cache.py", "requirements.txt", "scripts/verify_change.ps1", "scripts/check_python_syntax.py", "tests/test_change_verification_loop.py"],
+      "scope": "SHARED_RUNTIME", "markets": ["PH", "SG"], "depends_on": [], "owner_role": "product-maintainer"
+    },
+    {
+      "id": "category",
+      "paths": ["modules/category_*.py", "modules/shopee_catalog_client.py", "config/category_ai_*.json", "data/category_mapper_*.csv", "tests/test_category_*.py", "tests/test_app_category_mapper.py"],
+      "scope": "SHARED_RUNTIME", "markets": ["PH", "SG"], "depends_on": ["application", "expansion.provider"], "owner_role": "category-maintainer"
+    },
+    {
+      "id": "documentation",
+      "paths": ["README.md", "docs/*.md", "docs/**/*.md", "docs/evidence/*.csv", "docs/templates/*.md", "docs/testing/*.md"],
+      "scope": "DOCUMENTATION", "markets": [], "depends_on": [], "owner_role": "repository-maintainer"
+    },
+    {
+      "id": "expansion.provider",
+      "paths": ["modules/amazon_data_provider.py", "modules/keepa_client.py", "modules/canopy_client.py", "modules/research_csv_adapter*.py", "tests/test_amazon_data_provider.py", "tests/test_keepa_client.py", "tests/test_canopy_client.py", "tests/test_research_csv_adapter.py", "tests/test_app_research_csv_adapter.py"],
+      "scope": "SHARED_RUNTIME", "markets": ["PH", "SG"], "depends_on": ["application"], "owner_role": "provider-maintainer"
+    },
+    {
+      "id": "export",
+      "paths": ["modules/export_csv.py", "tests/test_export_csv.py"],
+      "scope": "SHARED_RUNTIME", "markets": ["PH", "SG"], "depends_on": ["application"], "owner_role": "product-maintainer"
+    },
+    {
+      "id": "gate.shared",
+      "paths": ["modules/prelisting_*.py", "tests/test_prelisting_*.py", "tests/test_app_prelisting_*.py", "tests/fixtures/browser_e2e/prelisting_gate/**"],
+      "scope": "SHARED_RUNTIME", "markets": ["PH", "SG"], "depends_on": ["application", "inventory", "safety.shared"], "owner_role": "safety-maintainer"
+    },
+    {
+      "id": "governance",
+      "paths": [".github/workflows/governance-v2.yml", ".gitignore", "AGENTS.md", "docs/CURRENT_WORK.md", "docs/RUNBOOK_CHATGPT_CODEX.md", "governance/**", "scripts/Update-ContextSnapshot.ps1", "scripts/Verify-ContextSnapshot.ps1", "scripts/Verify-GovernanceV2.ps1", "scripts/Generate-GovernanceEvidence.ps1", "scripts/Verify-LightweightDevelopmentPolicy.ps1", "tests/test_governance_v2.py", "tests/test_lightweight_development_policy.py"],
+      "scope": "GOVERNANCE", "markets": [], "depends_on": [], "owner_role": "repository-owner"
+    },
+    {
+      "id": "inventory",
+      "paths": ["modules/listing_inventory_parser.py", "tests/test_listing_inventory_parser.py"],
+      "scope": "SHARED_RUNTIME", "markets": ["PH", "SG"], "depends_on": ["application"], "owner_role": "product-maintainer"
+    },
+    {
+      "id": "ph.rules",
+      "paths": ["guardrails/risk_keywords_ph.csv", "guardrails/prohibited_brands_ph.csv"],
+      "scope": "MARKET_RUNTIME", "markets": ["PH"], "depends_on": ["safety.shared"], "owner_role": "ph-safety-owner"
+    },
+    {
+      "id": "resolver",
+      "paths": ["modules/asin_resolver*.py", "modules/direct_chat_assist.py", "tests/test_asin_resolver*.py", "tests/test_app_resolver_contract.py", "tests/test_direct_chat_assist.py", "docs/asin_resolver/**"],
+      "scope": "SHARED_RUNTIME", "markets": ["PH", "SG"], "depends_on": ["application", "expansion.provider"], "owner_role": "resolver-maintainer"
+    },
+    {
+      "id": "safety.image",
+      "paths": ["modules/ph_image_safety*.py", "tests/test_ph_image_safety*.py"],
+      "scope": "SHARED_RUNTIME", "markets": ["PH"], "depends_on": ["application", "safety.shared"], "owner_role": "ph-safety-owner"
+    },
+    {
+      "id": "safety.shared",
+      "paths": ["modules/guardrails.py", "modules/ingredient_safety.py", "modules/product_text_safety.py", "guardrails/deterministic_block_rules_v2.csv", "tests/test_guardrails.py", "tests/test_ingredient_safety.py", "tests/test_product_text_safety.py"],
+      "scope": "SHARED_RUNTIME", "markets": ["PH", "SG"], "depends_on": ["application"], "owner_role": "safety-maintainer"
+    },
+    {
+      "id": "sg.rules",
+      "paths": ["guardrails/risk_keywords_sg.csv", "guardrails/prohibited_brands_sg.csv"],
+      "scope": "MARKET_RUNTIME", "markets": ["SG"], "depends_on": ["safety.shared"], "owner_role": "sg-safety-owner"
+    }
+  ]
+}

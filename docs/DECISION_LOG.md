@@ -855,3 +855,15 @@
 - 境界: 新規の広範囲BLOCK、既存BLOCKの緩和・削除・変更、SG brand辞書、matcher、Candidate schema、Gate優先順位、COMMON_BLOCK、PH辞書・PH処理、Resolver、Expansion、Category AI、Category / Brand、sidecar、自動出品、外部APIを変更・実行しない。本決定はbranch上のlocal実装であり、push、PR、merge、formal main受入、SG Minimum Beta全体の完成を許可または確定しない。
 - 理由: 重大疑義をSAFEのまま流さず、名称一致だけで禁止商品本体と断定しない最小差分により、既存Penalty保護とPH実務運用を維持できるため。
 - 再検討条件: 実務で過剰REVIEWまたは表記漏れが具体的Evidenceとして確認された場合、現行Shopee SG Policyまたはmatcher契約が変わった場合、もしくは商品Factに基づくCategory依存Safetyを別設計で開始する場合。既存BLOCKを自動降格せず、別Version・別判断として扱う。
+
+## DEC-0072 — 管理基盤Ver2の正本・信頼・承認契約を採用する
+
+- 日付: 2026-09-16
+- 背景: Ver1のCURRENT_WORK中心契約はactive task等の長寿命状態混入、過去local branch依存、fresh clone再現性、Evidence binding、repository identity bootstrap、複数市場並行作業に未解決点があった。
+- 決定: Revision 1と5 blockerを解消したRevision 2を管理基盤Ver2の実装仕様として採用する。競合時はRevision 2を優先する。
+- 決定: GitHub owner証跡、repo外Trust Anchor、Owner Acceptance説明契約を採用する。Owner Acceptanceはmandatory technical gate完了後だけ要求し、非エンジニア向け9項目サマリーで事業判断を求める。hash、SHA、schema等の技術的正当性判断をownerへ要求しない。
+- Migration: PHはACTIVE / ALLOWED / `ph.beta.operation` ACCEPTED。SGはINACTIVE / PAUSED / `sg.safety.baseline` ACCEPTED、Category / Brand / Handoff未成立、Minimum Beta未完成。MY / THはINACTIVE / NOT_STARTED。既存受入はLEGACY_ACCEPTANCEとして記録し、未実行のVer2 TESTを捏造しない。
+- 保護: 未知・混合変更はSHARED_COREへfail-safeし、PH/SG protected capability gateを適用する。Governance mandatory checksはGitHub branch protectionとは独立して評価する。
+- 境界: 製品runtime、SG Category / Brand / Handoff、MY / TH、live API、push、PR、merge、GitHub設定、実Trust Anchor設定を本決定だけで許可しない。
+- Rollback: pre-Ver2 formal main `136958a1bf2493983b4413f7d231ee5adbd913bf`の対象pathへ通常のrevert PRまたは後続変更を保持した復旧差分で戻す。Ver1既知問題の復帰も明示する。
+- 理由: fresh cloneで再現可能な信頼境界、決定的なConfig、独立Verifier、content-addressed Evidence、並行Task Contextを最小構成で成立させ、PH運用を維持しつつ複数市場変更をfail-safeに管理するため。

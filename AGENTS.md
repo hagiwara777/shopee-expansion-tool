@@ -155,3 +155,28 @@
 - Treat upload confirmation and decision execution as separate steps.
 - Run E2E suites that use external APIs only with explicit approval.
 - Never add downloaded E2E outputs to Git.
+
+## Governance Foundation V2（本節が管理状態契約を優先）
+
+- 長寿命の承認済み状態の正本は`governance/state.json`とし、active task、branch、HEAD、test resultを置かない。
+- branch、HEAD、tree、差分はGitを観測する。`CURRENT_WORK.md`へ二重入力しない。
+- タスク固有状態はrepo外のTask Contextへ保存し、UUID単位で並行可能にする。Task Contextはmandatory gateを削除・緩和できない。
+- bootstrap repository identityはrepo外Trust Anchorだけを信頼する。repo、remote、State、Config、Task Contextの自己申告を期待値にしない。
+- Generatorは観測専用で、fetch、checkout、branch、index、Stateを変更しない。optional観測不足だけで生成を失敗させない。
+- Verifierは既存contextを独立評価し、Generatorの暗黙実行やsnapshot削除をしない。
+- 変更は`GOVERNANCE_ONLY`、`MARKET_LOCAL`、`SHARED_CORE`へ分類し、未知path・混合・分類不能は`SHARED_CORE`とする。
+- accepted protected capabilityは`ph.beta.operation`と`sg.safety.baseline`。SHARED_COREまたは未知変更では両方を保護する。
+- Governance mandatory checksはGitHub branch protectionとは独立して評価する。check欠落、skipped、neutral、古いhead、provider不在をPASSにしない。
+- 共有出力へ絶対path、username、hostname、credential、raw exception、raw command outputを出さない。
+- Owner Acceptanceはmandatory technical gate完了後だけ要求し、9項目の非エンジニア向け説明を生成する。hash、SHA、schema等の判断をownerへ求めない。
+- Evidenceはprovenanceと対象bindingを検証する。過去結果をVer2 TESTとして捏造せず、移行済み受入は`LEGACY_ACCEPTANCE`とする。
+- pre-Ver2 rollback targetは`136958a1bf2493983b4413f7d231ee5adbd913bf`。force pushやdirty resetを標準手順にしない。
+
+開始時は次を実行する。
+
+```powershell
+.\scripts\Invoke-GovernanceV2.ps1 -Mode Validate
+.\scripts\Update-ContextSnapshot.ps1 -TaskContext <repo外context.json>
+```
+
+`docs/CURRENT_WORK.md`は再開案内、`outputs/governance/`はGit管理外派生物であり、どちらも構造化状態の正本ではない。
