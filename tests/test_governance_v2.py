@@ -208,6 +208,70 @@ def make_evidence(
     }
 
 
+def ci_environment(monkeypatch: pytest.MonkeyPatch, gate_id: str) -> None:
+    bundle = engine.load_bundle(ROOT)
+    check = next(item for item in bundle.gates["checks"] if item["id"] == gate_id)
+    head = git(ROOT, "rev-parse", "HEAD")
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    monkeypatch.setenv("GITHUB_REPOSITORY_ID", "1296080967")
+    monkeypatch.setenv("GOVERNANCE_EVIDENCE_SHA", head)
+    monkeypatch.setenv("GITHUB_WORKFLOW_REF", f"owner/repo/{check['ci_identity']['workflow_path']}@refs/pull/74/head")
+    monkeypatch.setenv("GITHUB_JOB", check["ci_identity"]["job_id"])
+    monkeypatch.setenv("GITHUB_RUN_ID", "12345")
+    monkeypatch.setenv("GITHUB_RUN_ATTEMPT", "1")
+    monkeypatch.setenv("GITHUB_ACTOR_ID", "207869136")
+    monkeypatch.setenv("GITHUB_EVENT_NAME", "pull_request")
+    monkeypatch.setenv("RUNNER_OS", "Windows")
+
+
+def test_gv2_ci_evidence_001_generates_schema_valid_bound_record(
+    trusted: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ci_environment(monkeypatch, "governance.validate")
+    digest, record = engine.generate_ci_evidence(ROOT, "governance.validate")
+    assert digest == engine.evidence_digest(record)
+    assert record["provenance"] == "CI"
+    assert record["observation"] == "PASS"
+    assert record["source"]["result"] == "SUCCESS"
+    engine._schema_validate(record, engine.load_bundle(ROOT).schemas["schemas/evidence.schema.json"], "evidence")
+
+
+@pytest.mark.parametrize("field", ["tested_commit", "tested_tree", "gate_definition_hash", "profile_hash"])
+def test_gv2_ci_evidence_002_binding_mismatch_is_unknown(
+    trusted: None, monkeypatch: pytest.MonkeyPatch, field: str
+) -> None:
+    ci_environment(monkeypatch, "governance.validate")
+    _, record = engine.generate_ci_evidence(ROOT, "governance.validate")
+    record[field] = "0" * 40 if field in {"tested_commit", "tested_tree"} else "0" * 64
+    context = engine.generate_context(ROOT)
+    check = engine.load_bundle(ROOT).gates["checks"][0]
+    observation, _, reason = engine._evidence_for_check(
+        engine.load_bundle(ROOT), check, [record], context, "formal-acceptance"
+    )
+    assert (observation, reason) == ("UNKNOWN", "STALE_BINDING")
+
+
+def test_gv2_ci_evidence_003_fabricated_ci_pass_is_rejected(trusted: None) -> None:
+    context = engine.generate_context(ROOT)
+    bundle = engine.load_bundle(ROOT)
+    record = make_evidence(bundle, context, "governance.validate", profile_id="formal-acceptance")
+    record["provenance"] = "CI"
+    record["source"] = {"type": "forged", "result": "SUCCESS"}
+    observation, _, reason = engine._evidence_for_check(
+        bundle, bundle.gates["checks"][0], [record], context, "formal-acceptance"
+    )
+    assert (observation, reason) == ("UNKNOWN", "STALE_BINDING")
+
+
+def test_gv2_ci_evidence_004_missing_actions_environment_is_rejected(
+    trusted: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    with pytest.raises(engine.GovernanceError) as error:
+        engine.generate_ci_evidence(ROOT, "governance.validate")
+    assert error.value.reason_code == "CI_EVIDENCE_ENVIRONMENT_REQUIRED"
+
+
 def test_gv2_evidence_001_old_date_binding_match_reuses(trusted: None) -> None:
     context = engine.generate_context(ROOT)
     bundle = engine.load_bundle(ROOT)

@@ -11,43 +11,91 @@ jobs:
   governance:
     name: governance.validate
     runs-on: windows-latest
+    env:
+      GOVERNANCE_EVIDENCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: python -m pip install -r requirements.txt
-      - run: python -m governance.engine validate --repository .
+      - shell: powershell
+        run: python -m governance.engine validate --repository .
+      - shell: powershell
+        if: github.event_name == 'pull_request'
+        run: .\scripts\Generate-GovernanceEvidence.ps1 -GateId governance.validate -OutputDirectory evidence
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'pull_request' && success()
+        with:
+          name: governance-evidence-governance
+          path: evidence/*.json
+          if-no-files-found: error
 
   powershell-51:
     name: governance.ps51
     runs-on: windows-latest
+    env:
+      GOVERNANCE_EVIDENCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: python -m pip install -r requirements.txt
       - shell: powershell
         run: .\scripts\Invoke-GovernanceV2.ps1 -Mode Validate
+      - shell: powershell
+        if: github.event_name == 'pull_request'
+        run: .\scripts\Generate-GovernanceEvidence.ps1 -GateId governance.ps51 -OutputDirectory evidence
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'pull_request' && success()
+        with:
+          name: governance-evidence-powershell-51
+          path: evidence/*.json
+          if-no-files-found: error
 
   powershell-7:
     name: governance.ps7
     runs-on: windows-latest
+    env:
+      GOVERNANCE_EVIDENCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: python -m pip install -r requirements.txt
       - shell: pwsh
         run: .\scripts\Invoke-GovernanceV2.ps1 -Mode Validate
+      - shell: pwsh
+        if: github.event_name == 'pull_request'
+        run: .\scripts\Generate-GovernanceEvidence.ps1 -GateId governance.ps7 -OutputDirectory evidence
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'pull_request' && success()
+        with:
+          name: governance-evidence-powershell-7
+          path: evidence/*.json
+          if-no-files-found: error
 
   offline-tests:
     name: tests.offline
     runs-on: windows-latest
+    env:
+      GOVERNANCE_EVIDENCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -57,8 +105,13 @@ jobs:
   protected-capabilities:
     name: protected.ph + protected.sg
     runs-on: windows-latest
+    env:
+      GOVERNANCE_EVIDENCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
