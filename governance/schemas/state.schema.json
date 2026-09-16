@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "governance-state-2.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "config_version", "markets", "capabilities", "stop_condition_ids", "open_items", "rollback_target"],
+  "properties": {
+    "schema_version": {"const": "2.0.0"},
+    "config_version": {"const": "2.0.0"},
+    "markets": {
+      "type": "object", "additionalProperties": false, "required": ["PH", "SG", "MY", "TH"],
+      "properties": {
+        "PH": {"$ref": "#/$defs/market"}, "SG": {"$ref": "#/$defs/market"},
+        "MY": {"$ref": "#/$defs/market"}, "TH": {"$ref": "#/$defs/market"}
+      }
+    },
+    "capabilities": {"type": "object", "minProperties": 1, "propertyNames": {"pattern": "^[a-z][a-z0-9.-]*$"}, "additionalProperties": {"$ref": "#/$defs/capabilityState"}},
+    "stop_condition_ids": {"$ref": "#/$defs/uniqueIds"},
+    "open_items": {"type": "array", "items": {"$ref": "#/$defs/openItem"}},
+    "rollback_target": {"type": "string", "pattern": "^[0-9a-f]{40,64}$"}
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[a-z][a-z0-9.-]*$"},
+    "uniqueIds": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/id"}},
+    "market": {
+      "type": "object", "additionalProperties": false, "required": ["operation", "development_policy"],
+      "properties": {"operation": {"enum": ["ACTIVE", "INACTIVE"]}, "development_policy": {"enum": ["ALLOWED", "PAUSED", "NOT_STARTED"]}}
+    },
+    "sourceRef": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "locator"],
+      "properties": {"kind": {"enum": ["GIT", "GITHUB"]}, "locator": {"type": "string", "minLength": 1, "maxLength": 500}}
+    },
+    "capabilityState": {
+      "type": "object", "additionalProperties": false, "required": ["lifecycle", "acceptance_refs", "release_ref"],
+      "properties": {
+        "lifecycle": {"enum": ["REGISTERED", "ACCEPTED", "RETIRED"]},
+        "acceptance_refs": {"type": "array", "items": {"$ref": "#/$defs/sourceRef"}},
+        "release_ref": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/sourceRef"}]}
+      }
+    },
+    "openItem": {
+      "type": "object", "additionalProperties": false, "required": ["id", "blocking", "reason", "impact", "revisit_when"],
+      "properties": {"id": {"$ref": "#/$defs/id"}, "blocking": {"type": "boolean"}, "reason": {"type": "string", "minLength": 1}, "impact": {"type": "string", "minLength": 1}, "revisit_when": {"type": "string", "minLength": 1}}
+    }
+  }
+}

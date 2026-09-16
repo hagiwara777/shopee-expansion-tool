@@ -246,3 +246,19 @@ DEC-0049の`BETA_AFTER_CANDIDATE`、DB化、他市場展開、出品後商品改
 - SG／MYの順序は証拠と事業判断なしに固定しない。
 - 出品支援ツールの内部工程間の連携は、必要な場合に別設計ゲートを通す。
 - Category Mapper AI Shadowと自動出品は、明示承認なしに開始しない。
+
+## Management Foundation V2
+
+管理基盤Ver2を複数市場開発の共通前提とする。
+
+1. Versioned State / Config / schema、repo外Task Context、Trust Anchor、Generator / Verifierをformal mainへ統合する。
+2. PH Beta運用を継続し、`ph.beta.operation`をprotected capabilityとして回帰保護する。
+3. SGはoperation INACTIVE / development PAUSEDのまま、`sg.safety.baseline`だけをprotected capabilityとして維持する。
+4. SG Category / Brand / Handoffへ戻る条件は、Ver2 formal main統合、管理基盤受入、PH/SG保護gate成立、別タスク開始承認である。
+5. MY / THはNOT_STARTEDを維持し、capabilityを先行定義しない。
+
+Governance CIはbranch protectionと独立してmandatory checkを評価する。初期checkは
+`governance.validate`、`governance.ps51`、`governance.ps7`、`tests.offline`、`protected.ph`、`protected.sg`。
+
+Deferredはcomponent別test細分化、外部Evidence個別期限、cryptographic signature、MY/TH capability定義だけとする。
+GUI、外部DB、自動deploy、自動merge、製品新機能は本基盤実装へ含めない。

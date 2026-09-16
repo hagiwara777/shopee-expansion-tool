@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "governance-verification-2.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "profile_id", "decision", "requirements", "warnings", "blockers", "verification_input_hash", "owner_acceptance_ready"],
+  "properties": {
+    "schema_version": {"const": "2.0.0"},
+    "profile_id": {"type": "string"},
+    "decision": {"enum": ["CONTINUE", "HOLD", "HARD_STOP"]},
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "requirement", "level", "observation", "consequence", "reason_code", "evidence_ids"],
+        "properties": {
+          "id": {"type": "string"},
+          "requirement": {"enum": ["MANDATORY", "OPTIONAL"]},
+          "level": {"enum": ["MANDATORY", "OPTIONAL"]},
+          "observation": {"enum": ["PASS", "FAIL", "UNKNOWN", "NOT_APPLICABLE", "NOT_RUN"]},
+          "consequence": {"enum": ["CONTINUE", "HOLD", "HARD_STOP"]},
+          "reason_code": {"type": "string"},
+          "evidence_ids": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "warnings": {"type": "array", "items": {"type": "string"}},
+    "blockers": {"type": "array", "items": {"type": "string"}},
+    "verification_input_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "owner_acceptance_ready": {"type": "boolean"}
+  }
+}

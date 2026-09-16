@@ -101,8 +101,15 @@ def test_explicit_api_run_then_rerender_never_repeats_or_changes_candidate(monke
         )
         == content
     )
+    # Streamlit 1.64 exposes tester-facing state through mapping methods;
+    # 1.63 exposed the underlying filtered_state property directly.
+    state_values = (
+        app.session_state.values()
+        if hasattr(type(app.session_state), "values")
+        else app.session_state.filtered_state.values()
+    )
     assert not any(
-        "data:" in str(value) for value in app.session_state.filtered_state.values()
+        "data:" in str(value) for value in state_values
     )
 
 

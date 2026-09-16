@@ -1,0 +1,34 @@
+{
+  "schema_version": "2.0.0",
+  "config_version": "2.0.0",
+  "markets": {
+    "PH": {"operation": "ACTIVE", "development_policy": "ALLOWED"},
+    "SG": {"operation": "INACTIVE", "development_policy": "PAUSED"},
+    "MY": {"operation": "INACTIVE", "development_policy": "NOT_STARTED"},
+    "TH": {"operation": "INACTIVE", "development_policy": "NOT_STARTED"}
+  },
+  "capabilities": {
+    "ph.beta.operation": {
+      "lifecycle": "ACCEPTED",
+      "acceptance_refs": [{"kind": "GIT", "locator": "136958a1bf2493983b4413f7d231ee5adbd913bf:docs/DECISION_LOG.md#DEC-0055"}],
+      "release_ref": null
+    },
+    "sg.safety.baseline": {
+      "lifecycle": "ACCEPTED",
+      "acceptance_refs": [
+        {"kind": "GIT", "locator": "136958a1bf2493983b4413f7d231ee5adbd913bf:docs/DECISION_LOG.md#DEC-0071"},
+        {"kind": "GITHUB", "locator": "https://github.com/hagiwara777/shopee-expansion-tool/pull/72"}
+      ],
+      "release_ref": null
+    }
+  },
+  "stop_condition_ids": [
+    "no-external-api-without-approval",
+    "no-my-th-product-work",
+    "no-publication-without-approval",
+    "pause-sg-product-development",
+    "preserve-ph-operation"
+  ],
+  "open_items": [],
+  "rollback_target": "136958a1bf2493983b4413f7d231ee5adbd913bf"
+}

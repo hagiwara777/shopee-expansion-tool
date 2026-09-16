@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "governance-task-context-2.0.0",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "task_id", "repository_id", "profile_id", "phase", "lifecycle", "scope", "subject", "additional_gate_ids", "additional_stop_condition_ids", "authorization_refs", "open_items"],
+  "properties": {
+    "schema_version": {"const": "2.0.0"},
+    "task_id": {"type": "string", "format": "uuid"},
+    "repository_id": {"type": "string", "minLength": 1},
+    "profile_id": {"type": "string", "pattern": "^[a-z][a-z0-9.-]*$"},
+    "phase": {"enum": ["DESIGN", "IMPLEMENTATION", "VALIDATION", "ACCEPTANCE"]},
+    "lifecycle": {"enum": ["OPEN", "CLOSED"]},
+    "scope": {
+      "type": "object", "additionalProperties": false, "required": ["markets", "component_ids", "purpose"],
+      "properties": {
+        "markets": {"type": "array", "uniqueItems": true, "items": {"enum": ["PH", "SG", "MY", "TH"]}},
+        "component_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z][a-z0-9.-]*$"}},
+        "purpose": {"type": "string", "minLength": 1, "maxLength": 500}
+      }
+    },
+    "subject": {"oneOf": [{"const": "CHECKOUT"}, {"type": "object", "additionalProperties": false, "required": ["type", "number"], "properties": {"type": {"const": "PR"}, "number": {"type": "integer", "minimum": 1}}}]},
+    "additional_gate_ids": {"$ref": "#/$defs/ids"},
+    "additional_stop_condition_ids": {"$ref": "#/$defs/ids"},
+    "authorization_refs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 500}},
+    "open_items": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["id", "blocking", "reason"], "properties": {"id": {"type": "string", "pattern": "^[a-z][a-z0-9.-]*$"}, "blocking": {"type": "boolean"}, "reason": {"type": "string", "minLength": 1, "maxLength": 500}}}}
+  },
+  "$defs": {"ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z][a-z0-9.-]*$"}}}
+}

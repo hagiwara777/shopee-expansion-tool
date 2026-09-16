@@ -1,0 +1,9 @@
+{
+  "format_version": "2.0.0",
+  "profiles": [
+    {"id": "read-only", "requirements": ["repository-observed", "state-config-valid"], "provider_required": false, "task_context_required": false},
+    {"id": "local-change", "requirements": ["repository-observed", "state-config-valid", "scope-compatible", "no-overlapping-user-change"], "provider_required": false, "task_context_required": true},
+    {"id": "local-validation", "requirements": ["repository-observed", "state-config-valid", "classification-known", "required-local-evidence"], "provider_required": false, "task_context_required": true},
+    {"id": "formal-acceptance", "requirements": ["repository-provider-identity", "state-config-valid", "classification-known", "governance-checks", "branch-protection-checks", "owner-acceptance"], "provider_required": true, "task_context_required": true}
+  ]
+}

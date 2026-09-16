@@ -1,0 +1,10 @@
+{
+  "format_version": "2.0.0",
+  "classes": ["GOVERNANCE_ONLY", "MARKET_LOCAL", "SHARED_CORE"],
+  "fail_safe_class": "SHARED_CORE",
+  "diff_basis": "MERGE_BASE_TO_HEAD",
+  "evaluate_old_and_new_paths_for_rename": true,
+  "unknown_path_affects_all_protected_capabilities": true,
+  "override_required_fields": ["id", "base_oid", "head_oid", "diff_hash", "from_class", "to_class", "components", "markets", "reason", "authority", "approval_ref"],
+  "override_cannot_remove": ["unknown-owner", "broken-config", "baseline-mandatory-gate"]
+}

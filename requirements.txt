@@ -5,3 +5,4 @@ pandas
 pytest
 requests
 Pillow
+jsonschema>=4.17,<5
