@@ -180,9 +180,16 @@ def test_gv2_config_002_corruption_is_hard_stop(tmp_path: Path) -> None:
     assert error.value.reason_code == "CONFIG_HASH_MISMATCH"
 
 
-def make_evidence(bundle: engine.GovernanceBundle, context: dict[str, object], check_id: str, *, tested_commit: str | None = None) -> dict[str, object]:
+def make_evidence(
+    bundle: engine.GovernanceBundle,
+    context: dict[str, object],
+    check_id: str,
+    *,
+    profile_id: str = "local-validation",
+    tested_commit: str | None = None,
+) -> dict[str, object]:
     check = next(item for item in bundle.gates["checks"] if item["id"] == check_id)
-    profile = next(item for item in bundle.profiles["profiles"] if item["id"] == "local-validation")
+    profile = next(item for item in bundle.profiles["profiles"] if item["id"] == profile_id)
     return {
         "evidence_id": f"evidence-{check_id}", "schema_version": "2.0.0", "kind": "TEST",
         "repository_id": "1296080967", "object_format": "sha1",
@@ -228,12 +235,80 @@ def test_gv2_evidence_003_content_address_detects_spoof(tmp_path: Path) -> None:
         engine.load_evidence(bundle, [path])
 
 
-def test_gv2_ci_001_governance_checks_independent_of_branch_protection(trusted: None) -> None:
-    context = engine.generate_context(ROOT, provider={"repository_id": "1296080967"})
-    result = engine.verify_context(ROOT, context, profile_id="formal-acceptance", provider={"branch_protection_checks": {}})
+def formal_context(tmp_path: Path, provider: dict[str, object]) -> dict[str, object]:
+    path = tmp_path / "task-context.json"
+    path.write_text(json.dumps(task_context()), encoding="utf-8")
+    return engine.generate_context(ROOT, provider=provider, task_context_path=path)
+
+
+def formal_evidence(bundle: engine.GovernanceBundle, context: dict[str, object]) -> list[dict[str, object]]:
+    return [
+        make_evidence(bundle, context, check_id, profile_id="formal-acceptance")
+        for check_id in ("governance.validate", "governance.ps51", "governance.ps7")
+    ]
+
+
+@pytest.mark.parametrize(
+    "branch_protection_checks",
+    [None, {}, {"fabricated-check": "SUCCESS"}],
+    ids=["absent", "empty", "fabricated-success"],
+)
+def test_gv2_ci_001_governance_checks_are_independent_of_branch_protection(
+    trusted: None, tmp_path: Path, branch_protection_checks: dict[str, str] | None
+) -> None:
+    provider: dict[str, object] = {"repository_id": "1296080967"}
+    if branch_protection_checks is not None:
+        provider["branch_protection_checks"] = branch_protection_checks
+    context = formal_context(tmp_path, provider)
+    result = engine.verify_context(ROOT, context, profile_id="formal-acceptance", provider=provider)
     assert result["decision"] == "HOLD"
-    assert "BRANCH_PROTECTION_NOT_SATISFIED" in result["blockers"]
     assert "EVIDENCE_MISSING" in result["blockers"]
+    assert "BRANCH_PROTECTION_UNKNOWN" not in result["blockers"]
+    assert "BRANCH_PROTECTION_NOT_SATISFIED" not in result["blockers"]
+
+
+def test_gv2_ci_002_formal_mandatory_evidence_failure_is_hard_stop(
+    trusted: None, tmp_path: Path
+) -> None:
+    provider = {"repository_id": "1296080967"}
+    context = formal_context(tmp_path, provider)
+    bundle = engine.load_bundle(ROOT)
+    evidence = make_evidence(bundle, context, "governance.validate", profile_id="formal-acceptance")
+    evidence["observation"] = "FAIL"
+    result = engine.verify_context(
+        ROOT, context, profile_id="formal-acceptance", provider=provider, evidence=[evidence]
+    )
+    assert result["decision"] == "HARD_STOP"
+    assert "EVIDENCE_FAILURE" in result["blockers"]
+    assert "BRANCH_PROTECTION_NOT_SATISFIED" not in result["blockers"]
+
+
+def test_gv2_ci_003_owner_acceptance_remains_required_after_technical_readiness(
+    trusted: None, tmp_path: Path
+) -> None:
+    provider = {"repository_id": "1296080967"}
+    context = formal_context(tmp_path, provider)
+    result = engine.verify_context(
+        ROOT,
+        context,
+        profile_id="formal-acceptance",
+        provider=provider,
+        evidence=formal_evidence(engine.load_bundle(ROOT), context),
+    )
+    assert result["decision"] == "HOLD"
+    assert result["owner_acceptance_ready"] is True
+    assert "OWNER_ACCEPTANCE_REQUIRED" in result["blockers"]
+    assert all(requirement["observation"] == "PASS" for requirement in result["requirements"])
+
+
+def test_gv2_provider_003_repository_identity_mismatch_is_hard_stop(
+    trusted: None, tmp_path: Path
+) -> None:
+    provider = {"repository_id": "different-repository"}
+    context = formal_context(tmp_path, provider)
+    result = engine.verify_context(ROOT, context, profile_id="formal-acceptance", provider=provider)
+    assert result["decision"] == "HARD_STOP"
+    assert "REPOSITORY_IDENTITY_MISMATCH" in result["blockers"]
 
 
 def test_gv2_owner_001_summary_requires_technical_readiness() -> None:

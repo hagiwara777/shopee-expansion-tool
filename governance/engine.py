@@ -834,13 +834,6 @@ def verify_context(
         if provider_identity.get("observation") != "PASS" and decision != "HARD_STOP":
             decision = "HOLD"
             blockers.append("PROVIDER_REPOSITORY_ID_REQUIRED")
-        branch_checks = (provider or {}).get("branch_protection_checks")
-        if branch_checks is None:
-            decision = "HOLD" if decision != "HARD_STOP" else decision
-            blockers.append("BRANCH_PROTECTION_UNKNOWN")
-        elif not branch_checks or any(result != "SUCCESS" for result in branch_checks.values()):
-            decision = "HOLD" if decision != "HARD_STOP" else decision
-            blockers.append("BRANCH_PROTECTION_NOT_SATISFIED")
 
     for check in _required_checks(bundle, context, profile_id):
         observation, evidence_ids, reason = _evidence_for_check(bundle, check, evidence, context, profile_id, clock)
