@@ -1,0 +1,12 @@
+term,action,risk_category,match_field,match_type,source_type,note,enabled
+battery,REVIEW,shipping_restricted,all,contains,shopee_policy,SLS-BAT-001: SLS battery requirements require manual verification before listing preparation,TRUE
+batteries,REVIEW,shipping_restricted,all,contains,shopee_policy,SLS-BAT-002: SLS battery requirements require manual verification before listing preparation,TRUE
+バッテリー,REVIEW,shipping_restricted,all,contains,shopee_policy,SLS-BAT-003: SLS battery requirements require manual verification before listing preparation,TRUE
+電池,REVIEW,shipping_restricted,all,contains,shopee_policy,SLS-BAT-004: SLS battery requirements require manual verification before listing preparation,TRUE
+rechargeable,REVIEW,shipping_restricted,all,contains,shopee_policy,SLS-BAT-005: SLS battery requirements require manual verification before listing preparation,TRUE
+充電式,REVIEW,shipping_restricted,all,contains,shopee_policy,SLS-BAT-006: SLS battery requirements require manual verification before listing preparation,TRUE
+power bank,REVIEW,shipping_restricted,all,contains,shopee_policy,SLS-BAT-007: SLS battery requirements require manual verification before listing preparation,TRUE
+powerbank,REVIEW,shipping_restricted,all,contains,shopee_policy,SLS-BAT-008: SLS battery requirements require manual verification before listing preparation,TRUE
+モバイルバッテリー,REVIEW,shipping_restricted,all,contains,shopee_policy,SLS-BAT-009: SLS battery requirements require manual verification before listing preparation,TRUE
+power case,REVIEW,shipping_restricted,all,contains,shopee_policy,SLS-BAT-010: SLS battery requirements require manual verification before listing preparation,TRUE
+powercase,REVIEW,shipping_restricted,all,contains,shopee_policy,SLS-BAT-011: SLS battery requirements require manual verification before listing preparation,TRUE

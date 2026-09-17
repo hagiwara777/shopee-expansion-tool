@@ -891,3 +891,16 @@
 - 境界: live Shopee / Keepa / OpenAI API、deploy、GitHub設定、MY / TH / TW / VN runtime、既存Penalty緩和、自動出品を実行・許可しない。Draft PRとCIはDEC-0073の通常開発承認内で行うが、formal mainへのmergeはbound technical gateとOwner Acceptanceを別途必要とする。
 - 理由: 入力provenanceと市場scopeを一つの検証可能な資産へ集約し、国不明情報の誤適用と複数辞書のdriftを防ぎながら、既存SG / PH Safety保護を維持するため。
 - 再検討条件: 新しいオーナー提供source、source hash不一致、marketplace未特定recordの国確定、alias追加、現行Shopee policyとの競合、またはdata-only市場のruntime開始判断が生じた場合。既存source identityを上書きせず、新source IDと別判断で扱う。
+
+## DEC-0075 — SLS Battery疑義をPH / SG共通REVIEWでfail-safeする
+
+- 日付: 2026-09-17
+- 背景: 2026-09-21以降、SLSで発送するバッテリーを含む全商品は事前登録が必要であり、発送可能な分類はUN3481 / PI966 / Section II、UN3481 / PI967 / Section II、UN3091 / PI969 / Section II、UN3091 / PI970 / Section IIに限定される。発送前には分類確認、Battery商品事前登録G-form、有効なSDS、指定ラベルが必要だが、現行Candidate / Keepa / Amazon情報だけではこれらを安全に確定できない。
+- 決定: `guardrails/sls_shared/battery_review_rules.csv`をSLS共有Battery signalの単一正本とし、`battery`、`batteries`、`バッテリー`、`電池`、`rechargeable`、`充電式`、`power bank`、`powerbank`、`モバイルバッテリー`、`power case`、`powercase`の11件を`REVIEW / shipping_restricted / all / contains / shopee_policy`として固定する。これは禁止確定ではなく、SLS Battery要件を人間確認するまで自動出品準備へ進めないsignalとする。
+- 決定: 共有資産をproduct runtimeへ接続する市場は既存runtimeを持つPH / SGだけとし、ブランド、Category、titleおよび既存Product Text Safetyが搬送するdescription / features / shortDescription / safetyWarning / itemHighlightsを対象にする。Bluetooth、speaker、headphone、mouse、smartwatch等のgeneric語は追加せず、実運用の漏れEvidenceが得られた場合だけ別Versionで検討する。
+- 優先順位: 既存の`BLOCK > REVIEW > SAFE`を維持し、市場別matchと共有matchを同じ合成判定へ渡す。PH既存power bank / powerbank / モバイルバッテリーBLOCK、SG既存Battery REVIEW、Community NG BLOCK、own penalty BLOCK、PH V2 BLOCKを削除・移管・降格しない。共有signalがBLOCKと同時一致した場合はBLOCKを維持し、双方の監査Evidenceを残す。
+- Fail-closed: 共有CSVは列順、8列契約、非空、enabled、固定metadata、stable rule ID、term / ID重複、UTF-8、CSV構文を厳格検査し、missingまたはmalformedならPH / SG Guardrail全体を停止する。Candidate schemaとPrelisting Gateの公開status / enumは変更せず、Guardrail REVIEWは既存契約どおりGate REVIEWとなりELIGIBLEへ進まない。
+- Governance: `guardrails/sls_shared/**`を`safety.shared` ownershipへ登録する。変更全体をSHARED_COREとし、`ph.beta.operation`と`sg.safety.baseline`の両Protected Capability Gate、全offline tests、Governance Verifierを必須とする。PH Beta Test-Operation Compatibilityはprotected.phとPH Guardrail / Gate回帰で検証する。
+- 境界: SLS Category Matrix 2162件のruntime統合、SG Category Mapper / Brand / Handoff、MY / TH / TW / VN runtime、Category ID推測、Battery type AI自動確定、G-form自動提出、SDS自動生成、自動出品、live Shopee / Keepa / OpenAI APIを開始しない。Category Matrixは次工程`SLS Market Category Rules`で独立した正本資産として扱う。
+- 理由: 市場別Safety資産を複製・緩和せず、現行情報でSLS発送条件を証明できないBattery疑義だけを共通の人間確認へ止め、PH実運用とSG Safety Baselineを同時に保護するため。
+- 再検討条件: 明示語以外の具体的な検出漏れ、過剰REVIEW、SLS要件変更、追加marketplaceのruntime開始、またはCategory Matrixとの正式な接続判断がEvidenceとして生じた場合。v0.1を黙って拡張せず、既存BLOCKを降格せず、別Version・別工程で判断する。

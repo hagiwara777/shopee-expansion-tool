@@ -70,6 +70,18 @@ MARKETPLACE_DICTIONARY_FILES = {
     "SG": ("prohibited_brands_sg.csv", "risk_keywords_sg.csv"),
     "PH": ("prohibited_brands_ph.csv", "risk_keywords_ph.csv"),
 }
+SLS_SHARED_BATTERY_RULESET_FILE = Path("sls_shared") / "battery_review_rules.csv"
+SLS_SHARED_RUNTIME_MARKETPLACES = frozenset({"PH", "SG"})
+SLS_SHARED_RULE_COLUMNS = (
+    "term",
+    "action",
+    "risk_category",
+    "match_field",
+    "match_type",
+    "source_type",
+    "note",
+    "enabled",
+)
 V2_RULESET_FILE = "deterministic_block_rules_v2.csv"
 V2_RULESET_SCHEMA_VERSION = "GUARDRAIL_RULE_V2_V2"
 V2_REQUIRED_COLUMNS = {
@@ -176,10 +188,16 @@ def apply_guardrails(
         community_assets = load_community_ng_assets(base_dir / "community_ng")
     except CommunityNgDataError as exc:
         raise GuardrailDictionaryError(f"Community NG asset is invalid: {exc}") from exc
+    sls_shared_battery_rules = (
+        load_sls_shared_battery_rules(base_dir)
+        if normalized_marketplace in SLS_SHARED_RUNTIME_MARKETPLACES
+        else []
+    )
     guarded_rows: list[dict[str, str]] = []
 
     for row in rows:
         matches = _find_matches(row, dictionaries)
+        matches.extend(_find_sls_shared_battery_matches(row, sls_shared_battery_rules))
         v1_row = _apply_matches_to_row(row, matches)
         v2_matches = evaluate_deterministic_blocks_v2(
             row,
@@ -242,6 +260,99 @@ def load_guardrail_dictionaries(
         brand_rules=_load_rules(brand_path, dictionary_type="brand"),
         keyword_rules=_load_rules(keyword_path, dictionary_type="keyword"),
     )
+
+
+def load_sls_shared_battery_rules(
+    dictionary_dir: str | Path | None = None,
+) -> list[GuardrailRule]:
+    base_dir = Path(dictionary_dir) if dictionary_dir is not None else _default_dictionary_dir()
+    path = base_dir / SLS_SHARED_BATTERY_RULESET_FILE
+    if not path.exists():
+        raise GuardrailDictionaryError(
+            f"{SLS_SHARED_BATTERY_RULESET_FILE.as_posix()} が見つかりません。"
+            "SLS shared battery rulesetを確認してください。"
+        )
+
+    try:
+        with path.open("r", encoding="utf-8-sig", newline="") as csv_file:
+            reader = csv.DictReader(csv_file, strict=True)
+            if reader.fieldnames is None:
+                raise GuardrailDictionaryError(f"{path.name} にヘッダー行がありません。")
+
+            fieldnames = tuple(str(field or "").strip() for field in reader.fieldnames)
+            if fieldnames != SLS_SHARED_RULE_COLUMNS:
+                expected = ",".join(SLS_SHARED_RULE_COLUMNS)
+                actual = ",".join(fieldnames)
+                raise GuardrailDictionaryError(
+                    f"{path.name} のヘッダーがSLS shared contractと一致しません。"
+                    f" expected={expected}; actual={actual}"
+                )
+
+            rules: list[GuardrailRule] = []
+            rule_ids: set[str] = set()
+            normalized_terms: set[str] = set()
+            for row_number, raw_row in enumerate(reader, start=2):
+                if None in raw_row or any(value is None for value in raw_row.values()):
+                    raise GuardrailDictionaryError(
+                        f"{path.name} {row_number}行目: 列数がヘッダーと一致しません。"
+                    )
+                row = _normalize_csv_row(raw_row)
+                if _is_blank_row(row):
+                    raise GuardrailDictionaryError(
+                        f"{path.name} {row_number}行目: 空行は許可されません。"
+                    )
+
+                rule = _parse_rule(path.name, row_number, row, "sls_shared")
+                if row["enabled"].strip().upper() != "TRUE":
+                    raise GuardrailDictionaryError(
+                        f"{path.name} {row_number}行目: enabledはTRUEにしてください。"
+                    )
+                if (
+                    rule.action != "REVIEW"
+                    or rule.risk_category != "shipping_restricted"
+                    or rule.match_field != "all"
+                    or rule.match_type != "contains"
+                    or rule.source_type != "shopee_policy"
+                ):
+                    raise GuardrailDictionaryError(
+                        f"{path.name} {row_number}行目: SLS shared battery contractは"
+                        "REVIEW/shipping_restricted/all/contains/shopee_policyのみ許可します。"
+                    )
+
+                rule_id_match = re.match(r"^(SLS-BAT-\d{3}):\s+\S", rule.note)
+                if rule_id_match is None:
+                    raise GuardrailDictionaryError(
+                        f"{path.name} {row_number}行目: noteは"
+                        "SLS-BAT-NNN: で始まる説明を必須とします。"
+                    )
+                rule_id = rule_id_match.group(1)
+                if rule_id in rule_ids:
+                    raise GuardrailDictionaryError(
+                        f"{path.name} {row_number}行目: rule IDが重複しています: {rule_id}"
+                    )
+                if rule.normalized_term in normalized_terms:
+                    raise GuardrailDictionaryError(
+                        f"{path.name} {row_number}行目: termが重複しています: {rule.term}"
+                    )
+
+                rule_ids.add(rule_id)
+                normalized_terms.add(rule.normalized_term)
+                rules.append(rule)
+
+            if not rules:
+                raise GuardrailDictionaryError(
+                    f"{path.name} に有効なSLS shared battery ruleがありません。"
+                )
+            return rules
+    except UnicodeDecodeError as exc:
+        raise GuardrailDictionaryError(
+            f"{path.name} をUTF-8として読み込めません。"
+            "UTF-8またはUTF-8 BOMで保存してください。"
+        ) from exc
+    except csv.Error as exc:
+        raise GuardrailDictionaryError(f"{path.name} のCSV形式を読み込めません: {exc}") from exc
+    except OSError as exc:
+        raise GuardrailDictionaryError(f"{path.name} を読み込めません: {exc}") from exc
 
 
 def load_deterministic_block_rules_v2(
@@ -737,6 +848,20 @@ def _find_matches(
     return matches
 
 
+def _find_sls_shared_battery_matches(
+    row: dict[str, Any],
+    rules: Iterable[GuardrailRule],
+) -> list[GuardrailMatch]:
+    raw_values = [row.get("brand"), row.get("category")]
+    raw_values.extend(value for _, value in _product_text_values(row))
+    target_values = [normalize_text(value) for value in raw_values if value is not None]
+    return [
+        GuardrailMatch(rule=rule)
+        for rule in rules
+        if any(_contains_term(target, rule.normalized_term) for target in target_values)
+    ]
+
+
 def _rule_matches(rule: GuardrailRule, target_values: dict[str, str]) -> bool:
     fields = ("title", "brand", "category") if rule.match_field == "all" else (rule.match_field,)
     for field in fields:
@@ -974,7 +1099,12 @@ def _apply_community_ng_matches_to_row(
 
 
 def _match_note(match: GuardrailMatch) -> str:
-    prefix = "Brand matched" if match.rule.dictionary_type == "brand" else "Keyword matched"
+    if match.rule.dictionary_type == "brand":
+        prefix = "Brand matched"
+    elif match.rule.dictionary_type == "sls_shared":
+        prefix = "SLS Shared Battery signal matched"
+    else:
+        prefix = "Keyword matched"
     note = f"{prefix}: {match.rule.term}"
     if match.rule.note:
         note = f"{note} ({match.rule.note})"

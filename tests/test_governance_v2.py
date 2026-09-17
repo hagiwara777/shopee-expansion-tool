@@ -109,6 +109,22 @@ def test_gv2_protect_001_ph_and_sg_for_shared_core() -> None:
     assert engine._protected_capabilities(bundle, classified) == ["ph.beta.operation", "sg.safety.baseline"]
 
 
+def test_gv2_sls_shared_asset_is_owned_and_requires_ph_and_sg_protection() -> None:
+    bundle = engine.load_bundle(ROOT)
+    classified = engine.classify_changes(
+        [change("A", new="guardrails/sls_shared/battery_review_rules.csv")],
+        bundle.ownership,
+    )
+
+    assert classified["classification"] == "SHARED_CORE"
+    assert classified["components"] == ["safety.shared"]
+    assert classified["unknown_paths"] == []
+    assert engine._protected_capabilities(bundle, classified) == [
+        "ph.beta.operation",
+        "sg.safety.baseline",
+    ]
+
+
 def test_gv2_task_001_parallel_context_does_not_change_global_state(trusted: None, tmp_path: Path) -> None:
     state_before = (ROOT / "governance/state.json").read_bytes()
     first = tmp_path / "first.json"
