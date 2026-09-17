@@ -5,10 +5,10 @@
 
 ## 現在状態
 
-- status: `IN_PROGRESS`
+- status: `WAITING_OWNER_ACCEPTANCE`
 - work: `SLS Shared Battery Fail-Safe v0.1をformal-main候補として成立させる`
 - scope: `PH / SG runtime、safety.shared、Prelisting Gate互換、governance、offline tests`
-- external_operation: `PR #75のmain統合を確認済み。通常開発承認の範囲でlocal編集、test、local commit、push、Draft PR、CI / checks確認、read-only reviewまで進め、formal mainへのmergeは行わない。`
+- external_operation: `Draft PR #76を作成済み。mandatory CI Evidenceとread-only reviewを現在headへbindingし、formal mainへのmergeは行わずOwner Acceptanceで停止する。`
 
 ## 確認済みの移行根拠
 
@@ -27,7 +27,7 @@
 
 ## 次の単一作業
 
-SLS共有Battery signalを`guardrails/sls_shared/**`の正式資産として実装し、既存PH / SG Safetyを降格させず、PH / SGのPrelisting Gateで自動`ELIGIBLE`を防ぐ回帰検証を行う。
+Draft PR #76の現在headにbindingしたmandatory CI Evidence、Governance Verifier、read-only reviewを確認し、すべて成立後もmergeせず、オーナーの明示的なOwner Acceptanceまたは差戻しを待つ。head、tree、scopeが変わった場合は受入前に全bindingを再検証する。
 
 ## 停止条件
 
