@@ -631,6 +631,63 @@ def test_duplicate_guardrail_gate_row_id_fails_closed(monkeypatch):
         )
 
 
+@pytest.mark.parametrize("marketplace", ["PH", "SG"])
+def test_sls_shared_battery_review_is_never_gate_eligible(marketplace):
+    marketplace_inventory = inventory(
+        (),
+        marketplace=marketplace,
+        shop_label=f"{marketplace} Shop",
+        source_file=f"Shopee 更新_{marketplace}.csv",
+        data_row_count=0,
+    )
+
+    result = evaluate(
+        [candidate(product_title="Rechargeable desk light")],
+        [marketplace_inventory],
+        marketplace=marketplace,
+    )
+
+    row = result.rows[0]
+    assert row.guardrail_status == "REVIEW"
+    assert row.guardrail_risk_category == "shipping_restricted"
+    assert row.guardrail_matched_terms == "rechargeable"
+    assert row.guardrail_source == "shopee_policy"
+    assert row.final_eligibility == "REVIEW"
+    assert row.reason_codes == ("GUARDRAIL_REVIEW",)
+
+
+def test_malformed_sls_shared_battery_asset_stops_entire_gate(tmp_path, monkeypatch):
+    source_dir = Path(__file__).resolve().parents[1] / "guardrails"
+    dictionary_dir = tmp_path / "guardrails"
+    dictionary_dir.mkdir()
+
+    for file_name in ("prohibited_brands_sg.csv", "risk_keywords_sg.csv"):
+        (dictionary_dir / file_name).write_bytes((source_dir / file_name).read_bytes())
+
+    community_dir = dictionary_dir / "community_ng"
+    community_dir.mkdir()
+    for source_file in (source_dir / "community_ng").iterdir():
+        if source_file.is_file():
+            (community_dir / source_file.name).write_bytes(source_file.read_bytes())
+
+    shared_dir = dictionary_dir / "sls_shared"
+    shared_dir.mkdir()
+    (shared_dir / "battery_review_rules.csv").write_text(
+        "term,action\nbattery,REVIEW\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(guardrails_module, "_default_dictionary_dir", lambda: dictionary_dir)
+
+    with pytest.raises(gate.PrelistingGateError, match="Guardrail辞書") as exc_info:
+        evaluate(
+            [candidate(product_title="Rechargeable desk light")],
+            [inventory((), data_row_count=0)],
+            marketplace="SG",
+        )
+
+    assert isinstance(exc_info.value.__cause__, GuardrailDictionaryError)
+
+
 def test_v12_dictionary_review_and_existing_block_propagate_to_gate_results():
     result = evaluate(
         [

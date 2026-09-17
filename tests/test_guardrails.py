@@ -32,6 +32,70 @@ RISK_CSV = """term,action,risk_category,match_field,match_type,source_type,note,
 ignored,BLOCK,other,title,contains,internal_rule,Disabled keyword,FALSE
 """
 
+SLS_SHARED_BATTERY_TERMS = (
+    "battery",
+    "batteries",
+    "バッテリー",
+    "電池",
+    "rechargeable",
+    "充電式",
+    "power bank",
+    "powerbank",
+    "モバイルバッテリー",
+    "power case",
+    "powercase",
+)
+SLS_SHARED_BATTERY_COLUMNS = (
+    "term",
+    "action",
+    "risk_category",
+    "match_field",
+    "match_type",
+    "source_type",
+    "note",
+    "enabled",
+)
+SLS_SHARED_BATTERY_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "guardrails"
+    / "sls_shared"
+    / "battery_review_rules.csv"
+)
+
+
+def render_shared_battery_rules(*, rows=None, columns=SLS_SHARED_BATTERY_COLUMNS):
+    if rows is None:
+        rows = [
+            {
+                "term": term,
+                "action": "REVIEW",
+                "risk_category": "shipping_restricted",
+                "match_field": "all",
+                "match_type": "contains",
+                "source_type": "shopee_policy",
+                "note": (
+                    f"SLS-BAT-{index:03d}: "
+                    "Synthetic SLS shared battery review rule"
+                ),
+                "enabled": "TRUE",
+            }
+            for index, term in enumerate(SLS_SHARED_BATTERY_TERMS, start=1)
+        ]
+    output = StringIO(newline="")
+    writer = csv.DictWriter(output, fieldnames=columns, lineterminator="\n")
+    writer.writeheader()
+    writer.writerows(rows)
+    return output.getvalue()
+
+
+def write_shared_battery_asset(dictionary_dir, csv_text=None):
+    shared_dir = dictionary_dir / "sls_shared"
+    shared_dir.mkdir()
+    (shared_dir / "battery_review_rules.csv").write_text(
+        render_shared_battery_rules() if csv_text is None else csv_text,
+        encoding="utf-8",
+    )
+
 
 def write_empty_community_assets(dictionary_dir):
     community_dir = dictionary_dir / "community_ng"
@@ -63,6 +127,7 @@ def write_dictionaries(tmp_path, brand_csv=BRAND_CSV, risk_csv=RISK_CSV):
     dictionary_dir.mkdir()
     (dictionary_dir / "prohibited_brands_sg.csv").write_text(brand_csv, encoding="utf-8")
     (dictionary_dir / "risk_keywords_sg.csv").write_text(risk_csv, encoding="utf-8")
+    write_shared_battery_asset(dictionary_dir)
     write_empty_community_assets(dictionary_dir)
     return dictionary_dir
 
@@ -75,6 +140,205 @@ def candidate(brand="", title="Sample product", category="Beauty", asin="B000000
         "category": category,
         "product_title": title,
     }
+
+
+def test_sls_shared_battery_asset_has_exact_v01_contract():
+    rules = guardrails_module.load_sls_shared_battery_rules()
+
+    assert tuple(rule.term for rule in rules) == SLS_SHARED_BATTERY_TERMS
+    assert [rule.note.split(":", 1)[0] for rule in rules] == [
+        f"SLS-BAT-{index:03d}" for index in range(1, 12)
+    ]
+    assert all(rule.action == "REVIEW" for rule in rules)
+    assert all(rule.risk_category == "shipping_restricted" for rule in rules)
+    assert all(rule.match_field == "all" for rule in rules)
+    assert all(rule.match_type == "contains" for rule in rules)
+    assert all(rule.source_type == "shopee_policy" for rule in rules)
+    assert all(rule.dictionary_type == "sls_shared" for rule in rules)
+
+
+@pytest.mark.parametrize("marketplace", ["PH", "SG"])
+@pytest.mark.parametrize("term", SLS_SHARED_BATTERY_TERMS)
+def test_every_sls_shared_battery_term_is_non_safe_in_runtime_markets(
+    marketplace,
+    term,
+):
+    row = apply_guardrails(
+        [candidate(title=f"Example {term} product")],
+        marketplace=marketplace,
+    )[0]
+
+    expected = (
+        "BLOCK"
+        if marketplace == "PH"
+        and term in {"power bank", "powerbank", "モバイルバッテリー"}
+        else "REVIEW"
+    )
+    assert row["guardrail_status"] == expected
+    assert term in row["guardrail_matched_terms"].split("|")
+    assert "shipping_restricted" in row["guardrail_risk_category"].split("|")
+    assert "shopee_policy" in row["guardrail_source"].split("|")
+    assert "SLS Shared Battery signal matched" in row["guardrail_note"]
+
+
+@pytest.mark.parametrize("marketplace", ["PH", "SG"])
+def test_sls_shared_battery_searches_approved_product_text_fields(marketplace):
+    row = candidate(title="Ordinary desk light")
+    row["description"] = ("Includes a rechargeable battery",)
+
+    guarded = apply_guardrails([row], marketplace=marketplace)[0]
+
+    assert guarded["guardrail_status"] == "REVIEW"
+    assert {"battery", "rechargeable"}.issubset(
+        set(guarded["guardrail_matched_terms"].split("|"))
+    )
+
+
+@pytest.mark.parametrize("marketplace", ["PH", "SG"])
+def test_generic_electronics_terms_do_not_trigger_sls_shared_battery_review(marketplace):
+    guarded = apply_guardrails(
+        [
+            candidate(
+                title="Bluetooth speaker headphones wireless mouse smartwatch",
+                category="Consumer Electronics",
+            )
+        ],
+        marketplace=marketplace,
+    )[0]
+
+    assert guarded["guardrail_status"] == "SAFE"
+    assert "SLS Shared Battery signal matched" not in guarded["guardrail_note"]
+
+
+def test_ph_existing_power_bank_block_wins_over_shared_battery_review():
+    row = apply_guardrails(
+        [candidate(title="Power bank 充電式")],
+        marketplace="PH",
+    )[0]
+
+    assert row["guardrail_status"] == "BLOCK"
+    assert row["guardrail_matched_terms"].split("|") == ["power bank", "充電式"]
+    assert row["guardrail_source"].split("|") == ["internal_rule", "shopee_policy"]
+    assert "PH-D073" in row["guardrail_note"]
+    assert "SLS-BAT-006" in row["guardrail_note"]
+
+
+def test_sg_existing_mobile_battery_review_composes_with_shared_rule():
+    row = apply_guardrails(
+        [candidate(title="モバイルバッテリー")],
+        marketplace="SG",
+    )[0]
+
+    assert row["guardrail_status"] == "REVIEW"
+    assert row["guardrail_source"].split("|") == ["internal_rule", "shopee_policy"]
+    assert "Battery-powered item requires shipping and logistics review" in row["guardrail_note"]
+    assert "SLS-BAT-003" in row["guardrail_note"]
+    assert "SLS-BAT-009" in row["guardrail_note"]
+
+
+def test_shared_battery_review_never_downgrades_market_block(tmp_path):
+    row = apply_guardrails(
+        [candidate(brand="Biore", title="Rechargeable battery")],
+        write_dictionaries(tmp_path),
+        marketplace="SG",
+    )[0]
+
+    assert row["guardrail_status"] == "BLOCK"
+    assert row["guardrail_matched_terms"].split("|") == [
+        "Biore",
+        "battery",
+        "rechargeable",
+    ]
+    assert row["guardrail_source"].split("|") == [
+        "shopee_brand_list",
+        "shopee_policy",
+    ]
+
+
+def test_shared_battery_review_never_downgrades_community_ng_block():
+    row = apply_guardrails(
+        [candidate(brand="LEGO", title="Rechargeable battery")],
+        marketplace="PH",
+    )[0]
+
+    assert row["guardrail_status"] == "BLOCK"
+    assert "community_report" in row["guardrail_risk_category"].split("|")
+    assert "shipping_restricted" in row["guardrail_risk_category"].split("|")
+    assert "community_ng" in row["guardrail_source"].split("|")
+    assert "shopee_policy" in row["guardrail_source"].split("|")
+
+
+def test_shared_battery_review_never_downgrades_own_penalty_block():
+    row = apply_guardrails(
+        [candidate(asin="B000FQTRS0", title="Rechargeable battery")],
+        marketplace="SG",
+    )[0]
+
+    assert row["guardrail_status"] == "BLOCK"
+    assert "own_penalty_product" in row["guardrail_risk_category"].split("|")
+    assert "shipping_restricted" in row["guardrail_risk_category"].split("|")
+    assert "own_penalty_case" in row["guardrail_source"].split("|")
+    assert "shopee_policy" in row["guardrail_source"].split("|")
+
+
+def test_missing_sls_shared_battery_asset_fails_closed(tmp_path):
+    dictionary_dir = write_dictionaries(tmp_path)
+    (dictionary_dir / "sls_shared" / "battery_review_rules.csv").unlink()
+
+    with pytest.raises(GuardrailDictionaryError, match="SLS shared battery ruleset"):
+        apply_guardrails([candidate()], dictionary_dir, marketplace="SG")
+
+
+@pytest.mark.parametrize(
+    ("csv_text", "error_match"),
+    [
+        (
+            "action,term,risk_category,match_field,match_type,source_type,note,enabled\n",
+            "ヘッダー",
+        ),
+        (
+            "term,action,risk_category,match_field,match_type,source_type,note,enabled\n",
+            "有効なSLS shared battery rule",
+        ),
+        (
+            "term,action,risk_category,match_field,match_type,source_type,note,enabled\n"
+            "battery,BLOCK,shipping_restricted,all,contains,shopee_policy,"
+            "SLS-BAT-001: invalid action,TRUE\n",
+            "SLS shared battery contract",
+        ),
+        (
+            "term,action,risk_category,match_field,match_type,source_type,note,enabled\n"
+            "battery,REVIEW,shipping_restricted,all,contains,shopee_policy,"
+            "missing stable identifier,TRUE\n",
+            "SLS-BAT-NNN",
+        ),
+        (
+            "term,action,risk_category,match_field,match_type,source_type,note,enabled\n"
+            "battery,REVIEW,shipping_restricted,all,contains,shopee_policy,"
+            "SLS-BAT-001: first,TRUE\n"
+            "battery,REVIEW,shipping_restricted,all,contains,shopee_policy,"
+            "SLS-BAT-002: duplicate term,TRUE\n",
+            "termが重複",
+        ),
+        (
+            "term,action,risk_category,match_field,match_type,source_type,note,enabled\n"
+            "\"unterminated",
+            "CSV形式",
+        ),
+    ],
+)
+def test_malformed_sls_shared_battery_asset_fails_closed(
+    tmp_path,
+    csv_text,
+    error_match,
+):
+    dictionary_dir = write_dictionaries(tmp_path)
+    (
+        dictionary_dir / "sls_shared" / "battery_review_rules.csv"
+    ).write_text(csv_text, encoding="utf-8")
+
+    with pytest.raises(GuardrailDictionaryError, match=error_match):
+        apply_guardrails([candidate()], dictionary_dir, marketplace="SG")
 
 
 @pytest.mark.parametrize("brand", ["Biore", "biore", "Ｂｉｏｒｅ"])
@@ -753,6 +1017,7 @@ def write_ph_dictionaries(
     if v2_csv is None:
         v2_csv = PH_V2_RULESET_PATH.read_text(encoding="utf-8-sig")
     (dictionary_dir / guardrails_module.V2_RULESET_FILE).write_text(v2_csv, encoding="utf-8")
+    write_shared_battery_asset(dictionary_dir)
     write_empty_community_assets(dictionary_dir)
     return dictionary_dir
 

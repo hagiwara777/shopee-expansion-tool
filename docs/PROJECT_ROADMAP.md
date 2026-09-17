@@ -157,6 +157,18 @@ group consensus、人間採用後の既存Brand確認を維持する方式でloc
 PR #68を通常のmerge commit方式でmainへ統合し、formal main
 `f9426d41961206ad3c2574d74d7b55f16df2304e`上の正式成果として受入済みである。
 
+### SLS Shared Safety（Battery v0.1 formal-main候補）
+
+PH / SGの既存runtimeに対し、SLS Battery要件を現行Candidate情報だけで確定できない候補を
+共通`REVIEW`へ止める。単一資産`guardrails/sls_shared/battery_review_rules.csv`の明示11語だけを
+v0.1対象とし、市場別BLOCK、Community NG、own penalty、PH / SG市場分離を維持する。
+Prelisting Gateの公開契約とCandidate schemaは変更せず、共有Battery `REVIEW`を`ELIGIBLE`にしない。
+
+2162件のSLS Category Matrixは本工程へ接続しない。次工程`SLS Market Category Rules`で独立して
+正本資産化し、Category IDを推測せず、Battery v0.1の共有資産とruntime境界を阻害しない形で設計する。
+MY / TH / TW / VNの製品runtimeは開始しない。formal main採用はPH / SG protected gate、
+mandatory CI Evidence、Owner Acceptanceを満たした後の別承認とする。
+
 ### BETA_AFTER_CANDIDATE
 
 - 画像Safetyのtitle trigger、subcategory細分化、全rootの網羅的画像リスク調査（DEC-0053）
