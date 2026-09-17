@@ -157,7 +157,7 @@ group consensus、人間採用後の既存Brand確認を維持する方式でloc
 PR #68を通常のmerge commit方式でmainへ統合し、formal main
 `f9426d41961206ad3c2574d74d7b55f16df2304e`上の正式成果として受入済みである。
 
-### SLS Shared Safety（Battery v0.1 formal-main候補）
+### SLS Shared Safety（Battery v0.1 formal main正式受入済み）
 
 PH / SGの既存runtimeに対し、SLS Battery要件を現行Candidate情報だけで確定できない候補を
 共通`REVIEW`へ止める。単一資産`guardrails/sls_shared/battery_review_rules.csv`の明示11語だけを
@@ -166,8 +166,9 @@ Prelisting Gateの公開契約とCandidate schemaは変更せず、共有Battery
 
 2162件のSLS Category Matrixは本工程へ接続しない。次工程`SLS Market Category Rules`で独立して
 正本資産化し、Category IDを推測せず、Battery v0.1の共有資産とruntime境界を阻害しない形で設計する。
-MY / TH / TW / VNの製品runtimeは開始しない。formal main採用はPH / SG protected gate、
-mandatory CI Evidence、Owner Acceptanceを満たした後の別承認とする。
+MY / TH / TW / VNの製品runtimeは開始しない。PR #76を通常のmerge commit方式でmainへ統合し、
+formal main `e6a5f94b33448ee2a8a47f4ed756649790ead60b`上の正式成果として受入済みである。
+次工程`SLS Market Category Rules`の設計・実装は、この正本化とは分離した新規Codexタスクで開始する。
 
 ### BETA_AFTER_CANDIDATE
 
