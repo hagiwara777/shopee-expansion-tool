@@ -1,0 +1,2 @@
+# Digests describe exact UTF-8/LF bytes on Windows as well as other platforms.
+*.json text eol=lf

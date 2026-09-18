@@ -904,3 +904,17 @@
 - 境界: SLS Category Matrix 2162件のruntime統合、SG Category Mapper / Brand / Handoff、MY / TH / TW / VN runtime、Category ID推測、Battery type AI自動確定、G-form自動提出、SDS自動生成、自動出品、live Shopee / Keepa / OpenAI APIを開始しない。Category Matrixは次工程`SLS Market Category Rules`で独立した正本資産として扱う。
 - 理由: 市場別Safety資産を複製・緩和せず、現行情報でSLS発送条件を証明できないBattery疑義だけを共通の人間確認へ止め、PH実運用とSG Safety Baselineを同時に保護するため。
 - 再検討条件: 明示語以外の具体的な検出漏れ、過剰REVIEW、SLS要件変更、追加marketplaceのruntime開始、またはCategory Matrixとの正式な接続判断がEvidenceとして生じた場合。v0.1を黙って拡張せず、既存BLOCKを降格せず、別Version・別工程で判断する。
+
+
+## DEC-0076 — SLS Market Category Rules Minimum Beta V0.3の設計契約を採用する
+
+- 日付: 2026-09-18
+- authority: Owner/GPT DESIGN_GATE_PASS Technical Design V0.3。実装・tests・local commit・push・Draft PR・CI/reviewを承認範囲とし、formal main mergeは別の最終受入まで行わない。
+- 決定: 7市場のsource-specific deterministic assetを保持し、Master Unique Category IDだけでJOINする。PH runtimeはcanonical＋PHだけを読み、他市場runtimeは開始しない。source identity、raw logical records、transform version、output digest、anomalyを保持し、raw CSVはcommitしない。
+- 決定: SLS resultをmanual reviewとは独立に保持し、market/confirmed Category/taxonomy/market assetへbindする。ready propertyはpureなlocal ANDとし、UI refreshと直接export入口がcurrent contextで再評価する。Brand操作でREVIEW/EXCLUDEを解除しない。
+- 決定: PH NOをqtyより優先してEXCLUDE、YES＋No limitのみALLOW候補とし、数量1/2、要確認、unknown/missingはREVIEWに止める。既存Safety、Candidate15列、Gate enum、DB schemaは変更しない。
+- 保持: TH 102009は2 raw recordsを維持し102010を生成しない。SG Pet Food noticeは今回sourceの10 IDへ明示bind。VN複合conditionは分離保持。BR authorityはJPBR/JPBR Qty limitでSAGAWAをPASSへ使用しない。
+- 障害・更新: canonical/PH検証不能はMapperのSLS依存出口をfail-closedにし、DBを削除せずready=0、Brand操作とgroups/TXT出力を停止する。非PH破損はPH runtimeへ波及させない。正式更新はapp stop→code＋validated assets→restart→new session。hot swap、download thread/lock、Streamlit pin、専用audit CSVを追加しない。
+- Governance: SHARED_CORE、既存mandatory gatesを維持。protected jobへ短いSLS invariant回帰を追加し、Mapper/UI詳細回帰は全offline suiteで確認する。
+- rollback: SLS追加のcode/asset/tests/Governanceを通常revertで戻しrestart/new session。既存DBと前工程Safetyを維持し、migrationを追加しない。
+- 詳細: asset contract、source更新手順、保持anomalyはguardrails/sls_market_categories/README.mdを参照。本決定は技術検証済みまたはOwner最終受入済みを意味しない。

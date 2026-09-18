@@ -83,6 +83,16 @@ ELIGIBLEはShopee規約上の安全を保証するものではなく、出力CSV
 
 ## Category Mapper
 
+PHではCategory確定後にSLS Category条件を確認します。画面の「SLS Category確認」でaction、
+Shopee Category ID、停止理由を確認できます。発送不可はEXCLUDE、Shopee確認・数量制限・
+未知IDはREVIEWとなり、Brand確定では解除されません。既存Safety条件と現在のSLS ALLOWを
+満たした行だけを出品グループCSV／貼付用TXTへ出力します。ALLOWは商品全体のSafety保証ではありません。
+
+「SLS Category dataを検証できないため出力停止」と表示された場合は、Category／Brand DBを
+削除せず、配布されたcanonical／PH資産を確認してください。資産更新はアプリ停止、検証済み
+code＋asset更新、再起動、新sessionの順とし、稼働中の差替えは行いません。
+更新・再現手順は[asset README](guardrails/sls_market_categories/README.md)を参照してください。
+
 Category Mapperの「Shopee ACCESS_TOKEN（一時利用）」には、既存管理シートで更新済みのtokenを伏字で貼り付けられます。入力値はそのブラウザsessionのCategory / Brand / Attribute参照だけに使い、設定ファイルやローカルDBへ保存しません。空欄の場合は既存の認証設定を使用します。token更新、refresh、OAuthはCategory Mapperの責務に含みません。
 
 ### Category AI Benchmark Ver1（独立実験）

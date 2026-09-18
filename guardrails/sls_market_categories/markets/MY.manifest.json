@@ -1,0 +1,12 @@
+{
+  "asset_version": "37d173084951cba7d1da7da1e2190c8390bc2628402b0acc6b58ab20aab70a81",
+  "marketplace": "MY",
+  "record_count": 2162,
+  "schema": "SLS_CATEGORY_ASSET_V1",
+  "sha256": "37d173084951cba7d1da7da1e2190c8390bc2628402b0acc6b58ab20aab70a81",
+  "source_hashes": {
+    "master": "35f7bab5da9c5dd3d9b62456035916a9fce62a153d6bcfcaa82c221dc117dbc9",
+    "requirements": "e1d2a1f94ebf68eb6355baf2e5f7dc59d961441cb6f203280ad6cef5a9678626"
+  },
+  "transform_version": "SLS_SOURCE_TRANSFORM_V1"
+}

@@ -1,0 +1,12 @@
+{
+  "asset_version": "042c7e05dc44a3e7302c1fb63779c6e999b50cd11016959e6c8a253ef1c2743c",
+  "marketplace": "SG",
+  "record_count": 2162,
+  "schema": "SLS_CATEGORY_ASSET_V1",
+  "sha256": "042c7e05dc44a3e7302c1fb63779c6e999b50cd11016959e6c8a253ef1c2743c",
+  "source_hashes": {
+    "master": "35f7bab5da9c5dd3d9b62456035916a9fce62a153d6bcfcaa82c221dc117dbc9",
+    "requirements": "e1d2a1f94ebf68eb6355baf2e5f7dc59d961441cb6f203280ad6cef5a9678626"
+  },
+  "transform_version": "SLS_SOURCE_TRANSFORM_V1"
+}
