@@ -918,3 +918,13 @@
 - Governance: SHARED_CORE、既存mandatory gatesを維持。protected jobへ短いSLS invariant回帰を追加し、Mapper/UI詳細回帰は全offline suiteで確認する。
 - rollback: SLS追加のcode/asset/tests/Governanceを通常revertで戻しrestart/new session。既存DBと前工程Safetyを維持し、migrationを追加しない。
 - 詳細: asset contract、source更新手順、保持anomalyはguardrails/sls_market_categories/README.mdを参照。本決定は技術検証済みまたはOwner最終受入済みを意味しない。
+
+## DEC-0077 — SLS Market Category Rules Minimum Betaをformal mainで正式受入する
+
+- 日付: 2026-09-19
+- 背景: DEC-0076のV0.3設計に基づくPR #78について、Owner Acceptance、source freshness確認、mandatory technical gates、PH / SG protected回帰を完了した。
+- 決定: PR #78のaccepted head `177c70e8c28208ef8f0fe04afd32757124a40086`をmerge commit `5079795fd1eb7a4ae1940852b76e2bd2315e0006`でformal mainへ統合し、SLS Market Category Rules Minimum Betaを正式受入する。Master source SHA-256 `35f7bab5da9c5dd3d9b62456035916a9fce62a153d6bcfcaa82c221dc117dbc9`はsource-lockと一致し、asset再生成は不要だった。
+- 確認事実: CI run `35325162215`でgovernance.validate、governance.ps51、governance.ps7、tests.offline、protected.ph、protected.sgがPASSした。CI offlineは1369 passed / 1既存fixture skip、protectedは574 passed、local offlineは1370 passedである。Category / Brand確認済みでもSLS REVIEW / EXCLUDE / UNAVAILABLEを完了表示しない回帰を固定した。
+- 影響: PH runtimeだけを開始し、canonical taxonomy + PH assetの境界、SLS resultのfreshness binding、CSV / TXT leakage防止、既存Safety非解除を正式成果として維持する。Candidate15列、Prelisting Gate contract、DB schema、非PH runtimeは不変である。governance/state.jsonの既存market / capability lifecycleを変更する必要はない。
+- rollback: SLS追加単位を通常revertし、app restart→new sessionで戻す。DB migrationはなく、既存Category / Brand DBと前工程Safetyを維持する。
+- 再検討条件: 新しい一次source、source hash不一致、PH実利用での停止理由または漏洩Evidence、REVIEW override要求、non-PH runtime開始、または既存Safetyとの競合が生じた場合。いずれも別タスク・別判断とする。
