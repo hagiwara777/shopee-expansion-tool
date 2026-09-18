@@ -458,6 +458,7 @@ def test_category_mapper_applies_no_brand_to_gate_group_and_enables_outputs(monk
     assert "出品グループCSVをダウンロード" in labels
     assert "出品ツール貼付用TXTをダウンロード" in labels
     assert app.session_state["category_mapper_recommendations"][0].listing_ready is True
+    assert any(c.value == "出品準備完了: 1件" for c in app.caption)
     store = CategoryMapperStore(tmp_path / "localappdata" / "ShopeeCategoryMapper" / "category_mapper.sqlite3")
     assert store.find_confirmed_brand_alias("PH", 100869, "ASIENCE") is None
     assert store.find_confirmed_brand_policy("PH", "シャンプー", "ASIENCE", 100869)["brand_id"] == 0
@@ -490,18 +491,25 @@ def test_category_mapper_shows_and_confirms_conditioner_candidate_by_group(monke
     (100661, "CATEGORY_EXCLUDE", "SLS Category上発送不可"),
     (999999999, "CATEGORY_REVIEW", "Category IDがSLS表にない"),
 ])
-def test_sls_stop_reason_visible_and_brand_disabled(monkeypatch, tmp_path, cid, expected, reason):
+@pytest.mark.parametrize("no_brand", [False, True])
+def test_sls_stop_reason_visible_and_brand_disabled(monkeypatch, tmp_path, cid, expected, reason, no_brand):
     from dataclasses import replace
     app = _test_app(monkeypatch, tmp_path)
     app.file_uploader(key="category_mapper_source_csv").set_value(
         ("eligible.csv", _gate_csv(), "text/csv")).run()
     app.button(key="category_mapper_build").click().run()
     item = app.session_state["category_mapper_recommendations"][0]
-    app.session_state["category_mapper_recommendations"] = (replace(item, recommended_category_id=cid),)
+    # Existing confirmed Brand/No Brand must not make an SLS-stopped row ready.
+    app.session_state["category_mapper_recommendations"] = (replace(
+        item, recommended_category_id=cid, brand_is_confirmed=not no_brand,
+        no_brand_selected_by_user=no_brand, manual_review_required=False),)
     app.run()
     assert not app.exception
     item = app.session_state["category_mapper_recommendations"][0]
     assert item.sls_result.action == expected and not item.listing_ready
+    assert item.category_is_confirmed and (item.brand_is_confirmed or item.no_brand_selected_by_user)
+    assert not any(str(c.value).startswith("出品準備完了:") for c in app.caption)
+    assert any(c.value == "SLS Category確認で停止: 1件" for c in app.caption)
     assert not any(b.key in {"category_mapper_apply_no_brand_0", "category_mapper_fetch_brands_0"} for b in app.button)
     assert not any(b.label in {"出品グループCSVをダウンロード", "出品ツール貼付用TXTをダウンロード"} for b in app.download_button)
     assert any(reason in str(w.value) for w in app.warning)

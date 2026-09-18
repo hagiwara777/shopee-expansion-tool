@@ -6,6 +6,7 @@ import pytest
 
 from modules.category_mapper import (apply_manual_brand, build_mapper_exports,
     refresh_sls_results, parse_category_mapper_input, CategoryMapperInputError)
+from modules.category_mapper_ui import _group_progress_label
 from modules.sls_category_assets import load_ph_context
 from modules.sls_category_rules import evaluate_ph_category, is_current_allow
 from sls_category_support import ready_item, copy_assets, rewrite_asset, stop_shampoo
@@ -25,6 +26,7 @@ def test_stopped_rows_cannot_leak_or_be_released_by_brand(tmp_path, action):
         updated = apply_manual_brand(item, brand=brand)
         assert updated.sls_result == item.sls_result
         assert not updated.listing_ready
+        assert _group_progress_label(updated, 1) == "SLS Category確認で停止: 1件"
         bundle = build_mapper_exports((updated,))
         assert not list(csv.DictReader(StringIO(bundle.groups_csv.decode("utf-8-sig"))))
         assert not bundle.listing_tool_text
@@ -56,3 +58,25 @@ def test_battery_and_existing_safety_cannot_reach_mapper(market, title, tmp_path
     unsafe = replace(item, input_safety_state=result.rows[0].final_eligibility)
     assert not unsafe.listing_ready
     assert not build_mapper_exports((unsafe,)).listing_tool_text
+
+
+@pytest.mark.parametrize("brand", [
+    {"brand_id": 0, "is_no_brand": True},
+    {"brand_id": 123, "is_no_brand": False},
+])
+def test_ready_progress_label_requires_all_ready_conditions(tmp_path, brand):
+    item = apply_manual_brand(ready_item(tmp_path), brand=brand)
+    assert item.listing_ready
+    assert _group_progress_label(item, 1) == "出品準備完了: 1件"
+    stopped = (
+        replace(item, sls_result=replace(item.sls_result, check_state="UNAVAILABLE")),
+        replace(item, sls_result=replace(item.sls_result, check_state="UNCHECKED")),
+        replace(item, recommended_category_id=999999999),
+        replace(item, marketplace="SG"),
+        replace(item, manual_review_required=True),
+        replace(item, input_safety_state="REVIEW"),
+        replace(item, brand_is_confirmed=False, no_brand_selected_by_user=False),
+    )
+    for pending in stopped:
+        assert not pending.listing_ready
+        assert "出品準備完了" not in _group_progress_label(pending, 1)

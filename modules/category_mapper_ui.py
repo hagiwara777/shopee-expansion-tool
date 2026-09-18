@@ -948,12 +948,16 @@ def _readiness_label(asin_count: int, ready_count: int) -> str:
 
 
 def _group_progress_label(recommendation: MapperRecommendation, asin_count: int) -> str:
+    if recommendation.listing_ready:
+        return f"出品準備完了: {asin_count}件"
+    if recommendation.sls_result.action in {"CATEGORY_REVIEW", "CATEGORY_EXCLUDE"} or (
+        recommendation.sls_result.check_state == "UNAVAILABLE"
+    ):
+        return f"SLS Category確認で停止: {asin_count}件"
     missing = int(not recommendation.category_is_confirmed) + int(
         not recommendation.brand_is_confirmed and not recommendation.no_brand_selected_by_user
     )
-    if missing == 0:
-        return f"出品準備完了: {asin_count}件"
-    return f"状態: あと{missing}項目"
+    return f"状態: あと{missing}項目" if missing else "状態: 出力条件未完了"
 
 
 def _mandatory_count_label(count: int | None) -> str:

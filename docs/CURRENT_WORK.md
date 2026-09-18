@@ -11,7 +11,7 @@ DESIGN_GATE_PASSに基づき、7市場asset、PH限定runtime、独立SLS state�
 
 ## 次の単一作業・停止条件
 
-現在候補のmandatory technical gatesとEvidence bindingを確認し、Owner Acceptance Summaryを提示してWAITING_OWNER_ACCEPTANCEで停止する。formal mainへmergeしない。CI結果・技術検収は現在のPR/checksと生成Evidenceを確認し、本書の記載だけでPASSと判断しない。
+Owner技術検収で指摘されたCategory Mapperのready表示を、listing_readyに従う表示へ最小修正した候補。実Brand／No Brand確認済みでもSLS停止を完了表示しない回帰を追加した。同じPRの新headでmandatory technical gatesとEvidence bindingを再確認する。旧headのOwner Acceptance Summaryを再利用せず、新しいSummaryを提示してWAITING_OWNER_ACCEPTANCEで停止する。formal mainへmergeしない。CI結果・技術検収は現在のPR/checksと生成Evidenceを確認し、本書の記載だけでPASSと判断しない。
 
 Candidate15列、Prelisting Gate契約、DB schemaは不変。SG/MY/TW/VN/TH/BR runtime、live Shopee/Keepa/OpenAI API、有料API、自動出品、deployは対象外。DB migration、公開contract変更、既存Safetyの緩和、大規模Mapper再設計が必要になればBLOCKING_IMPLEMENTATION_FINDINGとして戻す。
 
