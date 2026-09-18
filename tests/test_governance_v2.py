@@ -64,7 +64,7 @@ def test_gv2_config_001_machine_state_and_manifest_validate() -> None:
     bundle = engine.load_bundle(ROOT)
     assert bundle.state["markets"] == {
         "PH": {"operation": "ACTIVE", "development_policy": "ALLOWED"},
-        "SG": {"operation": "INACTIVE", "development_policy": "PAUSED"},
+        "SG": {"operation": "INACTIVE", "development_policy": "ALLOWED"},
         "MY": {"operation": "INACTIVE", "development_policy": "NOT_STARTED"},
         "TH": {"operation": "INACTIVE", "development_policy": "NOT_STARTED"},
     }
