@@ -164,11 +164,11 @@ PH / SGの既存runtimeに対し、SLS Battery要件を現行Candidate情報だ�
 v0.1対象とし、市場別BLOCK、Community NG、own penalty、PH / SG市場分離を維持する。
 Prelisting Gateの公開契約とCandidate schemaは変更せず、共有Battery `REVIEW`を`ELIGIBLE`にしない。
 
-2162件のSLS Category Matrixは本工程へ接続しない。次工程`SLS Market Category Rules`で独立して
-正本資産化し、Category IDを推測せず、Battery v0.1の共有資産とruntime境界を阻害しない形で設計する。
-MY / TH / TW / VNの製品runtimeは開始しない。PR #76を通常のmerge commit方式でmainへ統合し、
-formal main `e6a5f94b33448ee2a8a47f4ed756649790ead60b`上の正式成果として受入済みである。
-次工程`SLS Market Category Rules`の設計・実装は、この正本化とは分離した新規Codexタスクで開始する。
+2162件のSLS Category MatrixはSLS Market Category Rules Minimum Betaとして正本資産化し、
+PR #78をmerge commit方式でmainへ統合した。PHは確認済みShopee Unique Category IDにだけJOINし、
+canonical taxonomyとPH assetだけをruntimeで読む。CURRENTなCATEGORY_ALLOWだけがready、groups CSV、listing TXTへ進み、
+SLS停止状態はCategory / Brand確認済みでも完了表示にならない。MY / TH / TW / VNを含む非PH runtimeは開始していない。
+formal mainは`5079795fd1eb7a4ae1940852b76e2bd2315e0006`であり、source更新やnon-PH runtimeは別タスク・別承認とする。
 
 ### BETA_AFTER_CANDIDATE
 
