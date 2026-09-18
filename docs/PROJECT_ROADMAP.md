@@ -168,7 +168,7 @@ Prelisting Gateの公開契約とCandidate schemaは変更せず、共有Battery
 PR #78をmerge commit方式でmainへ統合した。PHは確認済みShopee Unique Category IDにだけJOINし、
 canonical taxonomyとPH assetだけをruntimeで読む。CURRENTなCATEGORY_ALLOWだけがready、groups CSV、listing TXTへ進み、
 SLS停止状態はCategory / Brand確認済みでも完了表示にならない。MY / TH / TW / VNを含む非PH runtimeは開始していない。
-formal mainは`5079795fd1eb7a4ae1940852b76e2bd2315e0006`であり、source更新やnon-PH runtimeは別タスク・別承認とする。
+PR #78の製品merge commitは`5079795fd1eb7a4ae1940852b76e2bd2315e0006`であり、source更新やnon-PH runtimeは別タスク・別承認とする。current formal mainはGitで観測する。
 
 ### BETA_AFTER_CANDIDATE
 

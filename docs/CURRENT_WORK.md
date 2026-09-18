@@ -14,6 +14,6 @@ Category / Brand確認済みでもSLS REVIEW、EXCLUDE、UNAVAILABLE、UNCHECKED
 
 ## 再開・更新・rollback
 
-新規タスクではformal main `5079795fd1eb7a4ae1940852b76e2bd2315e0006`、DEC-0076、DEC-0077、`guardrails/sls_market_categories/README.md`を先に確認する。source identityはsource-lock.jsonと外部原本hashで確認し、推測再生成しない。
+新規タスクではGitでcurrent formal mainを確認し、PR #78の製品merge commit `5079795fd1eb7a4ae1940852b76e2bd2315e0006`、DEC-0076、DEC-0077、`guardrails/sls_market_categories/README.md`を先に確認する。source identityはsource-lock.jsonと外部原本hashで確認し、推測再生成しない。
 
 Source更新はapp stop→validated code/assets更新→restart→new session。hot swapは対象外。rollbackはSLS追加単位の通常revertとrestart/new sessionで行い、既存Category/Brand DBと前工程Safetyを維持する。
