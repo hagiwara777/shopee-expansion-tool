@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 import hashlib
 import os
 from typing import Any, Iterable, Mapping
@@ -22,6 +23,7 @@ from modules.category_mapper import (
     parse_category_mapper_input,
     parse_resolver_title_csv,
     summarize_output_blockers,
+    refresh_sls_results,
 )
 from modules.category_mapper_ai import (
     AI_ABSTAIN,
@@ -35,6 +37,8 @@ from modules.category_mapper_ai import (
     group_consensus_suggestion,
     load_luna_request_profile,
 )
+from modules.sls_category_assets import SlsAssetError, load_ph_context
+from modules.sls_category_rules import SlsCategoryResult, is_current_allow, sls_reason_text
 from modules.category_mapper_store import CategoryMapperStore
 from modules.shopee_catalog_client import (
     ShopeeCatalogClient,
@@ -54,6 +58,25 @@ CATALOG_ADMIN_UI_ENABLED_ENV = "CATEGORY_MAPPER_CATALOG_ADMIN_UI_ENABLED"
 
 
 def render_category_mapper_tab() -> None:
+    """Keep SLS failure local to Mapper; never retain successful output on error."""
+    area = st.empty()
+    try:
+        with area.container():
+            load_ph_context()  # Validate before creating/opening DB or new Brand actions.
+            _render_category_mapper_body()
+    except SlsAssetError:
+        previous = tuple(st.session_state.get(_RESULT_KEY) or ())
+        st.session_state[_RESULT_KEY] = tuple(
+            replace(item, sls_result=SlsCategoryResult(check_state="UNAVAILABLE"))
+            for item in previous
+        )
+        area.empty()
+        with area.container():
+            st.error("SLS Category dataを検証できないため出力停止")
+            st.metric("出品グループ対象", 0)
+
+
+def _render_category_mapper_body() -> None:
     """Render PH-only mapping without executing catalog calls unless requested."""
 
     st.subheader("Category Mapper Ver0.1")
@@ -108,6 +131,8 @@ def render_category_mapper_tab() -> None:
                 resolver_titles=resolver_titles,
                 store=store,
             )
+        except SlsAssetError:
+            raise
         except CategoryMapperInputError:
             clear_category_mapper_result(st.session_state)
             st.error(
@@ -125,6 +150,8 @@ def render_category_mapper_tab() -> None:
     recommendations = st.session_state.get(_RESULT_KEY)
     if not recommendations or st.session_state.get(_FINGERPRINT_KEY) != fingerprint:
         return
+    recommendations = refresh_sls_results(recommendations, context=load_ph_context())
+    st.session_state[_RESULT_KEY] = recommendations
     _render_ai_suggestion_action(tuple(recommendations), store)
     _render_recommendations(
         tuple(recommendations),
@@ -251,6 +278,9 @@ def _render_recommendations(
     store: CategoryMapperStore,
     source_type: str,
 ) -> None:
+    exports = build_mapper_exports(recommendations)
+    recommendations = exports.evaluated_recommendations
+    st.session_state[_RESULT_KEY] = recommendations
     summaries = group_recommendations(recommendations)
     st.subheader("商品グループ一覧")
     st.dataframe(
@@ -274,7 +304,14 @@ def _render_recommendations(
 
     current = tuple(st.session_state.get(_RESULT_KEY) or recommendations)
     exports = build_mapper_exports(current)
+    current = exports.evaluated_recommendations
+    st.session_state[_RESULT_KEY] = current
     blockers = summarize_output_blockers(current)
+    st.subheader("SLS Category確認")
+    st.dataframe([{"ASIN": item.candidate_asin,
+                   "Shopee Category ID": item.recommended_category_id,
+                   "SLS Category action": item.sls_result.action or item.sls_result.check_state,
+                   "理由": sls_reason_text(item.sls_result)} for item in current], hide_index=True)
     ready = blockers["ready"]
     st.subheader("出力")
     st.download_button(
@@ -483,6 +520,7 @@ def _apply_category_choice(
         mandatory_attribute_count=mandatory_count,
         no_brand_available=no_brand_available,
     )
+    _replace_group(members, updated)
     if first.keepa_category:
         store.save_category_mapping(
             marketplace="PH",
@@ -493,7 +531,6 @@ def _apply_category_choice(
             category_path=str(category["category_path"]),
         )
         st.caption(f"次回以降、PHの「{first.keepa_category}」商品へ再利用します。")
-    _replace_group(members, updated)
     _discard_ai_suggestions(members)
     return True
 
@@ -635,6 +672,13 @@ def _render_brand_controls(
     store: CategoryMapperStore,
     recommendation: MapperRecommendation,
 ) -> None:
+    context = load_ph_context()
+    recommendation = refresh_sls_results((recommendation,), context=context)[0]
+    if not is_current_allow(recommendation.sls_result, marketplace=recommendation.marketplace,
+                            category_id=recommendation.recommended_category_id,
+                            category_confirmed=recommendation.category_is_confirmed, context=context):
+        st.warning(sls_reason_text(recommendation.sls_result))
+        return
     if recommendation.recommended_category_id is None:
         st.info("Brand候補はCategoryを採用した後に表示します。")
         return
@@ -696,6 +740,7 @@ def _render_brand_controls(
             key=f"category_mapper_apply_no_brand_{index}",
         ):
             updated = apply_manual_brand(recommendation, brand=no_brand)
+            _replace_group(members, updated)
             store.save_brand_policy(
                 marketplace="PH",
                 keepa_category=recommendation.keepa_category,
@@ -704,7 +749,6 @@ def _render_brand_controls(
                 brand_policy="NO_BRAND_SELECTED",
                 brand_id=0,
             )
-            _replace_group(members, updated)
             st.rerun()
     with st.container(horizontal=True):
         if st.button(
@@ -748,6 +792,7 @@ def _render_brand_controls(
         key=f"category_mapper_apply_brand_{index}",
     ):
         updated = apply_manual_brand(recommendation, brand=selected_brand)
+        _replace_group(members, updated)
         if recommendation.keepa_brand:
             store.save_brand_alias(
                 source_brand=recommendation.keepa_brand,
@@ -757,7 +802,6 @@ def _render_brand_controls(
                 shopee_brand_name=str(selected_brand["brand_name"]),
                 brand_id=int(selected_brand["brand_id"]),
             )
-        _replace_group(members, updated)
         st.rerun()
 
 
@@ -808,7 +852,7 @@ def _replace_group(
             )
         else:
             replacements.append(item)
-    st.session_state[_RESULT_KEY] = tuple(replacements)
+    st.session_state[_RESULT_KEY] = refresh_sls_results(replacements, context=load_ph_context())
 
 
 def _discard_ai_suggestions(members: Iterable[MapperRecommendation]) -> None:
@@ -827,24 +871,31 @@ def replace_from_group(
 ) -> MapperRecommendation:
     """Reuse a confirmed group choice while preserving each source row's audit evidence."""
 
-    return MapperRecommendation(
-        **{
-            **item.__dict__,
-            **{
-                key: value
-                for key, value in updated.__dict__.items()
-                if key
-                not in {
-                    "source_asin",
-                    "candidate_asin",
-                    "product_title",
-                    "keepa_brand",
-                    "keepa_category",
-                    "resolver_input_title",
-                }
-            },
-        }
+    fields = (
+        'category_recommendation_status',
+        'recommended_category_id',
+        'recommended_category_path',
+        'category_confidence',
+        'category_recommendation_source',
+        'category_verification_status',
+        'mandatory_attribute_count',
+        'no_brand_available',
+        'canonical_brand_candidate',
+        'brand_match_status',
+        'recommended_brand_id',
+        'recommended_brand_name',
+        'brand_confidence',
+        'brand_recommendation_source',
+        'brand_accuracy_warning',
+        'category_is_confirmed',
+        'brand_is_confirmed',
+        'no_brand_selected_by_user',
+        'manual_review_required',
+        'manual_review_reason',
     )
+    updated_item = replace(item, **{key: getattr(updated, key) for key in fields},
+                           sls_result=SlsCategoryResult())
+    return updated_item  # The group boundary evaluates each member with one context.
 
 
 def _input_fingerprint(source_content: bytes | None, resolver_content: bytes | None) -> str | None:

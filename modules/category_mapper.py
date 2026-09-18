@@ -1,4 +1,4 @@
-"""Pure Category Mapper parsing, recommendation, and export logic."""
+"""Category Mapper with pure readiness and validated SLS evaluation boundaries."""
 
 from __future__ import annotations
 
@@ -23,6 +23,8 @@ from modules.prelisting_gate_csv import (
     PRELISTING_GATE_RESULT_COLUMNS,
 )
 from modules.shopee_catalog_client import BrandPage, ShopeeCatalogError, ShopeeRateLimitError
+from modules.sls_category_assets import SlsEvaluationContext, load_ph_context
+from modules.sls_category_rules import SlsCategoryResult, evaluate_ph_category, is_local_allow
 
 
 PH_MARKETPLACE = "PH"
@@ -181,6 +183,7 @@ class MapperRecommendation:
     no_brand_selected_by_user: bool
     manual_review_required: bool
     manual_review_reason: str
+    sls_result: SlsCategoryResult = SlsCategoryResult()
 
     @property
     def listing_ready(self) -> bool:
@@ -189,6 +192,9 @@ class MapperRecommendation:
             and self.category_is_confirmed
             and (self.brand_is_confirmed or self.no_brand_selected_by_user)
             and not self.manual_review_required
+            and is_local_allow(self.sls_result, marketplace=self.marketplace,
+                               category_id=self.recommended_category_id,
+                               category_confirmed=self.category_is_confirmed)
         )
 
     @property
@@ -206,6 +212,7 @@ class MapperExportBundle:
     recommendations_csv: bytes
     groups_csv: bytes
     listing_tool_text: str
+    evaluated_recommendations: tuple[MapperRecommendation, ...] = ()
 
 
 class BrandCatalogClient(Protocol):
@@ -260,6 +267,7 @@ def build_recommendations(
     """Build conservative recommendations from local data only; no API call occurs."""
 
     _require_ph(source.marketplace)
+    context = load_ph_context()
     resolver_titles = resolver_titles or {}
     recommendations = []
     for row in source.rows:
@@ -274,6 +282,10 @@ def build_recommendations(
             resolver_title=resolver_title,
             canonical_product_type=product_type,
             store=store,
+        )
+        sls_result = evaluate_ph_category(
+            marketplace=source.marketplace, category_id=category["category_id"],
+            category_confirmed=bool(category["confirmed"]), context=context,
         )
         brands = (
             store.list_brands(source.marketplace, category["category_id"])
@@ -308,13 +320,13 @@ def build_recommendations(
             bool(candidate.get("is_no_brand")) for candidate in brands
         )
         recommendations.append(
-            _build_recommendation(
+            replace(_build_recommendation(
                 row,
                 resolver_title=resolver_title,
                 canonical_product_type=product_type,
                 category=category,
                 brand=brand,
-            )
+            ), sls_result=sls_result)
         )
     return tuple(recommendations)
 
@@ -613,7 +625,7 @@ def apply_manual_category(
         brand_is_confirmed=False,
         no_brand_selected_by_user=False,
     )
-    return _with_manual_review_state(updated)
+    return refresh_sls_results((_with_manual_review_state(updated),), context=load_ph_context())[0]
 
 
 def apply_manual_brand(
@@ -659,10 +671,20 @@ def apply_manual_brand(
     return _with_manual_review_state(updated)
 
 
+def refresh_sls_results(
+    recommendations: Iterable[MapperRecommendation], *, context: SlsEvaluationContext,
+) -> tuple[MapperRecommendation, ...]:
+    """Re-evaluate all rows, preserving source/Safety/Brand state, with no I/O."""
+    return tuple(replace(item, sls_result=evaluate_ph_category(
+        marketplace=item.marketplace, category_id=item.recommended_category_id,
+        category_confirmed=item.category_is_confirmed, context=context,
+    )) for item in recommendations)
+
+
 def build_mapper_exports(recommendations: Iterable[MapperRecommendation]) -> MapperExportBundle:
     """Serialize detailed audit data, ready-only groups, and paste-ready text."""
 
-    ordered = tuple(recommendations)
+    ordered = refresh_sls_results(recommendations, context=load_ph_context())
     recommendation_rows = [_recommendation_row(item) for item in ordered]
     ready = [item for item in ordered if item.listing_ready]
     grouped: dict[str, list[MapperRecommendation]] = {}
@@ -711,6 +733,7 @@ def build_mapper_exports(recommendations: Iterable[MapperRecommendation]) -> Map
         recommendations_csv=_rows_to_csv(RECOMMENDATION_COLUMNS, recommendation_rows),
         groups_csv=_rows_to_csv(GROUP_COLUMNS, group_rows),
         listing_tool_text="\n\n".join(text_blocks),
+        evaluated_recommendations=ordered,
     )
 
 

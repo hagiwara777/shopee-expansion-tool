@@ -561,3 +561,13 @@ def test_gv2_override_001_exact_head_owner_binding_expires_on_change(trusted: No
     stale = copy.deepcopy(record)
     stale["source"]["head"] = "0" * 40
     assert engine._evidence_for_check(bundle, check, [stale], context, "local-validation")[0] == "UNKNOWN"
+
+
+@pytest.mark.parametrize("path", ["modules/sls_category_assets.py", "modules/sls_category_rules.py",
+    "guardrails/sls_market_categories/markets/BR.json", "scripts/build_sls_category_assets.py",
+    "tests/test_sls_category_protected.py", "tests/sls_category_support.py"])
+def test_sls_category_assets_are_shared_core(path):
+    bundle = engine.load_bundle(ROOT)
+    classified = engine.classify_changes([change("A", new=path)], bundle.ownership)
+    assert classified["classification"] == "SHARED_CORE"
+    assert "safety.shared" in classified["components"]

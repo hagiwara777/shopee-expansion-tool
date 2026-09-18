@@ -9,7 +9,7 @@
     {
       "id": "category",
       "paths": ["modules/category_*.py", "modules/shopee_catalog_client.py", "config/category_ai_*.json", "data/category_mapper_*.csv", "tests/test_category_*.py", "tests/test_app_category_mapper.py"],
-      "scope": "SHARED_RUNTIME", "markets": ["PH", "SG"], "depends_on": ["application", "expansion.provider"], "owner_role": "category-maintainer"
+      "scope": "SHARED_RUNTIME", "markets": ["PH", "SG"], "depends_on": ["application", "expansion.provider", "safety.shared"], "owner_role": "category-maintainer"
     },
     {
       "id": "documentation",
@@ -58,7 +58,7 @@
     },
     {
       "id": "safety.shared",
-      "paths": ["modules/community_ng.py", "modules/guardrails.py", "modules/ingredient_safety.py", "modules/product_text_safety.py", "guardrails/community_ng/**", "guardrails/sls_shared/**", "guardrails/deterministic_block_rules_v2.csv", "docs/evidence/community_ng/**", "tests/test_community_ng.py", "tests/test_guardrails.py", "tests/test_ingredient_safety.py", "tests/test_product_text_safety.py"],
+      "paths": ["modules/community_ng.py", "modules/guardrails.py", "modules/ingredient_safety.py", "modules/product_text_safety.py", "guardrails/community_ng/**", "guardrails/sls_shared/**", "guardrails/deterministic_block_rules_v2.csv", "docs/evidence/community_ng/**", "tests/test_community_ng.py", "tests/test_guardrails.py", "tests/test_ingredient_safety.py", "tests/test_product_text_safety.py", "modules/sls_category_*.py", "guardrails/sls_market_categories/**", "scripts/build_sls_category_assets.py", "tests/test_sls_category_*.py", "tests/sls_category_support.py"],
       "scope": "SHARED_RUNTIME", "markets": ["PH", "SG"], "depends_on": ["application"], "owner_role": "safety-maintainer"
     },
     {

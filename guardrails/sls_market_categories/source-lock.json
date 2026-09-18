@@ -1,0 +1,70 @@
+{
+  "acceptance": {
+    "canonical_count": 2162,
+    "market_counts": {
+      "BR": 1746,
+      "MY": 2162,
+      "PH": 2162,
+      "SG": 2162,
+      "TH": 1790,
+      "TW": 2162,
+      "VN": 2162
+    },
+    "ph_actions": {
+      "CATEGORY_ALLOW": 1964,
+      "CATEGORY_EXCLUDE": 174,
+      "CATEGORY_REVIEW": 24
+    },
+    "sg_pet_food": {
+      "category_ids": [
+        100906,
+        100907,
+        100908,
+        100909,
+        100910,
+        100911,
+        100912,
+        100913,
+        100914,
+        100915
+      ],
+      "logical_record": 273
+    },
+    "th_duplicate_ids": [
+      102009
+    ]
+  },
+  "schema": "SLS_SOURCE_LOCK_V1",
+  "sources": {
+    "br": {
+      "filename": "ブラジル_SLS 出品可否表 - BR.csv",
+      "logical_records": 1747,
+      "sha256": "4a6991764395bc658fa93d8ddb3399d3109e1ff51799f091e472172e2f234817",
+      "width": 7
+    },
+    "master": {
+      "filename": "【SLS対象マーケット】SLS出品可否確認表（Prohibited Category List）2025年3月17日適用 - マーケット別カテゴリ出品可否確認表 (1).csv",
+      "logical_records": 2165,
+      "sha256": "35f7bab5da9c5dd3d9b62456035916a9fce62a153d6bcfcaa82c221dc117dbc9",
+      "width": 19
+    },
+    "requirements": {
+      "filename": "【SLS対象マーケット】SLS出品可否確認表（Prohibited Category List）2025年3月17日適用 - 必須確認事項.csv",
+      "logical_records": 36,
+      "sha256": "e1d2a1f94ebf68eb6355baf2e5f7dc59d961441cb6f203280ad6cef5a9678626",
+      "width": 2
+    },
+    "th": {
+      "filename": "タイ_SLS_料金表 (2024.6.17更新) - ref_category（発送可否）.csv",
+      "logical_records": 1792,
+      "sha256": "9023e1509418f19608ef9a61ba9e5dfaa84badfd76a79765aebba74507fd6bb6",
+      "width": 13
+    },
+    "vn": {
+      "filename": "JPVN SLS Rate Table 202402 - Category List.csv",
+      "logical_records": 2168,
+      "sha256": "8820203ec7bf0febf8c61fbdc21fa85e0c43f911e5870f060bf2a30124bded94",
+      "width": 13
+    }
+  }
+}

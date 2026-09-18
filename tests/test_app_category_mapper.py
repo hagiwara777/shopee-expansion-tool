@@ -434,7 +434,9 @@ def test_category_mapper_ai_is_explicit_independent_and_human_confirmed(
     assert confirmed.category_verification_status == "USER_CONFIRMED"
     assert confirmed.listing_ready is False
     assert "category_mapper_ai_suggestions" not in app.session_state
-    assert any(
+    assert confirmed.sls_result.action == "CATEGORY_REVIEW"
+    assert confirmed.sls_result.reason_codes == ("UNKNOWN_CATEGORY_ID",)
+    assert not any(
         button.key == "category_mapper_fetch_brands_0" for button in app.button
     )
 
@@ -482,3 +484,57 @@ def test_category_mapper_shows_and_confirms_conditioner_candidate_by_group(monke
     assert confirmed.recommended_category_id == 100872
     assert confirmed.category_verification_status == "USER_CONFIRMED"
     assert confirmed.listing_ready is False
+
+
+@pytest.mark.parametrize("cid,expected,reason", [
+    (100661, "CATEGORY_EXCLUDE", "SLS Category上発送不可"),
+    (999999999, "CATEGORY_REVIEW", "Category IDがSLS表にない"),
+])
+def test_sls_stop_reason_visible_and_brand_disabled(monkeypatch, tmp_path, cid, expected, reason):
+    from dataclasses import replace
+    app = _test_app(monkeypatch, tmp_path)
+    app.file_uploader(key="category_mapper_source_csv").set_value(
+        ("eligible.csv", _gate_csv(), "text/csv")).run()
+    app.button(key="category_mapper_build").click().run()
+    item = app.session_state["category_mapper_recommendations"][0]
+    app.session_state["category_mapper_recommendations"] = (replace(item, recommended_category_id=cid),)
+    app.run()
+    assert not app.exception
+    item = app.session_state["category_mapper_recommendations"][0]
+    assert item.sls_result.action == expected and not item.listing_ready
+    assert not any(b.key in {"category_mapper_apply_no_brand_0", "category_mapper_fetch_brands_0"} for b in app.button)
+    assert not any(b.label in {"出品グループCSVをダウンロード", "出品ツール貼付用TXTをダウンロード"} for b in app.download_button)
+    assert any(reason in str(w.value) for w in app.warning)
+    assert any("SLS Category action" in frame.value.columns and expected in frame.value["SLS Category action"].tolist() for frame in app.dataframe)
+
+
+@pytest.mark.parametrize("failure_boundary", ["entry", "generation", "export"])
+def test_sls_asset_error_is_local_and_does_not_change_db(monkeypatch, tmp_path, failure_boundary):
+    import modules.category_mapper as mapper
+    from modules.sls_category_assets import SlsAssetError
+    app = _test_app(monkeypatch, tmp_path)
+    app.file_uploader(key="category_mapper_source_csv").set_value(
+        ("eligible.csv", _gate_csv(), "text/csv")).run()
+    app.button(key="category_mapper_build").click().run()
+    app.button(key="category_mapper_apply_no_brand_0").click().run()
+    assert app.session_state["category_mapper_recommendations"][0].listing_ready
+    db = tmp_path / "localappdata" / "ShopeeCategoryMapper" / "category_mapper.sqlite3"
+    before = db.read_bytes()
+    def broken(*args, **kwargs):
+        raise SlsAssetError("test unavailable")
+    if failure_boundary == "entry":
+        monkeypatch.setattr(category_mapper_ui, "load_ph_context", broken)
+        app.run()
+    elif failure_boundary == "generation":
+        monkeypatch.setattr(mapper, "load_ph_context", broken)
+        app.button(key="category_mapper_build").click().run()
+    else:
+        monkeypatch.setattr(category_mapper_ui, "build_mapper_exports", broken)
+        app.run()
+    assert not app.exception
+    assert db.read_bytes() == before
+    assert any(e.value == "SLS Category dataを検証できないため出力停止" for e in app.error)
+    assert any(str(m.value) == "0" for m in app.metric)
+    assert not any(item.listing_ready for item in app.session_state["category_mapper_recommendations"])
+    assert not any(b.key.startswith("category_mapper_") for b in app.download_button)
+    assert not any(b.key in {"category_mapper_apply_no_brand_0", "category_mapper_fetch_brands_0"} for b in app.button)
