@@ -972,3 +972,16 @@
 - Governance: SG operationはINACTIVE、development_policyはALLOWEDのままとする。PHはACTIVE / ALLOWED、`ph.beta.operation`と`sg.safety.baseline`はACCEPTEDのprotected capabilityのままとし、capability lifecycle、Safety、SLS、Candidate 15列、Prelisting Gate contract、DB schemaを変更しない。
 - rollback: PR #82の製品変更を戻す場合は、対象commit群を通常revertし、DB migrationを伴わずSG operation INACTIVEとPH operationを維持する。今回の文書正本化だけを戻す場合はdocs-only change setを通常revertする。DEC-0080が閉じた未承認live OpenAI UI経路を単独で復帰させない。
 - 再検討条件: production catalog source identity、実catalog / 実商品の受入、live OpenAI API、AI精度、SG Brand、SLS runtime、listing_ready、handoff、operation ACTIVE化、deploy、自動Category確定または自動出品を検討する場合。いずれも新規Codexタスク、別scope・設計Gate・Owner承認を必要とする。
+
+## DEC-0082 — Shopee Open Platform認証・Catalog取得を多市場共通基盤として先行整備する
+
+- 日付: 2026-09-19
+- 背景: PHには`ShopeeCatalogClient`が存在するが、`PH_MARKETPLACE`、`_require_ph()`、`SHOPEE_PH_SHOP_ID`、`SHOPEE_PH_ACCESS_TOKEN`に固定されている。Access Token refreshはCategory Mapperの責務外であり、SG以降を市場ごとにコピー実装すると認証・Catalog取得が重複する。
+- 決定: Shopee共通Token ManagerのMinimum Beta設計Gateを先行し、最小実装とPH先行検証、marketplace-neutralな共通Catalog Client、SG production Category catalog source identity確認の順へ変更する。SG source identity調査を中止せず、共通基盤の後に再開する。
+- 認証境界: 認証はmarketplaceごとの代表となる認証済みshop単位、Category / Brand / Attribute catalogはmarketplace単位とする。同一marketplaceの全shopについて同じCatalog masterを重複取得・保存しない。注文・在庫等のshop固有APIのtoken管理は別責務とする。
+- Token安全境界: Token ManagerはCategory Mapperに埋め込まず、有効なAccess TokenをCatalog Clientへ提供する。API利用時に有効性を確認し必要時だけrefreshするon-demand方式を第一候補とし、refresh失敗時はfail closedとする。refresh時はAccess Tokenだけを更新してRefresh Tokenを失わず、新旧tokenの整合性を保つ。token、refresh token、partner keyその他のcredentialをGit、docs、log、UI平文、snapshot、Evidenceへ出さない。PH既存の一時Access Token手入力経路は、自動refreshの実運用確認前に削除しない。
+- 外部仕様: token TTL、refresh endpoint、request / response contractその他の正確な外部仕様値は、実装前に最新の一次資料または実API contractで確認する。推測の数値を恒久的な内部仕様に固定しない。credential保存のatomic方式は後続設計Gateで確定する。
+- 非対象: 今回は実装しない。SG live API、SG Brand、SG SLS runtime、`listing_ready`、handoff、SG operation ACTIVE化、deploy、自動出品、MY / TH runtimeを開始しない。
+- 保護: PHは`ACTIVE / ALLOWED`、SGは`INACTIVE / ALLOWED`、`ph.beta.operation`と`sg.safety.baseline`は`ACCEPTED`のまま維持する。Candidate 15列、Prelisting Gate contract、DB schema、Safety / SLS既存資産、governance/state.json、PH operation、SG operationを変更しない。
+- rollback: docs-only差分を通常revertできる。製品コード、credential、marketplace runtimeを含むrollbackや変更はない。
+- 再検討条件: 共通Token Managerの実装、credential保存、PH live検証、共通Catalog Client、SG production source identity、SG Brand、SLS runtime、listing_ready、handoff、operation ACTIVE化、MY / TH展開を開始する場合は、それぞれ別scope・設計Gate・Owner承認を必要とする。
