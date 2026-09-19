@@ -9,8 +9,12 @@ from pathlib import Path
 import sqlite3
 from typing import Any, Iterable, Mapping
 
+from modules.category_ai_core import CategoryCatalog
+
 
 PH_MARKETPLACE = "PH"
+SG_MARKETPLACE = "SG"
+SUPPORTED_MARKETPLACES = frozenset({PH_MARKETPLACE, SG_MARKETPLACE})
 _INITIAL_PROFILE_PATH = (
     Path(__file__).resolve().parents[1] / "data" / "category_mapper_initial_profiles.csv"
 )
@@ -42,7 +46,7 @@ class CategoryMapperStore:
         self._initialize()
 
     def catalog_status(self, marketplace: str) -> dict[str, Any]:
-        marketplace = _marketplace(marketplace)
+        marketplace = _category_marketplace(marketplace)
         with self._connect() as connection:
             category_row = connection.execute(
                 """
@@ -149,6 +153,57 @@ class CategoryMapperStore:
             )
         return len(normalized)
 
+    def replace_sg_category_catalog(
+        self,
+        catalog: CategoryCatalog,
+        *,
+        synced_at: str | None = None,
+    ) -> int:
+        """Replace the complete validated SG tree without retaining deleted IDs."""
+
+        if not isinstance(catalog, CategoryCatalog) or catalog.marketplace != SG_MARKETPLACE:
+            raise ValueError("A validated SG Category catalog is required.")
+        timestamp = synced_at or utc_now_iso()
+        rows = [
+            (
+                SG_MARKETPLACE,
+                node.category_id,
+                node.parent_category_id,
+                node.category_name,
+                node.category_path,
+                int(node.is_leaf),
+                0,
+                timestamp,
+                catalog.catalog_version,
+            )
+            for node in catalog.nodes
+        ]
+        with self._connect() as connection:
+            connection.execute(
+                "DELETE FROM catalog_categories WHERE marketplace = ?",
+                (SG_MARKETPLACE,),
+            )
+            connection.executemany(
+                """
+                INSERT INTO catalog_categories (
+                    marketplace, category_id, parent_category_id, category_name, category_path,
+                    is_leaf, is_others, synced_at, api_version
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                rows,
+            )
+            connection.execute(
+                """
+                INSERT INTO category_sync_state (marketplace, synced_at, api_status)
+                VALUES (?, ?, 'SUCCESS')
+                ON CONFLICT(marketplace) DO UPDATE SET
+                    synced_at = excluded.synced_at,
+                    api_status = excluded.api_status
+                """,
+                (SG_MARKETPLACE, timestamp),
+            )
+        return len(rows)
+
     def record_category_sync_failure(self, marketplace: str) -> None:
         marketplace = _marketplace(marketplace)
         with self._connect() as connection:
@@ -172,7 +227,7 @@ class CategoryMapperStore:
         parent_category_id: int | None = None,
         limit: int = 100,
     ) -> list[dict[str, Any]]:
-        marketplace = _marketplace(marketplace)
+        marketplace = _category_marketplace(marketplace)
         clauses = ["marketplace = ?"]
         values: list[Any] = [marketplace]
         if query.strip():
@@ -209,7 +264,7 @@ class CategoryMapperStore:
     ) -> list[dict[str, Any]]:
         """Read the complete local tree solely for Category AI Core catalog creation."""
 
-        marketplace = _marketplace(marketplace)
+        marketplace = _category_marketplace(marketplace)
         with self._connect() as connection:
             return [
                 dict(row)
@@ -226,7 +281,7 @@ class CategoryMapperStore:
             ]
 
     def get_category(self, marketplace: str, category_id: int | str | None) -> dict[str, Any] | None:
-        marketplace = _marketplace(marketplace)
+        marketplace = _category_marketplace(marketplace)
         numeric_id = _positive_int(category_id)
         if numeric_id is None:
             return None
@@ -511,7 +566,7 @@ class CategoryMapperStore:
         category_path: str,
         note: str = "",
     ) -> None:
-        marketplace = _marketplace(marketplace)
+        marketplace = _category_marketplace(marketplace)
         with self._connect() as connection:
             connection.execute(
                 """
@@ -548,7 +603,7 @@ class CategoryMapperStore:
         mapping_key_type: str,
         mapping_key: str,
     ) -> dict[str, Any] | None:
-        marketplace = _marketplace(marketplace)
+        marketplace = _category_marketplace(marketplace)
         with self._connect() as connection:
             row = connection.execute(
                 """
@@ -969,7 +1024,14 @@ def _build_category_path(category_id: int, categories: Mapping[int, Mapping[str,
 def _marketplace(value: object) -> str:
     marketplace = _text(value).upper()
     if marketplace != PH_MARKETPLACE:
-        raise ValueError("Category Mapper supports PH only.")
+        raise ValueError("This Category Mapper operation supports PH only.")
+    return marketplace
+
+
+def _category_marketplace(value: object) -> str:
+    marketplace = _text(value).upper()
+    if marketplace not in SUPPORTED_MARKETPLACES:
+        raise ValueError("Category catalog/mapping supports PH and SG only.")
     return marketplace
 
 

@@ -9,6 +9,7 @@ from typing import Any, Iterable, Mapping
 
 import streamlit as st
 
+from modules.category_mapper_sg_ui import render_sg_category_mapper
 from modules.category_ai_core import CategoryAIEngine
 from modules.category_ai_openai import OpenAIResponsesCategoryProvider
 from modules.category_mapper import (
@@ -74,6 +75,7 @@ def render_category_mapper_tab() -> None:
         with area.container():
             st.error("SLS Category dataを検証できないため出力停止")
             st.metric("出品グループ対象", 0)
+    render_sg_category_mapper()
 
 
 def _render_category_mapper_body() -> None:

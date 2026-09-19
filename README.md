@@ -95,6 +95,13 @@ code＋asset更新、再起動、新sessionの順とし、稼働中の差替え�
 
 Category Mapperの「Shopee ACCESS_TOKEN（一時利用）」には、既存管理シートで更新済みのtokenを伏字で貼り付けられます。入力値はそのブラウザsessionのCategory / Brand / Attribute参照だけに使い、設定ファイルやローカルDBへ保存しません。空欄の場合は既存の認証設定を使用します。token更新、refresh、OAuthはCategory Mapperの責務に含みません。
 
+### SG Category Mapper Minimum Beta
+
+SG画面は、全行ELIGIBLEの正式SG Prelisting Gate CSVだけを受け付けます。ファイル名は`prelisting_gate_eligible_sg_expansion.csv`または`prelisting_gate_eligible_sg_resolver.csv`です。PH・市場混在、REVIEW / EXCLUDE、source_type混在、audit CSV、raw Candidate CSVは拒否します。
+
+Category catalogは、`marketplace,category_id,parent_category_id,category_name,category_path,is_leaf`の6列を持つ、出所確認済みSG catalog CSVを使用します。全件を検証してからSG catalogだけをreplaceするため、削除済みIDは残りません。SG SLS canonical / Master MatrixはAI catalogに使用しません。実SG production catalogは別途source確認が必要です。
+
+SG向けCategory AI Core契約はoffline Fake Provider testsで検証しますが、live OpenAI APIは未承認のためSG UIに実行ボタンやprovider生成経路を設けません。現在のSG UIは、検証済みSG catalogから商品単位でleafを手動選択して確定します。確定結果はASIN単位で保存されますが、再利用時に現在catalogのID・path・leafを再検証します。Category確定後も`listing_ready=false`で停止し、SG groups CSV、listing TXT、handoffは出力しません。SG operationはINACTIVEです。
 ### Category AI Benchmark Ver1（独立実験）
 
 Category AI Benchmarkは、現行Category Mapperの推薦を入力にせず、商品Evidenceと指定した
