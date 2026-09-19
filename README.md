@@ -97,6 +97,8 @@ Category Mapperの「Shopee ACCESS_TOKEN（一時利用）」には、既存管�
 
 ### SG Category Mapper Minimum Beta
 
+PR #82はformal mainへ統合済みであり、ここで説明するのはoffline製品実装と安全な停止境界です。SG実運用、実SG production catalog受入、live OpenAI API、listing_ready、handoff、deploy、自動Category確定・出品は受入済みではありません。SG operationはINACTIVEを維持します。
+
 SG画面は、全行ELIGIBLEの正式SG Prelisting Gate CSVだけを受け付けます。ファイル名は`prelisting_gate_eligible_sg_expansion.csv`または`prelisting_gate_eligible_sg_resolver.csv`です。PH・市場混在、REVIEW / EXCLUDE、source_type混在、audit CSV、raw Candidate CSVは拒否します。
 
 Category catalogは、`marketplace,category_id,parent_category_id,category_name,category_path,is_leaf`の6列を持つ、出所確認済みSG catalog CSVを使用します。全件を検証してからSG catalogだけをreplaceするため、削除済みIDは残りません。SG SLS canonical / Master MatrixはAI catalogに使用しません。実SG production catalogは別途source確認が必要です。
