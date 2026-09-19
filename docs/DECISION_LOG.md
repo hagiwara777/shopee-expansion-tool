@@ -928,3 +928,14 @@
 - 影響: PH runtimeだけを開始し、canonical taxonomy + PH assetの境界、SLS resultのfreshness binding、CSV / TXT leakage防止、既存Safety非解除を正式成果として維持する。Candidate15列、Prelisting Gate contract、DB schema、非PH runtimeは不変である。governance/state.jsonの既存market / capability lifecycleを変更する必要はない。
 - rollback: SLS追加単位を通常revertし、app restart→new sessionで戻す。DB migrationはなく、既存Category / Brand DBと前工程Safetyを維持する。
 - 再検討条件: 新しい一次source、source hash不一致、PH実利用での停止理由または漏洩Evidence、REVIEW override要求、non-PH runtime開始、または既存Safetyとの競合が生じた場合。いずれも別タスク・別判断とする。
+
+## DEC-0078 — SG Category Mapper Minimum Betaの開発再開を正本化する
+
+- 日付: 2026-09-19
+- 背景: SLS Market Category Rules Minimum Betaのformal main受入後、OwnerはSG Category Mapper以降の開発再開を承認し、SG Category Mapper Minimum Betaの設計報告をDESIGN_GATE PASSとして受入した。governance/state.jsonではSG development_policyがPAUSEDのままであり、stop_condition_idsに`pause-sg-product-development`が残っていたため、製品実装前に正式状態を更新する必要があった。
+- 決定: SG operationはINACTIVEのまま維持し、SG development_policyをALLOWEDへ変更する。`pause-sg-product-development`停止条件だけを除去する。今回許可する範囲はSG Category Mapper Minimum Betaの開発再開であり、SG実運用開始、SG Brand、SG SLS runtime、`listing_ready`、handoff、live Shopee / Keepa / OpenAI API、deploy、自動Category確定、自動出品は承認しない。
+- 保護: PHはACTIVE / ALLOWED、`ph.beta.operation`はACCEPTEDのまま維持する。`sg.safety.baseline`もACCEPTEDのまま維持し、protected capabilityを削除または変更しない。Governance schema、mandatory gate定義、Trust Anchor、rollback_target、MY / TH状態、既存Safety Rule、SLS asset、製品runtimeは変更しない。
+- 理由: Owner承認済みのSG Category Mapper Minimum Beta開発だけを再開可能にしつつ、SG operationと出品系・live系の境界を閉じたまま保つため。PAUSED状態と停止条件を残したままだと、設計PASS後の最小製品実装へ進む正式状態と矛盾するため。
+- 影響: 変更分類はGovernance変更として扱い、mandatory technical gatesとPH / SG protected capability gateで回帰保護する。formal mainへ統合された後の次工程は、SG Category Mapper Minimum Betaの最小製品実装であり、Brand / SLS runtime / Handoffは後続独立工程とする。
+- rollback: 今回のgovernance/docs/test差分を通常revertし、SGをINACTIVE / PAUSEDへ戻して`pause-sg-product-development`停止条件を復元する。PH operation、既存Category/Brand DB、SLS資産、前工程Safetyは維持する。
+- 再検討条件: SG operation ACTIVE化、Brand、SG SLS runtime、`listing_ready`、handoff、live API、deploy、自動Category確定、自動出品、またはMY / TH開発開始を検討する場合。いずれも別タスク・別設計Gate・別Owner承認を必要とする。

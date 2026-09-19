@@ -69,7 +69,7 @@ ASIN到達性能とResolver成功は未評価であり、Evidence Persistenceの
 
 ### 3. Category決定
 
-- Category Mapper（Safety判定を通過した候補について、対象市場ごとのCategory IDを決定・確認する。現在はPHのみ）
+- Category Mapper（Safety判定を通過した候補について、対象市場ごとのCategory IDを決定・確認する。PHは正式成果あり、SGはCategory Mapper Minimum Betaの開発再開を許可済み）
 - Category predictionとSafety判定を混同しない
 
 ### 4. Category依存Safety
@@ -246,7 +246,8 @@ DEC-0049の`BETA_AFTER_CANDIDATE`、DB化、他市場展開、出品後商品改
 - 既存出品ツールの正式入力契約の証拠回収（自動投入またはE2E接続を検討する場合）
 - Category自動確定
 - 自動出品
-- SG／MY／THの実装
+- SG Brand / SG SLS runtime / SG Handoffの実装（SG Category Mapper Minimum Betaとは別工程）
+- MY／THの実装
 - AI候補の1クリック採用 Ver0.3
 - wrong category蓄積 Ver0.4
 
@@ -255,8 +256,8 @@ DEC-0049の`BETA_AFTER_CANDIDATE`、DB化、他市場展開、出品後商品改
 - 証拠保存機能の完成だけでResolver成功を宣言しない。
 - Resolver成功は英字商品名から正しいASINへの到達性能で判断する。
 - 未確認の既存出品ツール契約を実装済みとして扱わない。
-- PHで成立確認後にSG／MYへ進む。
-- SG／MYの順序は証拠と事業判断なしに固定しない。
+- SG Category Mapper Minimum BetaはDESIGN_GATE PASS受入により開発再開する。SG operationはINACTIVEを維持し、Brand、SLS runtime、Handoffは後続独立工程とする。
+- MY／THの順序は証拠と事業判断なしに固定しない。
 - 出品支援ツールの内部工程間の連携は、必要な場合に別設計ゲートを通す。
 - Category Mapper AI Shadowと自動出品は、明示承認なしに開始しない。
 
@@ -266,8 +267,8 @@ DEC-0049の`BETA_AFTER_CANDIDATE`、DB化、他市場展開、出品後商品改
 
 1. Versioned State / Config / schema、repo外Task Context、Trust Anchor、Generator / Verifierをformal mainへ統合する。
 2. PH Beta運用を継続し、`ph.beta.operation`をprotected capabilityとして回帰保護する。
-3. SGはoperation INACTIVE / development PAUSEDのまま、`sg.safety.baseline`だけをprotected capabilityとして維持する。
-4. SG Category / Brand / Handoffへ戻る条件は、Ver2 formal main統合、管理基盤受入、PH/SG保護gate成立、別タスク開始承認である。
+3. SGはoperation INACTIVE / development ALLOWEDとし、SG Category Mapper Minimum Betaの開発再開だけを許可する。`sg.safety.baseline`はprotected capabilityとして維持する。
+4. SG Brand / SLS runtime / Handoffへ戻る条件は、SG Category Mapper Minimum Betaとは別の設計Gate、PH/SG保護gate成立、別タスク開始承認である。
 5. MY / THはNOT_STARTEDを維持し、capabilityを先行定義しない。
 
 Governance CIはbranch protectionと独立してmandatory checkを評価する。初期checkは

@@ -3,7 +3,7 @@
   "config_version": "2.0.0",
   "markets": {
     "PH": {"operation": "ACTIVE", "development_policy": "ALLOWED"},
-    "SG": {"operation": "INACTIVE", "development_policy": "PAUSED"},
+    "SG": {"operation": "INACTIVE", "development_policy": "ALLOWED"},
     "MY": {"operation": "INACTIVE", "development_policy": "NOT_STARTED"},
     "TH": {"operation": "INACTIVE", "development_policy": "NOT_STARTED"}
   },
@@ -26,7 +26,6 @@
     "no-external-api-without-approval",
     "no-my-th-product-work",
     "no-publication-without-approval",
-    "pause-sg-product-development",
     "preserve-ph-operation"
   ],
   "open_items": [],
