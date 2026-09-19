@@ -952,3 +952,13 @@
 - Governance: 共通AI adapter、store、UI接続、PH-only export guardを含むため変更分類はSHARED_COREとして扱い、`ph.beta.operation`と`sg.safety.baseline`のmandatory protected gatesを実行する。branch上の実装・tests・Draft PR / CI候補であり、Owner Acceptanceとformal main統合前は正式成果と扱わない。
 - rollback: SG固有module / UI / tests、共通AI adapterのmarketplace対応、SG catalog replace、PH-only export guard、docsを通常revertする。DB migrationはない。PH operation、PH catalog / mapping、SLS asset、Safety assetを維持する。
 - 再検討条件: 実SG production catalogのsource identityを確定する場合、Evidence hashによる自動失効、SG Brand / SLS runtime / listing_ready / Handoff、operation ACTIVE化、live API、deploy、自動Category確定または自動出品へ進む場合。いずれも別工程・別承認とする。
+
+## DEC-0080 — SG UIのlive OpenAI実行経路を別承認まで閉じる
+
+- 日付: 2026-09-19
+- 背景: PR #82 head `e7e70d909fc7b58f6b623acd5649acc5d0abc277`のOwner Acceptance前レビューで、SG UIのAI候補作成ボタンが`OpenAIResponsesCategoryProvider.from_environment()`を生成し、通常操作から未承認のlive OpenAI APIへ到達できるscope blockerを確認した。CIでlive requestを実行していない事実だけでは、formal main統合後の通常UI経路を閉じたことにならない。
+- 決定: SG UIからlive OpenAI provider import・生成、AI候補実行ボタン、AI候補採用UI、AI session resultを除去する。SG UIには「live実行は未承認、現在は手動Category確認のみ利用可能」と表示する。環境変数だけで有効になるfallbackや隠れた自動実行経路を設けない。
+- 維持: Category AI CoreのSG対応、`generate_sg_ai_category_suggestions`、ProductEvidence marketplace=SG、固定Luna profile、Fake Provider / synthetic catalogによるoffline tests、AI候補が自動確定しない契約は維持する。商品単位手動確認、ASIN単位保存、現在catalog再検証、`listing_ready=false`、SG export停止、PH AI導線も変更しない。
+- 境界: 実SG catalog確認とlive OpenAI検証・UI有効化は後続の別Owner承認とする。SG operation ACTIVE化、Brand、SLS runtime、listing_ready、handoff、deploy、自動Category確定、自動出品は引き続き未承認である。
+- Governance: 変更分類はSHARED_COREを維持し、全mandatory technical gates、PH / SG protected回帰、CI、formal verifierを新headへ再bindingする。旧headのOwner Acceptance Summaryは失効する。
+- rollback: 本修正commitを通常revertすると未承認live API UI経路が復帰するため、単独revertは行わない。PR #82全体を戻す場合はPRの全commitを通常revertし、SG operation INACTIVEと既存PH運用を維持する。

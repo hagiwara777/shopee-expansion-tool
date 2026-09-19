@@ -6,7 +6,7 @@
 
 SG Category Mapper Minimum Betaの最小製品実装を、formal main `15e3ce242953bfa7592e0d89d790d85db8512f83`を基点とする専用branchで検証している。正式フローは、共通Safety → SG Safety → Prelisting Gate → SG Category Mapper（AI候補 → 商品単位の人間確認 → Category確定）→ STOPである。
 
-入力は全行ELIGIBLEの正式SG Prelisting Gate CSVだけとする。出所確認済みSG Category catalogは全件validation後にSG分をreplaceし、古いSG IDをmergeで残さない。AIは既存Category AI Coreと固定Luna profileを候補提示だけに使い、confidenceにかかわらず自動確定しない。Category確定は現在のSG catalogにあるID・path一致・leafを再確認し、既存marketplace付きDBへASIN単位で保存する。保存済み結果も再表示時に現在catalogへ再検証する。
+入力は全行ELIGIBLEの正式SG Prelisting Gate CSVだけとする。出所確認済みSG Category catalogは全件validation後にSG分をreplaceし、古いSG IDをmergeで残さない。既存Category AI Core、固定Luna profile、SG ProductEvidenceのoffline契約は維持するが、live OpenAI APIは未承認のためSG UIからproviderを生成せず、live AI実行ボタンを表示しない。現在のUIは検証済みSG catalogからの商品単位手動確認だけを提供する。Category確定は現在catalogにあるID・path一致・leafを再確認し、既存marketplace付きDBへASIN単位で保存する。保存済み結果も再表示時に現在catalogへ再検証する。
 
 PH runtimeはACTIVE / ALLOWED、SG operationはINACTIVE / development ALLOWEDを維持する。`ph.beta.operation`と`sg.safety.baseline`をprotected capabilityとして保護し、Battery、Community NG、own penalty、その他既存BLOCK / REVIEWをCategory確認で解除しない。DB migration、Candidate 15列、Prelisting Gate公開contractは変更しない。
 

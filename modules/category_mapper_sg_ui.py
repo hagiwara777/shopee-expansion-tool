@@ -6,24 +6,13 @@ import hashlib
 
 import streamlit as st
 
-from modules.category_ai_core import CategoryAIEngine
-from modules.category_ai_openai import OpenAIResponsesCategoryProvider
 from modules.category_mapper import parse_resolver_title_csv
-from modules.category_mapper_ai import (
-    AI_ABSTAIN,
-    AI_CATALOG_MISMATCH,
-    AI_FAILED,
-    AI_SKIPPED_CONFIRMED,
-    AICategorySuggestionBatch,
-    load_luna_request_profile,
-)
 from modules.category_mapper_sg import (
     SGCategoryMapperError,
     SGMapperRecommendation,
     build_sg_category_ai_catalog,
     build_sg_recommendations,
     confirm_sg_category,
-    generate_sg_ai_category_suggestions,
     parse_sg_category_catalog,
     parse_sg_category_mapper_input,
     replace_sg_category_catalog,
@@ -34,12 +23,10 @@ from modules.category_mapper_store import CategoryMapperStore
 _SG_RESULT_KEY = "sg_category_mapper_recommendations"
 _SG_FINGERPRINT_KEY = "sg_category_mapper_input_fingerprint"
 _SG_SOURCE_TYPE_KEY = "sg_category_mapper_source_type"
-_SG_AI_RESULT_KEY = "sg_category_mapper_ai_suggestions"
 _SG_STATE_KEYS = (
     _SG_RESULT_KEY,
     _SG_FINGERPRINT_KEY,
     _SG_SOURCE_TYPE_KEY,
-    _SG_AI_RESULT_KEY,
 )
 
 
@@ -49,8 +36,12 @@ def render_sg_category_mapper() -> None:
     st.divider()
     st.subheader("SG Category Mapper Minimum Beta")
     st.caption(
-        "SG Gate ELIGIBLE商品へAI候補を提示し、商品単位の人間確認でCategoryだけを保存します。"
+        "SG Gate ELIGIBLE商品を商品単位の人間確認でCategoryだけ保存します。"
         "Category確定後も listing_ready=false のまま停止します。"
+    )
+    st.info(
+        "SG AI Category候補のlive実行は未承認です。現在は検証済みSG catalogからの"
+        "手動Category確認だけを利用できます。"
     )
     store = CategoryMapperStore()
     _render_catalog_import(store)
@@ -78,7 +69,6 @@ def render_sg_category_mapper() -> None:
         icon=":material/playlist_add_check:",
         key="sg_category_mapper_build",
     ):
-        st.session_state.pop(_SG_AI_RESULT_KEY, None)
         try:
             build_sg_category_ai_catalog(store)
             source = parse_sg_category_mapper_input(
@@ -113,7 +103,6 @@ def render_sg_category_mapper() -> None:
     if not recommendations or st.session_state.get(_SG_FINGERPRINT_KEY) != fingerprint:
         return
     recommendations = tuple(recommendations)
-    _render_ai_action(recommendations, store)
     _render_products(recommendations, store)
 
 
@@ -155,66 +144,6 @@ def _render_catalog_import(store: CategoryMapperStore) -> None:
                 st.rerun()
 
 
-def _sg_category_ai_engine() -> CategoryAIEngine:
-    provider = OpenAIResponsesCategoryProvider.from_environment()
-    return CategoryAIEngine(provider)
-
-
-def _render_ai_action(
-    recommendations: tuple[SGMapperRecommendation, ...],
-    store: CategoryMapperStore,
-) -> None:
-    st.subheader("SG AI Category候補")
-    st.caption(
-        "固定Luna profileによる候補提示です。confidence=1.0でもCategoryは確定されません。"
-    )
-    pending_count = sum(not item.category_is_confirmed for item in recommendations)
-    if st.button(
-        "SG AI Category候補を作成（Luna）",
-        icon=":material/psychology:",
-        key="sg_category_mapper_build_ai_suggestions",
-        disabled=pending_count == 0,
-    ):
-        st.session_state.pop(_SG_AI_RESULT_KEY, None)
-        try:
-            batch = generate_sg_ai_category_suggestions(
-                recommendations,
-                store=store,
-                engine=_sg_category_ai_engine(),
-                catalog=build_sg_category_ai_catalog(store),
-                profile=load_luna_request_profile(),
-            )
-        except Exception:
-            st.error(
-                "SG AI候補を作成できませんでした。未確定のまま、手動Category選択を利用できます。"
-            )
-        else:
-            st.session_state[_SG_AI_RESULT_KEY] = batch
-
-    batch = st.session_state.get(_SG_AI_RESULT_KEY)
-    if not isinstance(batch, AICategorySuggestionBatch):
-        return
-    first, second, third = st.columns(3)
-    first.metric("候補", batch.success_count)
-    second.metric("失敗", batch.failure_count)
-    third.metric("未選択", batch.skip_count)
-    st.dataframe(
-        [
-            {
-                "ASIN": item.candidate_asin,
-                "AI状態": item.status,
-                "Category ID": item.predicted_category_id or "",
-                "Category候補": item.predicted_category_path,
-                "confidence": "" if item.confidence is None else f"{item.confidence:.3f}",
-                "理由": item.short_reason,
-                "error": item.error_code,
-            }
-            for item in batch.suggestions
-        ],
-        hide_index=True,
-    )
-
-
 def _render_products(
     recommendations: tuple[SGMapperRecommendation, ...],
     store: CategoryMapperStore,
@@ -225,8 +154,7 @@ def _render_products(
         f"Category確認済み: {confirmed_count}/{len(recommendations)}件 / "
         "SG listing_ready: 0件 / export: 停止"
     )
-    batch = st.session_state.get(_SG_AI_RESULT_KEY)
-    suggestions = batch.by_asin() if isinstance(batch, AICategorySuggestionBatch) else {}
+
     for index, recommendation in enumerate(recommendations):
         with st.expander(f"{recommendation.candidate_asin} / {recommendation.product_title}"):
             st.dataframe(
@@ -248,39 +176,7 @@ def _render_products(
                     f"ID {recommendation.recommended_category_id} / listing_ready=false / STOP"
                 )
                 continue
-            suggestion = suggestions.get(recommendation.candidate_asin)
-            if suggestion is not None:
-                _render_ai_suggestion(index, recommendation, suggestion, store)
             _render_manual_selection(index, recommendation, store)
-
-
-def _render_ai_suggestion(index, recommendation, suggestion, store) -> None:
-    st.markdown("##### AI候補（未確定）")
-    if suggestion.status in {AI_ABSTAIN, AI_FAILED, AI_CATALOG_MISMATCH, AI_SKIPPED_CONFIRMED}:
-        st.info(f"AI状態: {suggestion.status} / Categoryは未確定です。")
-        return
-    st.write(suggestion.predicted_category_path)
-    st.caption(
-        f"ID {suggestion.predicted_category_id} / confidence "
-        f"{suggestion.confidence if suggestion.confidence is not None else '未取得'}"
-    )
-    if st.button(
-        "このAI候補を人間確認して採用",
-        type="primary",
-        key=f"sg_category_mapper_apply_ai_{index}",
-    ):
-        try:
-            updated = confirm_sg_category(
-                recommendation,
-                store=store,
-                category_id=int(suggestion.predicted_category_id),
-                expected_category_path=suggestion.predicted_category_path,
-            )
-        except SGCategoryMapperError as exc:
-            st.error(str(exc))
-        else:
-            _replace_one(updated)
-            st.rerun()
 
 
 def _render_manual_selection(
@@ -342,9 +238,6 @@ def _replace_one(updated: SGMapperRecommendation) -> None:
         updated if item.candidate_asin == updated.candidate_asin else item
         for item in current
     )
-    batch = st.session_state.get(_SG_AI_RESULT_KEY)
-    if isinstance(batch, AICategorySuggestionBatch):
-        st.session_state[_SG_AI_RESULT_KEY] = batch.without_asins({updated.candidate_asin})
 
 
 def _input_fingerprint(

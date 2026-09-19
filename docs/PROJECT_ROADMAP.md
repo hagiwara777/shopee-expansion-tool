@@ -256,7 +256,7 @@ DEC-0049の`BETA_AFTER_CANDIDATE`、DB化、他市場展開、出品後商品改
 - 証拠保存機能の完成だけでResolver成功を宣言しない。
 - Resolver成功は英字商品名から正しいASINへの到達性能で判断する。
 - 未確認の既存出品ツール契約を実装済みとして扱わない。
-- SG Category Mapper Minimum BetaはDESIGN_GATE PASS受入により開発を再開し、正式SG Gate入力、検証済みSG catalog、AI候補、商品単位の人間確認、ASIN単位保存までの実装候補を検証する。SG operationはINACTIVE、Category確定後も`listing_ready=false`を維持し、Brand、SLS runtime、Handoffは後続独立工程とする。
+- SG Category Mapper Minimum BetaはDESIGN_GATE PASS受入により開発を再開し、正式SG Gate入力、検証済みSG catalog、Category AI Coreのoffline候補契約、商品単位の人間確認、ASIN単位保存までの実装候補を検証する。live OpenAI APIは別Owner承認までSG UIから利用できず、現在は手動Category確認だけを提供する。SG operationはINACTIVE、Category確定後も`listing_ready=false`を維持し、Brand、SLS runtime、Handoffは後続独立工程とする。
 - MY／THの順序は証拠と事業判断なしに固定しない。
 - 出品支援ツールの内部工程間の連携は、必要な場合に別設計ゲートを通す。
 - Category Mapper AI Shadowと自動出品は、明示承認なしに開始しない。

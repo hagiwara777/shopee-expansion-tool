@@ -11,6 +11,7 @@ from modules.category_mapper_sg import (
     replace_sg_category_catalog,
 )
 from modules.category_mapper_store import CategoryMapperStore
+from modules.category_ai_openai import OpenAIResponsesCategoryProvider
 from modules.prelisting_gate_csv import PRELISTING_GATE_RESULT_COLUMNS
 
 
@@ -92,10 +93,27 @@ def _seed_sg_catalog(tmp_path):
     replace_sg_category_catalog(store, catalog, synced_at="2026-09-19T00:00:00+00:00")
 
 
+def _forbid_live_openai(monkeypatch):
+    calls = []
+
+    def forbidden_provider():
+        calls.append(True)
+        raise AssertionError("SG UI must not construct a live OpenAI provider")
+
+    monkeypatch.setattr(
+        OpenAIResponsesCategoryProvider,
+        "from_environment",
+        staticmethod(forbidden_provider),
+    )
+    return calls
+
+
 def test_sg_category_mapper_ui_exposes_isolated_minimum_beta(monkeypatch, tmp_path):
+    provider_calls = _forbid_live_openai(monkeypatch)
     app = _test_app(monkeypatch, tmp_path)
 
     assert not app.exception
+    assert provider_calls == []
     assert any(item.value == "SG Category Mapper Minimum Beta" for item in app.subheader)
     assert app.file_uploader(key="sg_category_mapper_catalog_csv").label == (
         "出所確認済みSG Category catalog CSV"
@@ -107,9 +125,15 @@ def test_sg_category_mapper_ui_exposes_isolated_minimum_beta(monkeypatch, tmp_pa
         button.key and button.key.startswith("sg_category_mapper_")
         for button in app.download_button
     )
+    assert not any(
+        button.key == "sg_category_mapper_build_ai_suggestions" for button in app.button
+    )
+    assert not any("SG AI Category候補を作成" in button.label for button in app.button)
+    assert any("live実行は未承認" in str(item.value) for item in app.info)
 
 
 def test_sg_category_mapper_ui_confirms_one_product_and_stops(monkeypatch, tmp_path):
+    provider_calls = _forbid_live_openai(monkeypatch)
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "localappdata"))
     monkeypatch.setattr(logging.Logger, "warning", _standard_logger_warning)
     _seed_sg_catalog(tmp_path)
@@ -136,6 +160,10 @@ def test_sg_category_mapper_ui_confirms_one_product_and_stops(monkeypatch, tmp_p
     assert confirmed.recommended_category_id == 900001
     assert confirmed.listing_ready is False
     assert confirmed.group_key == ""
+    assert provider_calls == []
+    assert not any(
+        button.key == "sg_category_mapper_build_ai_suggestions" for button in app.button
+    )
     assert any("SG listing_ready: 0件 / export: 停止" in str(item.value) for item in app.caption)
     assert not any(
         button.key and button.key.startswith("sg_category_mapper_")
