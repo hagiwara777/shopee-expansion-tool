@@ -962,3 +962,13 @@
 - 境界: 実SG catalog確認とlive OpenAI検証・UI有効化は後続の別Owner承認とする。SG operation ACTIVE化、Brand、SLS runtime、listing_ready、handoff、deploy、自動Category確定、自動出品は引き続き未承認である。
 - Governance: 変更分類はSHARED_COREを維持し、全mandatory technical gates、PH / SG protected回帰、CI、formal verifierを新headへ再bindingする。旧headのOwner Acceptance Summaryは失効する。
 - rollback: 本修正commitを通常revertすると未承認live API UI経路が復帰するため、単独revertは行わない。PR #82全体を戻す場合はPRの全commitを通常revertし、SG operation INACTIVEと既存PH運用を維持する。
+
+## DEC-0081 — SG Category Mapper Minimum Betaのoffline成果をformal mainで正式受入する
+
+- 日付: 2026-09-19
+- 背景: Owner Acceptance済みのPR #82は、accepted head `c2f15648d189d2d885fe97bda96c3464fcf2fa48`を含むmerge commit `925e022810b0953df4b51ecfb976ce089e06892c`でformal mainへ統合された。DEC-0079のbranch上候補およびDEC-0080のlive OpenAI UI閉鎖を、現在の正式成果・既知制約・次工程境界として記録する必要がある。
+- 正式受入範囲: 全行ELIGIBLEの正式SG Prelisting Gate CSV入力、SG-only catalog replace前の全件validation、Category AI CoreのSG offline契約、`marketplace=SG`のProductEvidence、Fake Providerによるoffline AI検証、商品単位の人間Category確認、ASIN単位保存、保存済みCategoryの現在catalog ID / path / leaf再検証、`listing_ready=false`、SG export / handoff停止を正式成果とする。SG UIにはlive OpenAI providerの生成・実行経路を置かない。PH AI / Brand / SLS / exportは維持する。
+- 未受入範囲: 実SG production Category catalogのsource identity、実catalogを使う実商品受入、SG live OpenAI API、SG AI意味精度、SG Brand、SG SLS runtime、listing_ready、handoff、deploy、自動Category確定、自動出品、Evidence hashによる完全自動失効は受入していない。SG Minimum Betaの実運用完成またはSG operation開始を意味しない。
+- Governance: SG operationはINACTIVE、development_policyはALLOWEDのままとする。PHはACTIVE / ALLOWED、`ph.beta.operation`と`sg.safety.baseline`はACCEPTEDのprotected capabilityのままとし、capability lifecycle、Safety、SLS、Candidate 15列、Prelisting Gate contract、DB schemaを変更しない。
+- rollback: PR #82の製品変更を戻す場合は、対象commit群を通常revertし、DB migrationを伴わずSG operation INACTIVEとPH operationを維持する。今回の文書正本化だけを戻す場合はdocs-only change setを通常revertする。DEC-0080が閉じた未承認live OpenAI UI経路を単独で復帰させない。
+- 再検討条件: production catalog source identity、実catalog / 実商品の受入、live OpenAI API、AI精度、SG Brand、SLS runtime、listing_ready、handoff、operation ACTIVE化、deploy、自動Category確定または自動出品を検討する場合。いずれも新規Codexタスク、別scope・設計Gate・Owner承認を必要とする。
