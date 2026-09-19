@@ -939,3 +939,16 @@
 - 影響: 変更分類はGovernance変更として扱い、mandatory technical gatesとPH / SG protected capability gateで回帰保護する。formal mainへ統合された後の次工程は、SG Category Mapper Minimum Betaの最小製品実装であり、Brand / SLS runtime / Handoffは後続独立工程とする。
 - rollback: 今回のgovernance/docs/test差分を通常revertし、SGをINACTIVE / PAUSEDへ戻して`pause-sg-product-development`停止条件を復元する。PH operation、既存Category/Brand DB、SLS資産、前工程Safetyは維持する。
 - 再検討条件: SG operation ACTIVE化、Brand、SG SLS runtime、`listing_ready`、handoff、live API、deploy、自動Category確定、自動出品、またはMY / TH開発開始を検討する場合。いずれも別タスク・別設計Gate・別Owner承認を必要とする。
+
+## DEC-0079 — SG Category Mapper Minimum Betaを商品単位確認で実装する
+
+- 日付: 2026-09-19
+- authority: Ownerが受入済みのSG Category Mapper Minimum Beta DESIGN_GATE PASS、およびformal main `15e3ce242953bfa7592e0d89d790d85db8512f83`後の最小製品実装・offline検証・Draft PR / CI承認。formal main mergeはexact headにbindingしたOwner Acceptanceまで行わない。
+- 決定: 全行ELIGIBLEの正式SG Prelisting Gate CSVだけを受理し、PH・市場混在・REVIEW / EXCLUDE・audit・raw Candidate・schema不正・source_type混在をfail closedで拒否する。出所確認済みSG Category catalogはID、parent、name、path、leafを全件validationした後、SG分だけをtransactional replaceする。古いSG catalogとのmerge、SG SLS canonical / Master MatrixのAI catalog利用、PH catalog変更を行わない。
+- 決定: 既存Category AI Core、ProductEvidence、CategoryCatalog、Prompt V1 / Traversal V1、固定Luna profileを再利用し、SG固有制御層で商品EvidenceからCategory候補だけを提示する。過去推薦・過去確定Category・Safety・Gold・SLSをAI入力にせず、confidence=1.0、ABSTAIN、FAILED、invalid response、catalog mismatchのいずれでも自動確定しない。
+- 決定: 人間確認は商品単位とし、AI候補の採用または現在の検証済みSG catalogにある別leafの選択で確定する。確定時にSG marketplace、Category ID、path一致、leafを再検証し、既存marketplace付きDBへASIN単位で保存する。DB migrationとgroup一括確定は行わない。保存済みCategoryも現在catalogに対してID・path・leafを再検証し、不一致なら未確定へ戻す。catalog hash / Evidence hashの永続保存はBeta後候補とする。
+- 停止境界: SG Category確定後も`listing_ready=false`とし、groups CSV、listing TXT、handoffへ出力しない。直接export入口もPH-onlyとしてSGを拒否する。SG Brand、SG SLS runtime、listing_ready、handoff、live Shopee / Keepa / OpenAI API、deploy、自動Category確定、自動出品は本工程に含めない。SG operationはINACTIVEを維持する。
+- 保護: PH Category Mapperのdeterministic mapping、initial profile、Brand / No Brand、Attribute、PH SLS、listing_ready出口は維持する。Category確定でSG Safety Baseline、Shared Battery、Community NG、own penalty、その他BLOCK / REVIEWを解除しない。Candidate 15列とPrelisting Gate公開contractは不変とする。
+- Governance: 共通AI adapter、store、UI接続、PH-only export guardを含むため変更分類はSHARED_COREとして扱い、`ph.beta.operation`と`sg.safety.baseline`のmandatory protected gatesを実行する。branch上の実装・tests・Draft PR / CI候補であり、Owner Acceptanceとformal main統合前は正式成果と扱わない。
+- rollback: SG固有module / UI / tests、共通AI adapterのmarketplace対応、SG catalog replace、PH-only export guard、docsを通常revertする。DB migrationはない。PH operation、PH catalog / mapping、SLS asset、Safety assetを維持する。
+- 再検討条件: 実SG production catalogのsource identityを確定する場合、Evidence hashによる自動失効、SG Brand / SLS runtime / listing_ready / Handoff、operation ACTIVE化、live API、deploy、自動Category確定または自動出品へ進む場合。いずれも別工程・別承認とする。

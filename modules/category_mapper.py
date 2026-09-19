@@ -682,9 +682,12 @@ def refresh_sls_results(
 
 
 def build_mapper_exports(recommendations: Iterable[MapperRecommendation]) -> MapperExportBundle:
-    """Serialize detailed audit data, ready-only groups, and paste-ready text."""
+    """Serialize PH audit data and fail closed before any non-PH export."""
 
-    ordered = refresh_sls_results(recommendations, context=load_ph_context())
+    materialized = tuple(recommendations)
+    if any(item.marketplace != PH_MARKETPLACE for item in materialized):
+        raise ValueError("CATEGORY_MAPPER_EXPORT_PH_ONLY")
+    ordered = refresh_sls_results(materialized, context=load_ph_context())
     recommendation_rows = [_recommendation_row(item) for item in ordered]
     ready = [item for item in ordered if item.listing_ready]
     grouped: dict[str, list[MapperRecommendation]] = {}

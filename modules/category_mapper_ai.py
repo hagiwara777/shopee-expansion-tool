@@ -15,7 +15,6 @@ from modules.category_ai_core import (
     Prediction,
     ProductEvidence,
 )
-from modules.category_mapper import MapperRecommendation
 from modules.category_mapper_store import CategoryMapperStore
 
 
@@ -40,6 +39,16 @@ class CategoryPredictionEngine(Protocol):
         catalog: CategoryCatalog,
         profile: BenchmarkRequestProfile,
     ) -> Prediction: ...
+
+
+class CategorySuggestionInput(Protocol):
+    marketplace: str
+    candidate_asin: str
+    product_title: str
+    keepa_category: str
+    keepa_brand: str
+    resolver_input_title: str
+    category_is_confirmed: bool
 
 
 @dataclass(frozen=True)
@@ -141,7 +150,7 @@ def build_category_ai_catalog(
 
 
 def generate_ai_category_suggestions(
-    recommendations: Sequence[MapperRecommendation],
+    recommendations: Sequence[CategorySuggestionInput],
     *,
     store: CategoryMapperStore,
     engine: CategoryPredictionEngine,
@@ -152,8 +161,10 @@ def generate_ai_category_suggestions(
 
     if profile.model != LUNA_MODEL:
         raise ValueError("Category Mapper Minimum Beta requires gpt-5.6-luna.")
-    if catalog.marketplace != "PH":
-        raise ValueError("Category Mapper Minimum Beta requires the PH catalog.")
+    marketplaces = {item.marketplace.strip().upper() for item in recommendations}
+    if marketplaces and marketplaces != {catalog.marketplace}:
+        raise ValueError("Recommendations and Category catalog marketplace differ.")
+    marketplace = catalog.marketplace
 
     suggestions: list[AICategorySuggestion] = []
     for recommendation in recommendations:
@@ -166,7 +177,7 @@ def generate_ai_category_suggestions(
             )
             continue
         product = ProductEvidence(
-            marketplace="PH",
+            marketplace=marketplace,
             case_id=recommendation.candidate_asin,
             asin=recommendation.candidate_asin,
             product_title=recommendation.product_title,
@@ -197,6 +208,7 @@ def generate_ai_category_suggestions(
         suggestions.append(
             _validated_suggestion(
                 recommendation.candidate_asin,
+                marketplace=marketplace,
                 prediction=prediction,
                 catalog=catalog,
                 store=store,
@@ -228,6 +240,7 @@ def group_consensus_suggestion(
 def _validated_suggestion(
     candidate_asin: str,
     *,
+    marketplace: str,
     prediction: Prediction,
     catalog: CategoryCatalog,
     store: CategoryMapperStore,
@@ -253,7 +266,7 @@ def _validated_suggestion(
         )
     category_id = prediction.predicted_category_id
     core_node = catalog.get(category_id) if category_id is not None else None
-    mapper_node = store.get_category("PH", category_id)
+    mapper_node = store.get_category(marketplace, category_id)
     if (
         core_node is None
         or not core_node.is_leaf
