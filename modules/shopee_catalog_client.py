@@ -468,15 +468,6 @@ def _decode_mapping_or_none(raw: bytes) -> Mapping[str, Any] | None:
     return decoded if isinstance(decoded, Mapping) else None
 
 
-def _safe_message(value: object) -> str | None:
-    if not isinstance(value, str):
-        return None
-    message = value.strip().replace("\r", " ").replace("\n", " ")
-    if not message or len(message) > 240 or "://" in message or "?" in message:
-        return None
-    return message
-
-
 def _api_error_message(
     endpoint_path: str,
     http_status: int | None,
@@ -486,10 +477,6 @@ def _api_error_message(
     details = [f"Catalog API request failed at {endpoint_path}."]
     if http_status is not None:
         details.append(f"HTTP {http_status}.")
-    if isinstance(error, str) and error and len(error) <= 64 and all(
-        character.islower() or character.isdigit() or character in "_.-" for character in error
-    ):
-        details.append(f"Shopee error: {error}.")
     return " ".join(details)
 
 

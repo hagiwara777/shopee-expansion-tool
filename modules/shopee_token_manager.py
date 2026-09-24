@@ -289,6 +289,7 @@ def _exclusive_lock(path: Path) -> Iterator[None]:
 def _harden_windows_acl(path: Path) -> None:
     if os.name != "nt":
         return
+    stage = "identity"
     try:
         import csv
         import ctypes
@@ -302,6 +303,7 @@ def _harden_windows_acl(path: Path) -> None:
         if not re.fullmatch(r"S-1-(?:[0-9]+-)+[0-9]+", sid):
             raise ValueError
 
+        stage = "api_setup"
         advapi = ctypes.WinDLL("advapi32", use_last_error=True)
         kernel = ctypes.WinDLL("kernel32", use_last_error=True)
         dacl_info = 0x00000004
@@ -326,6 +328,7 @@ def _harden_windows_acl(path: Path) -> None:
         kernel.LocalFree.argtypes = [ctypes.c_void_p]
         kernel.LocalFree.restype = ctypes.c_void_p
 
+        stage = "descriptor"
         flags = "OICI" if path.is_dir() else ""
         sddl = f"D:P(A;{flags};FA;;;{sid})(A;{flags};FA;;;SY)(A;{flags};FA;;;BA)"
         descriptor = ctypes.c_void_p()
@@ -334,11 +337,13 @@ def _harden_windows_acl(path: Path) -> None:
         ):
             raise OSError
         try:
+            stage = "set_acl"
             if not advapi.SetFileSecurityW(str(path), dacl_info | protected_dacl, descriptor):
                 raise OSError
         finally:
             kernel.LocalFree(descriptor)
 
+        stage = "read_acl"
         size = wintypes.DWORD()
         advapi.GetFileSecurityW(str(path), dacl_info, None, 0, ctypes.byref(size))
         if not size.value:
@@ -358,6 +363,7 @@ def _harden_windows_acl(path: Path) -> None:
         finally:
             kernel.LocalFree(readback_ptr)
 
+        stage = "verify_acl"
         if not re.fullmatch(r"D:P(?:AI)?(?:\([^()]+\))+", readback):
             raise ValueError
         entries = re.findall(r"\(([^()]+)\)", readback)
@@ -374,7 +380,7 @@ def _harden_windows_acl(path: Path) -> None:
         }:
             raise ValueError
     except Exception:
-        raise TokenManagerError("Shopee token file permissions could not be verified.") from None
+        raise TokenManagerError(f"Shopee token file permissions could not be verified ({stage}).") from None
 
 
 class _RejectRedirects(HTTPRedirectHandler):
