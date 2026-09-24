@@ -165,8 +165,28 @@ def test_legacy_when_source_off(monkeypatch, tmp_path):
     assert "DUMMY_LEGACY_TOKEN_FOR_TEST" not in repr(client.credentials)
 
 
-def test_override_precedes_enabled_source(monkeypatch, tmp_path):
-    monkeypatch.setenv("SHOPEE_GOOGLE_SHEET_TOKEN_SOURCE_ENABLED", "1")
+def test_explicit_zero_keeps_legacy_source(monkeypatch, tmp_path):
+    monkeypatch.setenv("SHOPEE_GOOGLE_SHEET_TOKEN_SOURCE_ENABLED", "0")
+    client = ShopeeCatalogClient.from_local_audit_env(_env_file(tmp_path))
+    assert client.credentials.access_token == "DUMMY_LEGACY_TOKEN_FOR_TEST"
+
+
+@pytest.mark.parametrize("invalid_setting", ["true", "TRUE", "", " 1 ", "off"])
+def test_invalid_source_setting_fails_closed_without_legacy(
+    monkeypatch, tmp_path, invalid_setting, caplog
+):
+    monkeypatch.setenv("SHOPEE_GOOGLE_SHEET_TOKEN_SOURCE_ENABLED", invalid_setting)
+    with caplog.at_level(logging.DEBUG), pytest.raises(ShopeeCatalogConfigurationError) as caught:
+        ShopeeCatalogClient.from_local_audit_env(_env_file(tmp_path))
+    if invalid_setting:
+        assert invalid_setting not in str(caught.value)
+    assert "DUMMY_LEGACY_TOKEN_FOR_TEST" not in str(caught.value)
+    assert "DUMMY_LEGACY_TOKEN_FOR_TEST" not in caplog.text
+
+
+@pytest.mark.parametrize("source_setting", ["1", "true"])
+def test_override_precedes_enabled_source(monkeypatch, tmp_path, source_setting):
+    monkeypatch.setenv("SHOPEE_GOOGLE_SHEET_TOKEN_SOURCE_ENABLED", source_setting)
     monkeypatch.setattr(
         GoogleSheetAccessTokenSource, "get_access_token",
         lambda *args: pytest.fail("Source must not be called for temporary override"),

@@ -84,7 +84,12 @@ class ShopeeCatalogClient:
         access_token_override: str | None = None,
     ) -> "ShopeeCatalogClient":
         temporary_token = (access_token_override or "").strip()
-        source_enabled = os.environ.get("SHOPEE_GOOGLE_SHEET_TOKEN_SOURCE_ENABLED") == "1"
+        source_setting = os.environ.get("SHOPEE_GOOGLE_SHEET_TOKEN_SOURCE_ENABLED")
+        if not temporary_token and source_setting not in (None, "0", "1"):
+            raise ShopeeCatalogConfigurationError(
+                "Shopee catalog Access Token Source setting is invalid."
+            )
+        source_enabled = source_setting == "1"
         credentials = load_shopee_catalog_credentials(
             env_path, require_access_token=not (temporary_token or source_enabled)
         )
