@@ -1124,9 +1124,11 @@ def test_catalog_client_handles_shopee_application_errors_and_brand_page_contrac
     error_client = ShopeeCatalogClient(
         ShopeeCatalogCredentials(1, "test", 2, "test"), request_json=application_error
     )
-    with pytest.raises(ShopeeCatalogError, match="product.error_param") as error:
+    with pytest.raises(ShopeeCatalogError, match="Catalog API request failed") as error:
         error_client.get_attribute_tree("PH", 100869)
     assert "/api/v2/product/get_attribute_tree" in str(error.value)
+    assert "product.error_param" not in str(error.value)
+    assert "CategoryIdList is required" not in str(error.value)
 
     malformed_response_client = ShopeeCatalogClient(
         ShopeeCatalogCredentials(1, "test", 2, "test"),

@@ -95,6 +95,14 @@ code＋asset更新、再起動、新sessionの順とし、稼働中の差替え�
 
 Category Mapperの「Shopee ACCESS_TOKEN（一時利用）」には、既存管理シートで更新済みのtokenを伏字で貼り付けられます。入力値はそのブラウザsessionのCategory / Brand / Attribute参照だけに使い、設定ファイルやローカルDBへ保存しません。空欄の場合は既存の認証設定を使用します。token更新、refresh、OAuthはCategory Mapperの責務に含みません。
 
+### Shopee Token Manager Minimum Beta（offline実装）
+
+共通Token Managerは代表shopのAccess / Refresh Tokenを同一世代で管理し、API要求時だけ必要に応じてrefreshします。PHの既存Category / Brand / Attribute clientへ接続していますが、初期状態はOFFです。環境変数SHOPEE_PH_TOKEN_MANAGER_ENABLED=1を明示した場合だけ、PH clientがManagerを使用します。credential fileがあるだけでは有効化しません。0または未設定では従来のaudit.env内Access Tokenを使用します。一時Access Token入力は常に優先され、そのsession中はManagerを呼ばず、入力値を保存しません。Managerを有効にした後の障害では従来tokenへ自動fallbackしません。
+
+credential fileの既定位置は%LOCALAPPDATA%\ShopeeOpenPlatform\token-manager\PH.jsonです。Managerは同じ実装でSG / MY / THのmarketplaceと代表shopをbindingできますが、各市場のruntimeは有効化していません。ファイルはGit外に置き、schema_version, marketplace, partner_id, shop_id, access_token, refresh_token, access_expires_at, acquired_at_lower_bound, generation, state, reason_codeを保持します。partner_keyは保存せず、既存のGit外audit.envから読みます。READYからrefreshを開始する前にIN_FLIGHTをatomic保存し、応答全体の確認後に新世代をREADYとしてatomic保存します。結果不明、残留IN_FLIGHT、BLOCKEDは自動再送せず停止します。Windowsでは専用lock fileとACL読戻し確認を使用します。
+
+この段階では実credentialの作成・変更、production refresh、PH live catalog確認は未実施です。Shopee公式current refresh文書へ直接アクセスできなかったため、refresh contractはDEC-0083の記録値に限定しています。
+
 ### SG Category Mapper Minimum Beta
 
 PR #82はformal mainへ統合済みであり、ここで説明するのはoffline製品実装と安全な停止境界です。SG実運用、実SG production catalog受入、live OpenAI API、listing_ready、handoff、deploy、自動Category確定・出品は受入済みではありません。SG operationはINACTIVEを維持します。

@@ -14,6 +14,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlsplit
 from urllib.request import urlopen
 
+from modules.shopee_token_manager import PartnerBinding, ShopeeTokenManager, TokenManagerError
+
 
 PH_MARKETPLACE = "PH"
 SHOPEE_PARTNER_BASE_URL = "https://partner.shopeemobile.com"
@@ -39,12 +41,15 @@ class ShopeeRateLimitError(ShopeeCatalogError):
     """Raised immediately on HTTP 429 without automatic retry."""
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class ShopeeCatalogCredentials:
     partner_id: int
     partner_key: str
     shop_id: int
     access_token: str
+
+    def __repr__(self) -> str:
+        return "ShopeeCatalogCredentials(<redacted>)"
 
 
 @dataclass(frozen=True)
@@ -69,8 +74,10 @@ class ShopeeCatalogClient:
         *,
         base_url: str = SHOPEE_PARTNER_BASE_URL,
         request_json: Callable[[str, Mapping[str, str], int], Mapping[str, Any]] | None = None,
+        token_manager: ShopeeTokenManager | None = None,
     ) -> None:
         self.credentials = credentials
+        self._token_manager = token_manager
         self.base_url = base_url.rstrip("/")
         self._request_json = request_json or _urlopen_json
 
@@ -81,11 +88,17 @@ class ShopeeCatalogClient:
         *,
         access_token_override: str | None = None,
     ) -> "ShopeeCatalogClient":
-        credentials = load_shopee_catalog_credentials(env_path)
         temporary_token = (access_token_override or "").strip()
         if temporary_token:
-            credentials = replace(credentials, access_token=temporary_token)
-        return cls(credentials)
+            credentials = load_shopee_catalog_credentials(env_path)
+            return cls(replace(credentials, access_token=temporary_token))
+        flag = os.environ.get("SHOPEE_PH_TOKEN_MANAGER_ENABLED", "0")
+        if flag not in {"0", "1"}:
+            raise ShopeeCatalogConfigurationError("Shopee token manager setting is invalid.")
+        if flag == "1":
+            credentials = load_shopee_catalog_credentials(env_path, require_access_token=False)
+            return cls(replace(credentials, access_token=""), token_manager=ShopeeTokenManager(PH_MARKETPLACE))
+        return cls(load_shopee_catalog_credentials(env_path))
 
     def get_categories(self, marketplace: str, *, language: str = "en") -> tuple[dict[str, Any], ...]:
         self._require_ph(marketplace)
@@ -248,21 +261,32 @@ class ShopeeCatalogClient:
         return BrandPage(tuple(brands), next_offset, is_complete)
 
     def _get(self, path: str, parameters: Mapping[str, str]) -> Mapping[str, Any]:
+        credentials = self.credentials
+        if self._token_manager is not None:
+            try:
+                context = self._token_manager.get_context(
+                    PartnerBinding(PH_MARKETPLACE, credentials.partner_id, credentials.shop_id, credentials.partner_key)
+                )
+            except TokenManagerError:
+                raise ShopeeCatalogConfigurationError("Shopee managed token is unavailable.") from None
+            if (context.marketplace, context.partner_id, context.shop_id) != (PH_MARKETPLACE, credentials.partner_id, credentials.shop_id):
+                raise ShopeeCatalogConfigurationError("Shopee managed token binding mismatch.")
+            credentials = replace(credentials, access_token=context.access_token)
         timestamp = int(time.time())
         signature_base = (
-            f"{self.credentials.partner_id}{path}{timestamp}"
-            f"{self.credentials.access_token}{self.credentials.shop_id}"
+            f"{credentials.partner_id}{path}{timestamp}"
+            f"{credentials.access_token}{credentials.shop_id}"
         )
         signature = hmac.new(
-            self.credentials.partner_key.encode("utf-8"),
+            credentials.partner_key.encode("utf-8"),
             signature_base.encode("utf-8"),
             hashlib.sha256,
         ).hexdigest()
         query = {
-            "partner_id": str(self.credentials.partner_id),
+            "partner_id": str(credentials.partner_id),
             "timestamp": str(timestamp),
-            "access_token": self.credentials.access_token,
-            "shop_id": str(self.credentials.shop_id),
+            "access_token": credentials.access_token,
+            "shop_id": str(credentials.shop_id),
             "sign": signature,
             **parameters,
         }
@@ -274,8 +298,8 @@ class ShopeeCatalogClient:
             )
         except ShopeeCatalogError:
             raise
-        except Exception as exc:
-            raise ShopeeCatalogError(f"Catalog API request failed at {path}.") from exc
+        except Exception:
+            raise ShopeeCatalogError(f"Catalog API request failed at {path}.") from None
         if not isinstance(payload, Mapping):
             raise _response_error(path, "response was invalid")
         error = payload.get("error")
@@ -291,6 +315,8 @@ class ShopeeCatalogClient:
 
 def load_shopee_catalog_credentials(
     env_path: str | Path | None = None,
+    *,
+    require_access_token: bool = True,
 ) -> ShopeeCatalogCredentials:
     """Load only the required local values without exposing or persisting them."""
 
@@ -301,11 +327,11 @@ def load_shopee_catalog_credentials(
         shop_id = _positive_int(values.get("SHOPEE_PH_SHOP_ID"))
         partner_key = values.get("SHOPEE_PARTNER_KEY", "").strip()
         catalog_token = values.get("SHOPEE_PH_ACCESS_TOKEN", "").strip()
-    except (OSError, ValueError) as exc:
+    except (OSError, ValueError):
         raise ShopeeCatalogConfigurationError(
             "Shopee catalog credentials are unavailable."
-        ) from exc
-    if not partner_id or not shop_id or not partner_key or not catalog_token:
+        ) from None
+    if not partner_id or not shop_id or not partner_key or (require_access_token and not catalog_token):
         raise ShopeeCatalogConfigurationError("Shopee catalog credentials are unavailable.")
     return ShopeeCatalogCredentials(partner_id, partner_key, shop_id, catalog_token)
 
@@ -442,15 +468,6 @@ def _decode_mapping_or_none(raw: bytes) -> Mapping[str, Any] | None:
     return decoded if isinstance(decoded, Mapping) else None
 
 
-def _safe_message(value: object) -> str | None:
-    if not isinstance(value, str):
-        return None
-    message = value.strip().replace("\r", " ").replace("\n", " ")
-    if not message or len(message) > 240 or "://" in message or "?" in message:
-        return None
-    return message
-
-
 def _api_error_message(
     endpoint_path: str,
     http_status: int | None,
@@ -460,11 +477,6 @@ def _api_error_message(
     details = [f"Catalog API request failed at {endpoint_path}."]
     if http_status is not None:
         details.append(f"HTTP {http_status}.")
-    if error:
-        details.append(f"Shopee error: {error}.")
-    safe_message = _safe_message(message)
-    if safe_message:
-        details.append(safe_message)
     return " ".join(details)
 
 
