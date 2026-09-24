@@ -985,3 +985,20 @@
 - 保護: PHは`ACTIVE / ALLOWED`、SGは`INACTIVE / ALLOWED`、`ph.beta.operation`と`sg.safety.baseline`は`ACCEPTED`のまま維持する。Candidate 15列、Prelisting Gate contract、DB schema、Safety / SLS既存資産、governance/state.json、PH operation、SG operationを変更しない。
 - rollback: docs-only差分を通常revertできる。製品コード、credential、marketplace runtimeを含むrollbackや変更はない。
 - 再検討条件: 共通Token Managerの実装、credential保存、PH live検証、共通Catalog Client、SG production source identity、SG Brand、SLS runtime、listing_ready、handoff、operation ACTIVE化、MY / TH展開を開始する場合は、それぞれ別scope・設計Gate・Owner承認を必要とする。
+
+## DEC-0083 — Shopee共通Token Manager Minimum Betaの設計Gateを正式受入する
+
+- 日付: 2026-09-24
+- 背景・決定: OwnerがShopee共通Token Manager Minimum Betaの`DESIGN_GATE_PASS`を正式設計として受け入れた。Token ManagerはCategory Mapperから独立した共通認証責務とし、実装は次の新規Codexタスクで行う。
+- 公式Refresh Token contract: Shopee Open Platformの`v2.public.refresh_access_token`は`POST /api/v2/auth/access_token/get`。queryには`partner_id`、`timestamp`、`sign`、bodyには`partner_id`、`shop_id`、`refresh_token`を渡し、成功時は`access_token`、`refresh_token`、`expire_in`、`partner_id`、`shop_id`等を受け取る。公開API署名は`partner_id + path + timestamp`を基底文字列とするHMAC-SHA256。Access Tokenの有効期間は4時間、Refresh Tokenは30日有効かつ一度だけ使用可能で、refreshは新しいAccess / Refresh Tokenを返す。参照: [Shopee Open Platform API Reference: v2.public.refresh_access_token](https://open.shopee.com/documents?module=87&type=2&id=58&version=2)。
+- 責務境界: 認証credentialはmarketplaceごとの代表shop単位で保持し、Category / Brand / Attribute catalogはmarketplace単位で扱う。同一marketplaceのshopごとに同じcatalogを重複取得しない。注文・在庫等のshop固有業務APIはこのMinimum Betaの対象外とする。
+- 更新方式: Token ManagerはAPI利用時のon-demand refreshとし、常駐タイマー更新は行わない。期限までの120秒marginはShopee公式仕様ではなく、内部運用値として扱う。
+- token世代・状態: Access TokenとRefresh Tokenは同一refresh世代の組として保存・返却する。状態は`READY`、`IN_FLIGHT`、`BLOCKED`で管理し、refresh中の並行要求を排他する。応答を安全に確定できない場合はfail closedとし、旧Refresh Tokenを自動再送しない。
+- credential保存: Minimum BetaではGit管理外の専用credential fileを採用する。更新は同一ファイルシステム上の一時fileへの書込み・flush後にatomic replaceし、Windows上の最低限の排他制御を置く。permissionと保存先は実装Gateで検証する。
+- PH fallback・初期状態: PHの一時Access Token overrideをfallbackとして維持する。Token Managerによる自動管理は初期`OFF`とし、credential fileが存在することとruntimeが`ACTIVE`であることを分離する。明示的な設定と運用承認なしにPH runtimeを切り替えない。
+- 市場展開・秘密情報: 同じToken ManagerをSG / MY / THへ再利用する設計とし、市場ごとの複製実装をしない。token、partner key、refresh tokenその他secretをGit、log、UI、Evidence、snapshot、通常のdocsへ出さない。
+- 保護範囲: PH既存Category / Brand / Attribute経路、Safety判定、SLS資産・判定を変更・迂回・緩和しない。SG operation状態、Candidate schema、Prelisting Gate contract、DB schemaも本決定では変更しない。
+- `PRIMARY_SOURCE_UNVERIFIED`: refresh固有rate limit、timeout / 5xx / 429時のtoken消費と再送冪等性、旧Refresh Tokenが失効する厳密なタイミング、認可解除等の伝播挙動は未確認のまま保持する。これらの未確認事項に依存せず不明結果をfail closedにできるため、設計Gateを`DESIGN_GATE_PASS`とする。未確認を実装時に推測で埋めない。
+- 次工程と承認境界: 次の単一作業は「Shopee共通Token Manager Minimum Betaの実装＋PH先行offline検証」。offline technical gates完了後に`WAITING_APPROVAL`とし、別Owner承認前はactual PH Refresh Token登録、actual credential変更、Shopee production refresh API、PH live Category / Brand / Attribute確認を行わない。
+- rollback: docs-only正本化は通常revertできる。Token Manager製品実装、credential変更、live API実行、runtime状態変更をこの決定で許可しない。
+- 再検討条件: offline gates完了後のcredential登録・変更、production refresh、PH live catalog確認、他marketplaceでのruntime有効化、または未確認事項の再評価には、独立した実装タスク、明示scope、必要なOwner承認を要する。
