@@ -182,7 +182,7 @@ token、partner key、refresh tokenその他のcredentialはGit、docs、log、U
 
 次の長期工程を現在からの優先順とする。各工程の実装・live API実行・運用開始には、その工程に必要な別scope・設計Gate・Owner承認を要する。
 
-1. **Shopee共通Token Manager Minimum Beta 設計Gate** — marketplaceと代表shopのbinding、credential保存、Access Token有効性確認、Refresh Token更新、refresh失敗時fail closed、秘密情報保護、一時Access Token fallback、PH既存経路保護を設計する。
+1. **Shopee共通Token Manager Minimum Beta 設計Gate（完了）** — Owner accepted `DESIGN_GATE_PASS`をDEC-0083に正本化した。後続の実装・検証順は変更しない。
 2. **共通Token Manager最小実装とPH先行検証** — PHのCategory / Brand / Attribute取得と`ph.beta.operation`を壊さず、refresh障害でもSafetyを解除しないことを確認する。
 3. **ShopeeCatalogClientのmarketplace-neutral化** — PH用コードをSG用に複製せず、marketplaceを明示bindする共通Category / Brand / Attribute clientとし、未承認marketplaceはfail closedとする。
 4. **SG production Category catalog source identity最終確認** — SG代表shopの正式認証contextでread-only確認を行い、`v2.product.get_category`契約、Category ID、parent、leaf、hierarchy、production identityを確認する。source identity未確認なら停止する。
