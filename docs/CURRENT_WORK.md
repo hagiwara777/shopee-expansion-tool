@@ -4,15 +4,15 @@
 
 ## 現在の単一作業
 
-PR #85でDEC-0083のToken Manager設計はformal mainへ統合済み。既存在庫管理ツールとPR #86のToken Managerが同じOpen Platform App・shop・Refresh Token系列を共有することが判明したため、今回のdocs-only作業でDEC-0084を追加し、Mapper共通のGoogle Sheet Access Token Source Minimum Betaを現行方針とする。DEC-0083は履歴として保持する。PR #86はDraft、runtime OFF、未merge候補のまま保持し、今回の差分へ混ぜない。
+DEC-0084に基づくGoogle Sheet Access Token Source Minimum Betaの実装候補を作成した。共通SourceはPH / SG / MY / THを同一interfaceで扱い、BridgeのA:C列だけをread-onlyで取得する。marketplaceとローカルexpected shop_idを照合し、欠落・重複・不正行・取得障害ではfail closedとする。PH Catalog Clientの認証優先順位は一時override → 明示ONのGoogle Source → legacy token。Sourceは既定OFFであり、ON後の失敗でlegacyへ戻らない。Access Tokenはメモリ内で利用し、repr・例外・logに出さない。
+
+隔離した依存環境でoffline全体テスト1,430件PASS、PH / SG protected regression 670件PASSを確認した。Google credential、Bridge実体、Google live read、Shopee live APIは未実行。PR #86のToken ManagerはDraft・runtime OFF・未merge候補として今回の差分から分離する。
 
 PHはACTIVE / ALLOWED、SG operationはINACTIVE / ALLOWED、MY / THはINACTIVE / NOT_STARTEDを維持する。`ph.beta.operation`と`sg.safety.baseline`はACCEPTEDのまま保護する。SG Category確定後も`listing_ready=false`、SG export / handoff停止を維持する。`governance/state.json`は変更しない。
 
 ## 次の単一作業
 
-DEC-0084に基づき、PH / SG / MY / TH共通のGoogle Sheet Access Token Source Minimum Betaを最小実装し、offlineで検証する。専用Bridge Spreadsheetの最小contractは`marketplace`、`shop_id`、`access_token`。元注文管理表は直接API共有せず、BridgeからRefresh TokenとPartner Keyを読まない。取得したshop_idとローカルexpected shop_idの一致、明示ON後のfail closed、override → Google source → legacyの優先順位を検証する。
-
-今回の正本化では実装、Google credential・Bridge作成、Google live read、Shopee live API、PR #86 merge、deployを行わない。次の実装タスクでもlive確認は独立した承認境界とし、offline結果からPH live成功を推定しない。
+この実装候補のDraft PR、CI、read-only reviewを完了した後、`WAITING_APPROVAL`で停止する。次の独立承認対象はBridge / Google credentialの実準備とPHでのlive readである。offline結果からPH live成功を推定しない。
 
 ## 現在の工程境界
 
@@ -22,4 +22,4 @@ DEC-0084に基づき、PH / SG / MY / TH共通のGoogle Sheet Access Token Sourc
 
 ## 再開・更新・rollback
 
-再開時はGitでformal mainとPR #86の状態を確認し、DEC-0084、DEC-0083、DEC-0082、`PROJECT_ROADMAP.md`、`governance/state.json`を読む。Bridgeへの書込み責務・credential設定・live Google / Shopee確認は各独立scopeで扱う。今回のdocs-only差分は通常revertできる。PR #86と製品runtimeには影響しない。
+再開時はGitでformal mainとPR #86の状態を確認し、DEC-0084、DEC-0083、DEC-0082、`PROJECT_ROADMAP.md`、`governance/state.json`を読む。Bridgeへの書込み責務・credential設定・live Google / Shopee確認は各独立scopeで扱う。今回の実装候補は通常revertできる。PR #86と既定の製品runtimeには影響しない。

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 import hashlib
 import hmac
 import json
@@ -13,6 +13,8 @@ from typing import Any, Callable, Mapping, Sequence
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlsplit
 from urllib.request import urlopen
+
+from modules.shopee_access_token_source import AccessToken, GoogleSheetAccessTokenSource
 
 
 PH_MARKETPLACE = "PH"
@@ -42,9 +44,9 @@ class ShopeeRateLimitError(ShopeeCatalogError):
 @dataclass(frozen=True)
 class ShopeeCatalogCredentials:
     partner_id: int
-    partner_key: str
+    partner_key: str = field(repr=False)
     shop_id: int
-    access_token: str
+    access_token: str = field(repr=False)
 
 
 @dataclass(frozen=True)
@@ -81,10 +83,26 @@ class ShopeeCatalogClient:
         *,
         access_token_override: str | None = None,
     ) -> "ShopeeCatalogClient":
-        credentials = load_shopee_catalog_credentials(env_path)
         temporary_token = (access_token_override or "").strip()
+        source_enabled = os.environ.get("SHOPEE_GOOGLE_SHEET_TOKEN_SOURCE_ENABLED") == "1"
+        credentials = load_shopee_catalog_credentials(
+            env_path, require_access_token=not (temporary_token or source_enabled)
+        )
         if temporary_token:
             credentials = replace(credentials, access_token=temporary_token)
+        elif source_enabled:
+            spreadsheet_id = os.environ.get("SHOPEE_GOOGLE_SHEET_BRIDGE_SPREADSHEET_ID", "")
+            try:
+                token = GoogleSheetAccessTokenSource(spreadsheet_id).get_access_token(
+                    PH_MARKETPLACE, credentials.shop_id
+                )
+            except Exception:
+                token = None
+            if not isinstance(token, AccessToken):
+                raise ShopeeCatalogConfigurationError(
+                    "Shopee catalog Access Token Source is unavailable."
+                )
+            credentials = replace(credentials, access_token=token.value)
         return cls(credentials)
 
     def get_categories(self, marketplace: str, *, language: str = "en") -> tuple[dict[str, Any], ...]:
@@ -291,6 +309,8 @@ class ShopeeCatalogClient:
 
 def load_shopee_catalog_credentials(
     env_path: str | Path | None = None,
+    *,
+    require_access_token: bool = True,
 ) -> ShopeeCatalogCredentials:
     """Load only the required local values without exposing or persisting them."""
 
@@ -305,7 +325,7 @@ def load_shopee_catalog_credentials(
         raise ShopeeCatalogConfigurationError(
             "Shopee catalog credentials are unavailable."
         ) from exc
-    if not partner_id or not shop_id or not partner_key or not catalog_token:
+    if not partner_id or not shop_id or not partner_key or (require_access_token and not catalog_token):
         raise ShopeeCatalogConfigurationError("Shopee catalog credentials are unavailable.")
     return ShopeeCatalogCredentials(partner_id, partner_key, shop_id, catalog_token)
 

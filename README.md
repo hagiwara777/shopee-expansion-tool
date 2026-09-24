@@ -411,3 +411,22 @@ Gate CSVのheaderと既存status・reason codeは維持し、画像由来の理�
 - Expansion画面では出品可否を判定しません。SGを含む対象市場の出品可否は、出品前保安ゲートで対象市場を選んで確認してください。
 - 起点ASINから `brand` または `category` が取得できない場合は処理を止めます。
 - Keepa API仕様またはライブラリ都合で詰まった場合も、Web操作やスクレイピングへは切り替えません。
+
+
+### Google Sheet Access Token Source (offline implementation)
+
+The shared Bridge reader supports PH, SG, MY, and TH through
+`GoogleSheetAccessTokenSource.get_access_token(marketplace, expected_shop_id)`.
+It reads only columns A:C of a dedicated Bridge spreadsheet, with the exact
+header `marketplace,shop_id,access_token`. It rejects missing, duplicate,
+malformed, or mismatched rows and returns a memory-only token wrapper.
+
+The PH Catalog Client keeps this source OFF by default. To select it explicitly,
+set `SHOPEE_GOOGLE_SHEET_TOKEN_SOURCE_ENABLED=1` and
+`SHOPEE_GOOGLE_SHEET_BRIDGE_SPREADSHEET_ID` in the process environment.
+The adapter uses Google Application Default Credentials with the Sheets
+read-only scope. Credential provisioning, Bridge creation, and live reads
+require a separate approval. The existing temporary Access Token override
+takes priority; when the source is ON, failures stop the catalog request
+instead of using the legacy Access Token. SG operation and MY/TH runtime
+remain inactive.
