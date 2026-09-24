@@ -327,6 +327,38 @@ def _harden_windows_acl(path: Path) -> None:
         advapi.ConvertSecurityDescriptorToStringSecurityDescriptorW.restype = wintypes.BOOL
         kernel.LocalFree.argtypes = [ctypes.c_void_p]
         kernel.LocalFree.restype = ctypes.c_void_p
+        advapi.GetSecurityDescriptorDacl.argtypes = [
+            ctypes.c_void_p, ctypes.POINTER(wintypes.BOOL),
+            ctypes.POINTER(ctypes.c_void_p), ctypes.POINTER(wintypes.BOOL),
+        ]
+        advapi.GetSecurityDescriptorDacl.restype = wintypes.BOOL
+        advapi.GetAclInformation.argtypes = [
+            ctypes.c_void_p, ctypes.c_void_p, wintypes.DWORD, wintypes.DWORD,
+        ]
+        advapi.GetAclInformation.restype = wintypes.BOOL
+
+        class AclSizeInformation(ctypes.Structure):
+            _fields_ = [
+                ("ace_count", wintypes.DWORD),
+                ("bytes_in_use", wintypes.DWORD),
+                ("bytes_free", wintypes.DWORD),
+            ]
+
+        def acl_bytes(security_descriptor: ctypes.c_void_p) -> bytes:
+            present = wintypes.BOOL()
+            acl = ctypes.c_void_p()
+            defaulted = wintypes.BOOL()
+            if not advapi.GetSecurityDescriptorDacl(
+                security_descriptor, ctypes.byref(present),
+                ctypes.byref(acl), ctypes.byref(defaulted),
+            ) or not present.value or not acl.value:
+                raise ValueError
+            information = AclSizeInformation()
+            if not advapi.GetAclInformation(
+                acl, ctypes.byref(information), ctypes.sizeof(information), 2
+            ) or information.ace_count != 3:
+                raise ValueError
+            return ctypes.string_at(acl, information.bytes_in_use)
 
         stage = "descriptor"
         flags = "OICI" if path.is_dir() else ""
@@ -337,6 +369,7 @@ def _harden_windows_acl(path: Path) -> None:
         ):
             raise OSError
         try:
+            expected_acl = acl_bytes(descriptor)
             stage = "set_acl"
             if not advapi.SetFileSecurityW(str(path), dacl_info | protected_dacl, descriptor):
                 raise OSError
@@ -364,20 +397,7 @@ def _harden_windows_acl(path: Path) -> None:
             kernel.LocalFree(readback_ptr)
 
         stage = "verify_acl"
-        if not re.fullmatch(r"D:P(?:AI)?(?:\([^()]+\))+", readback):
-            raise ValueError
-        entries = re.findall(r"\(([^()]+)\)", readback)
-        principals = set()
-        for entry in entries:
-            fields = entry.split(";")
-            if len(fields) != 6 or fields[0] != "A" or fields[2] != "FA":
-                raise ValueError
-            if fields[1] not in {"", "OICI"} or fields[3] or fields[4]:
-                raise ValueError
-            principals.add(fields[5])
-        if sid not in principals or principals - {
-            sid, "SY", "BA", "OW", "S-1-5-18", "S-1-5-32-544"
-        }:
+        if not readback.startswith("D:P") or acl_bytes(buffer) != expected_acl:
             raise ValueError
     except Exception:
         raise TokenManagerError(f"Shopee token file permissions could not be verified ({stage}).") from None
