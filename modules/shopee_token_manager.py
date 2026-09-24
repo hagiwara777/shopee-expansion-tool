@@ -290,22 +290,77 @@ def _harden_windows_acl(path: Path) -> None:
     if os.name != "nt":
         return
     try:
-        identity = subprocess.run(["whoami", "/user", "/fo", "csv", "/nh"], capture_output=True, text=True, check=True)
         import csv
+        import ctypes
+        from ctypes import wintypes
+
+        identity = subprocess.run(
+            ["whoami", "/user", "/fo", "csv", "/nh"],
+            capture_output=True, text=True, check=True,
+        )
         sid = next(csv.reader(identity.stdout.splitlines()))[1]
-        if not sid.startswith("S-1-"):
+        if not re.fullmatch(r"S-1-(?:[0-9]+-)+[0-9]+", sid):
             raise ValueError
-        grant = f"*{sid}:(OI)(CI)F" if path.is_dir() else f"*{sid}:F"
-        subprocess.run(["icacls", str(path), "/inheritance:r", "/grant:r", grant], capture_output=True, check=True)
-        # /save emits the protected DACL in UTF-16LE. Reject every additional
-        # explicit ACE, including pre-existing grants left by /inheritance:r.
-        with tempfile.TemporaryDirectory() as audit_dir:
-            saved = Path(audit_dir) / "acl.txt"
-            subprocess.run(["icacls", str(path), "/save", str(saved)], capture_output=True, check=True)
-            lines = saved.read_bytes().decode("utf-16-le").splitlines()
-        if len(lines) != 2 or not re.fullmatch(r"D:P(?:AI)?(?:\([^()]+\))+", lines[1]):
+
+        advapi = ctypes.WinDLL("advapi32", use_last_error=True)
+        kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+        dacl_info = 0x00000004
+        protected_dacl = 0x80000000
+        advapi.ConvertStringSecurityDescriptorToSecurityDescriptorW.argtypes = [
+            wintypes.LPCWSTR, wintypes.DWORD,
+            ctypes.POINTER(ctypes.c_void_p), ctypes.POINTER(wintypes.DWORD),
+        ]
+        advapi.ConvertStringSecurityDescriptorToSecurityDescriptorW.restype = wintypes.BOOL
+        advapi.SetFileSecurityW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, ctypes.c_void_p]
+        advapi.SetFileSecurityW.restype = wintypes.BOOL
+        advapi.GetFileSecurityW.argtypes = [
+            wintypes.LPCWSTR, wintypes.DWORD, ctypes.c_void_p,
+            wintypes.DWORD, ctypes.POINTER(wintypes.DWORD),
+        ]
+        advapi.GetFileSecurityW.restype = wintypes.BOOL
+        advapi.ConvertSecurityDescriptorToStringSecurityDescriptorW.argtypes = [
+            ctypes.c_void_p, wintypes.DWORD, wintypes.DWORD,
+            ctypes.POINTER(ctypes.c_void_p), ctypes.POINTER(wintypes.DWORD),
+        ]
+        advapi.ConvertSecurityDescriptorToStringSecurityDescriptorW.restype = wintypes.BOOL
+        kernel.LocalFree.argtypes = [ctypes.c_void_p]
+        kernel.LocalFree.restype = ctypes.c_void_p
+
+        flags = "OICI" if path.is_dir() else ""
+        sddl = f"D:P(A;{flags};FA;;;{sid})(A;{flags};FA;;;SY)(A;{flags};FA;;;BA)"
+        descriptor = ctypes.c_void_p()
+        if not advapi.ConvertStringSecurityDescriptorToSecurityDescriptorW(
+            sddl, 1, ctypes.byref(descriptor), None
+        ):
+            raise OSError
+        try:
+            if not advapi.SetFileSecurityW(str(path), dacl_info | protected_dacl, descriptor):
+                raise OSError
+        finally:
+            kernel.LocalFree(descriptor)
+
+        size = wintypes.DWORD()
+        advapi.GetFileSecurityW(str(path), dacl_info, None, 0, ctypes.byref(size))
+        if not size.value:
+            raise OSError
+        buffer = ctypes.create_string_buffer(size.value)
+        if not advapi.GetFileSecurityW(
+            str(path), dacl_info, buffer, size.value, ctypes.byref(size)
+        ):
+            raise OSError
+        readback_ptr = ctypes.c_void_p()
+        if not advapi.ConvertSecurityDescriptorToStringSecurityDescriptorW(
+            buffer, 1, dacl_info, ctypes.byref(readback_ptr), None
+        ):
+            raise OSError
+        try:
+            readback = ctypes.wstring_at(readback_ptr)
+        finally:
+            kernel.LocalFree(readback_ptr)
+
+        if not re.fullmatch(r"D:P(?:AI)?(?:\([^()]+\))+", readback):
             raise ValueError
-        entries = re.findall(r"\(([^()]+)\)", lines[1])
+        entries = re.findall(r"\(([^()]+)\)", readback)
         principals = set()
         for entry in entries:
             fields = entry.split(";")
@@ -314,7 +369,9 @@ def _harden_windows_acl(path: Path) -> None:
             if fields[1] not in {"", "OICI"} or fields[3] or fields[4]:
                 raise ValueError
             principals.add(fields[5])
-        if sid not in principals or principals - {sid, "SY", "BA", "OW"}:
+        if sid not in principals or principals - {
+            sid, "SY", "BA", "OW", "S-1-5-18", "S-1-5-32-544"
+        }:
             raise ValueError
     except Exception:
         raise TokenManagerError("Shopee token file permissions could not be verified.") from None
