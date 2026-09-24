@@ -172,27 +172,27 @@ PR #78の製品merge commitは`5079795fd1eb7a4ae1940852b76e2bd2315e0006`であ�
 
 ### Shopee Open Platform共通認証・Catalog基盤（次の優先工程）
 
-PHの`ShopeeCatalogClient`は既存のread-only Category / Brand / Attribute取得経路として維持するが、現状はPH固定であり、Access Token refreshはCategory Mapperの責務外である。SG以降で市場ごとに認証・Catalog取得を複製実装せず、共通Shopee認証基盤をPHで先行検証してから、marketplace-neutralな共通Catalog Clientを整備する。この順序はSG production Category catalogのsource identity調査を取り消すものではなく、その安全な前提を先に整える変更である。
+PHのShopeeCatalogClientは既存のread-only Category / Brand / Attribute取得経路として維持する。現状のPH固定実装をSG用に複製せず、marketplace-neutralな共通Catalog Clientへ段階的に整える。認証はmarketplaceごとの代表となる認証済みshop単位、Category / Brand / Attribute catalogはmarketplace単位で扱う。
 
-認証は代表となる認証済みshop単位、Category / Brand / Attribute catalogはmarketplace単位で管理する。各marketplaceでは原則として代表shopを一つ使用し、同一marketplace内の全shopについて同じCatalog masterを重複取得・保存しない。注文・在庫等のshop固有APIのtoken管理は別責務とし、今回のCatalog取得設計へ混在させない。
+DEC-0084により、同じOpen Platform App・shop・Refresh Token系列を共有する既存在庫管理ツールをRefresh Tokenの唯一の管理者とする。各国Mapper共通のGoogle Sheet Access Token Source Minimum Betaは、専用Bridge Spreadsheetから最新Access Tokenをread-only取得するだけとし、Mapper側でrefreshしない。元注文管理表を直接API共有せず、Bridgeの最小contractはmarketplace、shop_id、access_tokenとする。Refresh TokenとPartner KeyはBridgeから読まない。Google APIはread-only、Access Tokenはメモリ利用のみで、Git、DB、log、snapshot、Evidenceへ保存しない。
 
-Token ManagerはCategory Mapperへ埋め込まず、有効なAccess TokenをCatalog Clientへ提供する独立した共通認証責務とする。Access Tokenは常駐タイマー更新を前提にせず、API利用時に有効性を確認し必要な場合だけrefreshするon-demand方式を第一候補とする。refresh時はAccess Tokenだけを更新してRefresh Tokenを失わず、新旧tokenの整合性を保つ。atomic保存方式、TTL、endpoint、request / response contractは後続設計Gateで一次資料または実APIのcurrent contractを確認して確定し、推測の数値を恒久仕様にしない。
+共通moduleはPH / SG / MY / THを同じinterfaceで扱い、要求marketplaceとBridge行をbindし、Bridgeのshop_idをローカルexpected shop_idと照合する。欠落・不一致・曖昧さ・取得障害はfail closedとする。Mapper認証優先順位は、一時Access Token override、明示ONのGoogle Sheet Access Token Source、legacy Access Tokenとする。Google sourceを明示ONにした後の障害ではlegacyへsilent fallbackしない。MY / TH runtimeは有効化しない。
 
-token、partner key、refresh tokenその他のcredentialはGit、docs、log、UI平文、snapshot、Evidenceへ含めない。自動refreshの実運用確認前は、既存PHの一時Access Token手入力経路を非常時fallbackとして維持する。refresh失敗時はfail closedとし、既存Safetyや保護済み運用を解除しない。
+DEC-0082 / DEC-0083のToken Manager方針は履歴として保持するが、共有Refresh Token系列の現行実装順はDEC-0084を優先する。PR #86はDraft、runtime OFF、未merge候補として保持し、独立認証系列が必要になった場合の再利用を別途判断する。
 
-次の長期工程を現在からの優先順とする。各工程の実装・live API実行・運用開始には、その工程に必要な別scope・設計Gate・Owner承認を要する。
+次の長期工程を現在からの優先順とする。各工程の実装、Bridge・credential作成、live API実行、runtime切替、運用開始には、その工程に必要な別scope・Owner承認を要する。
 
-1. **Shopee共通Token Manager Minimum Beta 設計Gate（完了）** — Owner accepted `DESIGN_GATE_PASS`をDEC-0083に正本化した。後続の実装・検証順は変更しない。
-2. **共通Token Manager最小実装とPH先行検証** — PHのCategory / Brand / Attribute取得と`ph.beta.operation`を壊さず、refresh障害でもSafetyを解除しないことを確認する。
-3. **ShopeeCatalogClientのmarketplace-neutral化** — PH用コードをSG用に複製せず、marketplaceを明示bindする共通Category / Brand / Attribute clientとし、未承認marketplaceはfail closedとする。
-4. **SG production Category catalog source identity最終確認** — SG代表shopの正式認証contextでread-only確認を行い、`v2.product.get_category`契約、Category ID、parent、leaf、hierarchy、production identityを確認する。source identity未確認なら停止する。
+1. **Google Sheet Access Token Source Minimum Beta** — 共通read-only moduleとBridge contractをoffline実装・検証する。PH既存経路、Safety、SLS、ph.beta.operationを保護し、Google live readはこの工程の検証に含めない。
+2. **PH live確認** — Bridgeとアクセス設定の独立準備・承認後、PHのshop_id bindingとCatalog read-only経路をliveで確認する。障害時はfail closedとする。
+3. **ShopeeCatalogClientのmarketplace-neutral化** — marketplaceを明示bindする共通Category / Brand / Attribute clientとし、未承認marketplaceはfail closedとする。
+4. **SG production Category catalog source identity最終確認** — SG代表shopの正式認証contextでread-only確認を行い、v2.product.get_category契約、Category ID、parent、leaf、hierarchy、production identityを確認する。source identity未確認なら停止する。
 5. **SG production Category catalog import / acceptance** — production responseを共通normalization、SG 6列catalog、全件validation、SG-only replaceへ通す。SLS catalogをCategory masterへ流用しない。
-6. **SG実商品Category acceptance** — 少量実商品を人間が確認し、保存済みCategoryを現在catalogで再validationする。この時点でも`listing_ready=false`を維持する。
-7. **SG Brand** — production Category確認後にSGの`get_brand_list`経路を確認・接続し、他marketplaceのBrand IDを流用しない。
+6. **SG実商品Category acceptance** — 少量実商品を人間が確認し、保存済みCategoryを現在catalogで再validationする。この時点でもlisting_ready=falseを維持する。
+7. **SG Brand** — production Category確認後にSGのget_brand_list経路を確認・接続し、他marketplaceのBrand IDを流用しない。
 8. **SG SLS runtime** — Category / Brand後の独立工程として扱い、既存Safetyを解除しない。
-9. **SG Minimum Beta完成判定** — Category、Brand、Safety、SLS、handoff条件を別Owner Acceptanceで確認する。`listing_ready=true`、handoff、SG operation ACTIVE化は自動的に行わない。
+9. **SG Minimum Beta完成判定** — Category、Brand、Safety、SLS、handoff条件を別Owner Acceptanceで確認する。listing_ready=true、handoff、SG operation ACTIVE化は自動的に行わない。
 10. **SG実運用** — 別Owner承認後にだけ検討する。
-11. **MY展開** — 共通Token / Catalog基盤を再利用し、MY固有Safety、source identity、production確認だけを追加する。MY runtimeを先行有効化しない。
+11. **MY展開** — 共通Source / Catalog基盤を再利用し、MY固有Safety、source identity、production確認だけを追加する。MY runtimeを先行有効化しない。
 12. **TH展開** — 同じ共通基盤を再利用し、TH固有差分だけを追加する。TH runtimeを先行有効化しない。
 
 MY / THの具体的な着手順は将来のEvidenceと事業優先順位で変更できるものとし、今回固定しすぎない。

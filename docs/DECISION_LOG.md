@@ -1002,3 +1002,16 @@
 - 次工程と承認境界: 次の単一作業は「Shopee共通Token Manager Minimum Betaの実装＋PH先行offline検証」。offline technical gates完了後に`WAITING_APPROVAL`とし、別Owner承認前はactual PH Refresh Token登録、actual credential変更、Shopee production refresh API、PH live Category / Brand / Attribute確認を行わない。
 - rollback: docs-only正本化は通常revertできる。Token Manager製品実装、credential変更、live API実行、runtime状態変更をこの決定で許可しない。
 - 再検討条件: offline gates完了後のcredential登録・変更、production refresh、PH live catalog確認、他marketplaceでのruntime有効化、または未確認事項の再評価には、独立した実装タスク、明示scope、必要なOwner承認を要する。
+
+## DEC-0084 — Google Sheet Access Token Source Minimum Betaを共通認証sourceとして採用する
+
+- 日付: 2026-09-25
+- 背景: 既存在庫管理ツールとPR #86のToken Managerは、同じShopee Open Platform App、同じshop、同じRefresh Token系列を共有することが判明した。同一系列を複数ツールが独立にrefreshするとtoken世代の競合を招く。
+- 決定: この系列のRefresh Tokenは既存在庫管理ツールだけが管理・更新する。各国Mapper側はrefreshせず、最新Access Tokenをread-onlyで取得する共通Google Sheet Access Token Source Minimum Betaを採用する。DEC-0082 / DEC-0083のToken Manager実装順とMapper側refresh方針は、この共有系列について本決定で置き換える。両DECは履歴として保持し、DEC-0083を書き換えない。
+- Bridge境界: Partner Key、Refresh Token、注文データ等を含む元注文管理表をMapperへ直接API共有しない。専用Bridge Spreadsheetを設け、最小contractをmarketplace、shop_id、access_tokenとする。MapperはBridgeからRefresh TokenまたはPartner Keyを読まない。Bridgeへの発行・更新責務と具体的なアクセス設定は後続の独立作業で確認する。
+- 共通module: PH / SG / MY / THを同一interfaceで扱う。取得したmarketplaceを要求市場へbindし、Bridgeのshop_idとローカルのexpected shop_idを照合する。不一致、欠落、曖昧な行、取得・認証障害ではfail closedとする。Google APIはread-onlyとし、Access Tokenはメモリ内だけで利用する。Access TokenをGit、DB、log、snapshot、Evidenceへ保存しない。
+- 認証優先順位: 一時Access Token override、明示ONのGoogle Sheet Access Token Source、legacy Access Tokenの順とする。Google sourceを明示ONにした後の障害・不一致ではlegacyへsilent fallbackしない。overrideの選択は明示的な一時操作として扱う。
+- 市場・保護境界: PHで先行検証するが、MY / TH runtimeは有効化しない。SG operationもINACTIVEを維持する。governance/state.json、ph.beta.operation、sg.safety.baseline、Safety、SLS、Candidate / Prelisting Gate契約は変更しない。
+- PR #86: Token Manager実装PRはDraftのままruntime OFFで未merge候補として保持し、今回のdocs-only差分に混ぜない。将来、独立した認証系列が必要になった場合の再利用候補とし、その採用は別判断とする。
+- 工程順: Google Sheet Access Token Source最小実装・offline検証 → 別承認によるPH live確認 → marketplace-neutral ShopeeCatalogClient → SG production Category source identity → 後続SG工程。今回の決定だけでcredential作成、Bridge作成、Google live read、Shopee live API、runtime切替、deployを許可しない。
+- rollback: 今回のdocs-only差分は通常revertできる。PR #86の削除・merge、製品runtimeまたはGovernance状態の変更を伴わない。
