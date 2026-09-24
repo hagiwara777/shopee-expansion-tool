@@ -9,6 +9,7 @@ import pytest
 from modules.shopee_access_token_source import (
     AccessTokenSourceError,
     GoogleSheetAccessTokenSource,
+    GoogleSheetsTransport,
 )
 from modules.shopee_catalog_client import (
     ShopeeCatalogClient,
@@ -76,6 +77,71 @@ def test_transport_failure_fails_closed_without_error_detail(reason):
     with pytest.raises(AccessTokenSourceError) as caught:
         GoogleSheetAccessTokenSource("bridge-id", transport).get_access_token("PH", 456)
     assert reason not in str(caught.value)
+    assert TOKEN not in repr(caught.value)
+    assert caught.value.__context__ is None
+
+
+@pytest.mark.parametrize("status", [200, 401, 403, 429, 500, 503])
+def test_google_adapter_http_status_is_read_only_and_fail_closed(monkeypatch, status):
+    import google.auth
+    import google.auth.transport.requests
+
+    calls = []
+
+    class FakeResponse:
+        status_code = status
+
+        def json(self):
+            return {"values": [HEADERS, ["PH", "456", TOKEN]]}
+
+    class FakeSession:
+        def get(self, url, *, params, timeout):
+            calls.append((url, params, timeout))
+            return FakeResponse()
+
+    monkeypatch.setattr(google.auth, "default", lambda *, scopes: (object(), None))
+    monkeypatch.setattr(
+        google.auth.transport.requests, "AuthorizedSession", lambda credentials: FakeSession()
+    )
+    transport = GoogleSheetsTransport()
+    if status == 200:
+        assert transport.read_values("bridge-id", "A:C") == {
+            "values": [HEADERS, ["PH", "456", TOKEN]]
+        }
+    else:
+        with pytest.raises(AccessTokenSourceError) as caught:
+            transport.read_values("bridge-id", "A:C")
+        assert TOKEN not in repr(caught.value)
+    assert calls == [(
+        "https://sheets.googleapis.com/v4/spreadsheets/bridge-id/values/A%3AC",
+        {"majorDimension": "ROWS"},
+        10,
+    )]
+
+
+@pytest.mark.parametrize("failure_point", ["auth", "timeout"])
+def test_google_adapter_auth_and_timeout_are_redacted(monkeypatch, failure_point):
+    import google.auth
+    import google.auth.transport.requests
+
+    def failing_auth(*, scopes):
+        raise RuntimeError(TOKEN)
+
+    class TimedOutSession:
+        def get(self, *args, **kwargs):
+            raise TimeoutError(TOKEN)
+
+    if failure_point == "auth":
+        monkeypatch.setattr(google.auth, "default", failing_auth)
+    else:
+        monkeypatch.setattr(google.auth, "default", lambda *, scopes: (object(), None))
+        monkeypatch.setattr(
+            google.auth.transport.requests,
+            "AuthorizedSession",
+            lambda credentials: TimedOutSession(),
+        )
+    with pytest.raises(AccessTokenSourceError) as caught:
+        GoogleSheetsTransport().read_values("bridge-id", "A:C")
     assert TOKEN not in repr(caught.value)
     assert caught.value.__context__ is None
 

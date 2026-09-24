@@ -6,7 +6,7 @@
 
 DEC-0084に基づくGoogle Sheet Access Token Source Minimum Betaの実装候補を作成した。共通SourceはPH / SG / MY / THを同一interfaceで扱い、BridgeのA:C列だけをread-onlyで取得する。marketplaceとローカルexpected shop_idを照合し、欠落・重複・不正行・取得障害ではfail closedとする。PH Catalog Clientの認証優先順位は一時override → 明示ONのGoogle Source → legacy token。Sourceは既定OFFであり、ON後の失敗でlegacyへ戻らない。Access Tokenはメモリ内で利用し、repr・例外・logに出さない。
 
-隔離した依存環境でoffline全体テスト1,430件PASS、PH / SG protected regression 670件PASSを確認した。Google credential、Bridge実体、Google live read、Shopee live APIは未実行。PR #86のToken ManagerはDraft・runtime OFF・未merge候補として今回の差分から分離する。
+隔離した依存環境でoffline全体テスト1,438件PASS、PH / SG protected regression 670件PASSを確認した。Google credential、Bridge実体、Google live read、Shopee live APIは未実行。PR #86のToken ManagerはDraft・runtime OFF・未merge候補として今回の差分から分離する。
 
 PHはACTIVE / ALLOWED、SG operationはINACTIVE / ALLOWED、MY / THはINACTIVE / NOT_STARTEDを維持する。`ph.beta.operation`と`sg.safety.baseline`はACCEPTEDのまま保護する。SG Category確定後も`listing_ready=false`、SG export / handoff停止を維持する。`governance/state.json`は変更しない。
 
