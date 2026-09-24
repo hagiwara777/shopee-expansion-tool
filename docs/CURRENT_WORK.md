@@ -4,19 +4,17 @@
 
 ## 現在の単一作業
 
-PR #82はOwner Acceptance後、accepted head `c2f15648d189d2d885fe97bda96c3464fcf2fa48`を含むmerge commit `925e022810b0953df4b51ecfb976ce089e06892c`でformal mainへ統合済みである。今回、Shopee共通Token Manager Minimum Betaの設計Gateを`DESIGN_GATE_PASS`として正式受入し、DEC-0083へ正本化する。このタスクは文書正本化までとし、Token Managerの製品実装は次の新規Codexタスクで行う。
+Shopee共通Token Manager Minimum Betaの製品実装とPH先行offline検証をcodex/token-manager-minimum-betaで進行中。formal mainの設計Gate受入はPR #85 / DEC-0083で完了済み。Token Managerは代表shopのmarketplace binding、Access / Refresh Token同一世代、READY / IN_FLIGHT / BLOCKED、on-demand refresh、Git外fileへのatomic replace、Windows lockとACL確認、不明結果のfail closedを実装した。PH既存Catalog Clientへの接続は最小変更とし、一時Access Token overrideを第一優先、Managerは明示設定時だけON、OFFではlegacy credentialを維持する。
 
-正式成果は、全行ELIGIBLEの正式SG Prelisting Gate CSVの受理、SG-only catalog replace前の全件validation、Category AI CoreのSG offline契約、`marketplace=SG`のProductEvidence、Fake Provider検証、商品単位の人間Category確認、ASIN単位の保存、保存済みCategoryの現在catalog ID / path / leaf再検証である。SG UIはlive OpenAI providerの生成・実行経路を持たず、検証済みcatalogからの手動leaf確認だけを提供する。
+Shopee公式current Refresh Token文書は直接取得できずPRIMARY_SOURCE_UNVERIFIED。DEC-0083の記録済みcontract以外を推測で補完していない。actual credential file、実token、production refresh、PH live Category / Brand / Attribute、SG / MY / TH live APIは未使用。SG / MY / THには同じManager実装をofflineでbinding可能だが、runtimeはINACTIVE / NOT_STARTEDのままである。
 
-PH runtimeは`ACTIVE / ALLOWED`、SG operationは`INACTIVE / ALLOWED`を維持する。`ph.beta.operation`と`sg.safety.baseline`をprotected capabilityとして保護し、Battery、Community NG、own penalty、その他の既存BLOCK / REVIEWをCategory確認で解除しない。DB migration、Candidate 15列、Prelisting Gate公開contractは変更していない。
+ローカルではFake transport / clock / credentialとWindows一時directoryでToken Manager・PH Category / Brand / Attribute接続を検証した。全offline pytestは1436件、protected PH / SG専用回帰は574件がPASS。最後の小さな接続補強後の再検証、Governance V2証跡、Draft PR、CI、read-only reviewが残る。governance/state.json、Candidate 15列、Prelisting Gate、Safety / SLS、SG operation・export / handoffは変更していない。
 
 ## 次の単一作業
 
-Shopee共通Token Manager Minimum Betaの実装＋PH先行offline検証を新規Codexタスクで行う。DEC-0083の設計と順序を維持し、actual PH Refresh Token登録、actual credential変更、Shopee production refresh API、PH live Category / Brand / Attribute確認は別Owner承認まで行わない。
+補強後のoffline / protected regressionとGovernance V2、diff・secret確認を完了し、scope内のlocal commit、push、Draft PR、CI/checks、read-only reviewへ進む。これらが完了したらWAITING_APPROVALで停止し、別Owner承認までactual PH Refresh Token登録、actual credential file作成・変更、production refresh、PH live Category / Brand / Attribute確認を行わない。formal mainへmergeしない。
 
-offline technical gates完了後は`WAITING_APPROVAL`とし、承認を得るまで前段のcredential・production refresh・PH live確認へ進まない。SG / MY / THのruntime有効化は各marketplaceの承認境界を維持する。
-
-SG production Category source identityは中止せず、共通Token基盤、PH先行検証、共通Catalog Clientの後に再開する。SG operationは`INACTIVE / ALLOWED`、`listing_ready=false`、SG export / handoff停止を維持する。
+SG production Category source identityは共通Token基盤、PH先行live検証、共通Catalog Clientの後に再開する。SG operationはINACTIVE / ALLOWED、listing_ready=false、SG export / handoff停止を維持する。
 
 ## 現在の工程境界
 
@@ -24,7 +22,7 @@ SG Category確定後も`listing_ready=false`を維持し、SG rowsをgroups CSV�
 
 実SG production catalogのsource identity、実catalogでの実商品受入、SG live OpenAI API、AI意味精度、Evidence hashによる完全自動失効は未確認である。これらの不在を補う推測・自動化は行わず、catalog未取込・破損・現在catalog不一致はfail closedとする。SG operationを開始しない。
 
-この文書正本化がformal mainへ統合された後、このCodexタスクを閉じる。次工程は新規CodexタスクでDEC-0083を基にShopee共通Token Manager Minimum Betaを実装し、PH先行offline検証を行う。
+Token Managerのoffline実装候補はこの作業branchで検証中であり、formal mainの正式受入やlive認証の承認を意味しない。
 
 ## 再開・更新・rollback
 
