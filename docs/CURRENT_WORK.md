@@ -4,15 +4,15 @@
 
 ## 現在の単一作業
 
-Shopee共通Token Manager Minimum Betaのoffline実装とPH先行技術検証はDraft PR #86で完了し、現在はWAITING_APPROVALで停止している。formal mainの設計GateはPR #85 / DEC-0083で受入済み。PR #86は未mergeであり、Token ManagerのPH runtimeは初期OFFのまま、実credential・実token・Shopee production APIを使用していない。
+Shopee共通Token Manager Minimum Betaのoffline実装とPH先行技術検証はDraft PR #86でOwner受入済み。formal mainの設計GateはPR #85 / DEC-0083で受入済み。Ownerの条件付きPH live承認後、公式current Refresh Token contractを直接照合し重要差分なしと確認した。Git外PH credential fileを登録したが、production refreshの単回試行は成功を確認できず、credentialは`IN_FLIGHT` / generation 0でfail closed停止中。現在の状態は`WAITING_APPROVAL`ではなく、PH認証credentialの安全な復旧待ちである。PR #86は未mergeであり、PH Token Manager runtimeの恒久的な有効化はしていない。
 
 共通Managerは代表shopとmarketplaceをbindingし、Access / Refresh Token同一generation、READY / IN_FLIGHT / BLOCKED、on-demand refresh、Git外fileへのatomic replace、Windows cross-process lock、protected DACLの設定・読戻し、不明結果のfail closedを実装した。PH Catalog Clientへだけ最小接続し、一時Access Token overrideを第一優先、明示ON時だけManagerを使用、OFFではlegacy credentialを維持する。Manager ON時の障害でlegacy tokenへ黙ってfallbackしない。SG / MY / THには同じManager実装をofflineでbindingできるが、各runtimeは有効化していない。
 
-ローカルの全offline pytestは1436件PASS、PH / SG protected regressionは574件PASS。Governance V2は設定ValidateとPowerShell 5.1 / 7を含む6 mandatory local-validation gateがcommit-bound EvidenceでPASSし、CONTINUEを確認した。PR #86のGovernance、全offline、protected PH / SG、security checksは実装headでPASSした。git diff --checkはPASSし、変更差分に実secretは確認されていない。Shopee公式current Refresh Token文書は直接取得できずPRIMARY_SOURCE_UNVERIFIEDであり、DEC-0083記録済みcontract以外を推測で補完していない。
+ローカルの全offline pytestは1436件PASS、PH / SG protected regressionは574件PASS。Governance V2は設定ValidateとPowerShell 5.1 / 7を含む6 mandatory local-validation gateがcommit-bound EvidenceでPASSし、CONTINUEを確認した。PR #86のGovernance、全offline、protected PH / SG、security checksは実装headでPASSした。git diff --checkはPASSし、変更差分に実secretは確認されていない。Shopee公式Developer Guide「Authorization and Authentication」（2026-07-24更新）を2026-09-24に直接確認し、DEC-0083のPH shop Refresh Token contractと重要差分がないと確認した。PH production refreshは1回だけ試行し、成功を確認できなかった。新Access / Refresh Tokenは保存されず、generationは0のまま`IN_FLIGHT`となった。旧Refresh Tokenの再送とPH live Category / Brand / Attributeの確認は行っていない。原因は未確定であり、安全な最新tokenの取得または再認可と別途の復旧判断まで停止する。
 
 ## 次の単一作業
 
-Ownerの別承認後に同じCodexタスクでPH live validationを行う。実施前にPR #86の最新head・CIを再確認し、Shopee公式current contractの未確認を解消する。承認対象はactual PH Refresh Token登録、Git外credential file作成・変更、production refresh request、PH live Category / Brand / Attributeのread-only確認を個別に明示する。承認まではいずれも実行せず、formal mainへのmerge、deploy、SG / MY / TH runtime有効化も行わない。
+PH認証credentialの安全な復旧を次の単一作業とする。単回production refreshの結果は失敗または不明であり、`IN_FLIGHT`を推測で`READY`へ戻さず、旧Refresh Tokenを再送しない。actual credentialの追加変更、production API再試行、PH Category / Brand / Attribute live APIも行わない。Shopee側で最新の有効なAccess / Refresh Token pairを確認するか再認可したうえで、復旧手順と再実行の承認境界を判断する。formal mainへのmerge、deploy、SG / MY / TH live API・runtime有効化、Catalog Client全体のmarketplace-neutral化、自動出品は引き続き行わない。
 
 SG production Category source identityは共通Token基盤、PH先行live検証、共通Catalog Clientの後に再開する。SG operationはINACTIVE / ALLOWED、listing_ready=false、SG export / handoff停止を維持する。
 
@@ -22,7 +22,7 @@ SG Category確定後も`listing_ready=false`を維持し、SG rowsをgroups CSV�
 
 実SG production catalogのsource identity、実catalogでの実商品受入、SG live OpenAI API、AI意味精度、Evidence hashによる完全自動失効は未確認である。これらの不在を補う推測・自動化は行わず、catalog未取込・破損・現在catalog不一致はfail closedとする。SG operationを開始しない。
 
-Token Managerのoffline実装候補はDraft PR #86で検証済みだが、formal mainの正式受入やlive認証の承認を意味しない。
+Token Managerのoffline実装候補はDraft PR #86で検証済みだが、formal mainの正式受入やPH live認証の成功を意味しない。
 
 ## 再開・更新・rollback
 
