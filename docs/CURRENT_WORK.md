@@ -12,7 +12,7 @@ PHはACTIVE / ALLOWED、SG operationはINACTIVE / ALLOWED、MY / THはINACTIVE /
 
 ## 次の単一作業
 
-この実装候補のDraft PR、CI、read-only reviewを完了した後、`WAITING_APPROVAL`で停止する。次の独立承認対象はBridge / Google credentialの実準備とPHでのlive readである。offline結果からPH live成功を推定しない。
+実装候補はDraft PR #88で提示済み。次の単一作業は、別のオーナー承認を得てBridge / Google credentialを実準備し、PHでlive readを確認する工程である。この工程の開始までは`WAITING_APPROVAL`とし、offline結果からPH live成功を推定しない。PR checksとEvidenceの結果はGitHub上で現在のheadに対して確認する。
 
 ## 現在の工程境界
 
