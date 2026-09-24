@@ -4,30 +4,22 @@
 
 ## 現在の単一作業
 
-PR #82はOwner Acceptance後、accepted head `c2f15648d189d2d885fe97bda96c3464fcf2fa48`を含むmerge commit `925e022810b0953df4b51ecfb976ce089e06892c`でformal mainへ統合済みである。今回、Shopee共通Token Manager Minimum Betaの設計Gateを`DESIGN_GATE_PASS`として正式受入し、DEC-0083へ正本化する。このタスクは文書正本化までとし、Token Managerの製品実装は次の新規Codexタスクで行う。
+PR #85でDEC-0083のToken Manager設計はformal mainへ統合済み。既存在庫管理ツールとPR #86のToken Managerが同じOpen Platform App・shop・Refresh Token系列を共有することが判明したため、今回のdocs-only作業でDEC-0084を追加し、Mapper共通のGoogle Sheet Access Token Source Minimum Betaを現行方針とする。DEC-0083は履歴として保持する。PR #86はDraft、runtime OFF、未merge候補のまま保持し、今回の差分へ混ぜない。
 
-正式成果は、全行ELIGIBLEの正式SG Prelisting Gate CSVの受理、SG-only catalog replace前の全件validation、Category AI CoreのSG offline契約、`marketplace=SG`のProductEvidence、Fake Provider検証、商品単位の人間Category確認、ASIN単位の保存、保存済みCategoryの現在catalog ID / path / leaf再検証である。SG UIはlive OpenAI providerの生成・実行経路を持たず、検証済みcatalogからの手動leaf確認だけを提供する。
-
-PH runtimeは`ACTIVE / ALLOWED`、SG operationは`INACTIVE / ALLOWED`を維持する。`ph.beta.operation`と`sg.safety.baseline`をprotected capabilityとして保護し、Battery、Community NG、own penalty、その他の既存BLOCK / REVIEWをCategory確認で解除しない。DB migration、Candidate 15列、Prelisting Gate公開contractは変更していない。
+PHはACTIVE / ALLOWED、SG operationはINACTIVE / ALLOWED、MY / THはINACTIVE / NOT_STARTEDを維持する。`ph.beta.operation`と`sg.safety.baseline`はACCEPTEDのまま保護する。SG Category確定後も`listing_ready=false`、SG export / handoff停止を維持する。`governance/state.json`は変更しない。
 
 ## 次の単一作業
 
-Shopee共通Token Manager Minimum Betaの実装＋PH先行offline検証を新規Codexタスクで行う。DEC-0083の設計と順序を維持し、actual PH Refresh Token登録、actual credential変更、Shopee production refresh API、PH live Category / Brand / Attribute確認は別Owner承認まで行わない。
+DEC-0084に基づき、PH / SG / MY / TH共通のGoogle Sheet Access Token Source Minimum Betaを最小実装し、offlineで検証する。専用Bridge Spreadsheetの最小contractは`marketplace`、`shop_id`、`access_token`。元注文管理表は直接API共有せず、BridgeからRefresh TokenとPartner Keyを読まない。取得したshop_idとローカルexpected shop_idの一致、明示ON後のfail closed、override → Google source → legacyの優先順位を検証する。
 
-offline technical gates完了後は`WAITING_APPROVAL`とし、承認を得るまで前段のcredential・production refresh・PH live確認へ進まない。SG / MY / THのruntime有効化は各marketplaceの承認境界を維持する。
-
-SG production Category source identityは中止せず、共通Token基盤、PH先行検証、共通Catalog Clientの後に再開する。SG operationは`INACTIVE / ALLOWED`、`listing_ready=false`、SG export / handoff停止を維持する。
+今回の正本化では実装、Google credential・Bridge作成、Google live read、Shopee live API、PR #86 merge、deployを行わない。次の実装タスクでもlive確認は独立した承認境界とし、offline結果からPH live成功を推定しない。
 
 ## 現在の工程境界
 
-SG Category確定後も`listing_ready=false`を維持し、SG rowsをgroups CSV、listing TXT、handoffへ出力しない。SG Brand、SG SLS runtime、`listing_ready`、handoff、live Shopee / Keepa / OpenAI API、deploy、自動Category確定、自動出品は未受入であり、本工程の成果に含めない。
+長期順序はGoogle Sheet Access Token Source → PH live確認 → marketplace-neutral ShopeeCatalogClient → SG production Category source identity → 後続SG工程。SG production Category調査は中止せず、共通認証とCatalog Clientの後に再開する。MY / TH runtimeを有効化しない。
 
-実SG production catalogのsource identity、実catalogでの実商品受入、SG live OpenAI API、AI意味精度、Evidence hashによる完全自動失効は未確認である。これらの不在を補う推測・自動化は行わず、catalog未取込・破損・現在catalog不一致はfail closedとする。SG operationを開始しない。
-
-この文書正本化がformal mainへ統合された後、このCodexタスクを閉じる。次工程は新規CodexタスクでDEC-0083を基にShopee共通Token Manager Minimum Betaを実装し、PH先行offline検証を行う。
+実SG production Category catalogのsource identity、実catalogでの実商品受入、SG live OpenAI API、SG Brand、SG SLS runtime、listing_ready、handoff、deploy、自動Category確定、自動出品は未受入。既存Safety、SLS、Candidate 15列、Prelisting Gate契約、DB schemaは変更しない。
 
 ## 再開・更新・rollback
 
-再開時はGitでcurrent formal mainを確認し、DEC-0083、DEC-0082、DEC-0081、DEC-0080、DEC-0079、DEC-0078、`governance/state.json`、`guardrails/sls_market_categories/README.md`を確認する。SG SLS canonical / Master MatrixをCategory AI catalogとして使用しない。
-
-PR #82の製品変更を戻す必要がある場合は、SG Mapper追加、共通AI adapterのmarketplace対応、PH-only export guard、UI接続、tests、関連docsを通常revertする。DB migrationはない。PH operation、PH catalog / mapping、SLS資産、Safety資産は維持する。今回の文書正本化だけを戻す場合は、そのdocs-only change setを通常revertする。
+再開時はGitでformal mainとPR #86の状態を確認し、DEC-0084、DEC-0083、DEC-0082、`PROJECT_ROADMAP.md`、`governance/state.json`を読む。Bridgeへの書込み責務・credential設定・live Google / Shopee確認は各独立scopeで扱う。今回のdocs-only差分は通常revertできる。PR #86と製品runtimeには影響しない。
