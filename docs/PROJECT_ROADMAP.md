@@ -180,6 +180,8 @@ DEC-0084により、同じOpen Platform App・shop・Refresh Token系列を共�
 
 DEC-0082 / DEC-0083のToken Manager方針は履歴として保持するが、共有Refresh Token系列の現行実装順はDEC-0084を優先する。PR #86はDraft、runtime OFF、未merge候補として保持し、独立認証系列が必要になった場合の再利用を別途判断する。
 
+DEC-0085 / DEC-0086により、PH Bridgeへの最新Access Token自動同期を専用Bridge側Apps Scriptで先行し、5分トリガー、自動実行、元表との一致、既存Sourceのread-only取得をPHでlive確認・Owner受入した。Bridge書込みが全面失敗した場合、現行3列contractと既存readerだけでは旧tokenの無効化を保証できない。これはMinimum Betaの既知制約として保持し、追加機構は別判断とする。
+
 次の長期工程を現在からの優先順とする。各工程の実装、Bridge・credential作成、live API実行、runtime切替、運用開始には、その工程に必要な別scope・Owner承認を要する。
 
 1. **Google Sheet Access Token Source Minimum Beta** — 共通read-only moduleとBridge contractをoffline実装・検証する。PH既存経路、Safety、SLS、ph.beta.operationを保護し、Google live readはこの工程の検証に含めない。
