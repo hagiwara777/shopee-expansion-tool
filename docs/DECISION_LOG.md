@@ -1034,3 +1034,16 @@
 - 既知制約: Bridge書込みが全面失敗した場合、旧token消去を保証できない。Ownerはこの制約をPH Minimum Betaとして受入し、今回はfreshness判定等の追加機構を作らない。失敗した同期を正常な最新値として報告しない。
 - 保護と公開境界: SG operation、MY / TH runtime、ph.beta.operation、sg.safety.baseline、Safety、SLS、Candidate / Prelisting Gate、governance/state.jsonは変更しない。local commit、push、Draft PR、CI/checks確認を行い、formal main mergeとdeployは最終Owner承認なしに行わない。
 - rollback: Owner管理下で5分トリガーを無効化し、BridgeのPH tokenを空にする。全面書込み障害中は空への更新も保証できないため、復旧確認まで最新値として扱わない。
+
+## DEC-0087 — AGENTSのmandatory原則とRUNBOOKの詳細手順を分離する
+
+- 日付: 2026-09-26
+- 背景: AGENTSの承認境界・正本化・Governance説明がRUNBOOKや同文書内で重複し、毎タスクの再読込負担と更新不整合を生んでいた。Ownerは監査案を承認し、同じタスクで文書整理と検証、local commit、push、Draft PR、CI確認までを承認した。
+- 決定: AGENTSには毎タスク必須の短い恒久ルール・mandatory原則、RUNBOOKには詳細手順・実行方法を置く。AGENTSに開始時、変更前、検証・formal merge前、終了・handoff、E2E、共有・復旧時の必須参照を残し、移動した手順を任意化しない。削除は意味が完全に残る重複記述に限る。
+- 維持: DEC-0072 / DEC-0073の承認・信頼契約、HOLD / HARD_STOP、mandatory technical gate、protected capability、外部API / live / secret境界を変更しない。既存policy検査の6文言を保持し、検査script・testsを弱めない。開始時の正本文書読込義務を削減せず、DECISION_LOGの既存entryを書き換えない。
+- 正本: Git、長寿命State、repo外Task Contextの役割を維持し、CURRENT_WORKは再開案内とする。snapshotは生成物であり、手編集・commitしない。V2以前のCURRENT_WORKへのbranch等の二重入力を復活させない。
+- 工程順: PR #89のPH Bridge正式統合を確認済みの前工程とし、AGENTS.md軽量化 → marketplace-neutral ShopeeCatalogClient → SG production Category source identity → 後続SG工程とする。DEC-0084の製品基盤順を維持し、その前に今回の文書整理を置く。Catalog Client以降へ本承認だけで着手しない。
+- 非対象: 製品コード、Safety、SLS、Mapper、Catalog Client、secret処理、governance/state.json、Config / gate / verifier、protected capabilityの変更は含めない。formal main mergeは現在対象のOwner Acceptance Summaryと明示的最終承認まで行わない。
+- 理由: 必須原則の可視性と詳細手順の完全性を両立し、重複更新を減らすため。行数削減率を受入目標にせず、安全性を維持した配置整理の結果として測定する。
+- rollback: 今回の5文書差分を通常revertできる。製品、State、credential、runtimeの変更はない。force pushやdirty resetを復旧手段にしない。
+- 再検討条件: mandatory原則の欠落、必須参照先の消失、policy検査失敗、正本間矛盾を検出した場合は修正して再検証する。開始時の全文読込削減、承認境界・gate変更は本決定に含めず、別の設計・承認を要する。

@@ -1,5 +1,9 @@
 # 管理基盤Ver2 Runbook
 
+毎タスクのmandatory原則は[AGENTS.md](../AGENTS.md)、本書はその詳細手順とする。
+AGENTSが指定する実行時点で該当節を必ず読み、適用する。参照化で手順・承認・gateを任意化しない。
+DEC-0087に基づく配置整理であり、DEC-0072 / DEC-0073の管理・承認契約を変更しない。
+
 ## 正本
 
 - Git: branch、commit、tree、差分。
@@ -25,7 +29,17 @@
 schemaは`governance/schemas/task-context.schema.json`です。追加gateと追加停止条件だけを許し、
 既存mandatory gate、Global State、保護capabilityを削除・緩和できません。
 
-## 実行
+## 開始・実行
+
+開始時は正式repoのroot、remote、branch、HEAD、main、origin/main、clean / dirtyを観測する。
+AGENTSと適用下位AGENTS、CURRENT_WORK、DECISION_LOG、PROJECT_ROADMAPを読み、
+利用方法・機能仕様に関係する場合だけREADMEも読む。CURRENT_WORKは再開案内であり、
+branch / HEAD / tree / 差分はGit、タスク固有状態はTask Contextと照合する。
+作業票のmarketplace / module / phase / 作業対象と食い違う場合は、推測で進めない。
+
+開始時に次のValidateとsnapshot生成を実行する。CURRENT_WORKまたはDECISION_LOG更新後も
+snapshotを再生成し、対象作業のprofileで検証する。生成・検証の失敗を完了扱いにしない。
+local-validationの例は次のとおり。必要なEvidenceを「Evidence」に従って渡す。
 
 ```powershell
 .\scripts\Invoke-GovernanceV2.ps1 -Mode Validate
@@ -35,7 +49,8 @@ schemaは`governance/schemas/task-context.schema.json`です。追加gateと追�
 
 Pythonは`-PythonPath`、`GOVERNANCE_PYTHON`、PATHの順に解決します。PowerShell 5.1と7で同じPython共通実装を呼びます。
 Generatorは観測だけを行い、fetch、checkout、branch、index、Stateを変更しません。Verifierは既存contextを評価し、
-Generatorを暗黙実行せず、snapshotを削除しません。
+Generatorを暗黙実行せず、snapshotを削除しません。Generatorはoptional観測不足だけで失敗させません。
+派生出力は既定のGit管理外 `outputs/governance/` に生成します。手編集・commitはしません。
 
 Exit codeは`0=CONTINUE`、`10=HOLD`、`20=HARD_STOP`、`64=usage`、`70=internal`です。
 
@@ -56,31 +71,65 @@ skipped、neutral、古いheadはformal acceptanceを満たしません。mandat
 Owner Acceptance Summaryは、採用対象、変更、非対象、既存運用影響、主要リスク、確認済みEvidence、既知制約、
 承認後の意味、rollbackの9項目を事業用語で説明します。オーナーへhash、SHA、schema等の技術判断を要求しません。
 
-## Shareable output
-
 ## 軽量開発運用v1との互換契約
 
-通常のローカル作業は引き続き小さく可逆に進める。読み取り、ローカル編集、ローカルテスト、
-ローカルcommitは、ユーザー変更や秘密情報を上書き・収録しない範囲で実行できる。
+通常のローカル作業は小さく可逆に進める。通常開発承認の対象操作、別承認の操作、
+formal mainへのmerge条件はAGENTS「軽量開発運用 v1・承認境界」を適用する。
+push / Draft PRは検証可能な候補の公開であり、formal mainへの採用承認ではない。
+GateのHOLD / HARD_STOPを承認範囲の拡大で回避しない。
 
-通常開発承認は、目的とscopeが明確な通常タスクについて、local編集、local test、local commit、push、
-Draft PR作成、CI / checks確認、read-only reviewを一括で許可する。pushまたはDraft PRだけを理由に
-追加承認を求めない。pushとDraft PRはGitHub上で検証可能な候補を公開する工程であり、formal mainへの
-採用承認ではない。
-
-formal mainへのmergeは別境界である。mandatory technical gateを満たし、現在のhead、scope、主要リスク、
-protected capabilityへの影響、Owner Acceptance Summaryのbindingに対するオーナー最終承認を得た場合だけ
-実行する。これらがPR作成後に変わった場合は、merge前に現在対象へのOwner Acceptanceを取り直す。
-
-有料API、外部書込み、復元不能削除、大幅なscope変更、deploy、GitHub repository設定、branch protection /
-ruleset、GitHub Actions secret / variable、実環境Trust Anchor、credential / secret操作、force pushは通常開発承認に
-含めず、別の明示承認を要する。Ver2 GovernanceのHOLD/HARD_STOP、Protected Capability Gate、mandatory technical gateは
-この境界を緩和せず、通常開発承認で無効化または迂回しない。
-
-WORK_BRIEFを使う条件は、目的・責務・満足条件・外部操作が複雑で、短い依頼だけでは安全な実装範囲を
-固定できない場合に限る。すべての作業開始条件にはしない。
-
+Ownerは作りたいもの、理由、利用方法、満足条件、避けたい結果を事業用語で示す。
+CodexはGit・正本の実測、曖昧な要望の具体化、技術設計、local編集、tests、平易な完了報告を担い、
+Ownerへ技術方式、branch、テスト方式の選択を求めない。
 GPTは必須の伝言役または承認者ではない。技術的整合性はVerifier、tests、CI、Codexが検証する。
+
+WORK_BRIEFを使う条件は、目的が曖昧、複数module、責務変更、外部API、費用、データ移行、
+復元不能操作等を伴い、短い依頼だけでは安全な実装範囲を固定できない場合とする。
+`docs/templates/WORK_BRIEF.md`を使用し、すべての作業開始条件にはしない。
+pushまたはPRだけを理由に必須化しない。project名、chat名、worktree絶対pathを安全gateにしない。
+
+## タスク境界・正本化
+
+同じ原因・同じ受入条件の問題は同じCodexタスクを継続できる。次の場合は分割の候補とする。
+
+- 独立した問題が解決し、次の独立問題へ移る。
+- 実装目的、受入条件、module、責務が変わる。
+- 修正・テストの反復で会話、log、diffが大きく蓄積した。
+- 同じ調査、ファイル読込、説明を繰り返し始めた。
+- Context Compaction等が発生し、長大なタスクになった。
+
+同一問題で修正・テストの反復が3回程度を超えたら、機械的に終了せず、
+タスク分割または原因分析への立返りを一度見直す。
+
+基本順序は `実装・修正 → テスト → 結果確認 → 正本化 → 前タスク終了 → handoff → 新規タスク開始`。
+終了・handoff時は今回の変更範囲に応じて次を実施する。
+
+1. 採用するコード・設定・テストを確定する。
+2. 対象testと必要な回帰testの結果を確認する。mock、実API、実データ、Owner受入を分ける。
+3. `git status`とdiffで、無関係な変更、未追跡ファイル、secret混入がないか確認する。
+4. 実作業状態が変わった場合はCURRENT_WORKを更新する。
+5. 恒久判断が変わった場合だけDECISION_LOGへ新IDで追記し、既存entryを書き換えない。
+6. 長期工程・順序が変わる場合だけPROJECT_ROADMAPを更新する。
+7. 恒久ルールが変わる場合だけAGENTS等を更新する。詳細を複数文書に複製しない。
+8. 正本文書更新時は必要なsnapshotを再生成する。CURRENT_WORKまたはDECISION_LOG更新時は必須。
+   「開始・実行」に従い検証し、生成失敗・未解決の検証失敗を完了扱いにしない。
+9. 関連検証、変更ファイル、未追跡ファイル、secret確認後、検証済み範囲だけlocal commitする。
+   push / Draft PRは通常開発承認のscope内、merge / deployは別の承認規則に従う。
+
+次のタスクが過去会話を読まずに正式状態、確認済み事項、未解決事項、次の単一作業と停止条件を
+判断できることを完了条件とする。テスト失敗、無関係なdirty変更、snapshot生成失敗、正本矛盾で
+正本化できない場合は阻害要因を示して停止する。handoff自体は正本の代替にしない。
+handoffには完了内容、確認済みtests、未解決事項、次タスクの目的、最初に読む正本fileまたはcommitを記載する。
+
+## Browser E2E
+
+- versioned source fixtureは `tests/fixtures/browser_e2e` に保存する。
+- Chrome操作用ファイルは `Documents\ShopeeE2E` のみに生成し、source fixtureとして手編集しない。
+- upload確認とdecision実行は別段階として扱う。
+- 外部APIを使うsuiteは明示承認なしに実行しない。
+- ダウンロードしたE2E出力をGitへ追加しない。
+
+## Shareable output
 
 `context.json/.md`と`verification.json/.md`にはrepo相対path、repository ID、reason codeだけを出します。
 絶対path、username、hostname、credential、raw exception、raw command output、認証付きURLを含めません。

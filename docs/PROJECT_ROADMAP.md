@@ -16,7 +16,7 @@ Shopee事業で開発する対象は、次の三つの独立ツールである�
 2. **出品後商品改善ツール** — Shopeeへ出品済みの商品リストの編集・改善を省力化する。
 3. **Amazon仕入れ支援ツール** — Amazonでの商品購入・仕入れを省力化する。
 
-現在は出品支援ツールの完成を最優先とする。この優先順位は開発順序であり、三ツール間の技術的依存関係を意味しない。出品後商品改善ツールとAmazon仕入れ支援ツールの本格設計・実装は、出品支援ツールの完成受入後に優先順位を再判断する。両ツールの詳細仕様は今回決めない。PH Minimum Betaの完成定義・受入条件はDEC-0034、B1〜B7に対する差分監査結果と残る受入GateはDEC-0035で正本化済みである。少量実商品のB2 E2E全体フロー技術確認は完了し、次は画像Safety・人間REVIEWの最小設計ゲートである。
+現在は出品支援ツールの完成を最優先とする。この優先順位は開発順序であり、三ツール間の技術的依存関係を意味しない。出品後商品改善ツールとAmazon仕入れ支援ツールの本格設計・実装は、出品支援ツールの完成受入後に優先順位を再判断する。両ツールの詳細仕様は今回決めない。PH Minimum Betaの完成定義・受入条件はDEC-0034、B1〜B7に対する差分監査結果と残る受入GateはDEC-0035で正本化済みである。B2 E2E、画像Safety・人間REVIEW、PH Minimum Beta最終受入は完了済みである。現在からの優先順は後述の「AGENTS軽量化・共通認証・Catalog基盤」を参照する。
 
 外部出品ツールへの自動接続・自動投入は出品支援ツールの中核目的と別の責務境界であり、別設計・別承認とする。外部契約未確認の事実は残すが、その未確認だけを理由にASIN、Shopee Category ID、Shopee Brand IDの取得・確認に関する中核開発全体を停止しない。
 
@@ -170,7 +170,7 @@ canonical taxonomyとPH assetだけをruntimeで読む。CURRENTなCATEGORY_ALLO
 SLS停止状態はCategory / Brand確認済みでも完了表示にならない。MY / TH / TW / VNを含む非PH runtimeは開始していない。
 PR #78の製品merge commitは`5079795fd1eb7a4ae1940852b76e2bd2315e0006`であり、source更新やnon-PH runtimeは別タスク・別承認とする。current formal mainはGitで観測する。
 
-### Shopee Open Platform共通認証・Catalog基盤（次の優先工程）
+### AGENTS軽量化・共通認証・Catalog基盤（現在からの優先工程）
 
 PHのShopeeCatalogClientは既存のread-only Category / Brand / Attribute取得経路として維持する。現状のPH固定実装をSG用に複製せず、marketplace-neutralな共通Catalog Clientへ段階的に整える。認証はmarketplaceごとの代表となる認証済みshop単位、Category / Brand / Attribute catalogはmarketplace単位で扱う。
 
@@ -182,20 +182,25 @@ DEC-0082 / DEC-0083のToken Manager方針は履歴として保持するが、共
 
 DEC-0085 / DEC-0086により、PH Bridgeへの最新Access Token自動同期を専用Bridge側Apps Scriptで先行し、5分トリガー、自動実行、元表との一致、既存Sourceのread-only取得をPHでlive確認・Owner受入した。Bridge書込みが全面失敗した場合、現行3列contractと既存readerだけでは旧tokenの無効化を保証できない。これはMinimum Betaの既知制約として保持し、追加機構は別判断とする。
 
+Google Sheet Access Token SourceはPR #88、PH Bridge自動同期はPR #89でformal mainへ統合済み。
+PH live確認とOwner受入はDEC-0084〜DEC-0086の既存Evidenceとして保持し、再実行を次工程にしない。
+
+DEC-0087により、現在からの順序は **AGENTS.md軽量化 → marketplace-neutral ShopeeCatalogClient → SG production Category source identity → 後続SG工程** とする。
+AGENTS軽量化は文書配置の整理であり、安全規則、承認境界、Governance gate、protected capability、製品挙動を変更しない。
+
 次の長期工程を現在からの優先順とする。各工程の実装、Bridge・credential作成、live API実行、runtime切替、運用開始には、その工程に必要な別scope・Owner承認を要する。
 
-1. **Google Sheet Access Token Source Minimum Beta** — 共通read-only moduleとBridge contractをoffline実装・検証する。PH既存経路、Safety、SLS、ph.beta.operationを保護し、Google live readはこの工程の検証に含めない。
-2. **PH live確認** — Bridgeとアクセス設定の独立準備・承認後、PHのshop_id bindingとCatalog read-only経路をliveで確認する。障害時はfail closedとする。
-3. **ShopeeCatalogClientのmarketplace-neutral化** — marketplaceを明示bindする共通Category / Brand / Attribute clientとし、未承認marketplaceはfail closedとする。
-4. **SG production Category catalog source identity最終確認** — SG代表shopの正式認証contextでread-only確認を行い、v2.product.get_category契約、Category ID、parent、leaf、hierarchy、production identityを確認する。source identity未確認なら停止する。
-5. **SG production Category catalog import / acceptance** — production responseを共通normalization、SG 6列catalog、全件validation、SG-only replaceへ通す。SLS catalogをCategory masterへ流用しない。
-6. **SG実商品Category acceptance** — 少量実商品を人間が確認し、保存済みCategoryを現在catalogで再validationする。この時点でもlisting_ready=falseを維持する。
-7. **SG Brand** — production Category確認後にSGのget_brand_list経路を確認・接続し、他marketplaceのBrand IDを流用しない。
-8. **SG SLS runtime** — Category / Brand後の独立工程として扱い、既存Safetyを解除しない。
-9. **SG Minimum Beta完成判定** — Category、Brand、Safety、SLS、handoff条件を別Owner Acceptanceで確認する。listing_ready=true、handoff、SG operation ACTIVE化は自動的に行わない。
-10. **SG実運用** — 別Owner承認後にだけ検討する。
-11. **MY展開** — 共通Source / Catalog基盤を再利用し、MY固有Safety、source identity、production確認だけを追加する。MY runtimeを先行有効化しない。
-12. **TH展開** — 同じ共通基盤を再利用し、TH固有差分だけを追加する。TH runtimeを先行有効化しない。
+1. **AGENTS.md軽量化** — Owner承認済み監査案に基づき、mandatory原則をAGENTS、詳細手順をRUNBOOKへ整理し、検証・Draft PR・CI確認後にformal main採用の最終Owner承認を得る。
+2. **ShopeeCatalogClientのmarketplace-neutral化** — marketplaceを明示bindする共通Category / Brand / Attribute clientとし、未承認marketplaceはfail closedとする。
+3. **SG production Category catalog source identity最終確認** — SG代表shopの正式認証contextでread-only確認を行い、v2.product.get_category契約、Category ID、parent、leaf、hierarchy、production identityを確認する。source identity未確認なら停止する。
+4. **SG production Category catalog import / acceptance** — production responseを共通normalization、SG 6列catalog、全件validation、SG-only replaceへ通す。SLS catalogをCategory masterへ流用しない。
+5. **SG実商品Category acceptance** — 少量実商品を人間が確認し、保存済みCategoryを現在catalogで再validationする。この時点でもlisting_ready=falseを維持する。
+6. **SG Brand** — production Category確認後にSGのget_brand_list経路を確認・接続し、他marketplaceのBrand IDを流用しない。
+7. **SG SLS runtime** — Category / Brand後の独立工程として扱い、既存Safetyを解除しない。
+8. **SG Minimum Beta完成判定** — Category、Brand、Safety、SLS、handoff条件を別Owner Acceptanceで確認する。listing_ready=true、handoff、SG operation ACTIVE化は自動的に行わない。
+9. **SG実運用** — 別Owner承認後にだけ検討する。
+10. **MY展開** — 共通Source / Catalog基盤を再利用し、MY固有Safety、source identity、production確認だけを追加する。MY runtimeを先行有効化しない。
+11. **TH展開** — 同じ共通基盤を再利用し、TH固有差分だけを追加する。TH runtimeを先行有効化しない。
 
 MY / THの具体的な着手順は将来のEvidenceと事業優先順位で変更できるものとし、今回固定しすぎない。
 
@@ -275,7 +280,7 @@ DEC-0049の`BETA_AFTER_CANDIDATE`、DB化、他市場展開、出品後商品改
 - 既存出品ツールの正式入力契約の証拠回収（自動投入またはE2E接続を検討する場合）
 - Category自動確定
 - 自動出品
-- SG Brand / SG SLS runtime / SG Handoffの実装（共通Token Manager、PH先行検証、共通Catalog Client、SG production source identity確認の後の別工程）
+- SG Brand / SG SLS runtime / SG Handoffの実装（DEC-0084の共通SourceとPH先行検証、共通Catalog Client、SG production source identity確認の後の別工程）
 - MY／THの実装（共通Token / Catalog基盤を再利用する将来工程）
 - AI候補の1クリック採用 Ver0.3
 - wrong category蓄積 Ver0.4

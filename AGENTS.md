@@ -1,193 +1,88 @@
 # Codex Repository Rules
 
-## Repository source of truth
+AGENTSには毎タスク必須の恒久原則、[RUNBOOK](docs/RUNBOOK_CHATGPT_CODEX.md)には詳細手順を置く。
+参照化は任意化ではない。下記の実行時点で該当手順を必ず読み、適用する。
 
-- Treat `hagiwara777/shopee-expansion-tool` and its current clone as the source of truth.
-- Do not work in older project or temporary work folders.
+## 正式Repository・正本
 
-## Before making changes
+- 正式Repositoryは `hagiwara777/shopee-expansion-tool` とその現在のclone。古いprojectや一時コピーを推測で使わない。
+- Gitはbranch / HEAD / tree / 差分、`governance/state.json`は長寿命の承認済み状態、
+  repo外Task Contextはタスク固有状態の正本。Stateにactive task、branch、HEAD、test resultを置かない。
+- `docs/CURRENT_WORK.md`は再開案内。branch / HEAD / tree / 差分を二重入力しない。
+  判断理由は`docs/DECISION_LOG.md`、長期工程は`docs/PROJECT_ROADMAP.md`を正本とする。
+- 会話、handoff、README、snapshotを現在の正式状態の代替正本にしない。
+  snapshotと`outputs/governance/`は派生物で、snapshotを手動編集・commitしない。
 
-- Identify the files in scope before editing.
-- Run these commands at the start of work:
+## 開始チェック・作業範囲
 
-  ```powershell
-  git status
-  git rev-parse --show-toplevel
-  git log -1 --oneline
-  ```
+- 開始時に `git status`、`git rev-parse --show-toplevel`、`git log -1 --oneline` を実行する。
+  root、remote、branch、HEAD、main、origin/main、clean / dirtyを実測し、正式状態と照合する。
+- 本書と適用する下位AGENTSを全文読み、CURRENT_WORK、DECISION_LOG、PROJECT_ROADMAPを読む。
+  利用方法・機能仕様に関係する場合はREADMEも読む。既存の読込義務を省略しない。
+- 変更対象・禁止範囲を編集前に特定し、振舞い・scope変更は事前に報告する。
+  作業票と再開案内のmarketplace / module / phase、およびGit / Task Contextの作業対象が
+  不一致なら推測で進めず停止する。停止条件に反して保留工程を再開しない。
+- dirtyなworktreeのユーザー変更・未追跡ファイルを無断整理・破棄・上書きしない。
+  dirtyのままbranchを切り替えず、無関係な変更をstage / commitしない。
+- 開始時はRUNBOOK「開始・実行」のValidate・snapshot生成を必ず行う。
+  Governance操作前は「正本」「Trust Anchor」「Task Context」「開始・実行」を適用する。
 
-- If a task changes behavior or scope, report the proposed differences before editing.
+## 軽量開発運用 v1・承認境界
 
-## Codex開始前チェック
+- CodexはGit・正本を確認し技術判断と検証を担う。GPTは必須の伝言役または承認者にしない。
+  Ownerへ技術方式の選択を求めず、事業上の違いと確認結果を平易に説明する。
+- 読み取り・scope内local編集・testはユーザー変更とsecretを保護し、小さく可逆に進める。
+  関連検証成功、差分・secret確認後の範囲内local commitは可能。
+  目的とscopeが明確な通常開発承認は、local編集・test・commit、push、Draft PR、
+  CI / checks確認、read-only reviewを含む。push / Draft PRだけで追加承認を求めない。
+- formal mainへのmergeは別境界。mandatory technical gates、現在対象のOwner Acceptance Summary、
+  Ownerの明示的最終承認を必要とする。head、scope、主要リスク、protected capabilityへの影響、
+  Summary bindingが変われば再承認する。technical gate完了前にOwner Acceptanceを要求しない。
+- 費用・有料API、live API / 実商品（read-onlyも含む）、外部live書込み、復元不能な削除・上書き・移行、
+  deploy、GitHub repository設定・branch protection / ruleset・Actions secret / variable、
+  実環境Trust Anchor、credential / secret操作、大幅な目的・責務・満足条件変更は別の明示承認を要する。
+- `--force` / `--force-with-lease`は原則禁止。対象branchと具体操作への明示承認なしに例外化しない。
+  force pushやdirty resetを標準復旧手順にせず、承認範囲外のpush・正本化を自動実行しない。
+- WORK_BRIEFは全作業必須ではない。変更前にRUNBOOK「軽量開発運用v1との互換契約」の利用条件を適用する。
+  project名・chat名・worktree絶対pathを安全gateにしない。
 
-作業開始時は、会話履歴だけに依存せず、次を確認してください。
+## Governance・protected capability・秘密情報
 
-1. 正式リポジトリのルート、remote、現在ブランチ、HEAD、working treeの
-   clean / dirty を確認する。
-2. この `AGENTS.md` と、適用対象の下位 `AGENTS.md` があれば全文を読む。
-3. `docs/CURRENT_WORK.md`、`docs/DECISION_LOG.md`、
-   `docs/PROJECT_ROADMAP.md` を読む。利用方法や機能仕様が関係する場合だけ
-   `README.md` も読む。
-4. ユーザー提示情報、Gitで確認済みの事実、テストで確認済みの事実、
-   未確認情報を区別する。推測を確認済み事実として扱わない。
-5. 今回の変更対象と変更禁止範囲を特定し、`CURRENT_WORK.md` の現在作業と
-   停止条件に反しないことを確認する。
-6. 作業票と `CURRENT_WORK.md` の marketplace、module、phase、working branch が
-   不一致の場合は、推測で進めず停止する。
+- HOLD / HARD_STOP、Protected Capability Gate、mandatory technical gateを無効化・迂回・緩和しない。
+  Task Contextで既存gate、Global State、保護capabilityを削除・緩和しない。
+- bootstrap repository identityはOwner受入済みrepo外Trust Anchorだけを信頼し、
+  repo / remote / State / Config / Task Contextの自己申告を期待値にしない。
+- 変更分類はGOVERNANCE_ONLY / MARKET_LOCAL / SHARED_CORE。
+  未知path・混合・分類不能はSHARED_COREとし、`ph.beta.operation`と`sg.safety.baseline`を保護する。
+  両ACCEPTED capabilityを弱めず、SHARED_COREまたは未知変更では両方の保護gateを適用する。
+- mandatory checksはbranch protectionと独立して評価する。欠落、pending、skipped、neutral、
+  古いhead、provider不在をPASSにしない。formal merge前はRUNBOOK「Evidence」「Formal acceptance」を適用する。
+- Gitに`.env`、`.env.*`、cache DB、`outputs/`、`.venv/`、`__pycache__/`、
+  `.pytest_cache/`、`.pytest_tmp/`、`.agents/`、`.codex/`、`work/`を追加しない。
+  API key、token、passwordをsource・README・testsへ埋め込まない。
+- secret本文をGit・docs・log・UI・snapshot・Evidenceへ出さず、管理文書に商品CSV本文・個人情報を含めない。
+  共有出力には絶対path、username、hostname、credential、raw exception / command output、
+  認証付きURLを含めない。共有前はRUNBOOK「Shareable output」を適用する。
 
-安全規則:
+## Component boundary・検証
 
-- dirtyなworktreeでは、ユーザーの変更や未追跡ファイルを無断で整理、破棄、
-  上書きしない。dirtyな状態のまま別ブランチへ切り替えない。
-- 正式ブランチ、一時コピー、古いフォルダを推測で判断しない。Gitのルートと
-  remoteを確認する。
-- 現在の作業、停止条件、次の再開地点は `docs/CURRENT_WORK.md` を正本とする。
-- 方針変更の理由は `docs/DECISION_LOG.md` に追記し、長期工程は
-  `docs/PROJECT_ROADMAP.md` を正本とする。READMEを現在進捗の正本にしない。
-- `CONTEXT_SNAPSHOT` は正本文書とGit状態から生成する派生情報として扱い、単独で
-  正本にしない。手動編集・commitを行わない。
+- Product Finder、Guardrail、ASIN Resolverの責務を分離し、承認済みscope変更なしに統合・拡張しない。
+- 変更後は実行可能な限りpytestを行う。実Keepa APIと外部APIを使うE2Eは明示承認なしに実行しない。
+  Browser E2E前はRUNBOOK「Browser E2E」を適用し、upload確認とdecision実行を別段階にする。
+- ユーザー提示、Git観測、test確認、未確認・仮定を区別し、未実行をPASSにしない。
+  mock、実API、実データ、Owner受入は別の確認。Evidenceのprovenanceと対象bindingを検証し、
+  過去結果をVer2 TESTとして捏造しない。移行済み受入はLEGACY_ACCEPTANCEとする。
+- 危険性に直接関係しない不明事項は仮定を明記して可逆な範囲を続行できる。
+  外部影響、復元不能性、責務変更に関わる不明事項では停止する。明示的な停止条件は優先する。
 
-## Git and sensitive data
+## タスク境界・正本化
 
-- A scoped local commit is allowed after relevant validation succeeds and the
-  changed files, diff, and secret-data checks have been reviewed. Do not stage
-  or commit unrelated user changes.
-- Do not push, create a Draft PR, merge, or deploy outside the approval that
-  applies to the task. A normal-development approval with a defined purpose
-  and scope may cover local edits, tests, commits, push, Draft PR creation,
-  CI/check review, and read-only review for that scope; it does not authorize
-  a formal-main merge.
-- A formal-main merge requires the mandatory technical gates, a current Owner
-  Acceptance Summary, and the owner's explicit final approval. A changed PR
-  head, scope, risk, protected-capability impact, or summary binding requires
-  renewed final acceptance before merge.
-- Force push with `--force` or `--force-with-lease` is prohibited by default. Make an exception only when the user explicitly authorizes the target branch and exact operation; do not automatically perform ordinary pushes or formalization beyond the requested scope.
-- Never add the following to Git: `.env`, `.env.*`, cache databases, `outputs/`,
-  `.venv/`, `__pycache__/`, `.pytest_cache/`, `.pytest_tmp/`, `.agents/`,
-  `.codex/`, or `work/`.
-- Do not hard-code API keys, tokens, or passwords in source code, README files, or tests.
-
-## 軽量開発運用 v1
-
-- オーナーは、作りたいもの、理由、利用方法、満足条件、避けたい結果を事業用語で示す。
-  技術方式、branch、テスト方式の選択をオーナーへ求めない。
-- CodexはGitと正本を実行時に確認し、曖昧な要望を具体化し、技術設計、ローカル編集、
-  テスト、平易な完了報告を担当する。GPTは必須の伝言役または承認者にしない。
-- 通常開発承認では、目的とscopeが明確な通常タスクについて、範囲内のローカル編集、
-  ローカルテスト、local commit、push、Draft PR作成、CI / checks確認、read-only reviewを
-  一括で実行できる。pushまたはDraft PRだけを理由に追加承認を求めない。
-- 次は通常開発承認に含めず、実行前に別の明示承認を得る。
-  - 費用または有料API利用
-  - Shopee等の外部サービスへのlive書込み
-  - 復元不能な削除、上書き、移行
-  - formal mainへのmerge（mandatory technical gate、現在対象のOwner Acceptance Summary、
-    オーナーの最終承認が必要）
-  - deploy、GitHub repository設定、branch protection / ruleset、GitHub Actions secret / variable、
-    実環境Trust Anchor、credential / secret関連操作、force push
-  - 承認済みの目的、責務、満足条件を大きく変える変更
-- Governance VerifierのHOLD / HARD_STOP、Protected Capability Gate、mandatory technical gateは
-  通常開発承認で無効化または迂回しない。
-- `docs/templates/WORK_BRIEF.md` は全作業の開始条件ではない。目的が曖昧、複数module、
-  責務変更、外部API、費用、データ移行、復元不能操作等を伴う場合だけ使用する。
-  pushまたはPRを行うことだけを理由に必須化しない。
-- Codexプロジェクト名、GPTチャット名、worktree絶対パスを安全ゲートにしない。
-  repo root、remote、branch、HEAD、origin/main、clean / dirtyはCodexが実行時に確認する。
-- 不明事項が作業の危険性へ直接関係しない場合は、確認済み事実と仮定を区別して可逆な範囲を
-  続行する。外部影響、復元不能性、責務変更へ関係する場合だけ停止する。
-
-## Validation
-
-- Run `pytest` after changes whenever practical.
-- Use the real Keepa API only when the user explicitly authorizes that verification.
-
-## Codexタスク境界・正本化
-
-- Codexの会話履歴やhandoff文そのものを正本にしない。正式状態はGit上のコード・テストと
-  `docs/CURRENT_WORK.md`、`docs/DECISION_LOG.md`、`docs/PROJECT_ROADMAP.md` 等の正本文書で確定する。
-- 同じ原因・同じ受入条件の問題を調査、修正、検証している間は、原則として同一Codexタスクを
-  継続してよい。
-- 次のいずれかに該当する場合は、新しいCodexタスクへ切り替える候補とする。
-  - 1つの独立した問題が解決し、次の独立問題へ移る。
-  - 実装目的、受入条件、module、責務が変わる。
-  - 修正→テスト→再修正を繰り返し、会話・ログ・diff等のコンテキストが大きく蓄積している。
-  - 同じ調査、同じファイル読み込み、同じ説明を繰り返し始めている。
-  - Context Compaction等が発生し、長大なタスクになっている。
-- 同一問題で修正→テストの反復が3回程度を超えた場合は、機械的に終了するのではなく、
-  タスクを分割すべきか、原因分析へ戻るべきかを一度見直す。
-- 新しいCodexタスクへ切り替える場合は、handoffより先に必ず正本化を行う。
-- 基本順序は次とする。
-
-  `実装・修正 → テスト → 結果確認 → 正本化 → 前タスク終了 → handoff → 新規Codexタスク開始`
-
-- 正本化では、今回の変更範囲に応じて次を確認する。
-  1. 採用するコード・設定・テストを確定する。
-  2. 対象テストと必要な回帰テストの結果を確認する。
-  3. `git status` とdiffを確認し、無関係な変更、未追跡ファイル、秘密情報の混入がないことを確認する。
-  4. 実作業状態が変わった場合は `docs/CURRENT_WORK.md` を更新する。
-  5. 恒久的な判断変更がある場合だけ `docs/DECISION_LOG.md` へ新規追記する。
-  6. 長期工程・順序が変わる場合だけ `docs/PROJECT_ROADMAP.md` を更新する。
-  7. 恒久的な開発ルールが変わる場合だけ `AGENTS.md` 等へ反映する。
-  8. 正本文書更新時は必要なsnapshotを再生成する。
-  9. 検証済みの範囲だけを適切な単位でlocal commitする。pushとDraft PRは通常開発承認の
-     scope内で進め、mergeとdeployは別途承認規則に従う。
-- 正本化の完了条件は、次のCodexタスクが過去会話を読まなくても、リポジトリと正本文書から
-  「現在の正式状態」「確認済み事項」「未解決事項」「次の単一作業」を判断できることとする。
-- テスト失敗、無関係なdirty変更、snapshot生成失敗、正本間の矛盾などで正本化できない場合は、
-  タスク完了扱いにせず、阻害要因を明示して停止する。
-- handoffは正本の代替ではない。handoffには必要最小限として、完了内容、確認済みテスト、
-  未解決事項、次タスクの目的、新タスクが最初に読む正本ファイルまたはcommitを記載する。
-
-## 作業終了・handoff
-
-- 実作業の状態が変わった場合だけ `docs/CURRENT_WORK.md` を更新する。
-- 重要判断が変わった場合だけ `docs/DECISION_LOG.md` に新しいIDで追記する。
-  既存エントリは書き換えない。
-- 工程順や長期方針が変わった場合だけ `docs/PROJECT_ROADMAP.md` を更新する。
-  同じ内容を複数文書へ詳細に複製しない。
-- 実行していないテストを成功扱いしない。モックテスト、実API確認、実データ確認、
-  ユーザー受入確認を区別する。
-- 未完了事項、次の単一作業、停止条件を明確に残す。
-- 管理文書に `.env`、APIキー、認証情報、商品CSV本文、個人情報を含めない。
-- `CURRENT_WORK.md` または `DECISION_LOG.md` を更新した場合は、
-  `scripts/Update-ContextSnapshot.ps1` でsnapshotを再生成する。生成に失敗した場合は
-  作業完了扱いにしない。
-- commit前に変更ファイル、未追跡ファイル、秘密情報の混入、関連テスト結果を確認する。
-  pushとDraft PRは通常開発承認のscope内でのみ実行し、mergeとdeployは別途承認がない場合は実行しない。
-
-## Component boundaries
-
-- Keep Product Finder, Guardrail, and ASIN Resolver responsibilities separate.
-- Do not combine or extend their responsibilities without an approved scope change.
-
-## Browser E2E
-
-- Keep versioned source fixtures under `tests/fixtures/browser_e2e`.
-- Generate Chrome-operation files only under `Documents\ShopeeE2E`; do not hand-edit them as source fixtures.
-- Treat upload confirmation and decision execution as separate steps.
-- Run E2E suites that use external APIs only with explicit approval.
-- Never add downloaded E2E outputs to Git.
-
-## Governance Foundation V2（本節が管理状態契約を優先）
-
-- 長寿命の承認済み状態の正本は`governance/state.json`とし、active task、branch、HEAD、test resultを置かない。
-- branch、HEAD、tree、差分はGitを観測する。`CURRENT_WORK.md`へ二重入力しない。
-- タスク固有状態はrepo外のTask Contextへ保存し、UUID単位で並行可能にする。Task Contextはmandatory gateを削除・緩和できない。
-- bootstrap repository identityはrepo外Trust Anchorだけを信頼する。repo、remote、State、Config、Task Contextの自己申告を期待値にしない。
-- Generatorは観測専用で、fetch、checkout、branch、index、Stateを変更しない。optional観測不足だけで生成を失敗させない。
-- Verifierは既存contextを独立評価し、Generatorの暗黙実行やsnapshot削除をしない。
-- 変更は`GOVERNANCE_ONLY`、`MARKET_LOCAL`、`SHARED_CORE`へ分類し、未知path・混合・分類不能は`SHARED_CORE`とする。
-- accepted protected capabilityは`ph.beta.operation`と`sg.safety.baseline`。SHARED_COREまたは未知変更では両方を保護する。
-- Governance mandatory checksはGitHub branch protectionとは独立して評価する。check欠落、skipped、neutral、古いhead、provider不在をPASSにしない。
-- 共有出力へ絶対path、username、hostname、credential、raw exception、raw command outputを出さない。
-- Owner Acceptanceはmandatory technical gate完了後だけ要求し、9項目の非エンジニア向け説明を生成する。hash、SHA、schema等の判断をownerへ求めない。
-- Evidenceはprovenanceと対象bindingを検証する。過去結果をVer2 TESTとして捏造せず、移行済み受入は`LEGACY_ACCEPTANCE`とする。
-- pre-Ver2 rollback targetは`136958a1bf2493983b4413f7d231ee5adbd913bf`。force pushやdirty resetを標準手順にしない。
-
-開始時は次を実行する。
-
-```powershell
-.\scripts\Invoke-GovernanceV2.ps1 -Mode Validate
-.\scripts\Update-ContextSnapshot.ps1 -TaskContext <repo外context.json>
-```
-
-`docs/CURRENT_WORK.md`は再開案内、`outputs/governance/`はGit管理外派生物であり、どちらも構造化状態の正本ではない。
+- 同じ原因・受入条件の問題は同じタスクで継続できる。独立問題、目的・受入条件・module・責務変更、
+  長大化では分割を検討し、RUNBOOK「タスク境界・正本化」の見直し条件を適用する。
+- handoffより先に正本化する。終了・handoff時は同節のチェックリストを必ず実施する。
+  正式状態、確認済み・未解決事項、次の単一作業、停止条件を過去会話なしで再開可能にする。
+- 実作業状態変更時はCURRENT_WORK、判断変更時はDECISION_LOGへ新IDで追記（既存entryを書き換えない）、
+  工程順変更時はPROJECT_ROADMAP、恒久ルール変更時はAGENTS等を更新する。詳細を重複複製しない。
+- CURRENT_WORKまたはDECISION_LOG更新時はRUNBOOK「開始・実行」に従いsnapshotを再生成・検証する。
+  テスト失敗、無関係なdirty変更、snapshot生成失敗、正本矛盾で正本化できない場合は、
+  阻害要因を明示して停止し完了扱いにしない。復旧時はRUNBOOK「Rollback」を適用する。
