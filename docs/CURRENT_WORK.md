@@ -4,15 +4,15 @@
 
 ## 現在の単一作業
 
-PR #85でDEC-0083のToken Manager設計はformal mainへ統合済み。既存在庫管理ツールとPR #86のToken Managerが同じOpen Platform App・shop・Refresh Token系列を共有することが判明したため、今回のdocs-only作業でDEC-0084を追加し、Mapper共通のGoogle Sheet Access Token Source Minimum Betaを現行方針とする。DEC-0083は履歴として保持する。PR #86はDraft、runtime OFF、未merge候補のまま保持し、今回の差分へ混ぜない。
+DEC-0084に基づくGoogle Sheet Access Token Source Minimum Betaの実装候補を作成した。共通SourceはPH / SG / MY / THを同一interfaceで扱い、BridgeのA:C列だけをread-onlyで取得する。marketplaceとローカルexpected shop_idを照合し、欠落・重複・不正行・取得障害ではfail closedとする。PH Catalog Clientの認証優先順位は一時override → 明示ONのGoogle Source → legacy token。Source設定は未設定または`0`でOFF、`1`でON、その他はfail closedとし、一時overrideを最優先にする。ON後の失敗でlegacyへ戻らない。Access Tokenはメモリ内で利用し、repr・例外・logに出さない。
+
+関連test 82件、offline全体1,445件、protected PH / SG 574件がPASSした。2026-09-25、専用Bridgeをmarketplace / shop_id / access_tokenの3列とPH行だけで準備し、Google read-only用credentialをGit外で確認した。検証プロセス内だけでSourceを明示ONにし、BridgeからPH Access Tokenを1回read-only取得してローカルexpected shop_idとのbindingを確認した。取得TokenによるPH live Catalog read-only確認はCategory 2,301件、Brand先頭ページ1件、Attribute 11件でPASSした。Token・credential本文は記録せず、製品runtime状態は変更していない。PR #86のToken ManagerはDraft・runtime OFF・未merge候補として今回の差分から分離する。
 
 PHはACTIVE / ALLOWED、SG operationはINACTIVE / ALLOWED、MY / THはINACTIVE / NOT_STARTEDを維持する。`ph.beta.operation`と`sg.safety.baseline`はACCEPTEDのまま保護する。SG Category確定後も`listing_ready=false`、SG export / handoff停止を維持する。`governance/state.json`は変更しない。
 
 ## 次の単一作業
 
-DEC-0084に基づき、PH / SG / MY / TH共通のGoogle Sheet Access Token Source Minimum Betaを最小実装し、offlineで検証する。専用Bridge Spreadsheetの最小contractは`marketplace`、`shop_id`、`access_token`。元注文管理表は直接API共有せず、BridgeからRefresh TokenとPartner Keyを読まない。取得したshop_idとローカルexpected shop_idの一致、明示ON後のfail closed、override → Google source → legacyの優先順位を検証する。
-
-今回の正本化では実装、Google credential・Bridge作成、Google live read、Shopee live API、PR #86 merge、deployを行わない。次の実装タスクでもlive確認は独立した承認境界とし、offline結果からPH live成功を推定しない。
+実装候補はDraft PR #88で提示済み。PH live read-only確認は完了した。関連test、offline全体、protected PH / SGはPASSした。Governance V2と最新headのCI/checksを確認してから`WAITING_APPROVAL`で停止する。PR #88のformal main merge、deploy、他市場live APIは行わない。次の単一作業はオーナーの別承認後に決める。
 
 ## 現在の工程境界
 
@@ -22,4 +22,4 @@ DEC-0084に基づき、PH / SG / MY / TH共通のGoogle Sheet Access Token Sourc
 
 ## 再開・更新・rollback
 
-再開時はGitでformal mainとPR #86の状態を確認し、DEC-0084、DEC-0083、DEC-0082、`PROJECT_ROADMAP.md`、`governance/state.json`を読む。Bridgeへの書込み責務・credential設定・live Google / Shopee確認は各独立scopeで扱う。今回のdocs-only差分は通常revertできる。PR #86と製品runtimeには影響しない。
+再開時はGitでformal mainとPR #86の状態を確認し、DEC-0084、DEC-0083、DEC-0082、`PROJECT_ROADMAP.md`、`governance/state.json`を読む。Bridgeへの書込み責務・credential設定・live Google / Shopee確認は各独立scopeで扱う。今回の実装候補は通常revertできる。PR #86と既定の製品runtimeには影響しない。
