@@ -16,7 +16,7 @@ DEC-0085のPH Bridge同期Scriptを専用Google Apps Scriptプロジェクトへ
 
 ## 次の単一作業
 
-Draft PRのCI / mandatory technical gatesとOwner Acceptance Summaryを現在のheadへbindして確認する。formal mainへのmergeはOwnerの最終承認までWAITING_APPROVALとし、deployは行わない。
+次の単一作業はformal main mergeの最終Owner承認を得ること。Draft PR #89の現在headに対するCI / mandatory technical gatesとOwner Acceptance Summaryを判断材料とする。Owner承認までWAITING_APPROVALで停止し、merge / deployを行わない。
 
 ## 現在の工程境界
 
