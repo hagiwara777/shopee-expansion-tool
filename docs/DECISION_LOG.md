@@ -1015,3 +1015,22 @@
 - PR #86: Token Manager実装PRはDraftのままruntime OFFで未merge候補として保持し、今回のdocs-only差分に混ぜない。将来、独立した認証系列が必要になった場合の再利用候補とし、その採用は別判断とする。
 - 工程順: Google Sheet Access Token Source最小実装・offline検証 → 別承認によるPH live確認 → marketplace-neutral ShopeeCatalogClient → SG production Category source identity → 後続SG工程。今回の決定だけでcredential作成、Bridge作成、Google live read、Shopee live API、runtime切替、deployを許可しない。
 - rollback: 今回のdocs-only差分は通常revertできる。PR #86の削除・merge、製品runtimeまたはGovernance状態の変更を伴わない。
+
+## DEC-0085 — PH Access Token Bridge同期をBridge側Apps Scriptで先行する
+
+- 日付: 2026-09-25
+- 背景: DEC-0084のread-only SourceはPH live確認済みだが、Bridgeへ最新Access Tokenを自動反映する経路は未実装で、手動コピーが必要だった。
+- 決定: 既存在庫管理ツールのApps Scriptを変更せず、専用Bridge同期の独立Apps Scriptを置く。Spreadsheet IDはScript Propertiesで設定し、コードへ埋め込まない。sourceの設定sheetからB/C/E列だけを読み、行番号ではなくPHを検索する。PHが1行、shop_idが正の整数、Access Tokenが非空の場合だけ、Bridge A:Cの3値を更新する。Refresh Token、Partner Key、Shopee Refresh APIは扱わない。時間主導トリガーは5分周期を第一候補とし、Google側の設置・権限承認・live確認は別Owner承認まで実行しない。
+- 失敗境界: 実行開始時にBridgeのPH tokenを空にして確認してからsourceを読む。取得、検証、新値書込み、読戻しの失敗では再度空にする。Bridge書込み自体が不能な場合、3列contractと既存readerだけでは旧tokenの無効化を保証できない。この場合は失敗として報告し、完全な書込み障害に対する厳密な停止保証はreader側freshness契約の別判断を要する。
+- 市場・責務: PH先行に限る。既存Mapper、Governance State、製品runtime、SG / MY / TH operationを変更しない。Service AccountはBridge Viewerのままで、source Spreadsheetへ共有しない。
+- rollback: Owner管理下でトリガーを無効化し、Bridge PH tokenを空にする。古いtokenをBridgeに残して正常扱いしない。
+
+## DEC-0086 — PH Access Token Bridge自動同期Minimum Betaのlive結果を受入する
+
+- 日付: 2026-09-25
+- 決定: OwnerはDEC-0085のPH先行Bridge自動同期をMinimum Betaとしてlive受入した。専用Bridge側Apps Scriptと5分間隔の時間主導トリガーを採用し、既存在庫管理ツール側Apps Script、既存Mapper、Governance State、製品runtimeは変更しない。
+- 確認済み: 5分トリガーは1件。PH自動同期2回が完了し、元管理表とBridgeのPH shop_id binding・Access Token一致を本文を出さず確認した。既存GoogleSheetAccessTokenSourceはGit外のService Accountを用いたBridge Viewerのread-only取得をPASSした。
+- 秘密情報と権限: Access Token、Refresh Token、Partner Key、Service Account JSONの本文をGit、docs、log、Evidenceへ保存しない。同期Scriptは元表のB/C/Eだけを読み、Service AccountはBridge Viewerのままとし、元表へ共有しない。Shopee Refresh APIは呼ばない。
+- 既知制約: Bridge書込みが全面失敗した場合、旧token消去を保証できない。Ownerはこの制約をPH Minimum Betaとして受入し、今回はfreshness判定等の追加機構を作らない。失敗した同期を正常な最新値として報告しない。
+- 保護と公開境界: SG operation、MY / TH runtime、ph.beta.operation、sg.safety.baseline、Safety、SLS、Candidate / Prelisting Gate、governance/state.jsonは変更しない。local commit、push、Draft PR、CI/checks確認を行い、formal main mergeとdeployは最終Owner承認なしに行わない。
+- rollback: Owner管理下で5分トリガーを無効化し、BridgeのPH tokenを空にする。全面書込み障害中は空への更新も保証できないため、復旧確認まで最新値として扱わない。
