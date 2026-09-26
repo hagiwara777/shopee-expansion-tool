@@ -17,8 +17,11 @@ AGENTSには毎タスク必須の恒久原則、[RUNBOOK](docs/RUNBOOK_CHATGPT_C
 
 - 開始時に `git status`、`git rev-parse --show-toplevel`、`git log -1 --oneline` を実行する。
   root、remote、branch、HEAD、main、origin/main、clean / dirtyを実測し、正式状態と照合する。
-- 本書と適用する下位AGENTSを全文読み、CURRENT_WORK、DECISION_LOG、PROJECT_ROADMAPを読む。
-  利用方法・機能仕様に関係する場合はREADMEも読む。既存の読込義務を省略しない。
+- 本書と適用する下位AGENTSを全文読み、CURRENT_WORK、PROJECT_ROADMAPを読む。
+  DECISION_LOGは全Decision見出し一覧とCURRENT_WORKのRequired Decisionsを確認し、
+  必須DEC・今回のmarketplace / module / phase関連DECの本文を読む。選択・検索拡大・全文読込への
+  fallbackはRUNBOOK「Decision読込」を必ず適用する。Required Decisionsだけで対象を限定しない。
+  利用方法・機能仕様に関係する場合はREADMEも読む。
 - 変更対象・禁止範囲を編集前に特定し、振舞い・scope変更は事前に報告する。
   作業票と再開案内のmarketplace / module / phase、およびGit / Task Contextの作業対象が
   不一致なら推測で進めず停止する。停止条件に反して保留工程を再開しない。

@@ -185,12 +185,12 @@ DEC-0085 / DEC-0086により、PH Bridgeへの最新Access Token自動同期を�
 Google Sheet Access Token SourceはPR #88、PH Bridge自動同期はPR #89でformal mainへ統合済み。
 PH live確認とOwner受入はDEC-0084〜DEC-0086の既存Evidenceとして保持し、再実行を次工程にしない。
 
-DEC-0087により、現在からの順序は **AGENTS.md軽量化 → marketplace-neutral ShopeeCatalogClient → SG production Category source identity → 後続SG工程** とする。
-AGENTS軽量化は文書配置の整理であり、安全規則、承認境界、Governance gate、protected capability、製品挙動を変更しない。
+DEC-0088により、現在からの順序は **AGENTS軽量化 完了 → DECISION_LOG読込軽量化 → marketplace-neutral ShopeeCatalogClient → SG production Category source identity → 後続SG工程** とする。
+AGENTS軽量化はPR #90でformal mainへ統合済み。DECISION_LOG読込軽量化では見出し一覧とRequired Decisionsから関連DECを選択し、不足時の検索拡大・全文読込を維持する。詳細はRUNBOOK「Decision読込」を参照する。両工程とも安全規則、承認境界、Governance gate、protected capability、製品挙動を変更しない。
 
 次の長期工程を現在からの優先順とする。各工程の実装、Bridge・credential作成、live API実行、runtime切替、運用開始には、その工程に必要な別scope・Owner承認を要する。
 
-1. **AGENTS.md軽量化** — Owner承認済み監査案に基づき、mandatory原則をAGENTS、詳細手順をRUNBOOKへ整理し、検証・Draft PR・CI確認後にformal main採用の最終Owner承認を得る。
+1. **DECISION_LOG読込軽量化** — 完了したAGENTS軽量化に続き、append-only正本を維持した関連DEC選択手順を整える。検証・Draft PR・CI確認後にformal main採用の最終Owner承認を得る。Catalog Clientは今回着手しない。
 2. **ShopeeCatalogClientのmarketplace-neutral化** — marketplaceを明示bindする共通Category / Brand / Attribute clientとし、未承認marketplaceはfail closedとする。
 3. **SG production Category catalog source identity最終確認** — SG代表shopの正式認証contextでread-only確認を行い、v2.product.get_category契約、Category ID、parent、leaf、hierarchy、production identityを確認する。source identity未確認なら停止する。
 4. **SG production Category catalog import / acceptance** — production responseを共通normalization、SG 6列catalog、全件validation、SG-only replaceへ通す。SLS catalogをCategory masterへ流用しない。
