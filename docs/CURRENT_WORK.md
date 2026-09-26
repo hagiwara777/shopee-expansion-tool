@@ -22,7 +22,7 @@ PR #88のGoogle Sheet Access Token Source、PR #89のPH Bridge、PR #90のAGENTS
 
 PH Category MapperのCategory / Brand / Attribute契約を維持する。SGはClient contractとfake requestによるoffline確認のみ。SG production Catalog API、SG source identity受入、SG Mapper live接続、SG Brand / SLS runtime、listing_ready、handoff、deploy、operation ACTIVE化は含めない。MY / THはCatalog Client request前にfail closedし、operation INACTIVE / development_policy NOT_STARTEDを維持する。Candidate 15列、Prelisting Gate、DB schema、Safety、SLS、Resolver、Expansion、governance/state.json、protected capabilityを変更しない。
 
-対象testsとoffline全体pytest、PowerShell 5.1 / 7のGovernance Validate、protected.ph / protected.sg、secret混入、diff check、snapshot検証を現在headで確認する。mandatory checksに欠落・失敗・古いheadがあればPASSとしない。technical gates完了後、9項目Owner Acceptance Summaryを提示し、Owner明示的最終承認までformal main mergeせずWAITING_APPROVALとする。
+対象offline回帰96件、protected PH / SG回帰574件、PowerShell 5.1 / 7のGovernance Validate、Python構文、secret混入、diff checkを確認済み。ローカル全体pytestはStreamlit 1.44.1が既存`width`引数に未対応のためUI 42件が失敗し、1,417件が成功した。Draft PRのPython 3.12 / requirements環境ではoffline全体とGovernance mandatory 6 gateが成功した。GitHub CI Evidenceを現在対象へbindingしたformal-acceptance Verifierはtechnical requirementsすべてPASS、`owner_acceptance_ready=true`、HOLD理由は`OWNER_ACCEPTANCE_REQUIRED`のみを返した。文書更新後の新headでもCI Evidenceを再確認し、Owner明示的最終承認までformal main mergeせずWAITING_APPROVALとする。
 
 次の単一作業は別scopeのSG production Category catalog source identity確認。live API・credential操作には別明示承認を要する。
 
