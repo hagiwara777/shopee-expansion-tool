@@ -974,8 +974,7 @@ def test_catalog_client_temporary_access_token_override_is_memory_only(
     )
     audit_env.write_text(original_content, encoding="utf-8")
 
-    client = ShopeeCatalogClient.from_local_audit_env(
-        audit_env,
+    client = ShopeeCatalogClient.from_local_audit_env(audit_env, marketplace="PH",
         access_token_override=temporary_token,
     )
 
@@ -998,8 +997,7 @@ def test_catalog_client_temporary_token_still_requires_existing_shop_credentials
     )
 
     with pytest.raises(ShopeeCatalogConfigurationError):
-        ShopeeCatalogClient.from_local_audit_env(
-            audit_env,
+        ShopeeCatalogClient.from_local_audit_env(audit_env, marketplace="PH",
             access_token_override="DUMMY_TEMPORARY_ACCESS_TOKEN_FOR_TEST",
         )
 
@@ -1031,7 +1029,7 @@ def test_catalog_client_is_ph_only_and_never_exposes_request_values():
         }
 
     client = ShopeeCatalogClient(
-        ShopeeCatalogCredentials(1, "test", 2, "test"),
+        ShopeeCatalogCredentials(1, "test", 2, "test"), marketplace="PH",
         request_json=request_json,
     )
     categories = client.get_categories("PH")
@@ -1071,7 +1069,7 @@ def test_catalog_client_attribute_tree_uses_category_id_list_and_keeps_input_ord
         }
 
     client = ShopeeCatalogClient(
-        ShopeeCatalogCredentials(1, "test", 2, "test"), request_json=request_json
+        ShopeeCatalogCredentials(1, "test", 2, "test"), marketplace="PH", request_json=request_json
     )
     one_tree = client.get_attribute_tree("PH", 100869)
     results = client.get_attribute_trees("PH", [100869, 100870])
@@ -1092,7 +1090,7 @@ def test_catalog_client_rejects_invalid_attribute_and_brand_requests_before_api_
         return {"error": "", "response": {"list": []}}
 
     client = ShopeeCatalogClient(
-        ShopeeCatalogCredentials(1, "test", 2, "test"), request_json=request_json
+        ShopeeCatalogCredentials(1, "test", 2, "test"), marketplace="PH", request_json=request_json
     )
     invalid_category_lists = (
         [],
@@ -1122,14 +1120,14 @@ def test_catalog_client_handles_shopee_application_errors_and_brand_page_contrac
         return {"error": "product.error_param", "message": "CategoryIdList is required"}
 
     error_client = ShopeeCatalogClient(
-        ShopeeCatalogCredentials(1, "test", 2, "test"), request_json=application_error
+        ShopeeCatalogCredentials(1, "test", 2, "test"), marketplace="PH", request_json=application_error
     )
     with pytest.raises(ShopeeCatalogError, match="product.error_param") as error:
         error_client.get_attribute_tree("PH", 100869)
     assert "/api/v2/product/get_attribute_tree" in str(error.value)
 
     malformed_response_client = ShopeeCatalogClient(
-        ShopeeCatalogCredentials(1, "test", 2, "test"),
+        ShopeeCatalogCredentials(1, "test", 2, "test"), marketplace="PH",
         request_json=lambda url, query, timeout: {"error": "", "category_list": []},
     )
     with pytest.raises(ShopeeCatalogError, match="response object was missing"):
@@ -1151,7 +1149,7 @@ def test_catalog_client_handles_shopee_application_errors_and_brand_page_contrac
         }
 
     brand_client = ShopeeCatalogClient(
-        ShopeeCatalogCredentials(1, "test", 2, "test"), request_json=brand_response
+        ShopeeCatalogCredentials(1, "test", 2, "test"), marketplace="PH", request_json=brand_response
     )
     page = brand_client.get_brand_list("PH", 100869, status=BRAND_STATUS_NORMAL)
     brand_client.get_brand_list("PH", 100869, status=BRAND_STATUS_PENDING)
@@ -1163,7 +1161,7 @@ def test_catalog_client_handles_shopee_application_errors_and_brand_page_contrac
     assert calls[1][1]["status"] == str(BRAND_STATUS_PENDING)
 
     missing_paging_client = ShopeeCatalogClient(
-        ShopeeCatalogCredentials(1, "test", 2, "test"),
+        ShopeeCatalogCredentials(1, "test", 2, "test"), marketplace="PH",
         request_json=lambda url, query, timeout: {
             "error": "",
             "response": {"brand_list": [], "has_next_page": False},
