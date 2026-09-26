@@ -2,7 +2,7 @@
 
 毎タスクのmandatory原則は[AGENTS.md](../AGENTS.md)、本書はその詳細手順とする。
 AGENTSが指定する実行時点で該当節を必ず読み、適用する。参照化で手順・承認・gateを任意化しない。
-DEC-0087に基づく配置整理であり、DEC-0072 / DEC-0073の管理・承認契約を変更しない。
+DEC-0087に基づく配置とDEC-0088のDecision読込手順を適用し、DEC-0072 / DEC-0073の管理・承認契約を変更しない。
 
 ## 正本
 
@@ -10,7 +10,7 @@ DEC-0087に基づく配置整理であり、DEC-0072 / DEC-0073の管理・承�
 - `governance/state.json`: 長寿命の承認済み市場・capability・停止条件。
 - `governance/manifest.json`以下: versioned Governance Configとschema。
 - repo外Task Context: タスクUUID単位の作業状態。Global Stateは更新しない。
-- `docs/DECISION_LOG.md`: 判断理由。
+- `docs/DECISION_LOG.md`: 完全な判断履歴のappend-only正本。過去DECを削除・分割・書換えしない。
 - `docs/PROJECT_ROADMAP.md`: 長期工程。
 - `docs/CURRENT_WORK.md`: 再開案内のみ。
 
@@ -32,7 +32,8 @@ schemaは`governance/schemas/task-context.schema.json`です。追加gateと追�
 ## 開始・実行
 
 開始時は正式repoのroot、remote、branch、HEAD、main、origin/main、clean / dirtyを観測する。
-AGENTSと適用下位AGENTS、CURRENT_WORK、DECISION_LOG、PROJECT_ROADMAPを読み、
+AGENTSと適用下位AGENTSを全文読み、CURRENT_WORK、PROJECT_ROADMAPを読む。
+DECISION_LOGは次節「Decision読込」の手順で選択して本文を読み、
 利用方法・機能仕様に関係する場合だけREADMEも読む。CURRENT_WORKは再開案内であり、
 branch / HEAD / tree / 差分はGit、タスク固有状態はTask Contextと照合する。
 作業票のmarketplace / module / phase / 作業対象と食い違う場合は、推測で進めない。
@@ -53,6 +54,25 @@ Generatorを暗黙実行せず、snapshotを削除しません。Generatorはopt
 派生出力は既定のGit管理外 `outputs/governance/` に生成します。手編集・commitはしません。
 
 Exit codeは`0=CONTINUE`、`10=HOLD`、`20=HARD_STOP`、`64=usage`、`70=internal`です。
+
+## Decision読込
+
+通常タスクでDECISION_LOG全文の再読込は必須にしない。次の順で必要な判断根拠を確認する。
+これは読込方法の変更であり、未読DECの制約失効、作業許可、承認・Governance gateの代替を意味しない。
+
+1. AGENTS / 適用下位AGENTS、CURRENT_WORK、PROJECT_ROADMAPから今回のmarketplace / module / phase、対象・禁止範囲を確認する。
+2. `rg "^## DEC-" docs/DECISION_LOG.md` で全Decision見出し一覧を確認する。Required Decisionsにない関連候補も拾う。見出しだけで判断内容・有効性を確定しない。
+3. CURRENT_WORKのRequired Decisionsに列挙された各DECの本文全体（当該見出しから次のDEC見出し直前まで、末尾DECはEOFまで）を読む。途中省略・出力切捨てがあれば分割して読み切る。
+4. 見出し一覧から今回のmarketplace / module / phase、変更対象・禁止範囲に直接関係するDECを追加で読む。選択した本文の根拠・前提・置換元として必要な参照DECも読む。選択IDを本文全体から検索し、そのIDを参照する後続DECも確認する。数字の新しさだけで旧決定全体が失効したと推測せず、置換された範囲を確認する。
+5. 判断根拠が不足、競合・置換関係が不明、shared core / Governance / approval boundaryに影響、またはRequired Decisionsの漏れが疑われる場合は、本文全体を対象に関連語・IDで検索範囲を広げ、ヒットしたDECを全文読む。Required Decisionsの欠落・空欄・存在しないID、見出しだけでは関連性が判断できない場合も同じ扱いとする。Governance・承認に関係する場合はDEC-0072 / DEC-0073と関連する後続DECを必ず確認する。
+6. 検索・参照追跡後も必要な根拠と適用範囲を判断できない場合だけDECISION_LOG全文を読む。それでも矛盾・承認・停止条件を解消できなければ、依存する作業を停止し、不明点を報告する。全文読込自体を許可の根拠にしない。
+
+たとえば `rg -n -C 2 'DEC-0087|読込|正本|承認|Governance' docs/DECISION_LOG.md` は候補発見用であり、検索結果の数行だけで本文確認を済ませない。`rg`が使えない場合はPowerShellの`Select-String`等で同じ検索を行う。
+選択ID、追加検索した理由、解消した置換関係または未解決事項を作業報告かrepo外Task Contextへ短く残す。新しい必須台帳は作らない。
+
+Required Decisionsは現在の単一作業に必要なIDと短い参照理由だけの再開案内とし、本文の複製、全履歴index、承認状態の正本にしない。
+現在の単一作業・scope・phaseの変更時と終了・handoff時に見出し一覧と照合して更新する。欠落を発見した場合は根拠DECを確認して補正する。
+新しい手動巨大indexは作らない。派生indexが必要になった場合も見出しから再生成可能な非正本に限り、DECISION_LOG本文との照合を省略しない。
 
 ## Evidence
 
@@ -107,7 +127,7 @@ pushまたはPRだけを理由に必須化しない。project名、chat名、wor
 1. 採用するコード・設定・テストを確定する。
 2. 対象testと必要な回帰testの結果を確認する。mock、実API、実データ、Owner受入を分ける。
 3. `git status`とdiffで、無関係な変更、未追跡ファイル、secret混入がないか確認する。
-4. 実作業状態が変わった場合はCURRENT_WORKを更新する。
+4. 実作業状態が変わった場合はCURRENT_WORKを更新する。Required Decisionsも「Decision読込」に従い見出し一覧と照合する。
 5. 恒久判断が変わった場合だけDECISION_LOGへ新IDで追記し、既存entryを書き換えない。
 6. 長期工程・順序が変わる場合だけPROJECT_ROADMAPを更新する。
 7. 恒久ルールが変わる場合だけAGENTS等を更新する。詳細を複数文書に複製しない。

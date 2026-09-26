@@ -1047,3 +1047,17 @@
 - 理由: 必須原則の可視性と詳細手順の完全性を両立し、重複更新を減らすため。行数削減率を受入目標にせず、安全性を維持した配置整理の結果として測定する。
 - rollback: 今回の5文書差分を通常revertできる。製品、State、credential、runtimeの変更はない。force pushやdirty resetを復旧手段にしない。
 - 再検討条件: mandatory原則の欠落、必須参照先の消失、policy検査失敗、正本間矛盾を検出した場合は修正して再検証する。開始時の全文読込削減、承認境界・gate変更は本決定に含めず、別の設計・承認を要する。
+
+## DEC-0088 — DECISION_LOGを正本のまま維持し関連Decisionの段階的読込へ移行する
+
+- 日付: 2026-09-26
+- 背景: AGENTS軽量化はPR #90でformal mainへ統合されたが、開始時のDECISION_LOG全文再読込は残り、約87 Decisionの履歴を毎タスク読み直していた。Ownerは正本性と安全境界を維持した読込軽量化の設計・実装・検証、local commit、push、Draft PR、CI確認を承認した。
+- 決定: AGENTS / 適用下位AGENTS、CURRENT_WORK、PROJECT_ROADMAPを読み、DECISION_LOGの全Decision見出し一覧を確認する。CURRENT_WORKのRequired Decisionsの本文と、今回のmarketplace / module / phase・変更対象に直接関係するDECの本文を読む二段階方式を採用する。Required Decisionsだけで選択を閉じず、見出しだけで本文判断を代替しない。
+- 検索拡大: 選択した本文の必要な参照DECと、選択IDを参照する後続DECを確認し、置換範囲を追跡する。根拠不足、競合・置換不明、shared core / Governance / approval boundaryへの影響、Required Decisionsの欠落・不備・漏れの疑いでは本文全体を検索対象へ広げる。それでも判断不能なら全文を読む。全文後も不明な承認・停止条件は依存作業を停止して報告する。未読・未記載を制約なしと扱わない。具体手順はRUNBOOK「Decision読込」を必須参照とする。
+- 正本と保守: DECISION_LOGは完全な判断履歴のappend-only正本とし、過去DECを削除・分割・書換えしない。Required DecisionsはIDと短い理由だけの再開案内とし、単一作業・scope・phase変更時とhandoff時に見出し一覧と照合して更新する。本文複製や手動巨大index、新しい正本は作らない。将来の派生indexも見出しから再生成可能な非正本に限る。
+- 置換範囲: DEC-0087の「開始時の正本文書読込義務を削減しない」のうちDECISION_LOG全文再読込だけを本決定の段階的読込へ置き換える。AGENTS / 適用下位AGENTSの全文読込、CURRENT_WORK / PROJECT_ROADMAPと条件付きREADME、実行時点の必須RUNBOOK参照は維持する。DEC-0087本文は改変しない。
+- 工程順: AGENTS軽量化 完了 → DECISION_LOG読込軽量化 → marketplace-neutral ShopeeCatalogClient → SG production Category source identity → 後続SG工程。DEC-0087の順序へ本工程を挿入する。Catalog ClientやSG production確認の開始許可にはしない。
+- 保護・非対象: DEC-0072 / DEC-0073、HOLD / HARD_STOP、mandatory technical gate、approval boundary、protected capabilityは不変。governance/state.json、Config / gate / verifier、policy検査、製品コード、Safety、SLS、Mapper、Catalog Client、credential、live API、runtime切替を変更・実行しない。formal main mergeはtechnical gatesと現在対象のOwner Acceptance Summaryの後、Owner明示的最終承認までWAITING_APPROVALで停止する。
+- 理由: 完全な履歴を維持したまま通常タスクの読込量を抑え、短い参照欄の更新漏れを全見出し確認と検索拡大で補うため。
+- rollback: 開始手順・再開案内・工程文書を通常revertで戻せる。判断撤回・訂正は新規DECで記録し、DEC-0088を含む履歴を削除しない。製品、State、credential変更は伴わない。
+- 再検討条件: 関連DECの見逃し、Required Decisionsの陳腐化、置換追跡不足、文書矛盾、policy / Governance検証失敗が見つかった場合は補正して再検証する。gate緩和や製品責務変更へ自動拡張しない。
