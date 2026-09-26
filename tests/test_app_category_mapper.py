@@ -222,7 +222,8 @@ def test_category_mapper_catalog_actions_use_session_token_without_persisting_it
             assert (marketplace, category_id) == ("PH", 100872)
             return []
 
-    def fake_catalog_client(*, access_token_override=None):
+    def fake_catalog_client(*, marketplace, access_token_override=None):
+        assert marketplace == "PH"
         observed_overrides.append(access_token_override)
         return FakeCatalogClient()
 
@@ -288,7 +289,7 @@ def test_category_mapper_blank_session_token_keeps_existing_catalog_factory(monk
     app.button(key="category_mapper_sync_categories").click().run()
 
     assert not app.exception
-    assert observed_calls == [{}]
+    assert observed_calls == [{"marketplace": "PH"}]
 
 
 def test_category_mapper_brand_failure_with_temporary_token_stays_unconfirmed(
@@ -302,7 +303,8 @@ def test_category_mapper_brand_failure_with_temporary_token_stays_unconfirmed(
             assert (marketplace, category_id) == ("PH", 100872)
             raise ShopeeCatalogError("dummy catalog failure")
 
-    def fake_catalog_client(*, access_token_override=None):
+    def fake_catalog_client(*, marketplace, access_token_override=None):
+        assert marketplace == "PH"
         observed_overrides.append(access_token_override)
         return FailingCatalogClient()
 

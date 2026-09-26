@@ -421,12 +421,19 @@ It reads only columns A:C of a dedicated Bridge spreadsheet, with the exact
 header `marketplace,shop_id,access_token`. It rejects missing, duplicate,
 malformed, or mismatched rows and returns a memory-only token wrapper.
 
-The PH Catalog Client keeps this source OFF by default. To select it explicitly,
+The shared PH/SG Catalog Client requires an explicit `marketplace` binding at
+creation and on its environment factory. Its existing Category, Attribute,
+and Brand methods retain their marketplace argument and reject a mismatch
+before any API request. MY/TH remain disabled for Catalog Client runtime.
+The source stays OFF by default. To select it explicitly,
 set `SHOPEE_GOOGLE_SHEET_TOKEN_SOURCE_ENABLED=1` and
 `SHOPEE_GOOGLE_SHEET_BRIDGE_SPREADSHEET_ID` in the process environment.
 The adapter uses Google Application Default Credentials with the Sheets
 read-only scope. Credential provisioning, Bridge creation, and live reads
 require a separate approval. The existing temporary Access Token override
 takes priority; when the source is ON, failures stop the catalog request
-instead of using the legacy Access Token. SG operation and MY/TH runtime
-remain inactive.
+instead of using the legacy Access Token. PH uses the existing
+`SHOPEE_PH_SHOP_ID` / `SHOPEE_PH_ACCESS_TOKEN` names; SG uses
+`SHOPEE_SG_SHOP_ID` / `SHOPEE_SG_ACCESS_TOKEN`. The partner ID and key remain
+shared. SG production Catalog API use is not approved by this offline client
+contract. SG operation and MY/TH runtime remain inactive.
