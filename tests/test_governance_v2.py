@@ -554,6 +554,10 @@ def test_gv2_owner_comment_provider_and_offline_verifier() -> None:
     forged["source"]["receipt"]["scope"] = "wider approval"
     assert engine._owner_evidence_matches([forged], verification["verification_input_hash"],
                                           anchor, summary["summary_binding"], "d" * 40, 95, now)[0] is False
+    forged_mirror = copy.deepcopy(record)
+    forged_mirror["source"]["summary_binding"] = "b" * 64
+    assert engine._owner_evidence_matches([forged_mirror], verification["verification_input_hash"],
+                                          anchor, summary["summary_binding"], "d" * 40, 95, now)[0] is False
 
 
 @pytest.mark.parametrize("mutation", ["repo", "pr", "head", "hash", "binding", "actor", "edit", "delete", "revoke", "scope"])

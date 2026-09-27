@@ -14,6 +14,7 @@ ShopeeCatalogClient marketplace-neutral化は完了し、PR #92でformal mainへ
 - DEC-0088 — Decisionの段階的読込とappend-only正本。
 - DEC-0089 / DEC-0090 — PH/SG Catalog Client契約とformal main採用範囲。
 - DEC-0091 — GitHub Owner自己review不能時のコメントEvidence、署名、短寿命binding。
+- DEC-0092 — PR #96だけのTrust Anchor v1.0→v1.1二重検証と切替順序。
 
 ## 正式成果と停止境界
 

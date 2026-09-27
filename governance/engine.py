@@ -914,6 +914,9 @@ def _owner_evidence_matches(
             and receipt.get("summary_binding") == expected_summary_binding
             and receipt.get("decision") == "APPROVED"
             and isinstance(receipt.get("scope"), str) and bool(receipt["scope"].strip())
+            and str(source.get("actor_id")) == str(receipt.get("actor_id"))
+            and source.get("verification_input_hash") == receipt.get("verification_input_hash")
+            and source.get("summary_binding") == receipt.get("summary_binding")
             and source.get("receipt") == receipt
         ):
             return True, "OWNER_ACCEPTANCE_BOUND"

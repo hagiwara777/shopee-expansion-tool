@@ -134,6 +134,43 @@ fresh EvidenceでVerifyを再実行する。承認コメントの編集・削除
 5分で失効する。offline Verifierだけでは取得後のGitHub状態変化を即時検知できないため、
 Provider再観測とVerifyからmergeまでを連続して行う。GitHub APIが利用できない場合もHOLDとする。
 
+### v1.0 → v1.1 Trust Anchorの一回限りのbootstrap（PR #96）
+
+この節はPR #96のGovernance移行だけに適用する。通常のOwner Acceptance、technical gates、
+formal Verify、merge直前のOwner最終承認を免除しない。PR headまたはSummary bindingが変われば、
+現在対象への説明・Owner承認・Evidenceを取り直す。対象PRと値を固定する記録はTask Contextと
+Owner Acceptance Summaryに置き、ここへ変動SHAを恒久値として埋め込まない。
+
+1. 既存の本番v1.0 Anchorを読み取り、そのbytes digestを記録し、Owner承認の下で保護されたbackupを作る。
+   merge前に本番Anchorをv1.1へ置換しない。`bootstrap_formal_commit`は初回Ver2のbootstrap起点を
+   表す履歴値であり、今回のPR headやmerge commitへ書き換えない。
+2. 本番とは分離した`%LOCALAPPDATA%\ShopeeGovernance\bootstrap\pr-96\`の下に、Owner承認の下で
+   Ed25519鍵を生成する。秘密鍵seedはWindows CurrentUser DPAPIで暗号化し、当該ユーザーだけが読める
+   `private\owner-evidence.seed.dpapi`へ保存する。v1.0 Anchorをコピーしてversionと公開鍵だけを加えた
+   v1.1 test Anchorを`appdata\ShopeeGovernance\trust\1296080967.json`へ置く。本番trust directoryと
+   Gitへtest鍵・Anchorを置かない。秘密鍵はProvider起動中だけprocess environmentへ復号する。
+3. 分離したprocessでは`LOCALAPPDATA`を上記`appdata`へ向け、
+   `GOVERNANCE_TRUST_ANCHOR_JSON`を解除する。候補PR headとCI Evidenceでformal snapshot、
+   technical Verify、9項目Summaryを再生成する。Owner本人が現在head・verification input hash・
+   Summary binding・scopeを明記したPR #96 Conversationコメントを投稿する。
+4. candidate ProviderがGitHubからそのコメントを再取得し、分離鍵で署名する。candidate offline Verifierが
+   signed Evidenceと正しいSummaryで`CONTINUE`、改変したEvidenceやbindingで`HOLD`を返すことを確認する。
+   Providerは旧v1.0 Verifierが読む3つの`source` binding fieldも署名済みreceiptと同値で出力し、
+   candidate Verifierはその同値性を検証する。これをPR #96の一回限りの互換契約とする。
+5. 本番v1.0 Anchorのdigestが開始時と一致することを確認する。現行formal mainのv1.0 Verifierを
+   **同じ**PR head・context・CI Evidence・GitHubから実取得したOwner Evidenceに対して実行し、
+   `CONTINUE`を確認する。candidate v1.1 Verifyとv1.0 Verifyの両方が`CONTINUE`で、Ownerがその
+   headとSummaryを最終承認した場合だけPR #96をmerge候補とする。手製Evidenceで代用しない。
+6. merge後、PRのMERGED状態とformal main SHAを確認してから、Owner承認の下で本番Anchorを原子的に
+   v1.1へ切り替える。元のidentityと`bootstrap_formal_commit`を維持し、test時に確認した公開鍵だけを
+   加える。新formal mainのValidate・snapshot・read-only Verify、Trust Anchor一致、SG INACTIVEを確認する。
+   問題時は保護backupの同一bytesを原子的に復元し、GovernanceをHOLDとして報告する。
+   暗号化秘密鍵を紛失・漏洩した場合は使用を停止し、Owner管理下で鍵交換する。
+
+offline Verifierは取得後のGitHub編集・削除を即時検出できない。step 4と5およびmerge直前は5分以内の
+fresh receiptで連続実施し、head・comment・CI状態を再観測する。どれかが変わったら一回限りの手順も
+再承認待ちに戻す。PR #95はこのbootstrapに含めず、PR #96採用後の新mainへ追従させて別途受入する。
+
 ## 軽量開発運用v1との互換契約
 
 通常のローカル作業は小さく可逆に進める。通常開発承認の対象操作、別承認の操作、

@@ -120,7 +120,12 @@ def build_evidence(
         "observation": "PASS", "reason_codes": ["GITHUB_OWNER_COMMENT_VERIFIED"],
         "report_sha256": None, "provenance": "GITHUB_OWNER", "executed_at": receipt["observed_at"],
         "external_validity": None,
-        "source": {"type": "GITHUB_PR_COMMENT", "receipt": receipt, "signature": signature},
+        "source": {
+            "type": "GITHUB_PR_COMMENT", "receipt": receipt, "signature": signature,
+            "actor_id": receipt["actor_id"],
+            "verification_input_hash": receipt["verification_input_hash"],
+            "summary_binding": receipt["summary_binding"],
+        },
     }
     engine._schema_validate(record, engine.load_bundle(Path(__file__).resolve().parents[1]).schemas["schemas/evidence.schema.json"], "evidence")
     return record

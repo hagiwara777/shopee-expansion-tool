@@ -1093,3 +1093,12 @@
 - 失効: コメントの編集・削除・撤回、head・binding変更はProvider再観測でHOLDとする。receiptは5分で失効し、merge直前にGitHub再観測とformal Verifyを行う。offline検証は取得後のGitHub変更を即時には知れないため、再観測なしのmergeを許可しない。
 - 信頼と保護: Trust Anchor v1.1.0の公開鍵とOwner管理下のProvider専用秘密鍵を必要とする。未設定はHOLD。既存mandatory technical gates、protected capability、final Owner approvalを維持し、GitHub repository設定、branch protection、governance/state.json、製品runtimeを変更しない。PR #95は本決定の候補PRに混在させず、現headのまま保留する。
 - rollback: 本Governance差分を通常revertする。署名鍵の失効・紛失・漏洩、Provider/API契約の変更、受入証跡の偽装可能性が見つかった場合はmergeを停止し、Owner管理下で鍵交換と再設計を判断する。
+
+## DEC-0092 — PR #96のTrust Anchor v1.1移行を一回限りの二重検証で行う
+
+- 日付: 2026-09-27
+- 背景: 現formal mainのv1.0 VerifierはTrust Anchor v1.1を受理しない。PR #96のmerge前に本番Anchorを置換すると現行Governanceが破綻する。OwnerはPR #96 headとCI成功を確認したが、最終merge承認は保留した。
+- 決定: 本番v1.0 Anchorを変更せず、分離bootstrap/test環境のv1.1 AnchorとEd25519鍵で実OwnerコメントのProvider取得・署名・candidate offline Verifyを1回E2E確認する。同じ実GitHubコメント由来Evidenceに旧Verifier用binding mirrorを含め、candidate Verifierが署名済みreceiptとの同値を要求する。PR #96の完全head、現在のSummary binding、Owner承認scopeに固定し、現行v1.0 formal Verifyとcandidate v1.1 formal Verifyの両方がCONTINUEとなった後だけOwner最終merge判断へ進む。
+- 順序: 鍵・test Anchor・本番backupの操作はOwner明示承認後。PR #96 merge後にだけ正式Anchorをv1.1へ原子的に切り替え、新formal mainでValidate・snapshot・read-only Verifyを再確認する。PR #95は現headのまま保留し、その後に新mainへ追従、全gateとSummary bindingを再生成して別Owner受入を得る。
+- Trust Anchor履歴: `bootstrap_formal_commit`は初回Ver2 bootstrap起点の履歴値として維持する。今回のPR headやmerge commitに更新しない。repository identity・Owner actor ID・default branchも保持し、v1.1では公開鍵だけを追加する。
+- 制限とrollback: これはPR #96のmigration専用手順であり、通常のOwner Acceptanceを恒久的に迂回しない。GitHub再観測後の編集・削除はofflineだけでは即時検出できず、receiptを5分で失効させmerge直前に再取得する。失敗時はmergeを停止し、本番Anchor切替後なら保護backupの同一bytesへ戻してHOLDを報告する。
