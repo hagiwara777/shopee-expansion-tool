@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import base64
 import json
 import os
 import shutil
@@ -9,9 +10,13 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
 import pytest
 
 from governance import engine
+from governance import owner_comment_provider
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -491,14 +496,114 @@ def test_gv2_owner_003_github_owner_evidence_exact_binding() -> None:
             "summary_binding": "b" * 64,
         },
     }
-    assert engine._owner_evidence_matches([record], "a" * 64, "207869136") == (
-        True,
-        "OWNER_ACCEPTANCE_BOUND",
-    )
-    assert engine._owner_evidence_matches([record], "c" * 64, "207869136") == (
+    # A self-authored JSON record with the old fields has no trusted provider signature.
+    anchor = dict(ANCHOR, anchor_version="1.1.0", owner_evidence_public_key=base64.b64encode(b"x" * 32).decode())
+    assert engine._owner_evidence_matches([record], "a" * 64, anchor, "b" * 64, "d" * 40, 95) == (
         False,
         "OWNER_ACCEPTANCE_BINDING_MISMATCH",
     )
+
+
+def _owner_comment_case():
+    key = Ed25519PrivateKey.generate()
+    public = key.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
+    anchor = dict(ANCHOR, anchor_version="1.1.0", owner_evidence_public_key=base64.b64encode(public).decode())
+    head = "d" * 40
+    verification_hash = "a" * 64
+    sections = {key: "SG source identity docs-only" for key in (
+        "acceptance_target", "change_scope", "non_targets", "existing_operations_impact",
+        "major_risks", "verified_evidence", "known_limits", "meaning_after_acceptance", "rollback",
+    )}
+    binding = engine.sha256_bytes(engine.canonical_bytes({
+        "verification_input_hash": verification_hash, "sections": sections,
+    }))
+    context = {"canonical": {"task": {"subject": {"type": "PR", "number": 95}}},
+               "observations": {"git_identity": {"head": head}}}
+    verification = {"verification_input_hash": verification_hash, "owner_acceptance_ready": True}
+    summary = {"schema_version": "2.0.0", "summary_binding": binding, "sections": sections}
+    repository = {"id": 1296080967, "full_name": ANCHOR["repository_full_name"]}
+    pull = {"number": 95, "head": {"sha": head}, "base": {"repo": {"id": 1296080967}}}
+    body = ("OWNER_ACCEPTANCE: APPROVED\nPR: #95\nHEAD: " + head +
+            "\nVERIFICATION_INPUT_HASH: " + verification_hash +
+            "\nSUMMARY_BINDING: " + binding + "\nSCOPE: SG source identity docs-only")
+    comments = [{"id": 77, "user": {"id": 207869136}, "body": body,
+                 "created_at": "2026-09-27T12:00:00Z", "updated_at": "2026-09-27T12:00:00Z"}]
+    now = datetime(2026, 9, 27, 12, 1, tzinfo=UTC)
+    return key, anchor, context, verification, summary, repository, pull, comments, now
+
+
+@pytest.mark.parametrize("newline", ["\n", "\r\n"], ids=["LF", "CRLF"])
+def test_gv2_owner_comment_provider_and_offline_verifier(newline: str) -> None:
+    key, anchor, context, verification, summary, repository, pull, comments, now = _owner_comment_case()
+    comments[0]["body"] = comments[0]["body"].replace("\n", newline)
+    record = owner_comment_provider.build_evidence(context, verification, summary, anchor,
+                                                    repository, pull, comments, key, observed_at=now)
+    assert record["source"]["receipt"]["comment_body_sha256"] == engine.sha256_bytes(
+        comments[0]["body"].encode("utf-8")
+    )
+    expected = (True, "OWNER_ACCEPTANCE_BOUND")
+    assert engine._owner_evidence_matches([record], verification["verification_input_hash"],
+                                          anchor, summary["summary_binding"], "d" * 40, 95, now) == expected
+    assert engine._owner_evidence_matches([record], "b" * 64, anchor, summary["summary_binding"],
+                                          "d" * 40, 95, now)[0] is False
+    assert engine._owner_evidence_matches([record], verification["verification_input_hash"],
+                                          anchor, "b" * 64, "d" * 40, 95, now)[0] is False
+    assert engine._owner_evidence_matches([record], verification["verification_input_hash"],
+                                          anchor, summary["summary_binding"], "e" * 40, 95, now)[0] is False
+    assert engine._owner_evidence_matches([record], verification["verification_input_hash"],
+                                          anchor, summary["summary_binding"], "d" * 40, 96, now)[0] is False
+    assert engine._owner_evidence_matches([record], verification["verification_input_hash"],
+                                          anchor, summary["summary_binding"], "d" * 40, 95,
+                                          now + timedelta(minutes=6))[0] is False
+    forged = copy.deepcopy(record)
+    forged["source"]["receipt"]["scope"] = "wider approval"
+    assert engine._owner_evidence_matches([forged], verification["verification_input_hash"],
+                                          anchor, summary["summary_binding"], "d" * 40, 95, now)[0] is False
+    forged_mirror = copy.deepcopy(record)
+    forged_mirror["source"]["summary_binding"] = "b" * 64
+    assert engine._owner_evidence_matches([forged_mirror], verification["verification_input_hash"],
+                                          anchor, summary["summary_binding"], "d" * 40, 95, now)[0] is False
+
+
+@pytest.mark.parametrize("newline", ["\n", "\r\n"], ids=["LF", "CRLF"])
+@pytest.mark.parametrize("mutation", ["repo", "pr", "head", "hash", "binding", "actor", "edit", "delete", "revoke", "scope"])
+def test_gv2_owner_comment_provider_rejects_invalid_observation(mutation: str, newline: str) -> None:
+    key, anchor, context, verification, summary, repository, pull, comments, now = _owner_comment_case()
+    comments[0]["body"] = comments[0]["body"].replace("\n", newline)
+    if mutation == "repo":
+        repository["id"] += 1
+    elif mutation == "pr":
+        pull["number"] += 1
+    elif mutation == "head":
+        pull["head"]["sha"] = "e" * 40
+    elif mutation == "hash":
+        comments[0]["body"] = comments[0]["body"].replace("a" * 64, "b" * 64)
+    elif mutation == "binding":
+        comments[0]["body"] = comments[0]["body"].replace(summary["summary_binding"], "b" * 64)
+    elif mutation == "actor":
+        comments[0]["user"]["id"] += 1
+    elif mutation == "edit":
+        comments[0]["updated_at"] = "2026-09-27T12:00:01Z"
+    elif mutation == "delete":
+        comments.clear()
+    elif mutation == "revoke":
+        comments.append({"id": 78, "user": {"id": 207869136}, "body": "OWNER_ACCEPTANCE: REVOKED",
+                         "created_at": "2026-09-27T12:00:01Z", "updated_at": "2026-09-27T12:00:01Z"})
+    elif mutation == "scope":
+        comments[0]["body"] = comments[0]["body"].replace("SCOPE: SG source identity docs-only", "SCOPE: ")
+    with pytest.raises(engine.GovernanceError):
+        owner_comment_provider.build_evidence(context, verification, summary, anchor,
+                                              repository, pull, comments, key, observed_at=now)
+
+
+@pytest.mark.parametrize("separator", ["\r", "\u2028"], ids=["bare-CR", "unicode-separator"])
+def test_gv2_owner_comment_provider_rejects_other_line_separators(separator: str) -> None:
+    key, anchor, context, verification, summary, repository, pull, comments, now = _owner_comment_case()
+    comments[0]["body"] = comments[0]["body"].replace("\n", separator)
+    with pytest.raises(engine.GovernanceError) as exc:
+        owner_comment_provider.build_evidence(context, verification, summary, anchor,
+                                              repository, pull, comments, key, observed_at=now)
+    assert exc.value.reason_code == "OWNER_ACCEPTANCE_BINDING_MISMATCH"
 
 
 def test_gv2_git_003_feature_branch_uses_merge_base(trusted: None, tmp_path: Path) -> None:

@@ -7,6 +7,7 @@ Neither operation fetches, changes refs, updates the index, or edits Machine Sta
 from __future__ import annotations
 
 import argparse
+import base64
 import fnmatch
 import hashlib
 import json
@@ -22,6 +23,8 @@ from typing import Any, Iterable, Mapping, Sequence
 from urllib.parse import urlsplit
 
 import jsonschema
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 
 SCHEMA_VERSION = "2.0.0"
@@ -417,8 +420,18 @@ def _load_anchor() -> tuple[dict[str, Any] | None, str]:
         "owner_actor_id",
         "bootstrap_formal_commit",
     }
-    if set(anchor) != required or anchor.get("anchor_version") != "1.0.0":
+    version = anchor.get("anchor_version")
+    if version == "1.1.0":
+        required.add("owner_evidence_public_key")
+    if set(anchor) != required or version not in {"1.0.0", "1.1.0"}:
         raise GovernanceError("TRUST_ANCHOR_INVALID", "Trust Anchorの契約が不正です。")
+    if version == "1.1.0":
+        try:
+            key = base64.b64decode(anchor["owner_evidence_public_key"], validate=True)
+        except (ValueError, TypeError) as exc:
+            raise GovernanceError("TRUST_ANCHOR_INVALID", "Owner Evidence公開鍵が不正です。") from exc
+        if len(key) != 32:
+            raise GovernanceError("TRUST_ANCHOR_INVALID", "Owner Evidence公開鍵が不正です。")
     return anchor, "TRUST_ANCHOR_LOADED"
 
 
@@ -860,22 +873,72 @@ def _evidence_for_check(
 
 
 def _owner_evidence_matches(
-    evidence: Sequence[Mapping[str, Any]], verification_input_hash: str, owner_actor_id: str
+    evidence: Sequence[Mapping[str, Any]], verification_input_hash: str,
+    anchor: Mapping[str, Any], expected_summary_binding: str | None,
+    current_head: str, pr_number: int | None, clock: datetime | None = None,
 ) -> tuple[bool, str]:
     records = [record for record in evidence if record.get("kind") == "OWNER_ACCEPTANCE"]
     if not records:
         return False, "OWNER_ACCEPTANCE_REQUIRED"
+    if not expected_summary_binding or pr_number is None:
+        return False, "OWNER_SUMMARY_REQUIRED"
+    if anchor.get("anchor_version") != "1.1.0":
+        return False, "OWNER_EVIDENCE_TRUST_KEY_REQUIRED"
+    public_key = Ed25519PublicKey.from_public_bytes(base64.b64decode(anchor["owner_evidence_public_key"]))
     for record in records:
         source = record.get("source", {})
+        receipt = source.get("receipt")
+        signature = source.get("signature")
+        if not isinstance(receipt, dict) or not isinstance(signature, str):
+            continue
+        try:
+            public_key.verify(base64.b64decode(signature, validate=True), canonical_bytes(receipt))
+            observed_at = datetime.fromisoformat(receipt["observed_at"].replace("Z", "+00:00"))
+        except (InvalidSignature, ValueError, TypeError, KeyError, AttributeError):
+            continue
+        age = (clock or datetime.now(UTC)) - observed_at
+        if age.total_seconds() < 0 or age.total_seconds() > 300:
+            continue
         if (
             record.get("provenance") == "GITHUB_OWNER"
             and record.get("observation") == "PASS"
-            and str(source.get("actor_id")) == str(owner_actor_id)
-            and source.get("verification_input_hash") == verification_input_hash
-            and bool(source.get("summary_binding"))
+            and source.get("type") == "GITHUB_PR_COMMENT"
+            and str(record.get("repository_id")) == str(anchor["repository_id"])
+            and record.get("tested_commit") == current_head
+            and str(receipt.get("repository_id")) == str(anchor["repository_id"])
+            and receipt.get("repository_full_name") == anchor["repository_full_name"]
+            and receipt.get("pr_number") == pr_number
+            and str(receipt.get("actor_id")) == str(anchor["owner_actor_id"])
+            and receipt.get("head") == current_head
+            and receipt.get("verification_input_hash") == verification_input_hash
+            and receipt.get("summary_binding") == expected_summary_binding
+            and receipt.get("decision") == "APPROVED"
+            and isinstance(receipt.get("scope"), str) and bool(receipt["scope"].strip())
+            and str(source.get("actor_id")) == str(receipt.get("actor_id"))
+            and source.get("verification_input_hash") == receipt.get("verification_input_hash")
+            and source.get("summary_binding") == receipt.get("summary_binding")
+            and source.get("receipt") == receipt
         ):
             return True, "OWNER_ACCEPTANCE_BOUND"
     return False, "OWNER_ACCEPTANCE_BINDING_MISMATCH"
+
+
+def _expected_owner_summary_binding(summary: Mapping[str, Any] | None, verification_input_hash: str) -> str | None:
+    if summary is None or summary.get("schema_version") != SCHEMA_VERSION:
+        return None
+    sections = summary.get("sections")
+    required = {
+        "acceptance_target", "change_scope", "non_targets", "existing_operations_impact",
+        "major_risks", "verified_evidence", "known_limits", "meaning_after_acceptance", "rollback",
+    }
+    if not isinstance(sections, dict) or set(sections) != required or any(
+        not isinstance(value, str) or not value.strip() for value in sections.values()
+    ):
+        return None
+    binding = sha256_bytes(canonical_bytes({
+        "verification_input_hash": verification_input_hash, "sections": sections,
+    }))
+    return binding if summary.get("summary_binding") == binding else None
 
 
 def verify_context(
@@ -886,6 +949,7 @@ def verify_context(
     evidence: Sequence[Mapping[str, Any]] = (),
     clock: datetime | None = None,
     provider: Mapping[str, Any] | None = None,
+    owner_summary: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     bundle = load_bundle(repository)
     _schema_validate(context, bundle.schemas["schemas/context.schema.json"], "context")
@@ -963,6 +1027,7 @@ def verify_context(
         "provider": provider or {},
     }
     verification_input_hash = sha256_bytes(canonical_bytes(verification_input))
+    expected_summary_binding = _expected_owner_summary_binding(owner_summary, verification_input_hash)
     if owner_ready:
         current_anchor, _ = _load_anchor()
         if current_anchor is None:
@@ -970,8 +1035,11 @@ def verify_context(
             blockers.append("TRUST_ANCHOR_MISSING")
             owner_ready = False
         else:
+            subject = context["canonical"].get("task", {}).get("subject") if context["canonical"].get("task") else None
+            pr_number = subject.get("number") if isinstance(subject, dict) and subject.get("type") == "PR" else None
             accepted, reason = _owner_evidence_matches(
-                evidence, verification_input_hash, str(current_anchor["owner_actor_id"])
+                evidence, verification_input_hash, current_anchor, expected_summary_binding,
+                context["observations"]["git_identity"]["head"], pr_number, clock,
             )
             if not accepted:
                 decision = "HOLD"
@@ -1095,6 +1163,7 @@ def _cli_parser() -> argparse.ArgumentParser:
     verify.add_argument("--output-dir", default="outputs/governance")
     verify.add_argument("--provider")
     verify.add_argument("--evidence", action="append", default=[])
+    verify.add_argument("--owner-summary")
     summary = subparsers.add_parser("owner-summary")
     summary.add_argument("--verification", required=True)
     summary.add_argument("--input", required=True)
@@ -1139,6 +1208,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 profile_id=args.profile,
                 evidence=records,
                 provider=_read_provider(args.provider),
+                owner_summary=load_json(Path(args.owner_summary)) if args.owner_summary else None,
             )
             output = Path(args.output_dir)
             _write_output(output / "verification.json", canonical_bytes(result))
