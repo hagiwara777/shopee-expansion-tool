@@ -172,8 +172,10 @@ def clear_category_mapper_result(state: Mapping[str, object] | dict[str, object]
 def _catalog_client() -> ShopeeCatalogClient:
     temporary_token = str(st.session_state.get(_ACCESS_TOKEN_KEY) or "").strip()
     if temporary_token:
-        return ShopeeCatalogClient.from_local_audit_env(access_token_override=temporary_token)
-    return ShopeeCatalogClient.from_local_audit_env()
+        return ShopeeCatalogClient.from_local_audit_env(
+            marketplace="PH", access_token_override=temporary_token
+        )
+    return ShopeeCatalogClient.from_local_audit_env(marketplace="PH")
 
 
 def _category_ai_engine() -> CategoryAIEngine:

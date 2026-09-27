@@ -1,4 +1,4 @@
-"""Read-only Shopee Open Platform catalog client for PH Category Mapper."""
+"""Read-only Shopee Open Platform category, attribute, and brand client."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ import hmac
 import json
 import os
 from pathlib import Path
+import re
 import time
 from typing import Any, Callable, Mapping, Sequence
 from urllib.error import HTTPError, URLError
@@ -18,6 +19,7 @@ from modules.shopee_access_token_source import AccessToken, GoogleSheetAccessTok
 
 
 PH_MARKETPLACE = "PH"
+_ENABLED_MARKETPLACES = frozenset({"PH", "SG"})
 SHOPEE_PARTNER_BASE_URL = "https://partner.shopeemobile.com"
 _CATEGORY_PATH = "/api/v2/product/get_category"
 _ATTRIBUTE_PATH = "/api/v2/product/get_attribute_tree"
@@ -63,15 +65,17 @@ class BrandPage:
 
 
 class ShopeeCatalogClient:
-    """Read only category, attribute, and brand endpoints for the PH shop."""
+    """Read only catalog endpoints for one explicitly bound marketplace shop."""
 
     def __init__(
         self,
         credentials: ShopeeCatalogCredentials,
         *,
+        marketplace: str,
         base_url: str = SHOPEE_PARTNER_BASE_URL,
         request_json: Callable[[str, Mapping[str, str], int], Mapping[str, Any]] | None = None,
     ) -> None:
+        self.marketplace = _enabled_marketplace(marketplace)
         self.credentials = credentials
         self.base_url = base_url.rstrip("/")
         self._request_json = request_json or _urlopen_json
@@ -81,8 +85,10 @@ class ShopeeCatalogClient:
         cls,
         env_path: str | Path | None = None,
         *,
+        marketplace: str,
         access_token_override: str | None = None,
     ) -> "ShopeeCatalogClient":
+        bound_marketplace = _enabled_marketplace(marketplace)
         temporary_token = (access_token_override or "").strip()
         source_setting = os.environ.get("SHOPEE_GOOGLE_SHEET_TOKEN_SOURCE_ENABLED")
         if not temporary_token and source_setting not in (None, "0", "1"):
@@ -91,7 +97,9 @@ class ShopeeCatalogClient:
             )
         source_enabled = source_setting == "1"
         credentials = load_shopee_catalog_credentials(
-            env_path, require_access_token=not (temporary_token or source_enabled)
+            env_path,
+            marketplace=bound_marketplace,
+            require_access_token=not (temporary_token or source_enabled),
         )
         if temporary_token:
             credentials = replace(credentials, access_token=temporary_token)
@@ -99,7 +107,7 @@ class ShopeeCatalogClient:
             spreadsheet_id = os.environ.get("SHOPEE_GOOGLE_SHEET_BRIDGE_SPREADSHEET_ID", "")
             try:
                 token = GoogleSheetAccessTokenSource(spreadsheet_id).get_access_token(
-                    PH_MARKETPLACE, credentials.shop_id
+                    bound_marketplace, credentials.shop_id
                 )
             except Exception:
                 token = None
@@ -108,10 +116,10 @@ class ShopeeCatalogClient:
                     "Shopee catalog Access Token Source is unavailable."
                 )
             credentials = replace(credentials, access_token=token.value)
-        return cls(credentials)
+        return cls(credentials, marketplace=bound_marketplace)
 
     def get_categories(self, marketplace: str, *, language: str = "en") -> tuple[dict[str, Any], ...]:
-        self._require_ph(marketplace)
+        self._require_marketplace(marketplace)
         payload = self._get(_CATEGORY_PATH, {"language": language})
         response = _response_dict(payload, endpoint_path=_CATEGORY_PATH)
         raw_categories = _required_list(
@@ -173,7 +181,7 @@ class ShopeeCatalogClient:
     ) -> tuple[dict[str, Any], ...]:
         """Return ordered attribute-tree results for up to 20 distinct category IDs."""
 
-        self._require_ph(marketplace)
+        self._require_marketplace(marketplace)
         normalized_category_ids = _normalize_category_id_list(category_ids)
         payload = self._get(
             _ATTRIBUTE_PATH,
@@ -217,7 +225,7 @@ class ShopeeCatalogClient:
         page_size: int = 100,
         status: int = BRAND_STATUS_NORMAL,
     ) -> BrandPage:
-        self._require_ph(marketplace)
+        self._require_marketplace(marketplace)
         numeric_category_id = _positive_int(category_id)
         numeric_offset = _nonnegative_int(offset, field_name="offset")
         numeric_page_size = _positive_int(page_size, field_name="page_size")
@@ -297,8 +305,8 @@ class ShopeeCatalogClient:
             )
         except ShopeeCatalogError:
             raise
-        except Exception as exc:
-            raise ShopeeCatalogError(f"Catalog API request failed at {path}.") from exc
+        except Exception:
+            raise ShopeeCatalogError(f"Catalog API request failed at {path}.") from None
         if not isinstance(payload, Mapping):
             raise _response_error(path, "response was invalid")
         error = payload.get("error")
@@ -306,26 +314,27 @@ class ShopeeCatalogClient:
             raise _application_error(path, error, payload.get("message"))
         return payload
 
-    @staticmethod
-    def _require_ph(marketplace: str) -> None:
-        if str(marketplace).strip().upper() != PH_MARKETPLACE:
-            raise ValueError("Category Mapper supports PH only.")
+    def _require_marketplace(self, marketplace: str) -> None:
+        if _enabled_marketplace(marketplace) != self.marketplace:
+            raise ValueError("Catalog Client marketplace does not match its binding.")
 
 
 def load_shopee_catalog_credentials(
     env_path: str | Path | None = None,
     *,
+    marketplace: str,
     require_access_token: bool = True,
 ) -> ShopeeCatalogCredentials:
     """Load only the required local values without exposing or persisting them."""
 
+    bound_marketplace = _enabled_marketplace(marketplace)
     path = Path(env_path) if env_path is not None else _default_audit_env_path()
     try:
-        values = _read_env_values(path)
+        values = _read_env_values(path, marketplace=bound_marketplace)
         partner_id = _positive_int(values.get("SHOPEE_PARTNER_ID"))
-        shop_id = _positive_int(values.get("SHOPEE_PH_SHOP_ID"))
+        shop_id = _positive_int(values.get(f"SHOPEE_{bound_marketplace}_SHOP_ID"))
         partner_key = values.get("SHOPEE_PARTNER_KEY", "").strip()
-        catalog_token = values.get("SHOPEE_PH_ACCESS_TOKEN", "").strip()
+        catalog_token = values.get(f"SHOPEE_{bound_marketplace}_ACCESS_TOKEN", "").strip()
     except (OSError, ValueError) as exc:
         raise ShopeeCatalogConfigurationError(
             "Shopee catalog credentials are unavailable."
@@ -342,7 +351,8 @@ def _default_audit_env_path() -> Path:
     return Path.home() / "AppData" / "Local" / "ShopeeOpenPlatform" / "audit.env"
 
 
-def _read_env_values(path: Path) -> dict[str, str]:
+def _read_env_values(path: Path, *, marketplace: str = PH_MARKETPLACE) -> dict[str, str]:
+    bound_marketplace = _enabled_marketplace(marketplace)
     values: dict[str, str] = {}
     for raw_line in path.read_text(encoding="utf-8").splitlines():
         line = raw_line.strip()
@@ -353,11 +363,18 @@ def _read_env_values(path: Path) -> dict[str, str]:
         if normalized_key in {
             "SHOPEE_PARTNER_ID",
             "SHOPEE_PARTNER_KEY",
-            "SHOPEE_PH_SHOP_ID",
-            "SHOPEE_PH_ACCESS_TOKEN",
+            f"SHOPEE_{bound_marketplace}_SHOP_ID",
+            f"SHOPEE_{bound_marketplace}_ACCESS_TOKEN",
         }:
             values[normalized_key] = value.strip().strip("\"'")
     return values
+
+
+def _enabled_marketplace(marketplace: str) -> str:
+    normalized = marketplace.strip().upper() if isinstance(marketplace, str) else ""
+    if normalized not in _ENABLED_MARKETPLACES:
+        raise ValueError("Catalog Client marketplace is not enabled.")
+    return normalized
 
 
 def _urlopen_json(url: str, parameters: Mapping[str, str], timeout: int) -> Mapping[str, Any]:
@@ -373,12 +390,12 @@ def _urlopen_json(url: str, parameters: Mapping[str, str], timeout: int) -> Mapp
         if exc.code == 429:
             raise ShopeeRateLimitError(
                 _api_error_message(endpoint_path, exc.code, error, message)
-            ) from exc
+            ) from None
         raise ShopeeCatalogError(
             _api_error_message(endpoint_path, exc.code, error, message)
-        ) from exc
-    except (URLError, TimeoutError, OSError) as exc:
-        raise ShopeeCatalogError(f"Catalog API request failed at {endpoint_path}.") from exc
+        ) from None
+    except (URLError, TimeoutError, OSError):
+        raise ShopeeCatalogError(f"Catalog API request failed at {endpoint_path}.") from None
     decoded = _decode_mapping_or_none(raw)
     if decoded is None:
         raise _response_error(endpoint_path, "response was invalid")
@@ -467,15 +484,6 @@ def _decode_mapping_or_none(raw: bytes) -> Mapping[str, Any] | None:
     return decoded if isinstance(decoded, Mapping) else None
 
 
-def _safe_message(value: object) -> str | None:
-    if not isinstance(value, str):
-        return None
-    message = value.strip().replace("\r", " ").replace("\n", " ")
-    if not message or len(message) > 240 or "://" in message or "?" in message:
-        return None
-    return message
-
-
 def _api_error_message(
     endpoint_path: str,
     http_status: int | None,
@@ -485,11 +493,8 @@ def _api_error_message(
     details = [f"Catalog API request failed at {endpoint_path}."]
     if http_status is not None:
         details.append(f"HTTP {http_status}.")
-    if error:
+    if isinstance(error, str) and re.fullmatch(r"product\.[a-z0-9_]{1,64}", error):
         details.append(f"Shopee error: {error}.")
-    safe_message = _safe_message(message)
-    if safe_message:
-        details.append(safe_message)
     return " ".join(details)
 
 

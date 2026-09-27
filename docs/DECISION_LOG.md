@@ -1061,3 +1061,15 @@
 - 理由: 完全な履歴を維持したまま通常タスクの読込量を抑え、短い参照欄の更新漏れを全見出し確認と検索拡大で補うため。
 - rollback: 開始手順・再開案内・工程文書を通常revertで戻せる。判断撤回・訂正は新規DECで記録し、DEC-0088を含む履歴を削除しない。製品、State、credential変更は伴わない。
 - 再検討条件: 関連DECの見逃し、Required Decisionsの陳腐化、置換追跡不足、文書矛盾、policy / Governance検証失敗が見つかった場合は補正して再検証する。gate緩和や製品責務変更へ自動拡張しない。
+
+
+## DEC-0089 — ShopeeCatalogClientをPH/SG共通の明示marketplace bindingへ変更する
+
+- 日付: 2026-09-26
+- 背景: PR #91はformal mainに統合済みで、DEC-0088の次工程はDEC-0082 / DEC-0084が求めるmarketplace-neutral Catalog Clientである。既存ClientはPH固定で、SG用に複製すると認証・Catalog処理が重複する。
+- 決定: 1つのShopeeCatalogClientを生成時にPHまたはSGへ明示bindする。環境factoryもmarketplace指定を必須とし、共通partner値と当該市場だけのshop_id / legacy Access Tokenを読む。既存のCategory / Attribute / Brand method引数は維持し、bindとの不一致、MY / TH指定は外部request前に停止する。
+- 認証: 一時override → 明示ONのGoogle Sheet Access Token Source → legacy tokenの優先順位を維持する。Sourceへbind済みmarketplaceと当該shop_idを渡し、Source失敗時のlegacy fallbackは行わない。Refresh Token、Partner KeyのBridge読込、Mapper側refreshは行わない。
+- API・運用境界: 既存3 endpointとnormalizationを共有し、市場別response分岐は実Evidenceまで追加しない。SGはoffline fake requestでのcode contractに限り、production live API、source identity受入、SG Mapper live接続、Brand / SLS runtime、listing_ready、handoff、deploy、operation ACTIVE化を許可しない。MY / TH runtimeは無効のままとする。
+- 保護: PH Category Mapperの業務契約、Candidate 15列、Prelisting Gate、DB schema、Safety、SLS、Resolver、Expansion、governance/state.json、ph.beta.operation、sg.safety.baselineを変更しない。PH UI callerは明示PH bindとする。
+- 既知制約: SG production response同一性は未確認。DEC-0086のBridge全面書込み障害時の旧token消去不可は今回変更しない。
+- rollback: code / docsの通常revertで戻す。DB migration、credential変更、State変更、force pushを伴わない。

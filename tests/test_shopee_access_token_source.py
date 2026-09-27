@@ -160,14 +160,14 @@ def _env_file(tmp_path: Path) -> Path:
 
 def test_legacy_when_source_off(monkeypatch, tmp_path):
     monkeypatch.delenv("SHOPEE_GOOGLE_SHEET_TOKEN_SOURCE_ENABLED", raising=False)
-    client = ShopeeCatalogClient.from_local_audit_env(_env_file(tmp_path))
+    client = ShopeeCatalogClient.from_local_audit_env(_env_file(tmp_path), marketplace="PH")
     assert client.credentials.access_token == "DUMMY_LEGACY_TOKEN_FOR_TEST"
     assert "DUMMY_LEGACY_TOKEN_FOR_TEST" not in repr(client.credentials)
 
 
 def test_explicit_zero_keeps_legacy_source(monkeypatch, tmp_path):
     monkeypatch.setenv("SHOPEE_GOOGLE_SHEET_TOKEN_SOURCE_ENABLED", "0")
-    client = ShopeeCatalogClient.from_local_audit_env(_env_file(tmp_path))
+    client = ShopeeCatalogClient.from_local_audit_env(_env_file(tmp_path), marketplace="PH")
     assert client.credentials.access_token == "DUMMY_LEGACY_TOKEN_FOR_TEST"
 
 
@@ -177,7 +177,7 @@ def test_invalid_source_setting_fails_closed_without_legacy(
 ):
     monkeypatch.setenv("SHOPEE_GOOGLE_SHEET_TOKEN_SOURCE_ENABLED", invalid_setting)
     with caplog.at_level(logging.DEBUG), pytest.raises(ShopeeCatalogConfigurationError) as caught:
-        ShopeeCatalogClient.from_local_audit_env(_env_file(tmp_path))
+        ShopeeCatalogClient.from_local_audit_env(_env_file(tmp_path), marketplace="PH")
     if invalid_setting:
         assert invalid_setting not in str(caught.value)
     assert "DUMMY_LEGACY_TOKEN_FOR_TEST" not in str(caught.value)
@@ -191,8 +191,7 @@ def test_override_precedes_enabled_source(monkeypatch, tmp_path, source_setting)
         GoogleSheetAccessTokenSource, "get_access_token",
         lambda *args: pytest.fail("Source must not be called for temporary override"),
     )
-    client = ShopeeCatalogClient.from_local_audit_env(
-        _env_file(tmp_path), access_token_override="DUMMY_OVERRIDE_FOR_TEST"
+    client = ShopeeCatalogClient.from_local_audit_env(_env_file(tmp_path), marketplace="PH", access_token_override="DUMMY_OVERRIDE_FOR_TEST"
     )
     assert client.credentials.access_token == "DUMMY_OVERRIDE_FOR_TEST"
 
@@ -205,7 +204,7 @@ def test_enabled_source_uses_bridge_without_legacy_fallback(monkeypatch, tmp_pat
         GoogleSheetAccessTokenSource, "get_access_token",
         lambda self, market, shop: AccessToken(TOKEN) if (market, shop) == ("PH", 456) else None,
     )
-    client = ShopeeCatalogClient.from_local_audit_env(_env_file(tmp_path))
+    client = ShopeeCatalogClient.from_local_audit_env(_env_file(tmp_path), marketplace="PH")
     assert client.credentials.access_token == TOKEN
     assert TOKEN not in repr(client.credentials)
 
@@ -213,7 +212,7 @@ def test_enabled_source_uses_bridge_without_legacy_fallback(monkeypatch, tmp_pat
         raise AccessTokenSourceError("unavailable")
     monkeypatch.setattr(GoogleSheetAccessTokenSource, "get_access_token", fail)
     with pytest.raises(ShopeeCatalogConfigurationError) as caught:
-        ShopeeCatalogClient.from_local_audit_env(_env_file(tmp_path))
+        ShopeeCatalogClient.from_local_audit_env(_env_file(tmp_path), marketplace="PH")
     assert "DUMMY_LEGACY_TOKEN_FOR_TEST" not in str(caught.value)
 
 
