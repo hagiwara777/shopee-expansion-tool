@@ -1084,3 +1084,12 @@
 - 未受入: SG production Catalog API、Category source identity、実catalog/実商品受入、SG Mapper live接続、SG Brand / SLS runtime、listing_ready、handoff、deploy、operation ACTIVE化、MY / TH runtime。次工程の「SG production Category catalog source identity確認」は別scopeであり、live API・credential操作に別Owner承認を必要とする。
 - 既知制約: SG production responseの同一性は未確認。DEC-0086のBridge全面書込み障害時の旧token消去不可は変更しない。
 - rollback: PR #92の製品・文書差分を通常revertで戻す。DB migration、credential変更、State変更、force push、dirty resetを伴わない。
+
+## DEC-0091 — PR authorがOwnerの場合のGitHub Owner Acceptance証跡を定義する
+
+- 日付: 2026-09-27
+- 背景: Owner自身がauthorのPRではGitHubが自己Approve reviewを拒否する。PR #95のtechnical gatesはPASSしたが、既存GovernanceはGitHub Ownerコメントの取得・真正性検証とSummary binding完全一致を実装していないためformal acceptanceはHOLDである。
+- 決定: GitHub PR ConversationのOwner承認コメントを独立Providerが取得し、repository identity、PR番号、Trust AnchorのOwner numeric actor ID、完全head SHA、verification input hash、Owner Acceptance Summary binding、明示APPROVED意思とscopeを検証する。Generator / Verifierは外部fetchを行わず、VerifierはProviderの短寿命Ed25519署名付きreceiptをrepo外Trust Anchor公開鍵でoffline検証する。GitHub確認のない手製GITHUB_OWNER JSONは受理しない。
+- 失効: コメントの編集・削除・撤回、head・binding変更はProvider再観測でHOLDとする。receiptは5分で失効し、merge直前にGitHub再観測とformal Verifyを行う。offline検証は取得後のGitHub変更を即時には知れないため、再観測なしのmergeを許可しない。
+- 信頼と保護: Trust Anchor v1.1.0の公開鍵とOwner管理下のProvider専用秘密鍵を必要とする。未設定はHOLD。既存mandatory technical gates、protected capability、final Owner approvalを維持し、GitHub repository設定、branch protection、governance/state.json、製品runtimeを変更しない。PR #95は本決定の候補PRに混在させず、現headのまま保留する。
+- rollback: 本Governance差分を通常revertする。署名鍵の失効・紛失・漏洩、Provider/API契約の変更、受入証跡の偽装可能性が見つかった場合はmergeを停止し、Owner管理下で鍵交換と再設計を判断する。

@@ -91,6 +91,49 @@ skipped、neutral、古いheadはformal acceptanceを満たしません。mandat
 Owner Acceptance Summaryは、採用対象、変更、非対象、既存運用影響、主要リスク、確認済みEvidence、既知制約、
 承認後の意味、rollbackの9項目を事業用語で説明します。オーナーへhash、SHA、schema等の技術判断を要求しません。
 
+### PR authorとOwnerが同一の場合のGitHub Owner証跡
+
+GitHubはPR author自身のApprove reviewを受け付けない。OwnerのPR Conversationコメントを正式な
+`GITHUB_OWNER` Evidenceとして扱う場合は、repo外Trust Anchor v1.1.0の
+`owner_evidence_public_key`と、それに対応するProvider専用Ed25519秘密鍵を先にOwner管理下で設定する。
+公開鍵をrepo内の自己申告から採用しない。秘密鍵をGit、Task Context、ログ、Evidence、コマンド引数へ
+書き出さない。鍵未設定・不一致ならHOLDとし、手製JSONや旧形式のOwner Evidenceで代替しない。
+
+technical gates完了後、Owner Acceptance Summaryを生成し、Ownerへ9項目を提示する。
+Ownerが承認する場合、対象PRのConversationへ次の形式のコメントを投稿する。`SCOPE`は承認する事業範囲を
+一行で明記する。以下の値は例であり、実際は現在のPR・head・Verify・Summaryの値を使う。
+
+```text
+OWNER_ACCEPTANCE: APPROVED
+PR: #<number>
+HEAD: <full 40-character SHA>
+VERIFICATION_INPUT_HASH: <current verification input hash>
+SUMMARY_BINDING: <current Owner Acceptance Summary binding>
+SCOPE: <approved scope>
+```
+
+GitHub取得は`python -m governance.owner_comment_provider`だけが行い、GeneratorとVerifierは外部fetchを
+行わない。ProviderはGitHub APIでrepository・PR・Owner numeric actor ID・head・コメント本文・編集状態・
+撤回を観測し、完全一致した場合だけ署名付きEvidenceをGit管理外へ出力する。Provider秘密鍵は
+`GOVERNANCE_OWNER_EVIDENCE_PRIVATE_KEY`（base64の32-byte Ed25519 seed）から読む。
+
+```powershell
+python -m governance.owner_comment_provider --context outputs/governance/context.json `
+  --verification outputs/governance/verification.json `
+  --summary outputs/governance/owner-summary.json --output-dir outputs/governance/owner-evidence
+.\scripts\Verify-ContextSnapshot.ps1 -Profile formal-acceptance `
+  -ContextPath outputs/governance/context.json -Provider outputs/governance/provider.json `
+  -OwnerSummary outputs/governance/owner-summary.json -Evidence <CI Evidence paths>,<Owner Evidence path>
+```
+
+Verifierはrepo外Trust Anchorの公開鍵でProvider receiptをoffline検証し、現在のPR番号、完全head、
+`verification_input_hash`、Summaryの再計算済み`summary_binding`との一致を要求する。
+receiptは5分で失効する。merge直前にProviderを再実行してGitHubの最新コメントとheadを確認し、
+fresh EvidenceでVerifyを再実行する。承認コメントの編集・削除、後続の
+`OWNER_ACCEPTANCE: REVOKED`コメント、head・binding変更ではProviderがHOLDし、既存receiptも
+5分で失効する。offline Verifierだけでは取得後のGitHub状態変化を即時検知できないため、
+Provider再観測とVerifyからmergeまでを連続して行う。GitHub APIが利用できない場合もHOLDとする。
+
 ## 軽量開発運用v1との互換契約
 
 通常のローカル作業は小さく可逆に進める。通常開発承認の対象操作、別承認の操作、
