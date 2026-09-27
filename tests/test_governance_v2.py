@@ -532,10 +532,15 @@ def _owner_comment_case():
     return key, anchor, context, verification, summary, repository, pull, comments, now
 
 
-def test_gv2_owner_comment_provider_and_offline_verifier() -> None:
+@pytest.mark.parametrize("newline", ["\n", "\r\n"], ids=["LF", "CRLF"])
+def test_gv2_owner_comment_provider_and_offline_verifier(newline: str) -> None:
     key, anchor, context, verification, summary, repository, pull, comments, now = _owner_comment_case()
+    comments[0]["body"] = comments[0]["body"].replace("\n", newline)
     record = owner_comment_provider.build_evidence(context, verification, summary, anchor,
                                                     repository, pull, comments, key, observed_at=now)
+    assert record["source"]["receipt"]["comment_body_sha256"] == engine.sha256_bytes(
+        comments[0]["body"].encode("utf-8")
+    )
     expected = (True, "OWNER_ACCEPTANCE_BOUND")
     assert engine._owner_evidence_matches([record], verification["verification_input_hash"],
                                           anchor, summary["summary_binding"], "d" * 40, 95, now) == expected
@@ -560,9 +565,11 @@ def test_gv2_owner_comment_provider_and_offline_verifier() -> None:
                                           anchor, summary["summary_binding"], "d" * 40, 95, now)[0] is False
 
 
+@pytest.mark.parametrize("newline", ["\n", "\r\n"], ids=["LF", "CRLF"])
 @pytest.mark.parametrize("mutation", ["repo", "pr", "head", "hash", "binding", "actor", "edit", "delete", "revoke", "scope"])
-def test_gv2_owner_comment_provider_rejects_invalid_observation(mutation: str) -> None:
+def test_gv2_owner_comment_provider_rejects_invalid_observation(mutation: str, newline: str) -> None:
     key, anchor, context, verification, summary, repository, pull, comments, now = _owner_comment_case()
+    comments[0]["body"] = comments[0]["body"].replace("\n", newline)
     if mutation == "repo":
         repository["id"] += 1
     elif mutation == "pr":
@@ -587,6 +594,16 @@ def test_gv2_owner_comment_provider_rejects_invalid_observation(mutation: str) -
     with pytest.raises(engine.GovernanceError):
         owner_comment_provider.build_evidence(context, verification, summary, anchor,
                                               repository, pull, comments, key, observed_at=now)
+
+
+@pytest.mark.parametrize("separator", ["\r", "\u2028"], ids=["bare-CR", "unicode-separator"])
+def test_gv2_owner_comment_provider_rejects_other_line_separators(separator: str) -> None:
+    key, anchor, context, verification, summary, repository, pull, comments, now = _owner_comment_case()
+    comments[0]["body"] = comments[0]["body"].replace("\n", separator)
+    with pytest.raises(engine.GovernanceError) as exc:
+        owner_comment_provider.build_evidence(context, verification, summary, anchor,
+                                              repository, pull, comments, key, observed_at=now)
+    assert exc.value.reason_code == "OWNER_ACCEPTANCE_BINDING_MISMATCH"
 
 
 def test_gv2_git_003_feature_branch_uses_merge_base(trusted: None, tmp_path: Path) -> None:

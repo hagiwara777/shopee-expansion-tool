@@ -23,8 +23,8 @@ from governance import engine
 
 
 APPROVAL = re.compile(
-    r"\AOWNER_ACCEPTANCE: APPROVED\nPR: #(\d+)\nHEAD: ([0-9a-f]{40})\n"
-    r"VERIFICATION_INPUT_HASH: ([0-9a-f]{64})\nSUMMARY_BINDING: ([0-9a-f]{64})\n"
+    r"\AOWNER_ACCEPTANCE: APPROVED\r?\nPR: #(\d+)\r?\nHEAD: ([0-9a-f]{40})\r?\n"
+    r"VERIFICATION_INPUT_HASH: ([0-9a-f]{64})\r?\nSUMMARY_BINDING: ([0-9a-f]{64})\r?\n"
     r"SCOPE: ([^\r\n]+)\s*\Z"
 )
 REVOKED = re.compile(r"\AOWNER_ACCEPTANCE: REVOKED\b")
