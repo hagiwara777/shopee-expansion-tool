@@ -1073,3 +1073,14 @@
 - 保護: PH Category Mapperの業務契約、Candidate 15列、Prelisting Gate、DB schema、Safety、SLS、Resolver、Expansion、governance/state.json、ph.beta.operation、sg.safety.baselineを変更しない。PH UI callerは明示PH bindとする。
 - 既知制約: SG production response同一性は未確認。DEC-0086のBridge全面書込み障害時の旧token消去不可は今回変更しない。
 - rollback: code / docsの通常revertで戻す。DB migration、credential変更、State変更、force pushを伴わない。
+
+
+## DEC-0090 — ShopeeCatalogClient marketplace-neutral化をformal mainで正式受入する
+
+- 日付: 2026-09-27
+- 背景: OwnerはPR #92のaccepted head `536a8849dc4406660fca464d17f58d83646c0dc8`を最終承認した。GitHub上でhead、main base、9変更ファイル、mergeability、現在headのGovernance mandatory 6 gateとprotected PH / SGを再確認し、GitHub Owner証跡をbindしたformal-acceptance VerifierはCONTINUEとなった。
+- 正式受入: PR #92を通常のmerge commit `7be1e78da7114dbaab2f423a70649342864cde8d`でformal mainへ統合し、DEC-0089の単一共通ShopeeCatalogClient、生成時PH/SG明示binding、市場不一致とMY/THのrequest前fail closed、既存認証優先順位、PH UIの明示PH binding、offline Category / Attribute / Brand contractを正式成果とする。
+- 確認済み: GitHub PRはMERGED、GitHub mainとorigin/mainはmerge commitで一致し、accepted headはmerge commitの親に含まれる。governance/state.jsonは開始mainから不変。PHはACTIVE / ALLOWED、SGはINACTIVE / ALLOWED、MY / THはINACTIVE / NOT_STARTED、`ph.beta.operation`と`sg.safety.baseline`はACCEPTEDを維持する。CI offline全体は1,458 passed・1 conditional skip、mandatory 6 gateはPASS。
+- 未受入: SG production Catalog API、Category source identity、実catalog/実商品受入、SG Mapper live接続、SG Brand / SLS runtime、listing_ready、handoff、deploy、operation ACTIVE化、MY / TH runtime。次工程の「SG production Category catalog source identity確認」は別scopeであり、live API・credential操作に別Owner承認を必要とする。
+- 既知制約: SG production responseの同一性は未確認。DEC-0086のBridge全面書込み障害時の旧token消去不可は変更しない。
+- rollback: PR #92の製品・文書差分を通常revertで戻す。DB migration、credential変更、State変更、force push、dirty resetを伴わない。
