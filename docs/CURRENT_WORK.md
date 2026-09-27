@@ -4,7 +4,7 @@
 
 ## 現在の単一作業
 
-PR #92でShopeeCatalogClient marketplace-neutral化をformal mainへ統合済み。DEC-0089のPH/SG共通Client契約を正式成果として採用した（採用記録はDEC-0090）。現在はmerge後のdocs-only正本化候補を確認し、別のformal main mergeにはOwner最終承認を待つ。PR #92自体を未完了の実装候補として扱わない。
+ShopeeCatalogClient marketplace-neutral化は完了し、PR #92でformal mainへ統合済み。DEC-0089のPH/SG共通Client契約はDEC-0090で正式受入済み。merge後のdocs-only正本化も完了。次の単一作業は「SG production Category catalog source identity確認」。
 
 ## Required Decisions
 
@@ -22,4 +22,4 @@ PR #92のaccepted headに対するCIではGovernance mandatory 6 gateがPASSし�
 
 ## 次の単一作業・rollback
 
-次工程は別scopeの「SG production Category catalog source identity確認」。実SG production API、credential操作、実商品・live確認は別Owner承認を得るまで開始しない。今回の採用差分はDB migration、credential変更、State変更を伴わず、通常のcode/docs revertで戻せる。force pushとdirty resetは使わない。docs-only正本化候補のformal main採用にも別のOwner最終承認を要する。
+次工程は別scopeの「SG production Category catalog source identity確認」。実SG production API、credential操作、実商品・live確認は別Owner承認を得るまで開始しない。今回の採用差分はDB migration、credential変更、State変更を伴わず、通常のcode/docs revertで戻せる。force pushとdirty resetは使わない。
