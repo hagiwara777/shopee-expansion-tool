@@ -4,7 +4,7 @@
 
 ## 現在の単一作業
 
-ShopeeCatalogClient marketplace-neutral化は完了し、PR #92でformal mainへ統合済み。DEC-0089のPH/SG共通Client契約はDEC-0090で正式受入済み。merge後のdocs-only正本化も完了。次の単一作業は「SG production Category catalog source identity確認」。
+SG production Category catalog source identity確認は`SOURCE_IDENTITY_PASS`で完了し、DEC-0091に記録した。SG代表shopの正式認証contextでproduction Category endpointを1回read-only取得し、現行共通normalizationと階層の成立を確認した。次の単一作業は「SG production Category catalog import / acceptance」。
 
 ## Required Decisions
 
@@ -13,13 +13,14 @@ ShopeeCatalogClient marketplace-neutral化は完了し、PR #92でformal mainへ
 - DEC-0084 / DEC-0085 / DEC-0086 — 共通Access Token Source、PH Bridge、既知freshness制約。
 - DEC-0088 — Decisionの段階的読込とappend-only正本。
 - DEC-0089 / DEC-0090 — PH/SG Catalog Client契約とformal main採用範囲。
+- DEC-0091 — SG production Category source identityのread-only確認結果、PASSの意味、未受入境界。
 
 ## 正式成果と停止境界
 
-PH Category MapperのCategory / Brand / Attribute既存運用は維持した。SGで利用可能になったのは、marketplaceを明示bindする共通Client、SG用shop/token命名、Google Sheet Source binding、fake requestによるoffline Category / Attribute / Brand contractまで。SG production Catalog API・Category source identity・実catalog受入は未確認であり、SG Mapper live接続、SG Brand / SLS runtime、listing_ready、handoff、deploy、operation ACTIVE化は未受入。MY / TH Catalog Client runtimeはrequest前にfail closedし、両市場はINACTIVE / NOT_STARTEDのまま。
+PH Category MapperのCategory / Brand / Attribute既存運用は維持した。PH/SG共通Clientのoffline契約に加え、SG代表shopとGoogle Sheet Access Token Sourceのbindingを確認し、Shopee production `/api/v2/product/get_category` の1回の成功応答から2,285 Category（root 31、leaf 1,962）を現行`get_categories()`で正規化できた。source identityのPASSは次工程のimport / acceptance検討に使える根拠に限る。SG production catalog import / DB replace、実catalog・実商品Category acceptance、SG Mapper live接続、Brand / Attribute runtime、SLS runtime、listing_ready、handoff、deploy、operation ACTIVE化、SG Minimum Beta完成は未受入。MY / TH Catalog Client runtimeはrequest前にfail closedし、両市場はINACTIVE / NOT_STARTEDのまま。
 
 PR #92のaccepted headに対するCIではGovernance mandatory 6 gateがPASSし、offline全体は1,458 passed・1 conditional skip。GitHub Owner証跡をbindingしたformal-acceptance VerifierはCONTINUE。governance/state.jsonは開始formal mainから不変で、PHはACTIVE / ALLOWED、SGはINACTIVE / ALLOWED、MY / THはINACTIVE / NOT_STARTED、`ph.beta.operation`と`sg.safety.baseline`はACCEPTEDのまま。
 
 ## 次の単一作業・rollback
 
-次工程は別scopeの「SG production Category catalog source identity確認」。実SG production API、credential操作、実商品・live確認は別Owner承認を得るまで開始しない。今回の採用差分はDB migration、credential変更、State変更を伴わず、通常のcode/docs revertで戻せる。force pushとdirty resetは使わない。
+次工程は別scope・新規タスクの「SG production Category catalog import / acceptance」。source identity確認だけでimport、SG-only replace、Mapper live接続、実商品受入へ進めない。今回の正本化差分はdocs-onlyで、DB migration、credential変更、State変更を伴わず、通常のdocs revertで戻せる。production raw responseは保存していない。force pushとdirty resetは使わない。

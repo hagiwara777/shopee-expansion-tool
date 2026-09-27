@@ -1084,3 +1084,14 @@
 - 未受入: SG production Catalog API、Category source identity、実catalog/実商品受入、SG Mapper live接続、SG Brand / SLS runtime、listing_ready、handoff、deploy、operation ACTIVE化、MY / TH runtime。次工程の「SG production Category catalog source identity確認」は別scopeであり、live API・credential操作に別Owner承認を必要とする。
 - 既知制約: SG production responseの同一性は未確認。DEC-0086のBridge全面書込み障害時の旧token消去不可は変更しない。
 - rollback: PR #92の製品・文書差分を通常revertで戻す。DB migration、credential変更、State変更、force push、dirty resetを伴わない。
+
+## DEC-0091 — SG production Category catalog source identityを確認する
+
+- 日付: 2026-09-27
+- 背景: DEC-0090でPH/SG共通ShopeeCatalogClientのoffline契約をformal mainに採用したが、SG production Category responseのsource identityと現行normalizationとの互換性は未確認だった。OwnerがSG代表shop認証contextでの最小read-only確認を承認した。
+- 決定: SG代表shopのshop_idをローカルexpected値とGoogle Sheet Access Token SourceのSG Bridge行で照合し、marketplace=SG、shop binding=MATCH、Source=AVAILABLEを確認した。Shopee production `https://partner.shopeemobile.com` の`GET /api/v2/product/get_category`を1 requestだけ実行し、API成功とresponse object、Category listを確認した。Refresh Token操作、別tokenへの切替、retry、Brand / Attribute APIは行っていない。
+- Category Evidence: 現行`get_categories()`で2,285件を全件正規化できた。root 31件、leaf 1,962件、duplicate Category ID 0件、empty category name 0件、unresolved parent 0件、cycle 0件、rootへ到達不能 0件。`category_id`、`category_name`、`parent_category_id`、leaf判定を取得でき、rootからleafへのhierarchyを再構築できた。現行共通normalizationとの互換性はPASS。raw responseはファイル、DB、Git、Evidenceへ保存していない。production確認の実行時にrepository、credential、DB、Bridgeを追加変更していない。
+- 判定と意味: `SOURCE_IDENTITY_PASS`。SG representative shopの正式認証contextで取得したproduction `/api/v2/product/get_category`を、SG production Category masterのsourceとして次工程のimport / acceptance検討に使用できる根拠を確認した。これはcatalog importや実catalog受入の完了ではない。
+- 未受入: SG production catalog import、SG catalog DB replace、実catalog・実商品Category acceptance、SG Mapper live接続、SG Brand / Attribute runtime、SG SLS runtime、`listing_ready=true`、handoff、deploy、SG operation ACTIVE化、SG Minimum Beta完成、自動Category確定、自動出品。SG operationはINACTIVE、PHはACTIVE、MY / TH runtimeはNOT_STARTEDのまま。Safety、SLS、Candidate 15列、Prelisting Gate、DB schema、`ph.beta.operation`、`sg.safety.baseline`、governance/state.jsonは変更しない。
+- rollback: 今回のdocs-only正本化は通常のrevertで戻せる。実行済みのread-only request自体は取り消せないため、確認事実の訂正が必要なら既存DECを書き換えず新しいDECで記録する。raw responseやcredentialの復旧操作は伴わない。
+- 再検討条件: Shopee Category endpointまたはresponse schemaの変更、SG代表shop bindingの変更、Category ID・parent・leaf・hierarchyの不整合、現行normalizationとの差異が観測された場合はsource identityを再評価する。import / DB replace、実商品受入、Brand、SLS、listing_ready、handoff、operation ACTIVE化は別scope・別Owner承認とtechnical gatesで判断する。
