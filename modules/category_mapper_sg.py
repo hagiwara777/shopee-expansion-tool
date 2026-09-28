@@ -97,6 +97,93 @@ class SGMapperRecommendation:
         return ""
 
 
+def build_sg_category_catalog_csv(
+    categories: Sequence[Mapping[str, object]], *, marketplace: str
+) -> bytes:
+    """Convert a complete normalized SG response without API or database access.
+
+    The client has no marketplace field per Category, so callers must explicitly
+    bind the response to SG. Source paths and other extra fields are ignored.
+    """
+
+    if marketplace != SG_MARKETPLACE:
+        raise SGCategoryMapperError("Normalized Category response must be bound to SG.")
+    by_id: dict[int, dict[str, object]] = {}
+    for category in categories:
+        if not isinstance(category, Mapping) or not {
+            "category_id", "parent_category_id", "category_name", "is_leaf"
+        } <= category.keys():
+            raise SGCategoryMapperError("Normalized Category fields are missing.")
+        if category.get("marketplace", SG_MARKETPLACE) != SG_MARKETPLACE:
+            raise SGCategoryMapperError("Normalized Category marketplace mismatch.")
+        category_id = category["category_id"]
+        if type(category_id) is not int or category_id <= 0:
+            raise SGCategoryMapperError("Normalized category_id must be a positive integer.")
+        if category_id in by_id:
+            raise SGCategoryMapperError("Duplicate normalized category_id.")
+        parent = category["parent_category_id"]
+        if parent is not None and (type(parent) is not int or parent < 0):
+            raise SGCategoryMapperError("Normalized parent_category_id is invalid.")
+        name = category["category_name"]
+        if not isinstance(name, str) or not name.strip():
+            raise SGCategoryMapperError("Normalized category_name is missing.")
+        if type(category["is_leaf"]) is not bool:
+            raise SGCategoryMapperError("Normalized is_leaf must be boolean.")
+        by_id[category_id] = {
+            "marketplace": SG_MARKETPLACE,
+            "category_id": category_id,
+            "parent_category_id": None if parent is None or parent == 0 else parent,
+            "category_name": name.strip(),
+            "is_leaf": category["is_leaf"],
+        }
+    if not by_id or not any(row["parent_category_id"] is None for row in by_id.values()):
+        raise SGCategoryMapperError("SG catalog must contain root categories.")
+    if not any(row["is_leaf"] for row in by_id.values()):
+        raise SGCategoryMapperError("SG catalog must contain leaf categories.")
+    paths: dict[int, str] = {}
+    for category_id in sorted(by_id):
+        chain: list[int] = []
+        visited: set[int] = set()
+        current = category_id
+        while current is not None and current not in paths:
+            if current not in by_id:
+                raise SGCategoryMapperError("SG catalog references a missing parent.")
+            if current in visited:
+                raise SGCategoryMapperError("SG catalog contains a cycle.")
+            visited.add(current)
+            chain.append(current)
+            current = by_id[current]["parent_category_id"]
+        prefix = paths.get(current, "")
+        for ancestor in reversed(chain):
+            name = by_id[ancestor]["category_name"]
+            prefix = f"{prefix} > {name}" if prefix else name
+            paths[ancestor] = prefix
+    output = StringIO(newline="")
+    writer = csv.DictWriter(output, fieldnames=SG_CATEGORY_CATALOG_COLUMNS, lineterminator="\n")
+    writer.writeheader()
+    for category_id in sorted(by_id):
+        row = by_id[category_id]
+        writer.writerow({
+            **row,
+            "parent_category_id": row["parent_category_id"] or "",
+            "category_path": paths[category_id],
+            "is_leaf": "TRUE" if row["is_leaf"] else "FALSE",
+        })
+    content = output.getvalue().encode("utf-8-sig")
+    parse_sg_category_catalog(content, filename="sg_category_catalog.csv")
+    return content
+
+
+def _validate_sg_catalog_paths(catalog: CategoryCatalog) -> None:
+    """Require exact parent/name paths, beyond the shared prefix contract."""
+
+    for node in catalog.nodes:
+        parent = catalog.get(node.parent_category_id) if node.parent_category_id is not None else None
+        expected = f"{parent.category_path} > {node.category_name}" if parent else node.category_name
+        if node.category_path != expected:
+            raise SGCategoryMapperError("SG Category path does not exactly match hierarchy.")
+
+
 def parse_sg_category_catalog(content: bytes, *, filename: str) -> CategoryCatalog:
     """Parse one complete offline SG catalog and validate the entire hierarchy."""
 
@@ -119,17 +206,19 @@ def parse_sg_category_catalog(content: bytes, *, filename: str) -> CategoryCatal
         leaf_text = _text(row.get("is_leaf")).upper()
         if leaf_text not in {"TRUE", "FALSE"}:
             raise SGCategoryMapperError(f"SG catalog is_leaf is invalid at row {row_number}.")
-        nodes.append(
-            CategoryNode(
+        try:
+            node = CategoryNode(
                 category_id=category_id,
                 parent_category_id=parent_category_id,
                 category_name=category_name,
                 category_path=category_path,
                 is_leaf=leaf_text == "TRUE",
             )
-        )
+        except ValueError as exc:
+            raise SGCategoryMapperError(f"SG Category node validation failed: {exc}") from exc
+        nodes.append(node)
     try:
-        return CategoryCatalog(
+        catalog = CategoryCatalog(
             marketplace=SG_MARKETPLACE,
             catalog_version=(
                 f"{SG_CATALOG_VERSION_PREFIX}:{sha256(content).hexdigest()}"
@@ -138,6 +227,8 @@ def parse_sg_category_catalog(content: bytes, *, filename: str) -> CategoryCatal
         )
     except ValueError as exc:
         raise SGCategoryMapperError(f"SG Category catalog validation failed: {exc}") from exc
+    _validate_sg_catalog_paths(catalog)
+    return catalog
 
 
 def replace_sg_category_catalog(
@@ -150,6 +241,7 @@ def replace_sg_category_catalog(
 
     if catalog.marketplace != SG_MARKETPLACE:
         raise SGCategoryMapperError("Only a validated SG catalog can be replaced.")
+    _validate_sg_catalog_paths(catalog)
     return store.replace_sg_category_catalog(catalog, synced_at=synced_at)
 
 
