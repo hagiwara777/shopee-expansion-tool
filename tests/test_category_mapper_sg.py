@@ -24,6 +24,7 @@ from modules.category_mapper_sg import (
     SG_CATEGORY_CATALOG_COLUMNS,
     SGCategoryMapperError,
     build_sg_category_ai_catalog,
+    build_sg_category_catalog_csv,
     build_sg_recommendations,
     confirm_sg_category,
     generate_sg_ai_category_suggestions,
@@ -487,3 +488,140 @@ def test_sg_brand_attribute_and_listing_profile_store_operations_remain_out_of_s
     store = _store_with_catalog(tmp_path)
     with pytest.raises(ValueError, match="PH only"):
         operation(store)
+
+
+def _normalized_sg_categories():
+    return [
+        {"category_id": 30, "parent_category_id": 20, "category_name": "Leaf", "is_leaf": True},
+        {"category_id": 10, "parent_category_id": 0, "category_name": "Root", "is_leaf": False},
+        {"category_id": 20, "parent_category_id": 10, "category_name": "Child", "is_leaf": False},
+    ]
+
+
+@pytest.mark.parametrize("root_parent", [0, None])
+def test_normalized_sg_catalog_is_deterministic_and_uses_only_parent_paths(root_parent):
+    rows = _normalized_sg_categories()
+    rows[1]["parent_category_id"] = root_parent
+    rows[0]["category_path"] = "Untrusted source path"
+    content = build_sg_category_catalog_csv(rows, marketplace="SG")
+    assert content == build_sg_category_catalog_csv(list(reversed(rows)), marketplace="SG")
+    parsed_rows = list(csv.DictReader(StringIO(content.decode("utf-8-sig"))))
+    assert tuple(parsed_rows[0]) == SG_CATEGORY_CATALOG_COLUMNS
+    assert [row["category_id"] for row in parsed_rows] == ["10", "20", "30"]
+    assert [row["category_path"] for row in parsed_rows] == ["Root", "Root > Child", "Root > Child > Leaf"]
+    assert parsed_rows[0]["parent_category_id"] == ""
+    catalog = parse_sg_category_catalog(content, filename="normalized.csv")
+    assert [node.is_leaf for node in catalog.nodes] == [False, False, True]
+
+
+@pytest.mark.parametrize(
+    "index,field,value",
+    [
+        (0, "category_id", 10),
+        (0, "category_id", 0),
+        (0, "category_id", -1),
+        (0, "category_id", True),
+        (0, "category_id", 30.0),
+        (0, "category_id", "30"),
+        (0, "category_name", "   "),
+        (0, "category_name", None),
+        (0, "parent_category_id", 999),
+        (1, "parent_category_id", -1),
+        (1, "parent_category_id", False),
+        (1, "parent_category_id", "bad"),
+        (1, "parent_category_id", "0"),
+        (1, "parent_category_id", 0.0),
+        (0, "is_leaf", False),
+        (1, "is_leaf", True),
+        (0, "is_leaf", "TRUE"),
+        (0, "marketplace", "PH"),
+    ],
+)
+def test_normalized_sg_catalog_rejects_invalid_values_before_replace(tmp_path, index, field, value):
+    store = _store_with_catalog(tmp_path)
+    before = store.list_categories_for_category_ai_catalog("SG")
+    rows = _normalized_sg_categories()
+    rows[index][field] = value
+    with pytest.raises(SGCategoryMapperError):
+        content = build_sg_category_catalog_csv(rows, marketplace="SG")
+        replace_sg_category_catalog(store, parse_sg_category_catalog(content, filename="normalized.csv"))
+    assert store.list_categories_for_category_ai_catalog("SG") == before
+
+
+@pytest.mark.parametrize("case", ["empty", "no-root", "no-leaf", "disconnected-cycle", "self-cycle", "missing-field", "wrong-binding"])
+def test_normalized_sg_catalog_rejects_incomplete_or_unreachable_tree(case):
+    rows = _normalized_sg_categories()
+    marketplace = "SG"
+    if case == "empty":
+        rows = []
+    elif case == "no-root":
+        rows[1]["parent_category_id"] = 30
+    elif case == "no-leaf":
+        for row in rows:
+            row["is_leaf"] = False
+    elif case == "disconnected-cycle":
+        rows += [
+            {"category_id": 40, "parent_category_id": 50, "category_name": "A", "is_leaf": False},
+            {"category_id": 50, "parent_category_id": 40, "category_name": "B", "is_leaf": False},
+        ]
+    elif case == "self-cycle":
+        rows[0]["parent_category_id"] = 30
+    elif case == "missing-field":
+        del rows[0]["parent_category_id"]
+    elif case == "wrong-binding":
+        marketplace = "PH"
+    with pytest.raises(SGCategoryMapperError):
+        build_sg_category_catalog_csv(rows, marketplace=marketplace)
+
+
+@pytest.mark.parametrize("category_id,path", [(10, "Extra > Root"), (20, "Root > Extra > Child")])
+def test_sg_parser_rejects_extra_path_segments(category_id, path):
+    content = build_sg_category_catalog_csv(_normalized_sg_categories(), marketplace="SG")
+    rows = list(csv.DictReader(StringIO(content.decode("utf-8-sig"))))
+    for row in rows:
+        if int(row["category_id"]) == category_id:
+            old_path = row["category_path"]
+            for descendant in rows:
+                if descendant["category_path"].startswith(old_path):
+                    descendant["category_path"] = path + descendant["category_path"][len(old_path):]
+            break
+    with pytest.raises(SGCategoryMapperError, match="exactly match hierarchy"):
+        parse_sg_category_catalog(_catalog_csv(rows), filename="extra_segments.csv")
+
+
+def test_normalized_sg_import_replaces_only_sg_without_schema_change(tmp_path):
+    store = _store_with_catalog(tmp_path)
+    store.save_categories("PH", [{"category_id": 10, "parent_category_id": None, "category_name": "PH root", "is_leaf": True}])
+    ph_before = store.list_categories_for_category_ai_catalog("PH")
+    with sqlite3.connect(store.db_path) as connection:
+        schema_before = connection.execute("SELECT type, name, sql FROM sqlite_master ORDER BY type, name").fetchall()
+    content = build_sg_category_catalog_csv(_normalized_sg_categories(), marketplace="SG")
+    catalog = parse_sg_category_catalog(content, filename="normalized.csv")
+    assert replace_sg_category_catalog(store, catalog) == 3
+    assert store.get_category("SG", 900001) is None
+    assert [row["category_id"] for row in store.list_categories_for_category_ai_catalog("SG")] == [10, 20, 30]
+    assert store.list_categories_for_category_ai_catalog("PH") == ph_before
+    with sqlite3.connect(store.db_path) as connection:
+        assert connection.execute("SELECT type, name, sql FROM sqlite_master ORDER BY type, name").fetchall() == schema_before
+
+
+def test_sg_replace_rejects_direct_catalog_with_extra_path_before_db_write(tmp_path):
+    store = _store_with_catalog(tmp_path)
+    catalog = parse_sg_category_catalog(_catalog_csv(), filename="valid.csv")
+    bad_nodes = tuple(replace(node, category_path=node.category_path.replace("Health > ", "Health > Extra > ")) for node in catalog.nodes)
+    bad_catalog = replace(catalog, nodes=bad_nodes)
+    before = store.list_categories_for_category_ai_catalog("SG")
+    with pytest.raises(SGCategoryMapperError, match="exactly match hierarchy"):
+        replace_sg_category_catalog(store, bad_catalog)
+    assert store.list_categories_for_category_ai_catalog("SG") == before
+
+
+def test_normalized_sg_import_rolls_back_on_insert_failure(tmp_path):
+    store = _store_with_catalog(tmp_path)
+    before = store.list_categories_for_category_ai_catalog("SG")
+    with sqlite3.connect(store.db_path) as connection:
+        connection.execute("CREATE TRIGGER reject_new_sg BEFORE INSERT ON catalog_categories WHEN NEW.marketplace = 'SG' AND NEW.category_id = 30 BEGIN SELECT RAISE(ABORT, 'fixture failure'); END")
+    content = build_sg_category_catalog_csv(_normalized_sg_categories(), marketplace="SG")
+    with pytest.raises(sqlite3.IntegrityError):
+        replace_sg_category_catalog(store, parse_sg_category_catalog(content, filename="normalized.csv"))
+    assert store.list_categories_for_category_ai_catalog("SG") == before

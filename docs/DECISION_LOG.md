@@ -1113,3 +1113,17 @@
 - 未受入: SG production catalog import、SG catalog DB replace、実catalog・実商品Category acceptance、SG Mapper live接続、SG Brand / Attribute runtime、SG SLS runtime、`listing_ready=true`、handoff、deploy、SG operation ACTIVE化、SG Minimum Beta完成、自動Category確定、自動出品。SG operationはINACTIVE、PHはACTIVE、MY / TH runtimeはNOT_STARTEDのまま。Safety、SLS、Candidate 15列、Prelisting Gate、DB schema、`ph.beta.operation`、`sg.safety.baseline`、governance/state.jsonは変更しない。
 - rollback: 今回のdocs-only正本化は通常のrevertで戻せる。実行済みのread-only request自体は取り消せないため、確認事実の訂正が必要なら既存DECを書き換えず新しいDECで記録する。raw responseやcredentialの復旧操作は伴わない。
 - 再検討条件: Shopee Category endpointまたはresponse schemaの変更、SG代表shop bindingの変更、Category ID・parent・leaf・hierarchyの不整合、現行normalizationとの差異が観測された場合はsource identityを再評価する。import / DB replace、実商品受入、Brand、SLS、listing_ready、handoff、operation ACTIVE化は別scope・別Owner承認とtechnical gatesで判断する。
+
+
+## DEC-0094 — SG Category importのoffline変換経路とproductionデータ不足の停止境界を固定する
+
+- 日付: 2026-09-28
+- authority: OwnerがSG production Category catalog import offline preflightの実装・検証を依頼し、開始Git状態不一致のSTOP後、同一タスクでformal main起点のclean worktreeとrepo外Task Context作成、CONTINUE後の実装継続を明示承認した。既存dirty PH作業ツリーを編集・整理しない。
+- 決定: SG-local pure function `build_sg_category_catalog_csv(categories, marketplace="SG")`で共通Clientのnormalized Category全件から正式6列CSVを生成する。IDはpositive integer、重複・空名・市場混在・不正parent・missing parent・cycle・root/leaf欠落・leafとtree構造の矛盾を拒否する。root parentは現行normalized値の0 / Noneだけをcanonical空欄へ変換し、ID昇順、UTF-8 BOM、LFで決定的に出力する。pathは親関係だけから生成し、入力pathや既存DBを参照しない。
+- 再利用: 生成CSVを既存parse_sg_category_catalog / CategoryCatalogで全件validationし、既存SG-only transactional replaceへ渡す。SG-local parserとreplace入口にparent path + nameの完全一致validationを追加し、shared Coreのprefix validationだけで許されていた余分なsegmentを拒否する。Client、shared AI Core、Store、save_categories、DB schemaは変更しない。
+- 確認済み: SG suite 63 passed、適合Streamlit環境でoffline全体1,515 passed、PH/SG protected回帰598 passed。fixture / tmp DBで決定的出力、階層、不正入力時DB不変、SG完全置換、旧SG ID削除、PH / schema不変、INSERT失敗時rollbackを確認した。保存済みSG mappingのcurrent catalog再validation、listing_ready=falseは既存testsで維持した。既定Pythonの古いStreamlitによる既存UI test失敗は適合環境で解消し、製品への互換修正は加えない。
+- 判定: `IMPORT_PREFLIGHT_STOP`、reason=`PRODUCTION_NORMALIZED_CATEGORY_DATA_NOT_AVAILABLE_OFFLINE`。DEC-0093はraw responseを保存しておらず、既知のsource identity作業出力にもprovenanceと対象bindingを確認できるnormalized全2,285件を見つけられなかった。synthetic / fixtureだけのPASSを実production catalog受入またはIMPORT_PREFLIGHT_PASSにしない。本差分は検証済み候補であり、formal main採用を意味しない。
+- 境界: production API、Google Bridge・credential変更、token本文表示・保存、production raw response保存、実運用DB replace、migration、SG実商品受入、Brand / Attribute / SLS runtime、listing_ready=true、handoff、deploy、operation ACTIVE化、自動確定・出品、MY / TH runtimeを許可しない。PH operation、Safety、Shared Battery、Community NG、Candidate 15列、Prelisting Gate、Resolver、Expansion、governance/state.json、両protected capabilityを維持する。SLS資産をCategory masterへ流用しない。
+- Governance: SG-local実装でも既存path ownershipに従い変更分類はSHARED_COREとし、PH/SG protected gatesを適用する。範囲内commit / push / Draft PR / CI / read-only reviewまで通常開発承認内とし、formal mergeは別Owner Acceptance境界を維持する。
+- 次の最小操作: binding / provenanceを確認できるproduction normalized全件をGit外offline入力として用意する。再取得が必要ならproduction read-only requestとnormalized全件のGit外保存に別Owner明示承認を得る。新しいAPI実行・保存を本決定だけで許可しない。
+- rollback: 今回のSG-local code / tests / docs差分を通常revertする。DB migration、State、credential、PHのユーザー変更を戻す操作はない。force pushとdirty resetを行わない。
