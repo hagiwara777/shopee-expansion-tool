@@ -1165,3 +1165,17 @@
 - 検証: 現在対象へbindした関連testsとGovernanceを再実行し、commit / push後は最新headのmandatory technical gates・protected PH / SG・secret checkを確認する。read-only reviewは成功証拠と製品差分の範囲・停止条件を確認し、未実行または古いheadをPASSとしない。
 - 停止境界: PR #98はDraftを維持する。追加production API、Bridge / credential操作、実運用DB変更、migration、Brand / Attribute API、SG operation ACTIVE化、listing_ready=true、deploy、mergeを行わない。technical gate完了後も現在対象のOwner Acceptance SummaryとOwner明示的最終承認を待ち、formal main受入と実catalog / 実商品受入を別範囲で判断する。
 - rollback: 公開した結果文書は通常revertできる。read-only request、Bridge、実運用DB、credential、dirty PH作業ツリーを変更・復旧する操作はない。force pushとdirty resetを行わない。
+
+
+## DEC-0098 — PR #98のSG Category import offline実装とpreflight PASS結果をformal mainへ正式採用する
+
+- 日付: 2026-09-28
+- authority: OwnerはPR #98 head ac5cb0c7dc1f8564d7332c61e0a53095aac7ba10と現在の9項目Owner Acceptance Summaryを最終承認した。Provider鍵未設定によるHOLD後、PR #96でOwner管理下に作成した既存DPAPI保護鍵の一時利用、公開鍵一致確認、現在Summaryに対応するPR Conversation承認コメント投稿、fresh Provider / formal Verify、CONTINUE時のみmerge、merge後のformal main確認・Validate / snapshot / read-only Verifyを明示承認した。新しい鍵の生成・秘密鍵本文出力保存を許可しない。
+- Owner Evidence: 既存DPAPI保護seedを同一ユーザーでメモリ内だけに復号し、Trust Anchor v1.1公開鍵との一致とGitHub actorのOwner numeric ID一致を確認した。Owner承認コメント https://github.com/hagiwara777/shopee-expansion-tool/pull/98#issuecomment-5864443804 をProviderがGitHubから取得して署名した。環境変数GOVERNANCE_OWNER_EVIDENCE_PRIVATE_KEYはProvider実行中だけ設定して即時解除した。秘密鍵を表示・保存・Git・Task Context・Evidenceへ記録せず、既存保護鍵とTrust Anchorを変更しない。
+- Formal確認: 現在headのmandatory 6 gateとGitGuardian SUCCESS、CI Evidenceのhead/tree/config/workflow/job/run/actor bindingを確認した。fresh署名付きOwner EvidenceはPR番号、Owner、現在head、verification input hash、Summary binding、scopeに一致し、formal-acceptance VerifyはCONTINUE / blockerなし。comment取得、Provider、Verify、通常mergeをreceipt有効時間内に連続実施し、head一致を要求した。承認済みbindingとreceiptはGit除外accepted-pr98へ保存した。
+- 正式採用: PR #98を通常merge commit 9a77f5c9754e7171f7f6cb186dbbb7ce5d17fae0でformal mainへ統合した。GitHub PRはMERGED、GitHub mainとorigin/mainと専用checkout HEADはmerge commitで一致し、accepted headはmerge commitの親に含まれる。offline SG-local normalized全件→決定的6列catalog→全件validation→SG-only replace経路と、完全parent/name path一致の制約、DEC-0096のproduction全件によるtmp DB preflight成立を正式成果とする。
+- 検証事実: normalized全2,285件 / root 31 / leaf 1,962、duplicate・empty name・missing parent・cycle・root到達不能・path/leaf不整合すべて0。決定的出力、tmp DBのSG ID集合全件一致、旧SG ID削除、PH catalog / sync state不変、DB schema不変はDEC-0096のEvidenceによる。merge時にproductionを再取得せず、fixtureのみをproduction受入へ昇格しない。CI offline1,514 passed / 1 conditional skip、protected598 passed、read-only self-review指摘なし。
+- merge後: formal main checkoutのtreeはaccepted headのtreeと一致した。Validate PASS、snapshot生成PASS、read-only Verify CONTINUE。governance/state.jsonは開始mainから不変、PH ACTIVE、SG INACTIVE、MY / TH INACTIVE / NOT_STARTED、両protected capability ACCEPTEDを維持する。別worktreeでcheckout中のlocal main branchやdirty PH作業ツリーを切替・更新・編集しない。
+- 未受入: 実運用DB replace、実catalog / 実商品Category acceptance、SG Brand / Attribute / SLS runtime、SG operation ACTIVE化、listing_ready=true、handoff、deploy、自動確定・出品。今回mergeとIMPORT_PREFLIGHT_PASSをこれらの許可に読み替えない。追加production API、Bridge・Shopee credential変更、実運用DB変更、DB migrationは未実行。
+- 次の単一作業: このmerge後のCURRENT_WORK / DEC-0098ローカル受入記録を公開する。PR #98のaccepted headを変更せず、別の通常文書差分として扱う。後続の本番DB・実商品受入等は別Owner scope判断を必要とする。
+- rollback: PR #98のcode/tests/docsを通常revertする。DB migration、Bridge、credential、PH user data、Stateの変更やforce pushを伴わない。mergeしたread-only検証事実の訂正は既存DECを書き換えず新Decisionで記録する。
