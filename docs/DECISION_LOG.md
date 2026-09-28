@@ -1127,3 +1127,41 @@
 - Governance: SG-local実装でも既存path ownershipに従い変更分類はSHARED_COREとし、PH/SG protected gatesを適用する。範囲内commit / push / Draft PR / CI / read-only reviewまで通常開発承認内とし、formal mergeは別Owner Acceptance境界を維持する。
 - 次の最小操作: binding / provenanceを確認できるproduction normalized全件をGit外offline入力として用意する。再取得が必要ならproduction read-only requestとnormalized全件のGit外保存に別Owner明示承認を得る。新しいAPI実行・保存を本決定だけで許可しない。
 - rollback: 今回のSG-local code / tests / docs差分を通常revertする。DB migration、State、credential、PHのユーザー変更を戻す操作はない。force pushとdirty resetを行わない。
+
+
+## DEC-0095 — 承認済みSG production Category GETの失敗をretryせず停止する
+
+- 日付: 2026-09-28
+- authority: Ownerが同一タスクで、SG representative shopの既存認証context、production GET /api/v2/product/get_category 1回、現行normalization、normalized全件だけのGit外保存とPR #98のtmp DB import検証を明示承認した。retry、Brand / Attribute API、raw response保存、credential表示・保存、Bridge・実運用DB変更、migration、SG ACTIVE化、listing_ready=true、merge、deployは禁止を維持した。
+- 実行: PR #98 head eefceb039d8658e9481f6808b931638029384008のclean worktreeとread-only Verify CONTINUEを確認した。DEC-0093で使った既存Bridge参照とローカルexpected SG shopにbindingし、shop binding MATCH、Google Sheet Access Token Source AVAILABLEを確認した。production Category GETは1 request。request前のGit外試行記録で再実行を拒否し、redirectとretryを設けない。
+- 結果: ClientがShopeeCatalogErrorを返し、normalized Category全件は取得できなかった。HTTP status / API error codeは記録しておらず、期限切れ・権限・response不整合等の原因は未特定。request前のhelper import失敗ではAPIを実行しておらず、rootから実行した1 requestだけを計数する。retryは0。
+- 判定: IMPORT_PREFLIGHT_STOP、reason=PRODUCTION_CATEGORY_REQUEST_FAILED。今回の全Category / root / leaf / duplicate / empty name / missing parent / cycle / root到達不能 / path / leaf整合は未評価。今回のproduction normalized全件によるPH不変 / schema不変 / 古いSG ID削除も未評価であり、既存fixture結果を代用しない。IMPORT_PREFLIGHT_PASSまたはproduction catalog acceptanceに昇格しない。
+- 保護: normalizedデータ、raw response、credentialの保存はなし。secret本文は表示しない。Bridge、実運用DB、schema、製品code、governance/state.json、両protected capability、SG operationは変更しない。Brand / Attribute API、merge、deploy、listing_ready=trueは未実行。Git外にはsecretを含まないrequest試行記録とSTOP集計だけを残す。
+- 次の最小操作: Ownerが既存管理側でSG認証contextの現状を確認する。再requestによる原因確認が必要なら、安全なHTTP status / API error code記録を含む別の1回のread-only診断に新たなOwner明示承認を必要とする。今回の1回承認をretry許可へ拡張しない。formal main mergeは行わずOwner判断待ちで停止する。
+- rollback: 今回のdocs-only結果記録は通常revertできる。実行済みread-only requestは取り消せない。試行記録を消して承認済みrequest枠を再利用せず、secret・Bridge・DBの復旧操作を行わない。
+
+
+## DEC-0096 — 更新後SG認証で取得したnormalized全件のimport offline preflightをPASSとする
+
+- 日付: 2026-09-28
+- authority: OwnerがBridgeのSG Access Token更新を通知し、同一タスクでSG shop binding / Access Token Source再確認、production GET /api/v2/product/get_categoryをread-onlyで新たに1回、成功時だけnormalized全件のGit外offline保存とPR #98のtmp DB import検証を明示承認した。DEC-0095の失敗枠を再利用せず、別試行記録を保存する。retry、Brand / Attribute API、raw response・credential表示保存、Bridge・実運用DB変更、merge、deploy、SG ACTIVE化は禁止を維持する。
+- 開始確認: PR #98 head eefceb039d8658e9481f6808b931638029384008で製品code / protected State不変。Task Contextを今回の承認へ更新した。古いlocal EvidenceはSTALE_BINDINGで一時HOLDだったため、現在HEADでGovernance Validate・PS5.1・PS7、offline 1,515 passed、PH/SG protected 598 passedを再実行し、local-validation CONTINUE / blockerなしを得てから本番requestへ進んだ。
+- 取得: 既存SG expected shopとBridge SG行を照合しshop binding MATCH、Google Sheet Access Token Source AVAILABLE。Shopee production GET /api/v2/product/get_categoryは今回の承認で1 request、HTTP 200、retry 0、redirect追随なし。現行get_categories("SG")で全2,285件を正規化し、source Category countとの全件数一致を確認した。raw responseはmemory内だけとし保存しない。token・credential本文は表示保存しない。
+- offline入力: Git除外outputs/sg-production-import-preflight-20260928-owner-recheck/normalized-categories.jsonにnormalized Categoryの5項目だけを保存した。provenanceはrepo/head/marketplace/endpoint/request数/取得時刻、shop・Bridge参照digest、normalizer・transformer source hash、normalized hashを含みsecretを含まない。normalized SHA-256は1b43516a56ad7d3a101f95b8adf1c38f242a105e5940c4efca95f0330e7d1f12。
+- 全件検証: total 2,285 / root 31 / leaf 1,962。duplicate ID、empty name、missing parent、cycle、root到達不能、path不整合、leaf不整合はすべて0。DEC-0093参考値との差はtotal/root/leafすべて0。PR #98の6列CSV生成を入力逆順でもbyte一致と確認し、既存parserで全件validationを行った。catalog SHA-256は927651f1f3f5c01046669fd4834c7a2de71dc4d89f4f0cf25248b69a1c261cc6。
+- tmp DB: 明示tmp DBにPH fixtureと旧SG fixtureをseedし、normalized全件catalogを既存SG-only replaceへ渡した。SG ID集合と保存件数・parent/path/leaf全件一致、旧SG ID削除、PH catalog / PH sync state不変、sqlite_master schema不変を確認した。実運用DBは開かずmigrationしない。
+- helper補正: 初回は全検証成立後のWindows tmp DB cleanupでPermissionErrorとなったため、そのSTOP記録を保存した。helperのconnection close / GCだけを補正し、保存済みnormalized hashとprovenance・source hashを確認して、network / credential lookupを含まないoffline helperで全件validationとfresh tmp DB検証を再実行した。cleanup完了、追加API 0。製品codeを変更せず、初回STOP集計を最終PASSで上書きしない。
+- 判定: IMPORT_PREFLIGHT_PASS、reason=ALL_REQUIRED_PRODUCTION_NORMALIZED_AND_TEMP_DB_CHECKS_PASS。最終EvidenceはGit除外offline-revalidation-report.json。DEC-0094 / DEC-0095の過去STOP事実は書き換えない。今回PASSはnormalized全件によるoffline import preflight成立を意味し、formal main採用・production catalog acceptance・実運用DB replace・SG実商品受入ではない。
+- 保護・停止: Bridge、実運用DB、DB schema、製品code、governance/state.json、PH operation、両protected capabilityは不変。Brand / Attribute API、raw・credential保存、retry、SG ACTIVE化、listing_ready=true、merge、deployは未実行。PR #98はDraftのまま、追加commit / pushを行わず結果文書をローカル記録してOwner判断待ちで停止する。次工程の受入範囲は別Owner判断を必要とする。
+- rollback: 結果docsは通常revertできる。実行済みread-only requestを取り消せず、試行記録を消して承認枠を再利用しない。DB、Bridge、credential、dirty PH作業ツリーを復旧・変更する操作はない。
+
+
+## DEC-0097 — Owner受理済みIMPORT_PREFLIGHT_PASSを同じDraft PRへ正本化・公開する
+
+- 日付: 2026-09-28
+- authority: OwnerはDEC-0096のIMPORT_PREFLIGHT_PASSを受理し、同じタスクでCURRENT_WORK更新、既存DECを書き換えないDecision追記、関連tests / Governance、secret / 無関係混入確認、local commit、同じbranchへのpush、PR #98更新、CI / mandatory gates確認、read-only reviewを明示承認した。追加production APIとformal main mergeは承認に含めない。
+- 正本化: 成功結果はDEC-0096の全2,285件 / root 31 / leaf 1,962、全不整合0、決定的6列catalog、全件validation、tmp DB SG-only replace、PH / schema不変、旧SG ID削除とする。DEC-0094 / DEC-0095の過去STOPとDEC-0096の初回cleanup失敗・offline補正の履歴を維持する。今回受理はoffline import preflight成立に限定し、production catalog acceptanceやformal main採用ではない。
+- Git対象: CURRENT_WORKとDECISION_LOGの結果文書だけを追加公開する。既存PRのSG-local code / testsは変更しない。normalized全件、provenance、offline report、request試行記録、helper、tmp DB、credential、snapshotはGitへ含めない。過去DECを削除・書換えしない。
+- 検証: 現在対象へbindした関連testsとGovernanceを再実行し、commit / push後は最新headのmandatory technical gates・protected PH / SG・secret checkを確認する。read-only reviewは成功証拠と製品差分の範囲・停止条件を確認し、未実行または古いheadをPASSとしない。
+- 停止境界: PR #98はDraftを維持する。追加production API、Bridge / credential操作、実運用DB変更、migration、Brand / Attribute API、SG operation ACTIVE化、listing_ready=true、deploy、mergeを行わない。technical gate完了後も現在対象のOwner Acceptance SummaryとOwner明示的最終承認を待ち、formal main受入と実catalog / 実商品受入を別範囲で判断する。
+- rollback: 公開した結果文書は通常revertできる。read-only request、Bridge、実運用DB、credential、dirty PH作業ツリーを変更・復旧する操作はない。force pushとdirty resetを行わない。
