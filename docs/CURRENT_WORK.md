@@ -4,7 +4,7 @@
 
 ## 現在の単一作業
 
-SG production Category catalog source identity確認は`SOURCE_IDENTITY_PASS`で完了し、その結果をDEC-0093として正本化する候補PR #95で記録する。PR #96のOwnerコメントEvidence対応はformal mainへ統合済みで、本番Trust Anchor v1.1移行とmerge後Governance確認も完了した。現在の単一作業は、最新mainへ追従したPR #95のtechnical gates・Owner Acceptanceを確認し、docs-only結果をformal mainへ正本化すること。SG production Category catalog import / acceptanceは後続の別工程とし、本タスクでは開始しない。
+PR #95はformal mainへ正式merge済み。SG production Category catalog source identity確認は`SOURCE_IDENTITY_PASS`で完了し、DEC-0093として正本化済みである。PR #96のOwnerコメントEvidence対応、本番Trust Anchor v1.1移行とmerge後Governance確認も完了した。次の単一作業は「SG production Category catalog import / acceptance」とし、新規Codexタスクで開始する。SG operationはINACTIVEを維持し、production catalog import / DB replace、実catalog・実商品Category acceptanceはまだ未開始・未受入。本タスクでは次工程を開始しない。
 
 ## Required Decisions
 
@@ -25,4 +25,4 @@ PR #92のaccepted headに対するCIではGovernance mandatory 6 gateがPASSし�
 
 ## 次の単一作業・rollback
 
-PR #95のformal acceptance完了後、次工程は別scope・新規タスクの「SG production Category catalog import / acceptance」。source identity確認だけでimport、SG-only replace、Mapper live接続、実商品受入へ進めない。今回の正本化差分はdocs-onlyで、DB migration、credential変更、State変更を伴わず、通常のdocs revertで戻せる。production raw responseは保存していない。force pushとdirty resetは使わない。
+PR #95のformal acceptanceとformal mainへの正本化は完了。次工程は別scope・新規Codexタスクの「SG production Category catalog import / acceptance」。source identity確認だけでimport、SG-only replace、Mapper live接続、実商品受入へ進めない。今回の正本化差分はdocs-onlyで、DB migration、credential変更、State変更を伴わず、通常のdocs revertで戻せる。production raw responseは保存していない。force pushとdirty resetは使わない。
