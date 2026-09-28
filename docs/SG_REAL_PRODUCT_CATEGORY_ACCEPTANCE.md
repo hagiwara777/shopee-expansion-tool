@@ -3,10 +3,11 @@
 ## 状態と目的
 
 DEC-0099の受入設計にDEC-0101のOwner承認scope修正を適用する。実行は明示承認済み。
-DEC-0100の同一brand理由STOPは履歴として保持し、同一brandを許して既存46件から6件を再選定する。
+DEC-0100の同一brand理由STOPは履歴として保持し、同一brandを許して既存46件から6件を再選定済み。
 catalog binding・全件validation・用途別6件再選定・専用DB loadは成立。人間レビュー画面を表示済み。
 DEC-0102で6件人間レビュー・CONFIRMED6 / REVIEW0・新セッション再利用6・current再validation6を確認した。
-全14条件を満たすPASS候補であり、結果のformal main採用・タスクDONEは未完了。
+全14条件を満たした結果は、Owner最終承認・fresh Owner Evidence・formal Verify CONTINUEを経てPR #100でformal mainへ正式採用済み（DEC-0103）。merge後のValidate / snapshot / read-only Verifyも成立した。
+PR #100後の文書の最終正本化は同じタスクで完了させる。次の単一作業はSG Brandのscope・受入条件定義で、新規Codexタスクとして開始し、本タスクでは実装・runtimeへ進まない。
 正式進捗はCURRENT_WORK、判断はDECISION_LOG、Git対象bindingはrepo外Task Contextを参照する。
 
 目的はproduction SG catalogで人間が少量実商品のCategoryを確認・保存・再利用でき、
