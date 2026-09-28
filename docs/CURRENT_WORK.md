@@ -4,9 +4,9 @@
 
 ## 現在の単一作業
 
-SG production Category catalog import offline preflightの最小実装候補とfixture / tmp DB検証を完了した（DEC-0094）。normalized Category全件からSG正式6列CSVを決定的に生成し、全件validation後に既存SG-only transactional replaceへ渡す経路を追加した。formal mainへの採用・実production catalog受入はまだ行っていない。
+SG production Category catalog importのoffline実装とIMPORT_PREFLIGHT_PASS検証事実をPR #98でformal mainへ正式採用した（DEC-0098）。Ownerが現在headとOwner Acceptance Summaryを最終承認し、既存DPAPI保護鍵とTrust Anchor公開鍵の一致確認、GitHub承認コメント取得、fresh署名付きOwner Evidence、mandatory 6 gateのformal Verify CONTINUEを得て通常mergeした。追加production API、実運用DB・Bridge・credential変更、deployは行っていない。SG operationはINACTIVEを維持する。
 
-OwnerがBridgeのSG Access Token更新後に新しいread-only GET 1回を明示承認した。SG shop binding MATCH / Google Sheet Source AVAILABLEでproduction Category GETはHTTP 200、現行get_categories()で全2,285件を正規化・Git除外保存した（DEC-0096）。PR #98の決定的6列catalog、全件validation、tmp DBでSG-only replaceを検証し、判定は`IMPORT_PREFLIGHT_PASS`。root 31件 / leaf 1,962件でDEC-0093参考件数との差は0。前回失敗（DEC-0095）は履歴として維持し、今回のAPIは1 request / retry 0。formal main merge・実運用DB replace・production catalog acceptanceは行わずOwner判断待ちで停止する。
+Owner受理済みのpreflightはnormalized全2,285件 / root 31 / leaf 1,962件、全不整合0、決定的6列catalog、全件validation、tmp DBでSG-only replace、旧SG ID削除、PH / schema不変までの成立を意味する（DEC-0096）。過去STOPとhelper cleanup補正の履歴を保持し、実catalog・実商品受入や実運用DB importへ自動昇格しない。
 
 ## Required Decisions
 
@@ -19,8 +19,9 @@ OwnerがBridgeのSG Access Token更新後に新しいread-only GET 1回を明示
 - DEC-0093 — production source identity PASSの意味、2,285件の確認事実、未受入境界。
 - DEC-0094 — offline import最小経路、fixture検証、production全件データ不足によるSTOP。
 - DEC-0095 — 前回承認のproduction GET失敗とretryせず停止した履歴。
-- DEC-0096 — 更新後認証で新たに承認されたGET 1回とnormalized全件のoffline / tmp DB検証PASS。merge・実運用受入はOwner判断待ち。
-- DEC-0097 — Ownerがpreflight PASSを受理し、成功結果の正本化と同じPRの公開・検証を承認。追加production API・mergeは含めない。
+- DEC-0096 — 更新後認証で取得したnormalized全件のoffline / tmp DB検証PASSと実運用受入との境界。
+- DEC-0097 — preflight成功結果の正本化・公開と当時のmerge除外境界。
+- DEC-0098 — 現在対象へのOwner最終承認、fresh署名付きEvidenceとformal Verify CONTINUE、PR #98正式merge、merge後のread-only検証。
 
 ## 確認済みと停止境界
 
@@ -30,6 +31,6 @@ SG suiteは63 passed、offline全体は1,515 passed、PH/SG protected回帰は59
 
 ## 次の単一作業・rollback
 
-OwnerはIMPORT_PREFLIGHT_PASSを受理し、成功結果の正本化、関連tests / Governance再検証、secret / scope確認、同じbranchへのcommit / push、PR #98更新、現在headのCI / mandatory gates確認とread-only reviewを承認した（DEC-0097）。今回の公開工程でproduction APIを追加実行しない。PR #98はDraftを維持し、Git / GitHubの現在headとrepo外Task Contextに検証結果をbindする。次の単一操作は、公開結果を確認したOwnerによるformal main受入判断。現在対象のOwner Acceptance Summaryと明示的な最終merge承認まで停止する。実運用DB replace・実catalog / 実商品Category acceptance・deploy・SG operation ACTIVE化・listing_ready=trueは別の受入範囲とし、今回PASSまたは公開承認から自動昇格しない。
+現在の単一作業は、正式受入記録（CURRENT_WORK / DEC-0098）を別のdocs-only PRとして公開し、technical gatesと現在対象のOwner Acceptance成立後にformal mainへ採用する最終正本化。PR #98のaccepted headと採用範囲は変更しない。この文書PRのmerge後、formal main確認・Validate・snapshot・read-only Verifyを完了して同じCodexタスクを終了する。終了後の次の単一作業は、SG実catalog・実商品受入のscope定義。実運用DB replace・SG operation ACTIVE化・listing_ready=true・deployは未実施であり、次工程は別タスク・別Owner承認とtechnical gatesを必要とする。
 
 rollbackは今回のSG-local code / tests / docs差分の通常revert。DB migration、State、credential、PH運用の変更を伴わない。force pushとdirty resetは行わない。
