@@ -4,7 +4,7 @@
 
 ## 現在の単一作業
 
-ShopeeCatalogClient marketplace-neutral化は完了し、PR #92でformal mainへ統合済み。SG production Category source identityのdocs-only候補PR #95はGitHub Ownerの自己Approve review不能により未mergeで保留中。現在の単一作業は、PR #95とは別scopeのGitHub OwnerコメントEvidence対応をGovernanceへ導入し、Owner Acceptance後にformal mainへ統合すること。次にPR #95を新mainへ追従させ、technical gatesとOwner Acceptanceを再取得する。
+SG production Category catalog source identity確認は`SOURCE_IDENTITY_PASS`で完了し、その結果をDEC-0093として正本化する候補PR #95で記録する。PR #96のOwnerコメントEvidence対応はformal mainへ統合済みで、本番Trust Anchor v1.1移行とmerge後Governance確認も完了した。現在の単一作業は、最新mainへ追従したPR #95のtechnical gates・Owner Acceptanceを確認し、docs-only結果をformal mainへ正本化すること。SG production Category catalog import / acceptanceは後続の別工程とし、本タスクでは開始しない。
 
 ## Required Decisions
 
@@ -14,14 +14,15 @@ ShopeeCatalogClient marketplace-neutral化は完了し、PR #92でformal mainへ
 - DEC-0088 — Decisionの段階的読込とappend-only正本。
 - DEC-0089 / DEC-0090 — PH/SG Catalog Client契約とformal main採用範囲。
 - DEC-0091 — GitHub Owner自己review不能時のコメントEvidence、署名、短寿命binding。
-- DEC-0092 — PR #96だけのTrust Anchor v1.0→v1.1二重検証と切替順序。
+- DEC-0092 — PR #96のTrust Anchor v1.0→v1.1二重検証と切替順序。
+- DEC-0093 — SG production Category source identityのread-only確認結果、PASSの意味、未受入境界。
 
 ## 正式成果と停止境界
 
-PH Category MapperのCategory / Brand / Attribute既存運用は維持した。formal mainでSGに採用済みなのは、marketplaceを明示bindする共通Client、SG用shop/token命名、Google Sheet Source binding、fake requestによるoffline Category / Attribute / Brand contractまで。SG production source identityのread-only確認結果はPR #95の候補であり、未mergeのためformal main成果ではない。実catalog受入、SG Mapper live接続、SG Brand / SLS runtime、listing_ready、handoff、deploy、operation ACTIVE化は未受入。MY / THはINACTIVE / NOT_STARTEDのまま。
+PH Category MapperのCategory / Brand / Attribute既存運用は維持した。PH/SG共通Clientのoffline契約に加え、SG代表shopとGoogle Sheet Access Token Sourceのbindingを確認し、Shopee production `/api/v2/product/get_category` の1回の成功応答から2,285 Category（root 31、leaf 1,962）を現行`get_categories()`で正規化できた。source identityのPASSは次工程のimport / acceptance検討に使える根拠に限る。SG production catalog import / DB replace、実catalog・実商品Category acceptance、SG Mapper live接続、Brand / Attribute runtime、SLS runtime、listing_ready、handoff、deploy、operation ACTIVE化、SG Minimum Beta完成は未受入。MY / TH Catalog Client runtimeはrequest前にfail closedし、両市場はINACTIVE / NOT_STARTEDのまま。
 
 PR #92のaccepted headに対するCIではGovernance mandatory 6 gateがPASSし、offline全体は1,458 passed・1 conditional skip。GitHub Owner証跡をbindingしたformal-acceptance VerifierはCONTINUE。governance/state.jsonは開始formal mainから不変で、PHはACTIVE / ALLOWED、SGはINACTIVE / ALLOWED、MY / THはINACTIVE / NOT_STARTED、`ph.beta.operation`と`sg.safety.baseline`はACCEPTEDのまま。
 
 ## 次の単一作業・rollback
 
-本Governance候補の次はPR #95の再bindingとformal acceptanceである。Governance PRもPR #95も現在はformal main merge前にOwner最終承認と全gateを要する。SG production catalog import / acceptanceはさらに別scope・新規タスクとし、実SG production API、credential操作、実商品・live確認を本Governance修正の承認から許可しない。今回の候補はDB migration、credential変更、State変更を伴わず通常revert可能。force pushとdirty resetは使わない。
+PR #95のformal acceptance完了後、次工程は別scope・新規タスクの「SG production Category catalog import / acceptance」。source identity確認だけでimport、SG-only replace、Mapper live接続、実商品受入へ進めない。今回の正本化差分はdocs-onlyで、DB migration、credential変更、State変更を伴わず、通常のdocs revertで戻せる。production raw responseは保存していない。force pushとdirty resetは使わない。

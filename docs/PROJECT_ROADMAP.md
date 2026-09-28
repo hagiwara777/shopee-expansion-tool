@@ -187,14 +187,14 @@ PH live確認とOwner受入はDEC-0084〜DEC-0086の既存Evidenceとして保�
 
 DEC-0088により、現在からの順序は **AGENTS軽量化 完了 → DECISION_LOG読込軽量化 → marketplace-neutral ShopeeCatalogClient → SG production Category source identity → 後続SG工程** とする。
 AGENTS軽量化はPR #90でformal mainへ統合済み。DECISION_LOG読込軽量化では見出し一覧とRequired Decisionsから関連DECを選択し、不足時の検索拡大・全文読込を維持する。詳細はRUNBOOK「Decision読込」を参照する。両工程とも安全規則、承認境界、Governance gate、protected capability、製品挙動を変更しない。
-DECISION_LOG読込軽量化はPR #91、ShopeeCatalogClient marketplace-neutral化はPR #92でformal mainへ統合済み。DEC-0090の受入範囲はoffline PH/SG Catalog Client contractまでであり、次の単一工程はSG production Category source identity確認とする。
+DECISION_LOG読込軽量化はPR #91、ShopeeCatalogClient marketplace-neutral化はPR #92でformal mainへ統合済み。DEC-0090の受入範囲はoffline PH/SG Catalog Client contractまでである。DEC-0093でSG production Category source identityを`SOURCE_IDENTITY_PASS`とし、次の単一工程をSG production Category catalog import / acceptanceとする。
 
 次の長期工程を現在からの優先順とする。各工程の実装、Bridge・credential作成、live API実行、runtime切替、運用開始には、その工程に必要な別scope・Owner承認を要する。
 
 1. **DECISION_LOG読込軽量化（完了）** — append-only正本を維持した関連DEC選択手順をPR #91で正式採用した。
 2. **ShopeeCatalogClientのmarketplace-neutral化（offline契約まで完了）** — marketplaceを明示bindする共通Category / Brand / Attribute clientと未承認marketplaceのfail closedをPR #92で正式採用した。
-3. **SG production Category catalog source identity最終確認** — SG代表shopの正式認証contextでread-only確認を行い、v2.product.get_category契約、Category ID、parent、leaf、hierarchy、production identityを確認する。source identity未確認なら停止する。
-4. **SG production Category catalog import / acceptance** — production responseを共通normalization、SG 6列catalog、全件validation、SG-only replaceへ通す。SLS catalogをCategory masterへ流用しない。
+3. **SG production Category catalog source identity最終確認（完了）** — SG代表shopの正式認証contextでShopee production `/api/v2/product/get_category` を1回read-only確認した。DEC-0093の`SOURCE_IDENTITY_PASS`は次工程のsource採用検討に限定する。
+4. **SG production Category catalog import / acceptance（次工程）** — production responseを共通normalization、SG 6列catalog、全件validation、SG-only replaceへ通す。SLS catalogをCategory masterへ流用しない。別scope・新規タスクで開始する。
 5. **SG実商品Category acceptance** — 少量実商品を人間が確認し、保存済みCategoryを現在catalogで再validationする。この時点でもlisting_ready=falseを維持する。
 6. **SG Brand** — production Category確認後にSGのget_brand_list経路を確認・接続し、他marketplaceのBrand IDを流用しない。
 7. **SG SLS runtime** — Category / Brand後の独立工程として扱い、既存Safetyを解除しない。
