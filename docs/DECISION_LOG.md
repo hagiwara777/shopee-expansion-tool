@@ -1179,3 +1179,60 @@
 - 未受入: 実運用DB replace、実catalog / 実商品Category acceptance、SG Brand / Attribute / SLS runtime、SG operation ACTIVE化、listing_ready=true、handoff、deploy、自動確定・出品。今回mergeとIMPORT_PREFLIGHT_PASSをこれらの許可に読み替えない。追加production API、Bridge・Shopee credential変更、実運用DB変更、DB migrationは未実行。
 - 次の単一作業: このmerge後のCURRENT_WORK / DEC-0098ローカル受入記録を公開する。PR #98のaccepted headを変更せず、別の通常文書差分として扱う。後続の本番DB・実商品受入等は別Owner scope判断を必要とする。
 - rollback: PR #98のcode/tests/docsを通常revertする。DB migration、Bridge、credential、PH user data、Stateの変更やforce pushを伴わない。mergeしたread-only検証事実の訂正は既存DECを書き換えず新Decisionで記録する。
+
+
+## DEC-0099 — SG実catalog・6実商品のCategory acceptance受入設計と実行承認境界を固定する
+
+- 日付: 2026-09-28
+- authority: Ownerの今回の依頼文による受入設計scope。実商品受入実行の別明示承認、formal main最終merge承認を推定しない。承認待ちはWAITING_APPROVALでありDONEではない。
+- 前工程: GitHubでPR #98 / #99のMERGEDと最新mainを確認した。PR #99によるDEC-0098 / CURRENT_WORKの最終正本化は完了しており再実行しない。DEC-0096のIMPORT_PREFLIGHT_PASSとDEC-0098のoffline正式成果を実商品受入PASSへ読み替えない。
+- 対象: 本物のSG production catalogと1つの実データ由来の正式SG Prelisting Gate eligible CSVから6商品を選ぶ。SG・全行ELIGIBLE・単一source_type・ASIN重複なしを必須とし、variation偏重を避け、可能なら3商品群以上、同一brand原則最大2件、容易な5件程度と曖昧な1件程度とする。synthetic、REVIEW / EXCLUDE、raw Candidate、複数source混合で代用しない。適切な実Gate入力がなければSTOPする。
+- Catalog: DEC-0096のnormalized全件または現formal mainの正式変換処理による決定的6列catalogだけを用い、provenance / source / hash binding、total 2,285 / root 31 / leaf 1,962、全不整合0を確認する。artifact不足はSTOP、API再取得が必要なら別Owner承認までWAITING_APPROVAL。fixtureやSLS資産を流用しない。
+- 隔離: 明示DB経路または子process限定LOCALAPPDATAの専用acceptance DBだけへload・mapping保存する。製品変更なしの既存経路を用いる。実運用PH / SG DB、PH operation / data、Bridge、credential、State、Safety、Shared Battery、Community NG、own penaltyを変更・解除しない。
+- 人間確認: Categoryだけを商品単位に判断し、current ID存在・leaf=true・hierarchy完全一致path・商品の実体に対する妥当性を人間が確認する。Codex / AIは自動確定しない。判断不能は保存せず理由付き商品REVIEWとして残し、Safety / Brand / Attribute / SLS判断を混ぜない。
+- PASS候補: 手順書の14条件をすべて満たし、6件人間レビュー、CONFIRMED最低4件、理由付きREVIEW最大2件、最低1実商品の保存→アプリ再読込/再起動→同じ入力再読込→current ID / path / leaf再validation・再利用を成立させる。全商品listing_ready=false、SG export / handoff閉鎖、production DB / PH不変、非対象runtime未実行、secret非表示・非保存を確認する。既存negative contract testsは実商品Evidenceと分け、人工catalog破壊を実商品受入MUSTに追加しない。
+- STOP: catalog binding / hash / 件数不一致、不正Gate入力の通過、catalog外 / non-leafの確定、stale path再利用、PH / production DB影響、listing_ready=true、SG出口開放、安全停止解除、secret露出、artifact代用が必要な場合はscopeを拡大して修正しない。原因と最小修正候補をOwnerへ報告する。
+- 正本化: 詳細手順はdocs/SG_REAL_PRODUCT_CATEGORY_ACCEPTANCE.md、進捗はCURRENT_WORK、タスク固有bindingはrepo外Task Context、実商品・raw catalog・DB・詳細EvidenceはGit除外artifactとする。Roadmap工程順は変えず重複追記しない。製品code / tests / Stateは変更しない。結果公開・formal main採用はmandatory technical gatesと現在対象のOwner Acceptanceおよび明示的最終承認を必要とする。
+- 非対象: production DB replace、production API再取得、Bridge / credential変更、SG live OpenAI・AI精度Benchmark、Brand / Attribute / SLS runtime、listing_ready=true、export / handoff、deploy、SG ACTIVE化、自動確定・出品、MY / TH。他marketplace Brand ID流用も行わない。
+- rollback: 隔離DBとGit除外acceptance artifactは受入完了後または失敗時に破棄可能とするが、過去request試行記録とDEC-0096 Evidenceを削除しない。文書差分だけ通常revertする。実運用DB・PH・Bridge・credentialの復旧を必要とする構成にしない。force push / dirty reset禁止。
+
+
+## DEC-0100 — 実catalog bindingを確認し6実商品入力不足でCategory acceptanceをSTOPする
+
+- 日付: 2026-09-28
+- authority: Ownerが同じタスクで、既存SG production catalog Evidence / 実SG Gate CSV検証、適格6件選定、隔離DBだけでの人間Category確認・保存・再読込・保存済みCategory再validationを明示承認した。production API再取得、実運用DB、Bridge / credential、Brand / Attribute / SLS、listing_ready=true、handoff / deploy、SG ACTIVE化、自動確定・出品は禁止を維持する。catalog / 商品適格性問題時は代用・scope拡大せずSTOPする。
+- Catalog確認: DEC-0096 normalized SHA-256とprovenanceが一致し、正式変換の決定的6列catalog SHA-256もDEC-0096値へ完全一致した。全件parser validation、total 2,285 / root 31 / leaf 1,962、parent / path / leaf整合、入力逆順でbyte一致を確認した。repo / SG / production endpoint / shop bindingのprovenanceも確認した。
+- Source binding: 最初のhelperはGit blobのLF bytesだけで比較してnormalizer hash不一致として停止した。read-only診断によりprovenanceがnormalizerのWindows CRLF bytes、transformerのLF bytesを記録していることを確認し、それぞれhistorical bytesへ完全一致、現formal mainのGit blobも両方不変と確認した。normalized / catalogのhashは変換せず厳密一致。製品code・provenance・過去Evidenceを書き換えていない。
+- Gate確認: 発見した3候補CSVは正規filenameで正式parserを通り、SG / ELIGIBLE / EXPANSION / ASIN重複なし。2ファイルは同じsynthetic 1商品で本受入には禁止。残る1ファイルは46商品がすべて同一brandで、同一brand原則最大2件を維持すると6件選定は不能（最大2件）。後者の実Gate出所の正式受入は未確定。合成商品の正式parser通過を実商品受入へ昇格しない。商品title / categoryのreplacement characterは0。
+- 判定: STOP、reason=SUITABLE_REAL_SG_GATE_INPUT_NOT_AVAILABLE_IN_DISCOVERED_FILES。条件緩和・複数CSV結合・synthetic・商品情報改変・live取得で代用しない。6件選定0、人間レビュー0、確定0。商品REVIEW件数と保存済み実商品再validationは未評価であり0成功としない。隔離DBも作成せずload / mapping保存なし。
+- Evidence: Git除外outputs/sg-real-product-category-acceptance/input-verification-report.jsonにcatalog / source / input hash bindingと最小集計・未実施を保存した。管理文書へ商品名・ASIN一覧・raw catalog・credentialを貼らない。既存DEC-0096 artifact / request記録を保持する。
+- 保護: production API 0、実運用DB・PH data / operation・Bridge・credential・State・製品code / tests・Safety / SLS不変。Brand / Attribute / SLS runtime、listing_ready=true、export / handoff、deploy、SG ACTIVE化、自動確定・出品未実行。実商品受入PASS / formal main採用 / DONEではない。既存dirty PH変更に触れない。
+- 次の単一作業: Ownerが実データ由来の1つの正式SG Gate eligible CSVで、6商品とbrand / variation等の選定条件を満たす入力を用意し、Codexが出所・parser・適格性を再確認する。既存の実行承認を維持し同じタスクで継続する。実運用DB replace等は別独立工程へ残す。
+- rollback: 今回のdocs-only記録は通常revert。新規隔離DB / mappingはないためDB復旧操作は不要。過去Evidence・試行記録・PH / Bridge / credentialを削除・変更せず、force push / dirty resetしない。
+
+
+## DEC-0101 — SG実商品Category acceptanceのbrand上限を目安へ戻し用途の異なる6件で継続する
+
+- 日付: 2026-09-28
+- authority: OwnerはDEC-0100のSTOPを確認し、同一brand原則最大2件は多様性確保の目安で必須条件ではないと明示修正した。同一brandを許し、既存46件から商品種類ができるだけ異なる6件を選び、可能なら異なるCategory候補へ分散する。同一family・色違い・容量違い等だけで6件を構成せず、6件が実質的に同じ商品群しかない場合だけ選定多様性理由のSTOPとする。既存の実行承認により同じタスクで継続する。
+- 置換範囲: DEC-0099のbrand原則最大2件を必須とする運用解釈と、DEC-0100の単一brandを根拠とする再開入力要件だけを置き換える。両Decisionの本文、STOP当時の観測・hash・未実施履歴、他の受入条件を削除・上書きしない。catalog binding、正式SG / ELIGIBLE / 単一source_type / ASIN重複なし、synthetic禁止、6件人間レビュー・確定最低4件・理由付きREVIEW最大2件、保存再validation、安全停止、formal main承認は維持する。
+- 選定方式: 同じ46件の正式CSVから元cellを変えず6件を抽出し、元source / Gate audit / Candidateとのbindingと選定理由をGit外記録へ残す。対象機器・用途の異なる商品familyを優先し、Category候補の違いは分散確認にだけ使い、Categoryを自動確定しない。収納ケースを対象機器本体と取り違えず、Keepa categoryだけで確定しない。
+- 隔離実行: 製品codeを変更せず、専用DBとGit外wrapperから既存SG商品単位UI / validation / mapping保存を再利用する。LOCALAPPDATAは受入子process内だけを隔離領域へ向ける。読込・catalog load・表示準備はCodexが実行し、Categoryの妥当性と確定・未保存REVIEWは人間が商品単位で判断する。wrapperや抽出CSV・DB・商品詳細はGitへ追加しない。
+- 禁止維持: production API再取得、実運用DB変更、Bridge / credential変更、Brand / Attribute / SLS runtime、listing_ready=true、export / handoff、deploy、SG ACTIVE化、自動Category確定・出品、MY / THは禁止。同一brand許容を既存Safety / Shared Battery / Community NG / own penalty解除へ拡張しない。catalog / 入力contract問題のSTOPは維持する。
+- 正本化: CURRENT_WORKと受入手順を本Decisionに整合させる。工程順を変更せずRoadmap重複追記はしない。実商品PASSやformal main採用は人間レビュー・保存再validation・全14条件・mandatory technical gates・現在対象Owner Acceptance・明示的最終merge承認後だけ判断する。
+- rollback: 今回のscope修正文書は通常revert。隔離DB / wrapper / Git外artifactは復旧可能な範囲で扱い、既存production Evidenceと過去STOP記録を保持する。実運用DB / PH / Bridge / credential復旧を必要とする構成にせず、force push / dirty resetは禁止。
+
+
+## DEC-0102 — SG実catalog・6実商品の人間Category確認と保存再validationをPASS候補として記録する
+
+- 日付: 2026-09-28
+- authority: Ownerの既存実行承認とDEC-0101のscope修正を適用し、Ownerが受入専用画面で6商品のCategoryを人間確認した後、同じタスクで「レビュー完了」と通知した。通知は商品レビュー完了であり、結果PR / exact head / Summaryに対するformal main最終merge承認へ読み替えない。
+- 入力・catalog: 元実Gate46件とCandidate49件 / Gate audit49件のELIGIBLE46件の対応、元cell改変なしの用途別6件抽出、正式SG / 全行ELIGIBLE / EXPANSION単一source / ASIN重複なしを確認済み。DEC-0096のnormalized / catalog厳密hash一致、production provenance / historical source / current source binding、全2,285件 / root31 / leaf1,962、全件validation成立を維持した。production API再取得0。
+- 人間結果: 6件すべて商品単位レビュー、CONFIRMED6 / REVIEW0。人間が選択・確定したcurrent leaf Categoryは5つのroot / 5 Category IDへ分散した。Codexは分類の妥当性判断や確定操作を代行していない。全6件は同一brandの保護ケースだが、色 / 容量違いだけではなく対象機器 / 用途の異なる6familyである。標本制約を広い商品群の精度保証へ拡張しない。
+- 保存・再読込: 初期ブラウザsessionの保存済み0件とOwner確定後6件保存を記録し、Codexが同じ画面をブラウザ再読込した。別session IDで同じhash bindingの正式6件Gateを再読込し、6件すべてUSER_CONFIRMED_REUSE、current Category ID存在 / path完全一致 / leaf=trueをDBとproduction catalogへ再照合した。保存再validationの最低1件条件を6件で満たした。新しい人工catalog破壊testは追加していない。
+- 安全停止: 全6件listing_ready=false、SG export / handoffは閉鎖。実運用DBのfile digest / size / mtimeは開始時と一致。専用DBのPH初期seed全table行とschemaはfresh初期化referenceと一致し、SG-only load / mapping保存でPHを変更していない。既存StoreのPH seed1件による初回helper停止と補正はselection Evidenceに保持し、製品codeを修正していない。
+- 判定: 14必須条件をすべて満たしCATEGORY_ACCEPTANCE_PASS_CANDIDATE。商品レビュー・6件保存・current再validation成立は実商品Evidenceであり、synthetic test結果を代用していない。現段階はローカル結果記録で、formal mainへの正式採用・SG実運用完成・タスクDONEは未完了。
+- Evidence: Git除外outputs/sg-real-product-category-acceptance/reselection-v2/acceptance-result.jsonに14条件と件数、binding、human progress / reload event / operational baseline digestを保存する。商品名 / ASIN一覧、raw catalog、専用DB、wrapper、credential、snapshotをGitまたは管理文書へ大量保存しない。DEC-0099 / DEC-0100の履歴・過去STOP Evidenceを維持する。
+- 非対象維持: production API、実運用DB replace、Bridge / credential変更、Brand / Attribute / SLS runtime、listing_ready=true、listing export / handoff、deploy、SG operation ACTIVE化、自動Category確定・出品、MY / THを実行しない。製品code / tests、State、Safety / Shared Battery / Community NG / own penalty、PH operationは不変。
+- 次の単一作業: 結果文書の検証と最小差分公開を進め、mandatory technical gates / CIと現在対象Owner Acceptance Summary、明示的最終merge承認を成立させた後だけformal mainへ採用する。merge後のformal main / PR MERGED / binding / Validate / snapshot / read-only Verifyまで同じタスクで完了する。実運用DB replace等は後続の別独立工程へ残す。
+- rollback: 結果・scope文書は通常revert。今回の専用DB / Git除外artifactは隔離領域に保持し、実運用DB・PH・Bridge・credentialの復旧を必要としない。過去request / production Evidence・Decision履歴を削除せず、force push / dirty reset禁止。
