@@ -10,6 +10,7 @@ param(
     [string]$Profile = "read-only",
     [string]$TaskContext,
     [string]$Provider,
+    [string]$OwnerSummary,
     [string[]]$Evidence = @()
 )
 
@@ -68,6 +69,9 @@ switch ($Mode) {
         $arguments += @("verify", "--repository", $repositoryRoot, "--context", $ContextPath, "--profile", $Profile, "--output-dir", $OutputDirectory)
         if (-not [string]::IsNullOrWhiteSpace($Provider)) {
             $arguments += @("--provider", $Provider)
+        }
+        if (-not [string]::IsNullOrWhiteSpace($OwnerSummary)) {
+            $arguments += @("--owner-summary", $OwnerSummary)
         }
         foreach ($evidencePath in $Evidence) {
             $arguments += @("--evidence", $evidencePath)

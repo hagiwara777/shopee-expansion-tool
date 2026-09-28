@@ -6,4 +6,5 @@ pytest
 requests
 Pillow
 jsonschema>=4.17,<5
+cryptography>=41,<51
 google-auth>=2,<3

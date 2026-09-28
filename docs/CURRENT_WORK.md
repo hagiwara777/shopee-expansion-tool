@@ -4,7 +4,7 @@
 
 ## 現在の単一作業
 
-SG production Category catalog source identity確認は`SOURCE_IDENTITY_PASS`で完了し、DEC-0091に記録した。SG代表shopの正式認証contextでproduction Category endpointを1回read-only取得し、現行共通normalizationと階層の成立を確認した。次の単一作業は「SG production Category catalog import / acceptance」。
+SG production Category catalog source identity確認は`SOURCE_IDENTITY_PASS`で完了し、その結果をDEC-0093として正本化する候補PR #95で記録する。PR #96のOwnerコメントEvidence対応はformal mainへ統合済みで、本番Trust Anchor v1.1移行とmerge後Governance確認も完了した。現在の単一作業は、最新mainへ追従したPR #95のtechnical gates・Owner Acceptanceを確認し、docs-only結果をformal mainへ正本化すること。SG production Category catalog import / acceptanceは後続の別工程とし、本タスクでは開始しない。
 
 ## Required Decisions
 
@@ -13,7 +13,9 @@ SG production Category catalog source identity確認は`SOURCE_IDENTITY_PASS`で
 - DEC-0084 / DEC-0085 / DEC-0086 — 共通Access Token Source、PH Bridge、既知freshness制約。
 - DEC-0088 — Decisionの段階的読込とappend-only正本。
 - DEC-0089 / DEC-0090 — PH/SG Catalog Client契約とformal main採用範囲。
-- DEC-0091 — SG production Category source identityのread-only確認結果、PASSの意味、未受入境界。
+- DEC-0091 — GitHub Owner自己review不能時のコメントEvidence、署名、短寿命binding。
+- DEC-0092 — PR #96のTrust Anchor v1.0→v1.1二重検証と切替順序。
+- DEC-0093 — SG production Category source identityのread-only確認結果、PASSの意味、未受入境界。
 
 ## 正式成果と停止境界
 
@@ -23,4 +25,4 @@ PR #92のaccepted headに対するCIではGovernance mandatory 6 gateがPASSし�
 
 ## 次の単一作業・rollback
 
-次工程は別scope・新規タスクの「SG production Category catalog import / acceptance」。source identity確認だけでimport、SG-only replace、Mapper live接続、実商品受入へ進めない。今回の正本化差分はdocs-onlyで、DB migration、credential変更、State変更を伴わず、通常のdocs revertで戻せる。production raw responseは保存していない。force pushとdirty resetは使わない。
+PR #95のformal acceptance完了後、次工程は別scope・新規タスクの「SG production Category catalog import / acceptance」。source identity確認だけでimport、SG-only replace、Mapper live接続、実商品受入へ進めない。今回の正本化差分はdocs-onlyで、DB migration、credential変更、State変更を伴わず、通常のdocs revertで戻せる。production raw responseは保存していない。force pushとdirty resetは使わない。
