@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import csv
+import json
 from dataclasses import dataclass, replace
 from hashlib import sha256
 from io import StringIO
 from typing import Mapping, Sequence
+from uuid import uuid4
 
 from modules.category_ai_core import BenchmarkRequestProfile, CategoryCatalog, CategoryNode
 from modules.category_mapper_ai import (
@@ -15,7 +17,8 @@ from modules.category_mapper_ai import (
     build_category_ai_catalog,
     generate_ai_category_suggestions,
 )
-from modules.category_mapper_store import CategoryMapperStore
+from modules.category_mapper_store import CategoryMapperStore, normalize_brand
+from modules.shopee_catalog_client import ShopeeCatalogClient, ShopeeCatalogError, BRAND_STATUS_NORMAL
 from modules.keepa_client import normalize_asin
 from modules.prelisting_candidate_csv import (
     ALLOWED_SOURCE_TYPES,
@@ -85,6 +88,12 @@ class SGMapperRecommendation:
     category_is_confirmed: bool = False
     manual_review_required: bool = True
     manual_review_reason: str = "SG Category requires product-level human confirmation."
+    brand_status: str = "UNRESOLVED"
+    confirmed_brand_id: int | None = None
+    confirmed_brand_name: str = ""
+    brand_candidates: tuple[tuple[int, str], ...] = ()
+    brand_review_reason: str = "SG Brand requires current catalog and human confirmation."
+    brand_current_valid: bool = False
 
     @property
     def listing_ready(self) -> bool:
@@ -443,7 +452,264 @@ def confirm_sg_category(
         category_is_confirmed=True,
         manual_review_required=False,
         manual_review_reason="",
+        brand_status="UNRESOLVED",
+        confirmed_brand_id=None,
+        confirmed_brand_name="",
+        brand_candidates=(),
+        brand_review_reason="SG Brand requires current catalog and human confirmation.",
+        brand_current_valid=False,
     )
+
+
+@dataclass(frozen=True)
+class SGBrandCatalog:
+    """Session-only provenance, never reconstructed from persisted SUCCESS."""
+
+    marketplace: str
+    shop_id: int
+    category_id: int
+    session_id: str
+    digest: str
+    # Immutable ID / API display name / No Brand classification.
+    brands: tuple[tuple[int, str, bool], ...]
+
+
+@dataclass(frozen=True)
+class SGBrandSyncResult:
+    status: str
+    pages: int
+    catalog: SGBrandCatalog | None = None
+    review_reason: str = ""
+
+
+def sg_brand_catalog_digest(brands: Sequence[Mapping[str, object]]) -> str:
+    if any(type(row["brand_id"]) is not int or row["brand_id"] < 0
+           or not isinstance(row["brand_name"], str) or not row["brand_name"].strip()
+           or row["is_no_brand"] not in (0, 1) for row in brands):
+        raise SGCategoryMapperError("SG Brand persisted catalog is invalid.")
+    rows = sorted((int(row["brand_id"]), str(row["brand_name"]), bool(row["is_no_brand"])) for row in brands)
+    return "SG_BRAND_CATALOG_V1:" + sha256(
+        json.dumps(rows, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+class SGBrandSession:
+    """One SG shop session, with independently current catalogs per Category."""
+
+    def __init__(self, *, marketplace: str, shop_id: int) -> None:
+        if marketplace != SG_MARKETPLACE or type(shop_id) is not int or shop_id <= 0:
+            raise SGCategoryMapperError("SG Brand session binding is invalid.")
+        self._binding = (marketplace, shop_id, str(uuid4()))
+        self._current: dict[int, SGBrandCatalog] = {}
+
+    @property
+    def marketplace(self) -> str:
+        return self._binding[0]
+
+    @property
+    def shop_id(self) -> int:
+        return self._binding[1]
+
+    def invalidate(self, category_id: int) -> None:
+        self._current.pop(category_id, None)
+
+    def _check_binding(self, catalog: SGBrandCatalog, category_id: int) -> None:
+        if (catalog.marketplace != self.marketplace or catalog.shop_id != self.shop_id
+                or catalog.category_id != category_id or catalog.session_id != self._binding[2]):
+            raise SGCategoryMapperError("SG Brand catalog/session binding mismatch.")
+
+    def _bind_committed(self, catalog: SGBrandCatalog, *, category_id: int, store: CategoryMapperStore) -> None:
+        self._check_binding(catalog, category_id)
+        if sg_brand_catalog_digest(store.list_brands("SG", category_id)) != catalog.digest:
+            raise SGCategoryMapperError("SG Brand catalog commit digest mismatch.")
+        self._current[category_id] = catalog
+
+    def require_current(
+        self, category_id: int, *, store: CategoryMapperStore, catalog: SGBrandCatalog | None = None,
+    ) -> SGBrandCatalog:
+        current = self._current.get(category_id)
+        if current is None:
+            raise SGCategoryMapperError("SG Brand catalog is not current in this session.")
+        if catalog is not None and catalog is not current:
+            raise SGCategoryMapperError("SG Brand result does not belong to this current session/Category.")
+        self._check_binding(current, category_id)
+        if sg_brand_catalog_digest(store.list_brands("SG", category_id)) != current.digest:
+            self.invalidate(category_id)
+            raise SGCategoryMapperError("SG Brand catalog changed since session commit.")
+        return current
+
+
+def sync_sg_brand_catalog_offline(
+    *, client: ShopeeCatalogClient, session: SGBrandSession, store: CategoryMapperStore,
+    confirmed_category_id: int,
+) -> SGBrandSyncResult:
+    """Explicit lazy offline run; no factory, credential lookup, rerun, or retry.
+
+    The injected transport must be an offline fake. The default network transport
+    is refused. Response identity echoes are neither required nor invented.
+    """
+    category_id = confirmed_category_id
+    session.invalidate(category_id)
+    if type(category_id) is not int or category_id <= 0:
+        raise SGCategoryMapperError("SG Brand run Category is invalid.")
+    store._require_sg_brand_acceptance()
+
+    def check_run() -> None:
+        if (session.marketplace != "SG" or client.marketplace != "SG"
+                or client.credentials.shop_id != session.shop_id or client.uses_default_transport):
+            raise SGCategoryMapperError("SG Brand offline client/run binding is invalid.")
+        client._require_marketplace("SG")
+
+    check_run()
+    current_category = store.get_category("SG", category_id)
+    if current_category is None or not current_category["is_leaf"]:
+        raise SGCategoryMapperError("SG Brand run requires a current leaf Category.")
+    brands: dict[int, dict[str, object]] = {}
+    page_signatures = set()
+    offsets = set()
+    offset = 0
+    for page_number in range(1, 11):
+        check_run()
+        if offset in offsets:
+            raise SGCategoryMapperError("SG Brand pagination cycle.")
+        offsets.add(offset)
+        try:
+            page = client.get_brand_list("SG", category_id, offset=offset,
+                                         page_size=100, status=BRAND_STATUS_NORMAL, strict=True)
+        except (ShopeeCatalogError, ValueError):
+            raise SGCategoryMapperError("SG Brand raw contract/acquisition failed; catalog is not current.") from None
+        check_run()
+        signature = tuple(sorted((b["brand_id"], b["brand_name"], b["original_brand_name"], b["is_no_brand"])
+                                 for b in page.brands))
+        if signature and signature in page_signatures:
+            raise SGCategoryMapperError("SG Brand page repeated abnormally.")
+        page_signatures.add(signature)
+        for brand in page.brands:
+            old = brands.get(brand["brand_id"])
+            if old is not None and old != brand:
+                raise SGCategoryMapperError("SG Brand conflicting duplicate across pages.")
+            brands[brand["brand_id"]] = dict(brand)
+        if page.is_complete:
+            ordered = tuple(brands[key] for key in sorted(brands))
+            store.replace_sg_brand_catalog(category_id, ordered)
+            catalog = SGBrandCatalog("SG", session.shop_id, category_id, session._binding[2],
+                                     sg_brand_catalog_digest(ordered),
+                                     tuple((b["brand_id"], b["brand_name"], b["is_no_brand"]) for b in ordered))
+            session._bind_committed(catalog, category_id=category_id, store=store)
+            return SGBrandSyncResult("SUCCESS", page_number, catalog)
+        if page.next_offset <= offset or page.next_offset in offsets:
+            raise SGCategoryMapperError("SG Brand pagination did not advance.")
+        offset = page.next_offset
+    return SGBrandSyncResult("INCOMPLETE", 10, review_reason="Brand page budget exhausted; Category requires REVIEW.")
+
+
+def sg_no_brand_evidence_digest(item: SGMapperRecommendation) -> str:
+    """Only equality of the seven recorded Evidence fields, not product truth."""
+    fields = {
+        "candidate_asin": item.candidate_asin, "product_title": item.product_title,
+        "keepa_brand": item.keepa_brand, "keepa_category": item.keepa_category,
+        "resolver_input_title": item.resolver_input_title, "source_type": item.source_type,
+        "source_asin": item.source_asin,
+    }
+    canonical = json.dumps(fields, ensure_ascii=False, separators=(",", ":"))
+    return "SG_NO_BRAND_EVIDENCE_V1:" + sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _require_sg_brand_product(item: SGMapperRecommendation, store: CategoryMapperStore) -> int:
+    if (item.marketplace != "SG" or item.input_safety_state != GATE_ELIGIBLE
+            or not item.category_is_confirmed or item.category_verification_status != "USER_CONFIRMED"):
+        raise SGCategoryMapperError("SG Brand requires eligible input and human-confirmed Category.")
+    category_id = item.recommended_category_id
+    if type(category_id) is not int or normalize_asin(item.candidate_asin) != item.candidate_asin:
+        raise SGCategoryMapperError("SG Brand product identity is invalid.")
+    current = store.get_category("SG", category_id)
+    if (current is None or not current["is_leaf"]
+            or current["category_path"] != item.recommended_category_path):
+        raise SGCategoryMapperError("SG Brand requires current Category ID/path/leaf.")
+    return category_id
+
+
+def _sg_brand_review(item: SGMapperRecommendation, reason: str, *, current: bool = False,
+                     candidates: tuple[tuple[int, str], ...] = ()) -> SGMapperRecommendation:
+    return replace(item, brand_status="CANDIDATE" if candidates else "REVIEW",
+                   confirmed_brand_id=None, confirmed_brand_name="", brand_candidates=candidates,
+                   brand_review_reason=reason, brand_current_valid=current,
+                   manual_review_required=True, manual_review_reason=reason)
+
+
+def review_sg_brand(
+    item: SGMapperRecommendation, *, store: CategoryMapperStore, session: SGBrandSession,
+    catalog: SGBrandCatalog | None = None,
+) -> SGMapperRecommendation:
+    """Saved No Brand has precedence and never silently falls back to an alias."""
+    try:
+        category_id = _require_sg_brand_product(item, store)
+        current = session.require_current(category_id, store=store, catalog=catalog)
+    except (SGCategoryMapperError, ValueError):
+        return _sg_brand_review(item, "Current SG Category/Brand session validation required.")
+    options = {b[0]: (b[1], b[2]) for b in current.brands}
+    saved = store.find_sg_no_brand_confirmation(item.candidate_asin, category_id)
+    if saved is not None:
+        option = options.get(saved["no_brand_id"])
+        valid = (saved["marketplace"] == "SG" and saved["candidate_asin"] == item.candidate_asin
+                 and saved["confirmed_category_id"] == category_id and saved["user_confirmed"] == 1
+                 and saved["product_evidence_digest"] == sg_no_brand_evidence_digest(item)
+                 and saved["source_brand"] == item.keepa_brand
+                 and option == (saved["no_brand_name"], True))
+        if not valid:
+            return _sg_brand_review(item, "Saved product No Brand confirmation is stale; human REVIEW required.", current=True)
+        return _sg_brand_confirmed(item, saved["no_brand_id"], saved["no_brand_name"], True)
+    if store.has_sg_no_brand_confirmation(item.candidate_asin):
+        return _sg_brand_review(item, "Product No Brand Category changed; human REVIEW required.", current=True)
+    alias = store.find_sg_brand_alias(item.keepa_brand, category_id)
+    if alias is not None:
+        valid = (bool(item.keepa_brand.strip()) and alias["canonical_brand"] == item.keepa_brand
+                 and alias["source_brand"] == normalize_brand(item.keepa_brand)
+                 and alias["user_confirmed"] == 1 and alias["verification_status"] == "USER_CONFIRMED"
+                 and options.get(alias["brand_id"]) == (alias["shopee_brand_name"], False))
+        if not valid:
+            return _sg_brand_review(item, "Saved real Brand alias is stale/ambiguous; human REVIEW required.", current=True)
+        return _sg_brand_confirmed(item, alias["brand_id"], alias["shopee_brand_name"], False)
+    if not item.keepa_brand.strip() or not normalize_brand(item.keepa_brand):
+        return _sg_brand_review(item, "Source Brand missing/ambiguous; human REVIEW required.", current=True)
+    candidates = tuple((brand_id, name) for brand_id, name, no_brand in current.brands
+                       if not no_brand and normalize_brand(name) == normalize_brand(item.keepa_brand))
+    if not candidates:
+        title = f" {normalize_brand(item.product_title + ' ' + item.resolver_input_title)} "
+        candidates = tuple((brand_id, name) for brand_id, name, no_brand in current.brands
+                           if not no_brand and f" {normalize_brand(name)} " in title)
+    return _sg_brand_review(item, "Brand candidates require human confirmation." if candidates
+                            else "Source Brand not registered; No Brand is not an automatic fallback.",
+                            current=True, candidates=candidates)
+
+
+def _sg_brand_confirmed(item: SGMapperRecommendation, brand_id: int, name: str, no_brand: bool) -> SGMapperRecommendation:
+    return replace(item, brand_status="NO_BRAND_CONFIRMED" if no_brand else "REAL_BRAND_CONFIRMED",
+                   confirmed_brand_id=brand_id, confirmed_brand_name=name, brand_candidates=(),
+                   brand_review_reason="", brand_current_valid=True,
+                   manual_review_required=False, manual_review_reason="")
+
+
+def confirm_sg_brand(
+    item: SGMapperRecommendation, *, store: CategoryMapperStore, session: SGBrandSession,
+    catalog: SGBrandCatalog, brand_id: int, expected_brand_name: str,
+    human_product_verified: bool, human_option_selected: bool,
+) -> SGMapperRecommendation:
+    """Explicit per-product human selection; no Brand/No Brand auto-confirm."""
+    if human_product_verified is not True or human_option_selected is not True:
+        raise SGCategoryMapperError("Explicit human product verification and option selection are required.")
+    category_id = _require_sg_brand_product(item, store)
+    current = session.require_current(category_id, store=store, catalog=catalog)
+    if type(brand_id) is not int:
+        raise SGCategoryMapperError("Selected SG Brand ID is invalid.")
+    option = next((b for b in current.brands if b[0] == brand_id), None)
+    if option is None or option[1] != expected_brand_name:
+        raise SGCategoryMapperError("Selected SG Brand is not the current ID/name option.")
+    store.save_sg_brand_confirmation(candidate_asin=item.candidate_asin, category_id=category_id,
+        brand={"brand_id": option[0], "brand_name": option[1], "is_no_brand": option[2]},
+        source_brand=item.keepa_brand, product_evidence_digest=sg_no_brand_evidence_digest(item),
+        expected_brands=current.brands, expected_category_path=item.recommended_category_path)
+    return _sg_brand_confirmed(item, option[0], option[1], option[2])
 
 
 def _csv_dict_rows(
