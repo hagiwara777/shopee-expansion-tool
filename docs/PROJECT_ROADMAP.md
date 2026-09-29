@@ -187,16 +187,16 @@ PH live確認とOwner受入はDEC-0084〜DEC-0086の既存Evidenceとして保�
 
 DEC-0088により、現在からの順序は **AGENTS軽量化 完了 → DECISION_LOG読込軽量化 → marketplace-neutral ShopeeCatalogClient → SG production Category source identity → 後続SG工程** とする。
 AGENTS軽量化はPR #90でformal mainへ統合済み。DECISION_LOG読込軽量化では見出し一覧とRequired Decisionsから関連DECを選択し、不足時の検索拡大・全文読込を維持する。詳細はRUNBOOK「Decision読込」を参照する。両工程とも安全規則、承認境界、Governance gate、protected capability、製品挙動を変更しない。
-DECISION_LOG読込軽量化はPR #91、ShopeeCatalogClient marketplace-neutral化はPR #92でformal mainへ統合済み。DEC-0090の受入範囲はoffline PH/SG Catalog Client contractまでである。DEC-0093でSG production Category source identityを`SOURCE_IDENTITY_PASS`とし、次の単一工程をSG production Category catalog import / acceptanceとする。
+DECISION_LOG読込軽量化はPR #91、ShopeeCatalogClient marketplace-neutral化はPR #92でformal mainへ統合済み。DEC-0090の受入範囲はoffline PH/SG Catalog Client contractまでである。SG production Category source identity（DEC-0093）、catalog import offline成果（DEC-0098）、実catalog・6実商品のCategory acceptance（DEC-0103）は正式完了済み。SG Brand設計はDESIGN_PASS（DEC-0104）であり、次の単一工程は新規タスクでの最小実装・offline検証とする。
 
 次の長期工程を現在からの優先順とする。各工程の実装、Bridge・credential作成、live API実行、runtime切替、運用開始には、その工程に必要な別scope・Owner承認を要する。
 
 1. **DECISION_LOG読込軽量化（完了）** — append-only正本を維持した関連DEC選択手順をPR #91で正式採用した。
 2. **ShopeeCatalogClientのmarketplace-neutral化（offline契約まで完了）** — marketplaceを明示bindする共通Category / Brand / Attribute clientと未承認marketplaceのfail closedをPR #92で正式採用した。
 3. **SG production Category catalog source identity最終確認（完了）** — SG代表shopの正式認証contextでShopee production `/api/v2/product/get_category` を1回read-only確認した。DEC-0093の`SOURCE_IDENTITY_PASS`は次工程のsource採用検討に限定する。
-4. **SG production Category catalog import / acceptance（次工程）** — production responseを共通normalization、SG 6列catalog、全件validation、SG-only replaceへ通す。SLS catalogをCategory masterへ流用しない。別scope・新規タスクで開始する。
-5. **SG実商品Category acceptance** — 少量実商品を人間が確認し、保存済みCategoryを現在catalogで再validationする。この時点でもlisting_ready=falseを維持する。
-6. **SG Brand** — production Category確認後にSGのget_brand_list経路を確認・接続し、他marketplaceのBrand IDを流用しない。
+4. **SG production Category catalog import / acceptance（完了）** — DEC-0098のoffline import成果とDEC-0103の実catalog受入を正式採用済み。共通normalization、SG 6列catalog、全件validation、隔離DBのSG-only replace成立を確認した。SLS資産をCategory masterへ流用せず、実運用DB replaceを承認しない。
+5. **SG実商品Category acceptance（完了）** — DEC-0103で6件人間確認、保存・再利用、current ID / path / leaf再validationを正式採用済み。listing_ready=falseを維持し、広い商品群の精度保証へ拡張しない。
+6. **SG Brand（設計完了・次に最小実装 / offline検証）** — DEC-0104のDESIGN_PASSを基に新規Codexタスクで進める。real Brand alias再validation、商品単位No Brand保存、strict current取得・対象Category replaceを最小差分で実装し、他市場Brand IDを流用しない。production Brand GETと実商品受入は別Owner承認、listing_ready=false / SG出口閉鎖を維持する。
 7. **SG SLS runtime** — Category / Brand後の独立工程として扱い、既存Safetyを解除しない。
 8. **SG Minimum Beta完成判定** — Category、Brand、Safety、SLS、handoff条件を別Owner Acceptanceで確認する。listing_ready=true、handoff、SG operation ACTIVE化は自動的に行わない。
 9. **SG実運用** — 別Owner承認後にだけ検討する。
@@ -281,7 +281,7 @@ DEC-0049の`BETA_AFTER_CANDIDATE`、DB化、他市場展開、出品後商品改
 - 既存出品ツールの正式入力契約の証拠回収（自動投入またはE2E接続を検討する場合）
 - Category自動確定
 - 自動出品
-- SG Brand / SG SLS runtime / SG Handoffの実装（DEC-0084の共通SourceとPH先行検証、共通Catalog Client、SG production source identity確認の後の別工程）
+- SG Brandのproduction API / 実商品受入（DEC-0104の最小実装・offline検証後の別Owner承認）、SG SLS runtime / SG Handoffの実装（Brand後の独立工程）
 - MY／THの実装（共通Token / Catalog基盤を再利用する将来工程）
 - AI候補の1クリック採用 Ver0.3
 - wrong category蓄積 Ver0.4
