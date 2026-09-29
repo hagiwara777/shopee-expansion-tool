@@ -49,11 +49,9 @@ PR #100のCategory acceptance CIは当時mandatory 6 gateすべてPASS、offline
 
 旧brand理由STOP（DEC-0100）、source改行hashの診断、fresh DBのPH seed期待値補正はDecisionとGit外Evidenceに保持する。旧未実施記録を現在の進捗へ混ぜず、DEC-0101のscope修正・DEC-0102の実行結果・DEC-0103の正式採用の順で読む。PR #98 / #99の前工程も再実行しない。
 
-## 次の単一作業
+## 今後の承認境界
 
-**PR #103の正式採用結果とmerge後検証の文書正本化を完了する。** DECISION_LOG、CURRENT_WORK、PROJECT_ROADMAP、READMEの状態表記をPR #103のformal採用に合わせる。DEC-0104の過去記述は上書きしない。文書PRのformal mergeは、そのPR headに対するOwner Acceptanceとmandatory technical gates成立後にだけ進める。
-
-production Brand APIと実商品Brand確認は未承認であり、offline成果の成立後に対象shop / Category allowlist / request上限 / retry方針 / 隔離DB / Git外Evidence / 実商品範囲への別Owner承認を必要とする。過去Category GETの承認を流用しない。新No Brand tableは後続受入の隔離acceptance DBへだけ明示初期化し、通常の実運用DBへのschema導入は将来の別判断とする。実運用DB replace、Bridge / credential変更、Attribute / SLS runtime、listing_ready=true、export / handoff / deploy、SG operation ACTIVE化、自動確定・出品、MY / THへ進めない。PH operation / data / schemaと保護capabilityを維持する。
+PR #103のoffline正式採用とmerge後文書正本化を本タスクの対象とする。production Brand API / Bridge、実商品Brand / No Brand受入、production DB / schema、Attribute / SLS runtime、`listing_ready=true`、export / handoff、deploy、SG ACTIVE化、自動確定・出品には、対象shop / Category allowlist / request予算 / retry方針 / Evidence / 隔離DB / 商品範囲を定義した別Owner承認を要する。過去Category GET承認は流用せず、PH operation / data / schemaとprotected capabilityを維持する。
 
 ## 終了とrollback
 
