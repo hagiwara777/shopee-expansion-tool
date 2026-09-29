@@ -97,7 +97,7 @@ Category Mapperの「Shopee ACCESS_TOKEN（一時利用）」には、既存管�
 
 ### SG Category Mapper Minimum Beta
 
-PR #82のoffline製品実装に続き、実SG production catalogと6実商品のCategory acceptanceは正式完了済みです（DEC-0103）。SG Brandは最小実装・offline検証の候補段階です。隔離acceptance DBだけの明示初期化とfake transportを使い、SG UIへlive Brand GET導線を追加しません。production Brand API・実商品Brand受入は未実施です。現在状態と後続工程は[CURRENT_WORK](docs/CURRENT_WORK.md)、設計は[DEC-0104](docs/DECISION_LOG.md#dec-0104--sg-brand--no-brand-minimum-betaの設計を確定しdocs-onlyで正本化する)を参照してください。SG実運用、live OpenAI API、listing_ready、handoff、deploy、自動Category確定・出品は受入済みではありません。SG operationはINACTIVEを維持します。
+PR #82のoffline製品実装に続き、実SG production catalogと6実商品のCategory acceptanceは正式完了済みです（DEC-0103）。SG Brandの最小実装・offline検証はPR #103 / DEC-0105で正式採用済みです。隔離acceptance DBだけを明示初期化し、fake transportを使います。production Brand API・Bridge取得、実商品Brand / No Brand受入、production DB schema適用は未実施です。現在状態と後続工程は[CURRENT_WORK](docs/CURRENT_WORK.md)、設計は[DEC-0104](docs/DECISION_LOG.md#dec-0104--sg-brand--no-brand-minimum-betaの設計を確定しdocs-onlyで正本化する)、採用記録は[DEC-0105](docs/DECISION_LOG.md#dec-0105--sg-brand-minimum-beta-offline実装をpr-103で正式採用しmerge後検証を完了する)を参照してください。SG operationはINACTIVE、`listing_ready=false`、export / handoff閉鎖を維持します。Attribute / SLS runtime、deploy、自動確定・出品は未実施です。
 
 SG画面は、全行ELIGIBLEの正式SG Prelisting Gate CSVだけを受け付けます。ファイル名は`prelisting_gate_eligible_sg_expansion.csv`または`prelisting_gate_eligible_sg_resolver.csv`です。PH・市場混在、REVIEW / EXCLUDE、source_type混在、audit CSV、raw Candidate CSVは拒否します。
 
