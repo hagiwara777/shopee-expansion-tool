@@ -97,11 +97,11 @@ Category Mapperの「Shopee ACCESS_TOKEN（一時利用）」には、既存管�
 
 ### SG Category Mapper Minimum Beta
 
-PR #82はformal mainへ統合済みであり、ここで説明するのはoffline製品実装と安全な停止境界です。SG実運用、実SG production catalog受入、live OpenAI API、listing_ready、handoff、deploy、自動Category確定・出品は受入済みではありません。SG operationはINACTIVEを維持します。
+PR #82のoffline製品実装に続き、実SG production catalogと6実商品のCategory acceptanceは正式完了済みです（DEC-0103）。SG Brand設計は完了していますが、Brand製品実装・production Brand API・実商品Brand受入は未実施です。現在状態と後続工程は[CURRENT_WORK](docs/CURRENT_WORK.md)、設計は[DEC-0104](docs/DECISION_LOG.md#dec-0104--sg-brand--no-brand-minimum-betaの設計を確定しdocs-onlyで正本化する)を参照してください。SG実運用、live OpenAI API、listing_ready、handoff、deploy、自動Category確定・出品は受入済みではありません。SG operationはINACTIVEを維持します。
 
 SG画面は、全行ELIGIBLEの正式SG Prelisting Gate CSVだけを受け付けます。ファイル名は`prelisting_gate_eligible_sg_expansion.csv`または`prelisting_gate_eligible_sg_resolver.csv`です。PH・市場混在、REVIEW / EXCLUDE、source_type混在、audit CSV、raw Candidate CSVは拒否します。
 
-Category catalogは、`marketplace,category_id,parent_category_id,category_name,category_path,is_leaf`の6列を持つ、出所確認済みSG catalog CSVを使用します。全件を検証してからSG catalogだけをreplaceするため、削除済みIDは残りません。SG SLS canonical / Master MatrixはAI catalogに使用しません。実SG production catalogは別途source確認が必要です。
+Category catalogは、`marketplace,category_id,parent_category_id,category_name,category_path,is_leaf`の6列を持つ、出所確認済みSG catalog CSVを使用します。全件を検証してからSG catalogだけをreplaceするため、削除済みIDは残りません。SG SLS canonical / Master MatrixはAI catalogに使用しません。production source確認と隔離DBでの実catalog受入は完了しており、実運用DBへのreplaceは別承認です。
 
 SG向けCategory AI Core契約はoffline Fake Provider testsで検証しますが、live OpenAI APIは未承認のためSG UIに実行ボタンやprovider生成経路を設けません。現在のSG UIは、検証済みSG catalogから商品単位でleafを手動選択して確定します。確定結果はASIN単位で保存されますが、再利用時に現在catalogのID・path・leafを再検証します。Category確定後も`listing_ready=false`で停止し、SG groups CSV、listing TXT、handoffは出力しません。SG operationはINACTIVEです。
 ### Category AI Benchmark Ver1（独立実験）

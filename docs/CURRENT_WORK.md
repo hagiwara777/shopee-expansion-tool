@@ -6,10 +6,13 @@
 
 SG実catalog・6実商品のCategory acceptanceはPR #100でformal mainへ正式採用済み（DEC-0103）。Ownerの現在headとOwner Acceptance Summaryへの最終承認、fresh署名付きOwner Evidence、mandatory technical gates 6 / 6 PASS、formal Verify CONTINUEを確認して通常mergeした。merge後のformal main / PR MERGED / accepted内容一致、PowerShell 5.1 / 7 Validate、snapshot、read-only Verify CONTINUEまで確認済み。PR #100のmerge対象と受入結果を再実行・再承認する工程には戻らない。
 
-本書はPR #100採用後の最終正本化を反映する。SG Category acceptanceの開発・受入工程は正式完了しており、開発再開時の次の単一作業はSG Brandのscope・受入条件定義。既存Codexタスクの担当範囲はこのdocs-only正本化の検証・採用確認までとし、merge後検証と正式文書の整合確認を終えて終了する。次工程のSG Brandは新規Codexタスクとし、本タスクで実装・API取得・runtimeを開始しない。手順の詳細は[受入手順書](SG_REAL_PRODUCT_CATEGORY_ACCEPTANCE.md)を参照する。
+SG Brand / No Brand Minimum Betaのscope・受入条件定義は完了し、Ownerは修正版のDESIGN_PASSを受理した（DEC-0104）。本書は確定設計のdocs-only正本化を記録する。Brand製品実装、DB schema適用、production Brand API、実商品Brand確認は未実施であり、live / 実商品操作は未承認。設計受入を製品完成またはlive実行許可へ読み替えない。
+
+現在のタスクは、DEC-0104のappend-only追記、本書の再開案内、ROADMAP / READMEの古いCategory状態表記の補正を対象とする。commit / push / Draft PR / CI / read-only reviewまで同じタスクで進め、現在headのmandatory technical gates完了後にOwner Acceptance Summaryを提示して停止する。formal main mergeはOwnerの明示的最終承認後だけ行い、merge後検証と文書整合確認まで終えて本タスクを終了する。Category受入手順の詳細は[受入手順書](SG_REAL_PRODUCT_CATEGORY_ACCEPTANCE.md)を参照する。
 
 ## Required Decisions
 
+- DEC-0104 — SG Brand設計完了、商品単位No Brand保存、strict current取得・再validation、実装 / live / formal採用の境界。
 - DEC-0103 — PR #100の正式採用・merge後検証、文書の最終正本化、次工程SG Brandを新規タスクへ分離。
 - DEC-0102 — 6件人間確認・保存・再利用・current再validationと標本制約。記録時点のPASS候補はDEC-0103で正式採用済み。
 - DEC-0101 — 同一brand許容と用途 / familyの多様性による6件選定。
@@ -39,14 +42,14 @@ PR #100の現在対象CIはmandatory 6 gateすべてPASS。offlineは1,514 passe
 
 旧brand理由STOP（DEC-0100）、source改行hashの診断、fresh DBのPH seed期待値補正はDecisionとGit外Evidenceに保持する。旧未実施記録を現在の進捗へ混ぜず、DEC-0101のscope修正・DEC-0102の実行結果・DEC-0103の正式採用の順で読む。PR #98 / #99の前工程も再実行しない。
 
-## 次の単一作業
+## 次の単一作業（本正本化のformal採用後）
 
-**SG Brandのscope・受入条件定義を、新規Codexタスクで開始する。** 新規タスクは最新formal main、本書、PROJECT_ROADMAP、Required Decisions、Stateを照合する。既存marketplace-neutral Catalog Client / Access Token Sourceを前提に、SG Brand / No Brandの対象・入力・人間確認・保存 / 再validation・停止条件と、offline / live / 実商品操作それぞれの承認境界を先に定義する。今回のCategory acceptance承認をBrand実装・API取得の許可へ流用しない。新規タスクはOwnerが開始し、本タスクから自動作成・dispatchしない。
+**SG Brand Minimum Beta最小実装・offline検証を、新規Codexタスクで開始する。** 新規タスクは最新formal main、本書、PROJECT_ROADMAP、Required Decisions、Stateを照合し、DEC-0104の確定設計を適用する。既存共通Client / Access Token Source / Storeを再利用し、real Brand aliasのcurrent再validation、商品単位No Brand保存、strict完全取得、対象Category単位replace、失敗時の未確定停止を最小差分で実装する。PH / SG protected gatesを維持し、SG listing_ready=falseとexport / handoff閉鎖を保つ。実装は現在のdocs-onlyタスクで開始しない。新規タスクはOwnerが開始し、本タスクから自動作成・dispatchしない。
 
-実運用DB replace、production API、Bridge / credential変更、Brand / Attribute / SLS runtime、listing_ready=true、export / handoff / deploy、SG operation ACTIVE化、自動確定・出品、MY / THは、本タスク終了後も別の必要なscope・Owner承認・technical gatesなしに進めない。PH operationと保護capabilityを維持する。
+production Brand APIと実商品Brand確認は未承認であり、offline成果の成立後に対象shop / Category allowlist / request上限 / retry方針 / 隔離DB / Git外Evidence / 実商品範囲への別Owner承認を必要とする。過去Category GETの承認を流用しない。新No Brand tableは後続受入の隔離acceptance DBへだけ明示初期化し、通常の実運用DBへのschema導入は将来の別判断とする。実運用DB replace、Bridge / credential変更、Attribute / SLS runtime、listing_ready=true、export / handoff / deploy、SG operation ACTIVE化、自動確定・出品、MY / THへ進めない。PH operation / data / schemaと保護capabilityを維持する。
 
 ## 終了とrollback
 
-最終正本化のdocs-only PRに対するmandatory technical gates、現在対象SummaryとOwner承認、fresh Owner Evidence、formal Verify CONTINUE、通常merge、最新formal main / PR MERGED / 採用内容一致、Validate / snapshot / read-only Verifyと文書整合まで確認して本タスクを終了する。未確認・HOLD / HARD_STOP・文書矛盾を完了扱いにしない。
+SG Brand設計正本化の4文書だけのPRに対するmandatory technical gates、現在対象SummaryとOwnerの明示的最終承認、fresh Owner Evidence、formal Verify CONTINUE、通常merge、最新formal main / PR MERGED / 採用内容一致、Validate / snapshot / read-only Verifyと文書整合まで確認して本タスクを終了する。Owner Acceptance待ちはWAITING_APPROVALであり、formal採用・終了を完了扱いにしない。
 
-rollbackは今回の最終正本化文書の通常revert。PR #100の受入実行を再実行せず、前工程のcode / tests、実運用DB、PH、Bridge、credential、既存EvidenceとDecision履歴を変更・削除しない。force push / dirty reset禁止。
+rollbackは今回の設計正本化文書の通常revert。Decision撤回・訂正は新しい記録で残し、過去Decisionを編集・削除しない。PR #100の受入実行を再実行せず、前工程のcode / tests、実運用DB、PH、Bridge、credential、既存Evidenceを変更・削除しない。force push / dirty reset禁止。
