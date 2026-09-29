@@ -79,6 +79,7 @@ class ShopeeCatalogClient:
         self.credentials = credentials
         self.base_url = base_url.rstrip("/")
         self._request_json = request_json or _urlopen_json
+        self.uses_default_transport = request_json is None
 
     @classmethod
     def from_local_audit_env(
@@ -224,6 +225,7 @@ class ShopeeCatalogClient:
         offset: int = 0,
         page_size: int = 100,
         status: int = BRAND_STATUS_NORMAL,
+        strict: bool = False,
     ) -> BrandPage:
         self._require_marketplace(marketplace)
         numeric_category_id = _positive_int(category_id)
@@ -243,6 +245,10 @@ class ShopeeCatalogClient:
         )
         response = _response_dict(payload, endpoint_path=_BRAND_PATH)
         raw_brands = _required_list(response, "brand_list", endpoint_path=_BRAND_PATH)
+        if strict:
+            if len(raw_brands) > numeric_page_size:
+                raise _response_error(_BRAND_PATH, "brand page exceeded requested size")
+            return _strict_brand_page(raw_brands, response, numeric_offset)
         brands = []
         for raw in raw_brands:
             if not isinstance(raw, Mapping):
@@ -317,6 +323,44 @@ class ShopeeCatalogClient:
     def _require_marketplace(self, marketplace: str) -> None:
         if _enabled_marketplace(marketplace) != self.marketplace:
             raise ValueError("Catalog Client marketplace does not match its binding.")
+
+
+def _strict_brand_page(
+    raw_brands: list[Any], response: Mapping[str, Any], offset: int
+) -> BrandPage:
+    """Validate documented raw fields before permissive PH normalization.
+
+    Identity is carried by the bound client/request/run, not response echoes.
+    SG's English No Brand names identify the option; its ID is never inferred.
+    """
+    by_id: dict[int, dict[str, Any]] = {}
+    for raw in raw_brands:
+        if not isinstance(raw, Mapping):
+            raise _response_error(_BRAND_PATH, "brand row was invalid")
+        brand_id = raw.get("brand_id")
+        if type(brand_id) is not int or not 0 <= brand_id <= 2**63 - 1:
+            raise _response_error(_BRAND_PATH, "brand_id was invalid")
+        names = [raw.get(key) for key in ("display_brand_name", "original_brand_name")]
+        if any(not isinstance(name, str) or not name.strip() for name in names):
+            raise _response_error(_BRAND_PATH, "brand name was invalid")
+        display, original = (name.strip() for name in names)
+        classifications = (display.casefold() == "no brand", original.casefold() == "no brand")
+        if classifications[0] != classifications[1]:
+            raise _response_error(_BRAND_PATH, "No Brand name classification was ambiguous")
+        brand = {"brand_id": brand_id, "brand_name": display,
+                 "original_brand_name": original, "is_no_brand": classifications[0]}
+        if brand_id in by_id and by_id[brand_id] != brand:
+            raise _response_error(_BRAND_PATH, "conflicting duplicate brand")
+        by_id[brand_id] = brand
+    next_offset = response.get("next_offset")
+    has_next = response.get("has_next_page")
+    if type(next_offset) is not int or not 0 <= next_offset <= 2**63 - 1:
+        raise _response_error(_BRAND_PATH, "next_offset was invalid")
+    if type(has_next) is not bool:
+        raise _response_error(_BRAND_PATH, "has_next_page was invalid")
+    if has_next and (next_offset <= offset or not by_id):
+        raise _response_error(_BRAND_PATH, "pagination did not advance")
+    return BrandPage(tuple(by_id.values()), next_offset, not has_next)
 
 
 def load_shopee_catalog_credentials(

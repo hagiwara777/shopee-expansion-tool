@@ -41,6 +41,8 @@ class CategoryMapperStore:
     """Persist only normalized catalog data and user-confirmed mappings."""
 
     def __init__(self, db_path: str | Path | None = None) -> None:
+        self._sg_brand_acceptance_enabled = False
+        self._explicit_db_path = db_path is not None
         self.db_path = Path(db_path) if db_path is not None else default_category_mapper_db_path()
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._initialize()
@@ -451,7 +453,7 @@ class CategoryMapperStore:
             )
 
     def list_brands(self, marketplace: str, category_id: int) -> list[dict[str, Any]]:
-        marketplace = _marketplace(marketplace)
+        marketplace = _category_marketplace(marketplace)
         with self._connect() as connection:
             return [
                 dict(row)
@@ -474,7 +476,7 @@ class CategoryMapperStore:
         )
 
     def brand_sync_state(self, marketplace: str, category_id: int) -> dict[str, Any]:
-        marketplace = _marketplace(marketplace)
+        marketplace = _category_marketplace(marketplace)
         with self._connect() as connection:
             row = connection.execute(
                 """
@@ -798,6 +800,147 @@ class CategoryMapperStore:
     def _category_name_for(self, marketplace: str, category_id: int) -> str:
         category = self.get_category(marketplace, category_id)
         return "" if category is None else str(category["category_name"])
+
+    def initialize_sg_brand_acceptance(self) -> None:
+        """Explicit opt-in for an isolated acceptance DB; never the default DB."""
+        if not self._explicit_db_path or self.db_path.resolve() == default_category_mapper_db_path().resolve():
+            raise ValueError("SG Brand requires an explicit isolated acceptance database.")
+        with self._connect() as connection:
+            connection.execute("""
+                CREATE TABLE IF NOT EXISTS product_no_brand_confirmations (
+                    marketplace TEXT NOT NULL CHECK(marketplace = 'SG'),
+                    candidate_asin TEXT NOT NULL,
+                    confirmed_category_id INTEGER NOT NULL CHECK(confirmed_category_id > 0),
+                    no_brand_id INTEGER NOT NULL CHECK(no_brand_id >= 0),
+                    no_brand_name TEXT NOT NULL,
+                    source_brand TEXT NOT NULL,
+                    product_evidence_digest TEXT NOT NULL,
+                    user_confirmed INTEGER NOT NULL CHECK(user_confirmed IN (0, 1)),
+                    last_verified_at TEXT NOT NULL,
+                    PRIMARY KEY(marketplace, candidate_asin, confirmed_category_id)
+                )
+            """)
+        self._sg_brand_acceptance_enabled = True
+
+    def _require_sg_brand_acceptance(self) -> None:
+        if not self._sg_brand_acceptance_enabled:
+            raise ValueError("Explicit SG Brand acceptance initialization is required.")
+
+    def replace_sg_brand_catalog(self, category_id: int, brands: Iterable[Mapping[str, Any]]) -> None:
+        """Commit one complete, validated SG Category catalog and sync state atomically."""
+        self._require_sg_brand_acceptance()
+        category_id = _require_category_id(category_id)
+        timestamp = utc_now_iso()
+        rows = []
+        seen = set()
+        for brand in brands:
+            brand_id = brand.get("brand_id")
+            name = brand.get("brand_name")
+            no_brand = brand.get("is_no_brand")
+            if (type(brand_id) is not int or not 0 <= brand_id <= 2**63 - 1
+                    or brand_id in seen or not isinstance(name, str) or not name.strip()
+                    or type(no_brand) is not bool):
+                raise ValueError("Invalid complete SG Brand catalog.")
+            seen.add(brand_id)
+            rows.append(("SG", category_id, brand_id, name, normalize_brand(name), int(no_brand), timestamp))
+        with self._connect() as connection:
+            connection.execute("DELETE FROM catalog_brands WHERE marketplace = 'SG' AND category_id = ?", (category_id,))
+            connection.executemany("""
+                INSERT INTO catalog_brands (marketplace, category_id, brand_id, brand_name,
+                    normalized_brand_name, is_no_brand, synced_at) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, rows)
+            connection.execute("""
+                INSERT INTO brand_sync_state (marketplace, category_id, next_offset, is_complete, synced_at, api_status)
+                VALUES ('SG', ?, 0, 1, ?, 'SUCCESS')
+                ON CONFLICT(marketplace, category_id) DO UPDATE SET
+                    next_offset = 0, is_complete = 1, synced_at = excluded.synced_at, api_status = 'SUCCESS'
+            """, (category_id, timestamp))
+
+    def find_sg_no_brand_confirmation(self, candidate_asin: str, category_id: int) -> dict[str, Any] | None:
+        self._require_sg_brand_acceptance()
+        with self._connect() as connection:
+            row = connection.execute("""
+                SELECT * FROM product_no_brand_confirmations
+                WHERE marketplace = 'SG' AND candidate_asin = ? AND confirmed_category_id = ?
+            """, (candidate_asin, category_id)).fetchone()
+        return None if row is None else dict(row)
+
+    def find_sg_brand_alias(self, source_brand: str, category_id: int) -> dict[str, Any] | None:
+        with self._connect() as connection:
+            row = connection.execute("""
+                SELECT * FROM brand_aliases WHERE marketplace = 'SG' AND category_id = ? AND source_brand = ?
+            """, (category_id, normalize_brand(source_brand))).fetchone()
+        return None if row is None else dict(row)
+
+    def has_sg_no_brand_confirmation(self, candidate_asin: str) -> bool:
+        self._require_sg_brand_acceptance()
+        with self._connect() as connection:
+            return connection.execute("""
+                SELECT 1 FROM product_no_brand_confirmations
+                WHERE marketplace = 'SG' AND candidate_asin = ? LIMIT 1
+            """, (candidate_asin,)).fetchone() is not None
+
+    def save_sg_brand_confirmation(
+        self, *, candidate_asin: str, category_id: int, brand: Mapping[str, Any],
+        source_brand: str, product_evidence_digest: str,
+        expected_brands: tuple[tuple[int, str, bool], ...], expected_category_path: str,
+    ) -> None:
+        """Called only after human confirmation/current validation by SG orchestration.
+
+        SG canonical_brand retains the exact source spelling to detect normalized
+        key collisions. The selected Shopee name lives in shopee_brand_name.
+        """
+        self._require_sg_brand_acceptance()
+        category_id = _require_category_id(category_id)
+        timestamp = utc_now_iso()
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            current_rows = tuple((row["brand_id"], row["brand_name"], row["is_no_brand"])
+                for row in connection.execute("""
+                    SELECT brand_id, brand_name, is_no_brand FROM catalog_brands
+                    WHERE marketplace = 'SG' AND category_id = ? ORDER BY brand_id
+                """, (category_id,)))
+            current_category = connection.execute("""
+                SELECT category_path, is_leaf FROM catalog_categories
+                WHERE marketplace = 'SG' AND category_id = ?
+            """, (category_id,)).fetchone()
+            if (current_rows != expected_brands or current_category is None
+                    or current_category["is_leaf"] != 1
+                    or current_category["category_path"] != expected_category_path
+                    or (brand["brand_id"], brand["brand_name"], brand["is_no_brand"]) not in current_rows):
+                raise ValueError("SG Brand/Category catalog changed before confirmation commit.")
+            if brand["is_no_brand"]:
+                connection.execute("""
+                    INSERT INTO product_no_brand_confirmations VALUES ('SG', ?, ?, ?, ?, ?, ?, 1, ?)
+                    ON CONFLICT(marketplace, candidate_asin, confirmed_category_id) DO UPDATE SET
+                        no_brand_id = excluded.no_brand_id, no_brand_name = excluded.no_brand_name,
+                        source_brand = excluded.source_brand, product_evidence_digest = excluded.product_evidence_digest,
+                        user_confirmed = 1, last_verified_at = excluded.last_verified_at
+                """, (candidate_asin, category_id, brand["brand_id"], brand["brand_name"],
+                      source_brand, product_evidence_digest, timestamp))
+            else:
+                if not source_brand.strip() or not normalize_brand(source_brand):
+                    raise ValueError("Real Brand requires unambiguous source brand evidence.")
+                existing = connection.execute("""
+                    SELECT canonical_brand FROM brand_aliases
+                    WHERE marketplace = 'SG' AND category_id = ? AND source_brand = ?
+                """, (category_id, normalize_brand(source_brand))).fetchone()
+                if existing is not None and existing["canonical_brand"] != source_brand:
+                    raise ValueError("Source Brand normalization collision requires REVIEW.")
+                connection.execute("""
+                    DELETE FROM product_no_brand_confirmations
+                    WHERE marketplace = 'SG' AND candidate_asin = ?
+                """, (candidate_asin,))
+                connection.execute("""
+                    INSERT INTO brand_aliases (source_brand, canonical_brand, marketplace, category_id,
+                        shopee_brand_name, brand_id, verification_status, user_confirmed, last_verified_at, note)
+                    VALUES (?, ?, 'SG', ?, ?, ?, 'USER_CONFIRMED', 1, ?, '')
+                    ON CONFLICT(source_brand, marketplace, category_id) DO UPDATE SET
+                        canonical_brand = excluded.canonical_brand, shopee_brand_name = excluded.shopee_brand_name,
+                        brand_id = excluded.brand_id, verification_status = 'USER_CONFIRMED',
+                        user_confirmed = 1, last_verified_at = excluded.last_verified_at, note = ''
+                """, (normalize_brand(source_brand), source_brand, category_id,
+                      brand["brand_name"], brand["brand_id"], timestamp))
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.db_path)
