@@ -1285,3 +1285,16 @@
 - 正式化・終了: mandatory technical gates成功後に現在対象の9項目Summaryを提示してWAITING_APPROVALで停止する。Owner最終承認後に同じタスクでfresh Owner Evidence、formal Verify CONTINUE、通常merge、最新formal main / PR MERGED / 採用内容一致、Validate / snapshot / read-only Verifyと文書整合を確認して終了する。未確認・HOLD / HARD_STOP・merge未完了をDONEにしない。
 - 次の単一作業: formal採用後のSG Brand Minimum Beta最小実装・offline検証は新規Codexタスクとする。目的・主要成果物が設計文書から製品へ変わるため、現在タスクで実装を開始せず新規タスクを自動作成・dispatchしない。live / 実商品受入はoffline成立後も別承認のままとする。
 - rollback: 今回の4文書差分だけを通常revertできる。Decision撤回・訂正は新Decisionで記録し、既存entryや前工程のEvidence / request記録を削除・改変しない。製品、実運用DB、PH、Bridge、credential、Stateの復旧を必要としない。force push / dirty reset禁止。
+
+
+## DEC-0105 — SG Brand Minimum Beta offline実装をPR #103で正式採用しmerge後検証を完了する
+
+- 日付: 2026-09-29
+- authority: OwnerはPR #103 head `7928086a2e870018943d9483acdc1684fc439fdf`と9項目Owner Acceptance Summaryを確認し、SG Brand Minimum Betaのoffline最小実装だけをformal mainへ採用する最終承認を与えた。production Shopee / Bridge API、実商品Brand / No Brand受入、production DB / schema変更、Attribute / SLS runtime、`listing_ready=true`、SG export / handoff、deploy、SG operation ACTIVE化、自動確定・出品は承認範囲外。
+- Owner Evidence / formal: PR #103への現在head・verification input hash・Summary binding・offline限定scopeを持つOwner承認コメントをProviderがGitHubから取得し、既存CurrentUser DPAPI保護seedでfresh署名Evidenceを生成した。Trust Anchor公開鍵との一致を確認し、PR番号・Owner actor・head・Summary bindingにbindしたformal VerifyはCONTINUE、mandatory technical gatesは6 / 6 PASS。
+- 正式採用: PR #103を通常merge commit `c1cfab9fef0283532fd3bf5968ea75c438179233`でformal mainへ採用した。GitHub上でPR MERGED、headは`7928086a2e870018943d9483acdc1684fc439fdf`。main treeとaccepted head treeの一致を確認し、製品差分に追加変更はない。
+- 検証事実: local offline suite 1,615 passed。PR #103 CIはoffline 1,614 passed / 1 skipped、protected PH / SG 598 passed、Governance / PowerShell 5.1 / 7の各checkを含めmandatory 6 / 6 SUCCESS。skipは既存formal local Benchmark artifacts未配置による条件で、PASS数へ含めない。merge後のPowerShell 5.1 / 7 Validate、context snapshot生成、read-only Verify CONTINUEを確認した。
+- 製品状態: Client marketplace / shop、request Category、取得run、session binding、strict raw Brand contract、最大10 pageのcomplete取得、Category単位transactional replace、商品単位No Brand Evidence digest / 明示確認、real Brand alias current再validationをoffline実装として採用した。API responseにmarketplace / Category echoがないため、server内部の別Category誤応答をresponse内容から独立検出したとは主張しない。No Brand tableは隔離acceptance DBへの明示初期化に限る。
+- 保護・未実施: SG operation INACTIVE、PH operation / data / schema、`ph.beta.operation` / `sg.safety.baseline`、`listing_ready=false`、SG export / handoff閉鎖を維持する。production API / Bridge request、実商品受入、実運用DB schema適用、Attribute / SLS runtime、deploy、SG ACTIVE、自動確定・出品は未実施。offline / synthetic成果をlive acceptanceへ昇格しない。
+- 次の工程: SG production Brand取得、expected SG shop照合、Category allowlist下のlive request、実商品Brand / No Brand受入には、対象・request予算・Bridge read-only取得・Evidence保存・隔離DB・商品範囲を定義した別Owner承認を要する。過去Category API承認を流用しない。
+- rollback: offline code / testsと今回の最終正本化文書は通常revertできる。production DB migration / 復旧を伴わず、既存Category acceptance、PH、Bridge、credential、protected Stateを変更しない。

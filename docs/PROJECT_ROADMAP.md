@@ -196,7 +196,7 @@ DECISION_LOG読込軽量化はPR #91、ShopeeCatalogClient marketplace-neutral�
 3. **SG production Category catalog source identity最終確認（完了）** — SG代表shopの正式認証contextでShopee production `/api/v2/product/get_category` を1回read-only確認した。DEC-0093の`SOURCE_IDENTITY_PASS`は次工程のsource採用検討に限定する。
 4. **SG production Category catalog import / acceptance（完了）** — DEC-0098のoffline import成果とDEC-0103の実catalog受入を正式採用済み。共通normalization、SG 6列catalog、全件validation、隔離DBのSG-only replace成立を確認した。SLS資産をCategory masterへ流用せず、実運用DB replaceを承認しない。
 5. **SG実商品Category acceptance（完了）** — DEC-0103で6件人間確認、保存・再利用、current ID / path / leaf再validationを正式採用済み。listing_ready=falseを維持し、広い商品群の精度保証へ拡張しない。
-6. **SG Brand（設計完了・最小実装 / offline検証候補）** — DEC-0104のDESIGN_PASSを基に開始した実装タスクで、real Brand alias再validation、商品単位No Brand保存、strict current取得・対象Category replaceを最小差分で実装する。他市場Brand IDを流用せず、候補のformal採用は現在対象のtechnical gatesとOwner最終承認後だけ行う。production Brand GETと実商品受入は別Owner承認、listing_ready=false / SG出口閉鎖を維持する。
+6. **SG Brand（offline最小実装を正式採用）** — PR #103 / DEC-0105でstrict current取得、real Brand alias再validation、商品単位No Brand保存をoffline実装として正式採用した。production Brand GET、実商品Brand / No Brand受入、production DB schema適用、SG runtimeや出口開放は含まない。後続live工程には別Owner承認を要し、`listing_ready=false` / SG export・handoff閉鎖を維持する。
 7. **SG SLS runtime** — Category / Brand後の独立工程として扱い、既存Safetyを解除しない。
 8. **SG Minimum Beta完成判定** — Category、Brand、Safety、SLS、handoff条件を別Owner Acceptanceで確認する。listing_ready=true、handoff、SG operation ACTIVE化は自動的に行わない。
 9. **SG実運用** — 別Owner承認後にだけ検討する。
