@@ -102,6 +102,8 @@ def post_comment(body: str, full_name: str, number: int, expected_owner_id: str)
          and isinstance(item.get("body"), str) and item["body"].startswith("OWNER_ACCEPTANCE:")),
         key=lambda item: (item.get("created_at", ""), item.get("id", 0)),
     )
+    if owner_comments and re.match(r"\AOWNER_ACCEPTANCE: REVOKED\b", owner_comments[-1]["body"]):
+        _hold("OWNER_TRANSPORT_REVOKED", "Owner承認は撤回されています。新しい明示判断を待ちます。")
     if owner_comments and owner_comments[-1].get("body") == body:
         if owner_comments[-1].get("created_at") != owner_comments[-1].get("updated_at"):
             _hold("OWNER_TRANSPORT_COMMENT_EDITED", "既存コメントが編集されています。")

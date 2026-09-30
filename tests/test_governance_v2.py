@@ -681,6 +681,23 @@ def test_gv2_owner_transport_post_reuses_only_unchanged_latest_comment(monkeypat
     assert exc.value.reason_code == "OWNER_TRANSPORT_COMMENT_EDITED"
 
 
+def test_gv2_owner_transport_does_not_overwrite_latest_revocation(monkeypatch: pytest.MonkeyPatch) -> None:
+    comments = [{"id": 79, "user": {"id": 207869136}, "body": "OWNER_ACCEPTANCE: REVOKED",
+                 "created_at": "2026-09-27T12:01:00Z", "updated_at": "2026-09-27T12:01:00Z"}]
+    monkeypatch.setattr(owner_comment_provider, "_comments", lambda *_args: comments)
+    monkeypatch.setattr(owner_comment_provider, "_github_api", lambda *_args: {"id": 207869136})
+    monkeypatch.setattr(
+        owner_acceptance_transport.subprocess, "run",
+        lambda *_args, **_kwargs: pytest.fail("revoked approval must not trigger a GitHub POST"),
+    )
+    with pytest.raises(engine.GovernanceError) as exc:
+        owner_acceptance_transport.post_comment(
+            "OWNER_ACCEPTANCE: APPROVED\nPR: #95", "hagiwara777/shopee-expansion-tool", 95, "207869136",
+        )
+    assert exc.value.reason_code == "OWNER_TRANSPORT_REVOKED"
+    assert exc.value.exit_code == engine.EXIT_HOLD
+
+
 def test_gv2_owner_transport_post_and_api_failure_hold(monkeypatch: pytest.MonkeyPatch) -> None:
     body = "OWNER_ACCEPTANCE: APPROVED\nPR: #95"
     monkeypatch.setattr(owner_comment_provider, "_comments", lambda *_args: [])
