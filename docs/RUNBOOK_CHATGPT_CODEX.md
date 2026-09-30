@@ -99,9 +99,17 @@ GitHubはPR author自身のApprove reviewを受け付けない。OwnerのPR Conv
 公開鍵をrepo内の自己申告から採用しない。秘密鍵をGit、Task Context、ログ、Evidence、コマンド引数へ
 書き出さない。鍵未設定・不一致ならHOLDとし、手製JSONや旧形式のOwner Evidenceで代替しない。
 
-technical gates完了後、Owner Acceptance Summaryを生成し、Ownerへ9項目を提示する。
-Ownerが承認する場合、対象PRのConversationへ次の形式のコメントを投稿する。`SCOPE`は承認する事業範囲を
-一行で明記する。以下の値は例であり、実際は現在のPR・head・Verify・Summaryの値を使う。
+technical gates完了後、Owner Acceptance Summaryを生成し、Ownerへ9項目と対象PR・事業scopeを提示して
+`WAITING_APPROVAL`で停止する。Ownerが現在対象のformal main採用を明示的に最終承認した場合だけ、
+Codexは承認された一行の事業scopeと現在のPR・head・Verify・Summaryから次のコメントを決定論的に生成・投稿する。
+OwnerへSHA・hash・bindingのコピーを要求しない。Owner silence、CI PASS、Codex判断、Summary生成だけでは承認しない。
+コメントは承認後のmachine-readable target binding / transport Evidenceであり、Owner本人によるGitHub UI手入力の
+独立証明ではない。CodexがOwner GitHub認証で投稿できる環境では、その区別をGitHub APIから証明できない。
+これは既存Trustモデルの限界として明示し、独立human-origin proofは別Security工程とする。
+
+`SCOPE`はOwnerが承認した事業範囲を一行で固定する。head、verification input、Summary binding、scope、
+主要リスク、protected capabilityへの影響のいずれかが変われば、現在対象のSummaryを再提示して再承認を得る。
+以下の値は例であり、実際は現在の値を使う。
 
 ```text
 OWNER_ACCEPTANCE: APPROVED
@@ -111,6 +119,22 @@ VERIFICATION_INPUT_HASH: <current verification input hash>
 SUMMARY_BINDING: <current Owner Acceptance Summary binding>
 SCOPE: <approved scope>
 ```
+
+明示承認後、現在のSummaryを渡したformal-acceptance technical Verifyが`owner_acceptance_ready=true`、
+停止理由が`OWNER_ACCEPTANCE_REQUIRED`だけであることを確認する。formal mainへ正式採用済みのhelperから
+次を実行する。`--scope`はOwnerが明示承認した一行の範囲をそのまま渡す。helperは現在のrepo / PR / head、
+Summary binding、Owner actorを照合し、同じ最新の未編集コメントがあれば重複投稿しない。投稿結果だけを
+formal Verifyの代わりにせず、必ずProviderでGitHubから再取得する。
+
+```powershell
+python -m governance.owner_acceptance_transport --context outputs/governance/context.json `
+  --verification outputs/governance/verification.json `
+  --summary outputs/governance/owner-summary.json --scope '<Ownerが承認した一行の事業範囲>'
+```
+
+この移行PR自身は旧方式で受入する。OwnerがGitHub PR Conversationへ上記の完全形式を投稿し、
+既存Provider / formal Verifyで確認する。新helperはその版がformal mainに採用されるまで起動を拒否する。
+helperを迂回した代理投稿や、このPRへの新方式による自己承認をしない。
 
 GitHub取得は`python -m governance.owner_comment_provider`だけが行い、GeneratorとVerifierは外部fetchを
 行わない。ProviderはGitHub APIでrepository・PR・Owner numeric actor ID・head・コメント本文・編集状態・
@@ -132,7 +156,9 @@ receiptは5分で失効する。merge直前にProviderを再実行してGitHub�
 fresh EvidenceでVerifyを再実行する。承認コメントの編集・削除、後続の
 `OWNER_ACCEPTANCE: REVOKED`コメント、head・binding変更ではProviderがHOLDし、既存receiptも
 5分で失効する。offline Verifierだけでは取得後のGitHub状態変化を即時検知できないため、
-Provider再観測とVerifyからmergeまでを連続して行う。GitHub APIが利用できない場合もHOLDとする。
+Provider再観測とVerifyからmergeまでを連続して行う。GitHub API・Provider・投稿の失敗、Owner actor不一致、
+scope変更もHOLDとして再承認または復旧を待つ。承認コメントはGitHubでの後続`OWNER_ACCEPTANCE: REVOKED`投稿で
+撤回できる。撤回後の再承認は新しい明示判断と新コメントを要する。
 
 ### v1.0 → v1.1 Trust Anchorの一回限りのbootstrap（PR #96）
 

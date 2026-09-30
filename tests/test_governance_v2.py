@@ -17,6 +17,7 @@ import pytest
 
 from governance import engine
 from governance import owner_comment_provider
+from governance import owner_acceptance_transport
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -604,6 +605,122 @@ def test_gv2_owner_comment_provider_rejects_other_line_separators(separator: str
         owner_comment_provider.build_evidence(context, verification, summary, anchor,
                                               repository, pull, comments, key, observed_at=now)
     assert exc.value.reason_code == "OWNER_ACCEPTANCE_BINDING_MISMATCH"
+
+
+def _owner_transport_case():
+    _key, anchor, context, verification, summary, repository, pull, _comments, _now = _owner_comment_case()
+    verification.update(profile_id="formal-acceptance", decision="HOLD", blockers=["OWNER_ACCEPTANCE_REQUIRED"])
+    pull.update(state="open")
+    pull["head"]["repo"] = {"id": 1296080967}
+    pull["base"]["ref"] = "main"
+    actor = {"id": 207869136}
+    return anchor, context, verification, summary, repository, pull, actor
+
+
+def test_gv2_owner_transport_formats_current_binding() -> None:
+    anchor, context, verification, summary, repository, pull, actor = _owner_transport_case()
+    body = owner_acceptance_transport.build_comment(
+        context, verification, summary, anchor, repository, pull, actor, "SG source identity docs-only",
+    )
+    assert body == (
+        "OWNER_ACCEPTANCE: APPROVED\nPR: #95\nHEAD: " + "d" * 40
+        + "\nVERIFICATION_INPUT_HASH: " + "a" * 64
+        + "\nSUMMARY_BINDING: " + summary["summary_binding"]
+        + "\nSCOPE: SG source identity docs-only"
+    )
+
+
+@pytest.mark.parametrize("mutation", [
+    "gates", "other_blocker", "summary", "head", "repository", "actor", "scope", "base", "closed",
+])
+def test_gv2_owner_transport_fails_closed(mutation: str) -> None:
+    anchor, context, verification, summary, repository, pull, actor = _owner_transport_case()
+    scope = "SG source identity docs-only"
+    if mutation == "gates":
+        verification["owner_acceptance_ready"] = False
+    elif mutation == "other_blocker":
+        verification["blockers"].append("MANDATORY_CHECK_MISSING")
+    elif mutation == "summary":
+        summary["sections"]["major_risks"] = "changed after approval"
+    elif mutation == "head":
+        pull["head"]["sha"] = "e" * 40
+    elif mutation == "repository":
+        repository["id"] += 1
+    elif mutation == "actor":
+        actor["id"] += 1
+    elif mutation == "scope":
+        scope = "wider\nscope"
+    elif mutation == "base":
+        pull["base"]["ref"] = "other"
+    elif mutation == "closed":
+        pull["state"] = "closed"
+    with pytest.raises(engine.GovernanceError) as exc:
+        owner_acceptance_transport.build_comment(
+            context, verification, summary, anchor, repository, pull, actor, scope,
+        )
+    assert exc.value.exit_code == engine.EXIT_HOLD
+
+
+def test_gv2_owner_transport_migration_pr_cannot_use_helper(tmp_path: Path) -> None:
+    with pytest.raises(engine.GovernanceError) as exc:
+        owner_acceptance_transport._require_formal_main_activation(tmp_path)
+    assert exc.value.reason_code == "OWNER_TRANSPORT_NOT_FORMAL"
+
+
+def test_gv2_owner_transport_post_reuses_only_unchanged_latest_comment(monkeypatch: pytest.MonkeyPatch) -> None:
+    body = "OWNER_ACCEPTANCE: APPROVED\nPR: #95"
+    comments = [{"id": 77, "user": {"id": 207869136}, "body": body,
+                 "created_at": "2026-09-27T12:00:00Z", "updated_at": "2026-09-27T12:00:00Z"}]
+    monkeypatch.setattr(owner_comment_provider, "_comments", lambda *_args: comments)
+    monkeypatch.setattr(owner_comment_provider, "_github_api", lambda *_args: {"id": 207869136})
+    monkeypatch.setattr(owner_acceptance_transport.subprocess, "run", lambda *_args, **_kwargs: pytest.fail("unexpected post"))
+    assert owner_acceptance_transport.post_comment(body, "hagiwara777/shopee-expansion-tool", 95, "207869136") == 77
+    comments[0]["updated_at"] = "2026-09-27T12:00:01Z"
+    with pytest.raises(engine.GovernanceError) as exc:
+        owner_acceptance_transport.post_comment(body, "hagiwara777/shopee-expansion-tool", 95, "207869136")
+    assert exc.value.reason_code == "OWNER_TRANSPORT_COMMENT_EDITED"
+
+
+def test_gv2_owner_transport_does_not_overwrite_latest_revocation(monkeypatch: pytest.MonkeyPatch) -> None:
+    comments = [{"id": 79, "user": {"id": 207869136}, "body": "OWNER_ACCEPTANCE: REVOKED",
+                 "created_at": "2026-09-27T12:01:00Z", "updated_at": "2026-09-27T12:01:00Z"}]
+    monkeypatch.setattr(owner_comment_provider, "_comments", lambda *_args: comments)
+    monkeypatch.setattr(owner_comment_provider, "_github_api", lambda *_args: {"id": 207869136})
+    monkeypatch.setattr(
+        owner_acceptance_transport.subprocess, "run",
+        lambda *_args, **_kwargs: pytest.fail("revoked approval must not trigger a GitHub POST"),
+    )
+    with pytest.raises(engine.GovernanceError) as exc:
+        owner_acceptance_transport.post_comment(
+            "OWNER_ACCEPTANCE: APPROVED\nPR: #95", "hagiwara777/shopee-expansion-tool", 95, "207869136",
+        )
+    assert exc.value.reason_code == "OWNER_TRANSPORT_REVOKED"
+    assert exc.value.exit_code == engine.EXIT_HOLD
+
+
+def test_gv2_owner_transport_post_and_api_failure_hold(monkeypatch: pytest.MonkeyPatch) -> None:
+    body = "OWNER_ACCEPTANCE: APPROVED\nPR: #95"
+    monkeypatch.setattr(owner_comment_provider, "_comments", lambda *_args: [])
+    monkeypatch.setattr(owner_comment_provider, "_github_api", lambda *_args: {"id": 207869136})
+    calls = []
+
+    def fake_run(args, **_kwargs):
+        calls.append(args)
+        return subprocess.CompletedProcess(args, 0, json.dumps({
+            "id": 78, "body": body, "user": {"id": 207869136},
+        }), "")
+
+    monkeypatch.setattr(owner_acceptance_transport.subprocess, "run", fake_run)
+    assert owner_acceptance_transport.post_comment(body, "hagiwara777/shopee-expansion-tool", 95, "207869136") == 78
+    assert calls[0][-1] == f"body={body}"
+    with pytest.raises(engine.GovernanceError) as exc:
+        owner_acceptance_transport.post_comment(body, "hagiwara777/shopee-expansion-tool", 95, "other")
+    assert exc.value.reason_code == "OWNER_TRANSPORT_TARGET_MISMATCH"
+    monkeypatch.setattr(owner_acceptance_transport.subprocess, "run", lambda args, **_kwargs:
+                        subprocess.CompletedProcess(args, 1, "", "failure"))
+    with pytest.raises(engine.GovernanceError) as exc:
+        owner_acceptance_transport.post_comment(body, "hagiwara777/shopee-expansion-tool", 95, "207869136")
+    assert exc.value.reason_code == "OWNER_TRANSPORT_POST_FAILED"
 
 
 def test_gv2_git_003_feature_branch_uses_merge_base(trusted: None, tmp_path: Path) -> None:
