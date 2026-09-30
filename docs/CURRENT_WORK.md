@@ -2,6 +2,14 @@
 
 本書は再開案内。長寿命の承認済み状態は`governance/state.json`、branch / HEAD / PR / checksはGit / GitHub、タスク固有状態はrepo外Task Contextを参照する。
 
+## 現在の単一作業
+
+Owner Acceptanceの手動技術値コピーを廃止するGovernance移行候補を検証し、formal main採用判断へ進める（DEC-0106）。Ownerの明示的最終承認は必須とし、承認後のGitHubコメントを現在対象のbinding搬送として扱う。実装・offline tests、Draft PR、CI、read-only reviewの後、現在headの9項目SummaryをOwnerへ提示して`WAITING_APPROVAL`で停止する。この移行PR自身は旧手動コメント方式で受入し、新helperを自己承認に使わない。正確なbranch / head / PR / checksはGit・GitHubを参照する。
+
+変更対象はRUNBOOK、CURRENT_WORK、append-only Decision、Governanceの最小helperとtestsに限る。Provider / Verifier、Trust Anchor、State、credential、GitHub設定、製品runtime、PH / SG protected capabilityは変更しない。Owner承認前のコメント投稿・formal mergeは行わない。
+
+ローカルPython 3.13 / Streamlit 1.44.1の全体pytestではUIの`form_submit_button(width=...)`非対応により42件失敗した。同じ失敗は変更前formal mainの単独UI testでも再現した。Governance対象testsは95件PASS。現headのCI結果はGitHubで確認し、ローカル失敗をCI PASSとして代用しない。
+
 ## 現在の正式状態
 
 SG実catalog・6実商品のCategory acceptanceはPR #100でformal mainへ正式採用済み（DEC-0103）。Ownerの現在headとOwner Acceptance Summaryへの最終承認、fresh署名付きOwner Evidence、mandatory technical gates 6 / 6 PASS、formal Verify CONTINUEを確認して通常mergeした。merge後のformal main / PR MERGED / accepted内容一致、PowerShell 5.1 / 7 Validate、snapshot、read-only Verify CONTINUEまで確認済み。PR #100のmerge対象と受入結果を再実行・再承認する工程には戻らない。
@@ -16,6 +24,7 @@ PR #103はOwnerのoffline限定最終承認で正式採用済み。live API、�
 
 ## Required Decisions
 
+- DEC-0106 — Owner明示承認後のコメント搬送、移行PRの旧方式受入、維持するbindingと停止条件。
 - DEC-0105 — SG Brand offline実装のPR #103正式採用、merge後検証、live工程の別承認境界。
 - DEC-0104 — SG Brand設計と商品単位No Brand保存、strict current取得・再validation、実装 / liveの境界。設計履歴は編集せずDEC-0105から参照する。
 - DEC-0103 — PR #100の正式採用・merge後検証、文書の最終正本化、次工程SG Brandを新規タスクへ分離。

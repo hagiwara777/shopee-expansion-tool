@@ -1298,3 +1298,15 @@
 - 保護・未実施: SG operation INACTIVE、PH operation / data / schema、`ph.beta.operation` / `sg.safety.baseline`、`listing_ready=false`、SG export / handoff閉鎖を維持する。production API / Bridge request、実商品受入、実運用DB schema適用、Attribute / SLS runtime、deploy、SG ACTIVE、自動確定・出品は未実施。offline / synthetic成果をlive acceptanceへ昇格しない。
 - 次の工程: SG production Brand取得、expected SG shop照合、Category allowlist下のlive request、実商品Brand / No Brand受入には、対象・request予算・Bridge read-only取得・Evidence保存・隔離DB・商品範囲を定義した別Owner承認を要する。過去Category API承認を流用しない。
 - rollback: offline code / testsと今回の最終正本化文書は通常revertできる。production DB migration / 復旧を伴わず、既存Category acceptance、PH、Bridge、credential、protected Stateを変更しない。
+
+
+## DEC-0106 — Owner Acceptanceコメントを明示承認後のbinding搬送へ変更する
+
+- 日付: 2026-09-30
+- authority: OwnerはOwner Acceptanceの手動技術値コピー廃止を目的とする設計報告を受理し、方式Bを正式方針として指定した。credential separationは今回の必須条件としない。現在の方式でもGitHub actorだけから人間による手入力を独立証明できないため、その保証を新方式へ主張しない。
+- 決定: mandatory technical gates完了後、現在のrepository / PR / exact headと9項目Owner Acceptance Summary、scopeをOwnerへ提示して`WAITING_APPROVAL`で停止する。Ownerがその対象のformal main採用を明示的に最終承認した後だけ、Codex/helperが現在のverification input hash、Summary bindingと承認scopeを含む定型`OWNER_ACCEPTANCE`コメントをOwner GitHub認証で投稿する。Owner silence、CI PASS、Codex判断、Summary生成を承認へ昇格しない。
+- Evidenceの意味: コメントはOwner最終承認後に対象を固定するmachine-readable binding / transport Evidenceである。Owner本人がGitHub UIで手入力した独立human-origin proofとは定義しない。GitHub APIのOwner actor IDは認証アカウントを示すが、操作経路を区別しない。独立human-origin proofが必要になれば別Security工程で設計する。
+- 維持: ProviderはGitHubからrepository identity、PR、head、Owner numeric actor ID、未編集コメント、撤回を再観測し、repo外Trust Anchor対応の専用鍵で署名する。Verifierはverification input hash、再計算したSummary binding、exact head、PR、5分以内のreceiptを検証する。mandatory checks、HOLD / HARD_STOP、protected capability、merge直前fresh再観測とformal Verifyを維持する。head、Summary、scope、主要リスク、protected capability影響の変更時はOwnerへ再提示し再承認を得る。
+- 実装範囲: RUNBOOK、CURRENT_WORK、append-only Decision、最小コメント搬送helperとoffline testsのみ。製品機能、governance/state.json、Trust Anchor、Provider / Verifierの受入条件、credential保存、GitHub設定、Actions secret、branch protection / rulesetを変更しない。helperはformal mainに同一版が採用されるまで起動を拒否する。
+- 移行境界: 本Governance移行PR自身は現在formal mainの旧方式で受入する。Owner本人が現在の対象にbindした完全形式のGitHub PRコメントを投稿し、既存Provider、fresh Evidence、formal Verifyで確認する。新方式で自己承認しない。formal main mergeは現在対象の9項目SummaryとOwner明示最終承認まで実行しない。
+- rollback: 本変更を通常revertして手動コメント方式へ戻す。旧Decision・Evidenceを改変せず、force push、secret移動、Trust Anchor交換をしない。
