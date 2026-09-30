@@ -80,3 +80,30 @@ def test_ready_progress_label_requires_all_ready_conditions(tmp_path, brand):
     for pending in stopped:
         assert not pending.listing_ready
         assert "出品準備完了" not in _group_progress_label(pending, 1)
+
+
+@pytest.mark.parametrize("action", ["CATEGORY_ALLOW", "CATEGORY_REVIEW", "CATEGORY_EXCLUDE"])
+def test_sg_sls_never_opens_listing_or_ph_exports(tmp_path,action):
+    from modules.category_mapper_sg import refresh_sg_sls_results
+    from sls_category_sg_support import sg_item
+    store,item=sg_item(tmp_path)
+    item=replace(item,sls_result=replace(item.sls_result,action=action),
+                 brand_status="CONFIRMED",brand_current_valid=True,confirmed_brand_id=7)
+    assert not item.listing_ready and item.group_key == ""
+    with pytest.raises(ValueError,match="PH_ONLY"):
+        build_mapper_exports((item,))
+    refreshed=refresh_sg_sls_results((replace(item,input_safety_state="REVIEW"),),store=store)[0]
+    assert refreshed.input_safety_state == "REVIEW" and not refreshed.listing_ready
+    assert refreshed.sls_result.action == "CATEGORY_REVIEW"
+
+
+def test_sg_allow_is_rechecked_when_asset_disappears(tmp_path,monkeypatch):
+    from modules.category_mapper_sg import refresh_sg_sls_results
+    from sls_category_sg_support import sg_item
+    store,item=sg_item(tmp_path)
+    root=copy_assets(tmp_path,monkeypatch)
+    (root/"markets/SG.json").unlink()
+    refreshed=refresh_sg_sls_results((item,),store=store)[0]
+    assert refreshed.sls_result.check_state == "UNAVAILABLE"
+    assert not refreshed.listing_ready
+    assert load_ph_context().marketplace == "PH"

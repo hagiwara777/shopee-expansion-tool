@@ -545,3 +545,14 @@ def test_strict_page_size_bound_and_original_name_conflict():
         client, _ = client_for([payload(rows)])
         with pytest.raises(ShopeeCatalogError):
             client.get_brand_list("SG", 11, strict=True)
+
+
+@pytest.mark.parametrize("action", ["CATEGORY_REVIEW", "CATEGORY_EXCLUDE"])
+def test_brand_confirmation_and_review_preserve_sls_stop(store,action):
+    from modules.sls_category_rules_sg import SgSlsCategoryResult
+    session,result,_=sync(store)
+    item=product(sls_result=SgSlsCategoryResult(check_state="EVALUATED",action=action,category_id=11))
+    reviewed=review_sg_brand(item,store=store,session=session,catalog=result.catalog)
+    assert reviewed.sls_result == item.sls_result and not reviewed.listing_ready
+    confirmed=confirm(store,session,result.catalog,item=item,brand_id=7,name="Maker")
+    assert confirmed.sls_result == item.sls_result and not confirmed.listing_ready

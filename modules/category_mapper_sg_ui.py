@@ -16,7 +16,9 @@ from modules.category_mapper_sg import (
     parse_sg_category_catalog,
     parse_sg_category_mapper_input,
     replace_sg_category_catalog,
+    refresh_sg_sls_results,
 )
+from modules.sls_category_rules_sg import sg_sls_reason_text
 from modules.category_mapper_store import CategoryMapperStore
 
 
@@ -31,12 +33,12 @@ _SG_STATE_KEYS = (
 
 
 def render_sg_category_mapper() -> None:
-    """Render SG mapping without Brand, SLS, ready exports, or automatic confirmation."""
+    """Render SG mapping with offline SLS status and closed ready exports."""
 
     st.divider()
     st.subheader("SG Category Mapper Minimum Beta")
     st.caption(
-        "SG Gate ELIGIBLE商品を商品単位の人間確認でCategoryだけ保存します。"
+        "SG Gate ELIGIBLE商品を商品単位の人間確認でCategoryを保存し、offline SLSを確認します。"
         "Category確定後も listing_ready=false のまま停止します。"
     )
     st.info(
@@ -102,7 +104,8 @@ def render_sg_category_mapper() -> None:
     recommendations = st.session_state.get(_SG_RESULT_KEY)
     if not recommendations or st.session_state.get(_SG_FINGERPRINT_KEY) != fingerprint:
         return
-    recommendations = tuple(recommendations)
+    recommendations = refresh_sg_sls_results(tuple(recommendations), store=store)
+    st.session_state[_SG_RESULT_KEY] = recommendations
     _render_products(recommendations, store)
 
 
@@ -169,6 +172,7 @@ def _render_products(
                 ],
                 hide_index=True,
             )
+            _render_sls(recommendation)
             if recommendation.category_is_confirmed:
                 st.success("SG Category：人間確認済み")
                 st.write(recommendation.recommended_category_path)
@@ -257,3 +261,17 @@ def _input_fingerprint(
     digest.update(b"\0")
     digest.update(str(status["category_count"]).encode("ascii"))
     return digest.hexdigest()
+
+
+def _render_sls(recommendation: SGMapperRecommendation) -> None:
+    result = recommendation.sls_result
+    label = {"CATEGORY_ALLOW": "ALLOW候補", "CATEGORY_REVIEW": "REVIEW",
+             "CATEGORY_EXCLUDE": "EXCLUDE"}.get(result.action, result.check_state)
+    message = "SG SLS: " + label + " / " + sg_sls_reason_text(result)
+    if result.check_state == "UNAVAILABLE" or result.action == "CATEGORY_EXCLUDE":
+        st.error(message)
+    elif result.action == "CATEGORY_REVIEW":
+        st.warning(message)
+    else:
+        st.info(message)
+    st.caption("SLSはCategory条件の確認です。商品全体のSafety判定・listing_ready・exportは解除しません。")

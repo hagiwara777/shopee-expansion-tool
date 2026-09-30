@@ -149,6 +149,7 @@ def test_sg_category_mapper_ui_confirms_one_product_and_stops(monkeypatch, tmp_p
     app.button(key="sg_category_mapper_build").click().run()
 
     before = app.session_state["sg_category_mapper_recommendations"][0]
+    assert before.sls_result.check_state == "UNCHECKED"
     assert before.category_is_confirmed is False
     assert before.listing_ready is False
     assert before.group_key == ""
@@ -156,6 +157,8 @@ def test_sg_category_mapper_ui_confirms_one_product_and_stops(monkeypatch, tmp_p
     app.button(key="sg_category_mapper_confirm_manual_0").click().run()
 
     confirmed = app.session_state["sg_category_mapper_recommendations"][0]
+    assert confirmed.sls_result.action == "CATEGORY_REVIEW"
+    assert any("SG SLS: REVIEW" in str(item.value) for item in app.warning)
     assert confirmed.category_is_confirmed is True
     assert confirmed.recommended_category_id == 900001
     assert confirmed.listing_ready is False

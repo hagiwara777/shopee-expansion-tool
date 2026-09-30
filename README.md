@@ -97,13 +97,16 @@ Category Mapperの「Shopee ACCESS_TOKEN（一時利用）」には、既存管�
 
 ### SG Category Mapper Minimum Beta
 
-PR #82のoffline製品実装に続き、実SG production catalogと6実商品のCategory acceptanceは正式完了済みです（DEC-0103）。SG Brandの最小実装・offline検証はPR #103 / DEC-0105で正式採用済みです。隔離acceptance DBだけを明示初期化し、fake transportを使います。production Brand API・Bridge取得、実商品Brand / No Brand受入、production DB schema適用は未実施です。現在状態と後続工程は[CURRENT_WORK](docs/CURRENT_WORK.md)、設計は[DEC-0104](docs/DECISION_LOG.md#dec-0104--sg-brand--no-brand-minimum-betaの設計を確定しdocs-onlyで正本化する)、採用記録は[DEC-0105](docs/DECISION_LOG.md#dec-0105--sg-brand-minimum-beta-offline実装をpr-103で正式採用しmerge後検証を完了する)を参照してください。SG operationはINACTIVE、`listing_ready=false`、export / handoff閉鎖を維持します。Attribute / SLS runtime、deploy、自動確定・出品は未実施です。
+PR #82のoffline製品実装に続き、実SG production catalogと6実商品のCategory acceptanceは正式完了済みです（DEC-0103）。SG Brandの最小実装・offline検証はPR #103 / DEC-0105で正式採用済みです。隔離acceptance DBだけを明示初期化し、fake transportを使います。production Brand API・Bridge取得、実商品Brand / No Brand受入、production DB schema適用は未実施です。現在状態と後続工程は[CURRENT_WORK](docs/CURRENT_WORK.md)、設計は[DEC-0104](docs/DECISION_LOG.md#dec-0104--sg-brand--no-brand-minimum-betaの設計を確定しdocs-onlyで正本化する)、採用記録は[DEC-0105](docs/DECISION_LOG.md#dec-0105--sg-brand-minimum-beta-offline実装をpr-103で正式採用しmerge後検証を完了する)を参照してください。SG operationはINACTIVE、`listing_ready=false`、export / handoff閉鎖を維持します。SG SLSのoffline最小runtimeは正式採用候補として追加しています（DEC-0108）。Attribute、live SLS受入、deploy、自動確定・出品は未実施です。
 
 SG画面は、全行ELIGIBLEの正式SG Prelisting Gate CSVだけを受け付けます。ファイル名は`prelisting_gate_eligible_sg_expansion.csv`または`prelisting_gate_eligible_sg_resolver.csv`です。PH・市場混在、REVIEW / EXCLUDE、source_type混在、audit CSV、raw Candidate CSVは拒否します。
 
 Category catalogは、`marketplace,category_id,parent_category_id,category_name,category_path,is_leaf`の6列を持つ、出所確認済みSG catalog CSVを使用します。全件を検証してからSG catalogだけをreplaceするため、削除済みIDは残りません。SG SLS canonical / Master MatrixはAI catalogに使用しません。production source確認と隔離DBでの実catalog受入は完了しており、実運用DBへのreplaceは別承認です。
 
 SG向けCategory AI Core契約はoffline Fake Provider testsで検証しますが、live OpenAI APIは未承認のためSG UIに実行ボタンやprovider生成経路を設けません。現在のSG UIは、検証済みSG catalogから商品単位でleafを手動選択して確定します。確定結果はASIN単位で保存されますが、再利用時に現在catalogのID・path・leafを再検証します。Category確定後も`listing_ready=false`で停止し、SG groups CSV、listing TXT、handoffは出力しません。SG operationはINACTIVEです。
+
+SG SLSはCategory確定後に、現在catalogのID / path / leafとformal canonical / SG資産を再検証します。画面にはUNCHECKED、ALLOW候補、REVIEW、EXCLUDE、UNAVAILABLEと理由を表示します。NOは数量より優先してEXCLUDE、YES + No limitだけがALLOW候補、数量・重量・Shopee確認・missingはREVIEWです。ALLOW候補はSLS Category条件による追加停止がないことだけを意味し、商品全体のSafetyを保証しません。Brand操作でもSLS停止は保持し、SG listing_ready / export / handoffは閉鎖します。資産更新はアプリ停止・更新・再起動・新sessionで行い、検証失敗時に過去ALLOWへfallbackしません。
+
 ### Category AI Benchmark Ver1（独立実験）
 
 Category AI Benchmarkは、現行Category Mapperの推薦を入力にせず、商品Evidenceと指定した
