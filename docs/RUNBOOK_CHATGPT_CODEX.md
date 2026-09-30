@@ -132,9 +132,7 @@ python -m governance.owner_acceptance_transport --context outputs/governance/con
   --summary outputs/governance/owner-summary.json --scope '<Ownerが承認した一行の事業範囲>'
 ```
 
-この移行PR自身は旧方式で受入する。OwnerがGitHub PR Conversationへ上記の完全形式を投稿し、
-既存Provider / formal Verifyで確認する。新helperはその版がformal mainに採用されるまで起動を拒否する。
-helperを迂回した代理投稿や、このPRへの新方式による自己承認をしない。
+PR #105のGovernance移行PR自身は、当時のformal mainの旧方式で受入済みである。この旧方式の例外はPR #105だけに適用する。今回の文書正本化PRを含む後続PRは、通常、Ownerの明示的最終承認後にformal mainへ採用済みのhelperを使い、技術値の手動コピーを求めない。helperはOwner actorの最新コメントが`OWNER_ACCEPTANCE: REVOKED`ならHOLDし、APPROVEDを自動投稿しない。稀な再承認では新しいOwner明示判断と新コメントを要し、完全形式の手動コメントによるfail-closed復旧を許す。新helperはPR #105がformal mainへ採用される前には起動を拒否する。
 
 GitHub取得は`python -m governance.owner_comment_provider`だけが行い、GeneratorとVerifierは外部fetchを
 行わない。ProviderはGitHub APIでrepository・PR・Owner numeric actor ID・head・コメント本文・編集状態・

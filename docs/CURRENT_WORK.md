@@ -4,13 +4,17 @@
 
 ## 現在の単一作業
 
-Owner Acceptanceの手動技術値コピーを廃止するGovernance移行候補を検証し、formal main採用判断へ進める（DEC-0106）。Ownerの明示的最終承認は必須とし、承認後のGitHubコメントを現在対象のbinding搬送として扱う。実装・offline tests、Draft PR、CI、read-only reviewの後、現在headの9項目SummaryをOwnerへ提示して`WAITING_APPROVAL`で停止する。この移行PR自身は旧手動コメント方式で受入し、新helperを自己承認に使わない。正確なbranch / head / PR / checksはGit・GitHubを参照する。
+Owner Acceptance方式BはPR #105で正式採用済み（DEC-0106 / DEC-0107）。この文書正本化PRは採用後状態を記録してGovernance taskを閉じる最終docs-only工程である。Ownerの明示的な現在対象への最終承認は必須であり、承認後に限り正式採用済みhelperがcurrent値からbindingコメントを投稿する。OwnerへHEAD、verification hash、Summary binding等の技術値コピーを求めない。コメントは独立human-origin proofではなく、承認後のmachine-readable binding / transport Evidenceである。
 
-変更対象はRUNBOOK、CURRENT_WORK、append-only Decision、Governanceの最小helperとtestsに限る。Provider / Verifier、Trust Anchor、State、credential、GitHub設定、製品runtime、PH / SG protected capabilityは変更しない。Owner承認前のコメント投稿・formal mergeは行わない。
+本PRも新方式で受入する。technical gates完了後に9項目Summaryを提示して`WAITING_APPROVAL`で停止し、Ownerが現在のSummaryとscopeを明示的に最終承認した後だけ、helper → Provider再取得 → fresh signed Owner Evidence → formal Verify CONTINUE → merge直前再観測 → 通常mergeへ進む。silence、CI PASS、Codex判断、Summary生成を承認としない。正確なbranch / head / PR / checksはGit・GitHubを参照する。
 
-ローカルPython 3.13 / Streamlit 1.44.1の全体pytestではUIの`form_submit_button(width=...)`非対応により42件失敗した。同じ失敗は変更前formal mainの単独UI testでも再現した。Governance対象testsは95件PASS。現headのCI結果はGitHubで確認し、ローカル失敗をCI PASSとして代用しない。
+PR #105正式採用後の最終正本化として、変更はCURRENT_WORK、append-only Decision、およびRUNBOOKのPR #105限定例外・REVOKED時のfail-closed復旧手順の明確化に限定する。README / PROJECT_ROADMAPは確認し、方式Bとの矛盾がないため変更しない。PR #105ではGovernance tests 96 passed、protected regression 612 passed、mandatory CI 6 / 6 PASS、fresh Owner Evidenceとformal Verify CONTINUE後にmergeした。merge後Validate、snapshot、read-only VerifyもCONTINUE。Provider / Verifier / Trust Anchor / State / protected capabilityと製品runtimeは不変。文書正本化PRのmerge後にこのGovernance taskをCLOSEDとし、次工程のSG SLS runtimeを新規Codex taskで開始する。
 
 ## 現在の正式状態
+
+Owner Acceptance方式BをPR #105で正式採用した。accepted head `629c7fc7c6f3dc22335a09ffcbecf4d1d391b34f`をmerge commit `1bfd4ee065b4121ef7e9d081d902a25cb9b40ef1`としてformal mainへ統合し、PR #105のMERGEDを確認した。Ownerの手動技術値コピーは不要となり、明示的な最終承認は引き続き必須である。GitHub OWNER_ACCEPTANCEコメントは、承認後にrepository / PR / exact head / verification_input_hash / summary_binding / scopeを固定するmachine-readable binding / transport Evidenceとして扱い、Owner本人のUI手入力を独立証明するものとは扱わない。
+
+PR #105はGovernance tests 96 passed、protected regression 612 passed、mandatory CI 6 / 6 PASSを確認した。current対象のfresh signed Owner Evidenceとformal Verify CONTINUE後に通常mergeし、merge後Validate、snapshot、read-only Verify CONTINUEを確認した。Provider / Verifier / Trust Anchor / State / protected capabilityおよび製品runtimeに変更はない。今回の文書正本化PRも方式Bを使い、Ownerの明示的最終承認後にhelperで進める。
 
 SG実catalog・6実商品のCategory acceptanceはPR #100でformal mainへ正式採用済み（DEC-0103）。Ownerの現在headとOwner Acceptance Summaryへの最終承認、fresh署名付きOwner Evidence、mandatory technical gates 6 / 6 PASS、formal Verify CONTINUEを確認して通常mergeした。merge後のformal main / PR MERGED / accepted内容一致、PowerShell 5.1 / 7 Validate、snapshot、read-only Verify CONTINUEまで確認済み。PR #100のmerge対象と受入結果を再実行・再承認する工程には戻らない。
 
@@ -24,6 +28,7 @@ PR #103はOwnerのoffline限定最終承認で正式採用済み。live API、�
 
 ## Required Decisions
 
+- DEC-0107 — PR #105 Owner Acceptance方式Bの正式採用、merge後確認、Governance taskの終了と次工程。
 - DEC-0106 — Owner明示承認後のコメント搬送、移行PRの旧方式受入、維持するbindingと停止条件。
 - DEC-0105 — SG Brand offline実装のPR #103正式採用、merge後検証、live工程の別承認境界。
 - DEC-0104 — SG Brand設計と商品単位No Brand保存、strict current取得・再validation、実装 / liveの境界。設計履歴は編集せずDEC-0105から参照する。
@@ -60,10 +65,10 @@ PR #100のCategory acceptance CIは当時mandatory 6 gateすべてPASS、offline
 
 ## 今後の承認境界
 
-PR #103のoffline正式採用とmerge後文書正本化を本タスクの対象とする。production Brand API / Bridge、実商品Brand / No Brand受入、production DB / schema、Attribute / SLS runtime、`listing_ready=true`、export / handoff、deploy、SG ACTIVE化、自動確定・出品には、対象shop / Category allowlist / request予算 / retry方針 / Evidence / 隔離DB / 商品範囲を定義した別Owner承認を要する。過去Category GET承認は流用せず、PH operation / data / schemaとprotected capabilityを維持する。
+次の単一作業はRoadmap順のSG SLS runtime設計・受入境界確認であり、新規Codex taskとして開始する。SG operation INACTIVE、`listing_ready=false`、export / handoff閉鎖、PH / SG protected capabilityを維持する。production API / 実商品、production DB / schema、runtime切替、deploy、SG ACTIVE化、自動確定・出品は、次工程でscopeとOwner承認を別途定義するまで行わない。
 
 ## 終了とrollback
 
-SG Brand offline実装のformal採用、merge後検証、append-only Decisionと管理文書の正本化を確認して本タスクを終了する。live API / 実商品受入やSG運用開始は本タスクの終了条件に含めない。
+PR #105のformal採用・merge後検証と本docs-only正本化PRのformal merge・merge後検証を完了し、文書間の整合を確認した時点でこのGovernance taskをCLOSEDとする。次工程は別の新規Codex taskで開始し、本taskへ戻らない。
 
-rollbackはoffline実装または状態説明文書の通常revert。実運用DBへschemaを適用していないためproduction migration / 復旧を伴わない。Decision撤回・訂正は新しい記録で残し、過去Decisionを編集・削除しない。PR #100の受入実行を再実行せず、実運用DB、PH、Bridge、credential、既存Evidenceを変更・削除しない。force push / dirty reset禁止。
+rollbackは文書差分の通常revertとし、DEC-0106を含む過去Decisionを編集・削除しない。Provider、Trust Anchor、State、credential、GitHub設定、PH / SG product runtime、protected capabilityと既存Evidenceを変更・削除しない。force push / dirty reset禁止。

@@ -1310,3 +1310,13 @@
 - 実装範囲: RUNBOOK、CURRENT_WORK、append-only Decision、最小コメント搬送helperとoffline testsのみ。製品機能、governance/state.json、Trust Anchor、Provider / Verifierの受入条件、credential保存、GitHub設定、Actions secret、branch protection / rulesetを変更しない。helperはformal mainに同一版が採用されるまで起動を拒否する。
 - 移行境界: 本Governance移行PR自身は現在formal mainの旧方式で受入する。Owner本人が現在の対象にbindした完全形式のGitHub PRコメントを投稿し、既存Provider、fresh Evidence、formal Verifyで確認する。新方式で自己承認しない。formal main mergeは現在対象の9項目SummaryとOwner明示最終承認まで実行しない。
 - rollback: 本変更を通常revertして手動コメント方式へ戻す。旧Decision・Evidenceを改変せず、force push、secret移動、Trust Anchor交換をしない。
+
+## DEC-0107 — PR #105でOwner Acceptance方式Bを正式採用しGovernance taskを閉じる
+
+- 日付: 2026-09-30
+- authority: OwnerはPR #105の現在headとOwner Acceptance Summaryを最終承認し、旧方式の完全形式Owner AcceptanceコメントをPR Conversationへ投稿した。Provider再取得、fresh signed Owner Evidence、formal Verify CONTINUE後の通常merge、およびmerge後検証を指示した。
+- 正式採用: PR #105をaccepted head `629c7fc7c6f3dc22335a09ffcbecf4d1d391b34f`から通常mergeし、formal main `1bfd4ee065b4121ef7e9d081d902a25cb9b40ef1`でMERGEDを確認した。これにより方式Bを正式運用し、OwnerのHEAD / verification_input_hash / summary_binding等のGitHub手動コピーを廃止する。Ownerの明示的な現在対象への最終承認は必須のままとする。GitHub OWNER_ACCEPTANCEコメントはその承認後に対象を固定するmachine-readable binding / transport Evidenceであり、Owner本人のGitHub UI手入力を独立証明しない。
+- 検証: Governance tests 96 passed、protected regression 612 passed、mandatory CI 6 / 6 PASS。Provider再取得からfresh Owner Evidenceとformal Verify CONTINUEを確認してmergeし、merge後Validate、snapshot生成、read-only Verify CONTINUEを確認した。
+- 維持: exact repository / PR / head / verification_input_hash / summary_binding / scope、Owner actor ID、Provider署名、repo外Trust Anchor、5分freshness、変更時再承認、編集・削除・REVOKED・API / Provider失敗時HOLD、formal Verify、merge直前fresh再観測を維持する。helperは最新REVOKEDをAPPROVEDで自動上書きせず、新しいOwner明示判断後の完全形式コメントだけを稀なfail-closed復旧経路として許す。Provider / Verifier / Trust Anchor / State / PH / SG protected capabilityおよび製品runtimeは不変。
+- 文書正本化と次工程: CURRENT_WORKとRUNBOOKのPR #105限定例外・REVOKED時復旧境界の明確化、本記録の追記を行うdocs-only PRも方式Bを使い、technical gates後に9項目Summaryを提示してWAITING_APPROVALで停止する。明示的最終承認と正式helper経由のProvider / Evidence / Verifyを経てmergeした場合にGovernance taskをCLOSEDとし、次のSG SLS runtime工程は新規Codex taskとして開始する。
+- rollback: 今回の正本化文書は通常revertする。DEC-0106その他の過去Decisionを変更せず、credential separation、第二GitHub account、branch protection / ruleset、Actions secret、Trust Anchor交換、製品runtime変更を行わない。
