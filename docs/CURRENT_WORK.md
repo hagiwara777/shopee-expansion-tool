@@ -77,6 +77,6 @@ SG SLS offline最小runtimeはPR #107 / DEC-0109、Step 8の半自動完成線�
 
 ## 終了とrollback
 
-PR #110のStep 8完成線の正式採用とmerge後検証は完了した。採用結果を記録する最終docs-only正本化候補は別のhead / SummaryにbindしてOwner最終承認を待つ。Step 9は未承認・未着手とし、このタスクでは開始しない。
+PR #112によるStep 8終了状態の再開案内とDecision Log不整合の補正まで完了し、Step 8はCLOSEDである。次の独立工程はRoadmap Step 9「SG実運用」だが、Step 9は未承認・未着手である。開始には新規タスクとOwnerの別途明示承認が必要であり、このタスクでは着手しない。
 
 rollbackは今回のdocs-only文書を通常revertする。DB migration・production復旧は不要。過去Decision、正式SLS資産、PH、State、Trust Anchor、credentialと既存Evidenceを変更・削除せず、force push / dirty resetを行わない。
