@@ -197,9 +197,9 @@ DECISION_LOG読込軽量化はPR #91、ShopeeCatalogClient marketplace-neutral�
 4. **SG production Category catalog import / acceptance（完了）** — DEC-0098のoffline import成果とDEC-0103の実catalog受入を正式採用済み。共通normalization、SG 6列catalog、全件validation、隔離DBのSG-only replace成立を確認した。SLS資産をCategory masterへ流用せず、実運用DB replaceを承認しない。
 5. **SG実商品Category acceptance（完了）** — DEC-0103で6件人間確認、保存・再利用、current ID / path / leaf再validationを正式採用済み。listing_ready=falseを維持し、広い商品群の精度保証へ拡張しない。
 6. **SG Brand（offline最小実装を正式採用）** — PR #103 / DEC-0105でstrict current取得、real Brand alias再validation、商品単位No Brand保存をoffline実装として正式採用した。production Brand GET、実商品Brand / No Brand受入、production DB schema適用、SG runtimeや出口開放は含まない。後続live工程には別Owner承認を要し、`listing_ready=false` / SG export・handoff閉鎖を維持する。
-7. **SG SLS runtime** — Category / Brand後の独立工程として扱い、既存Safetyを解除しない。
-8. **SG Minimum Beta完成判定** — Category、Brand、Safety、SLS、handoff条件を別Owner Acceptanceで確認する。listing_ready=true、handoff、SG operation ACTIVE化は自動的に行わない。
-9. **SG実運用** — 別Owner承認後にだけ検討する。
+7. **SG SLS runtime（offline最小runtime正式採用済み）** — PR #107 / DEC-0109でoffline成果をformal mainへ採用済み。production / live acceptance、Attribute、出口開放、SG operation変更を含まない。
+8. **SG Minimum Beta完成判定（COMPLETION_GATE_PASS_CANDIDATE / Owner Acceptance待ち）** — DEC-0111の半自動完成線を候補として正本化する。Gate `ELIGIBLE`、人間確認済みCategory・Brand / No Brand、SLS `ALLOW`候補、Seller Centerの必須Attribute・商品固有条件確認済みの商品だけを少量手動出品する。未解決停止は出品しない。read-only auditで追加Beta MUST実装は確認されていない。OwnerのStep 8最終受入は別途必要。
+9. **SG実運用（Step 9）** — Step 8 formal main採用・merge後検証完了後、別Owner承認後にだけ検討する。Step 8受入自体ではSG `INACTIVE`、`listing_ready=false`、export / handoff CLOSEDを維持し、SG ACTIVE化や出口開放を行わない。
 10. **MY展開** — 共通Source / Catalog基盤を再利用し、MY固有Safety、source identity、production確認だけを追加する。MY runtimeを先行有効化しない。
 11. **TH展開** — 同じ共通基盤を再利用し、TH固有差分だけを追加する。TH runtimeを先行有効化しない。
 
@@ -215,6 +215,8 @@ MY / THの具体的な着手順は将来のEvidenceと事業優先順位で変�
 - 確定済みNGリスト外の知財をAI等で広範囲に推測してBLOCKすること
 - ASIN exact一致を越える高度な重複商品判定
 - 他marketplace対応と自動出品
+- production Brand GET / 実商品Brand・No Brand live acceptance / production DB schema、Attribute自動化、Seller Center E2Eの拡張、自動export / handoff、省力化、実利用で確認された停止ケース対応（DEC-0111）
+- Battery type自動確定、SDS自動判定・生成、G-form自動提出。実商品で発送条件の疑義が解消しない間は人間作業で止め、出品しない。
 - structured REVIEW完成形、API auto-resolution、Shipping / Operational Filter、Category Batch完成形、AI Shadow、Workflow、固定工数削減KPI、詳細E2E時間測定
 
 P1cの成果物、identity、SHA-256、170件・62件・108件の確認済み件数、二段階Safety設計は削除または無効化せず、将来Evidenceとして保持する。Category完全追跡を別名称でBeta前に継続しない。
@@ -281,7 +283,7 @@ DEC-0049の`BETA_AFTER_CANDIDATE`、DB化、他市場展開、出品後商品改
 - 既存出品ツールの正式入力契約の証拠回収（自動投入またはE2E接続を検討する場合）
 - Category自動確定
 - 自動出品
-- SG Brandのproduction API / 実商品受入（DEC-0104の最小実装・offline検証後の別Owner承認）、SG SLS runtime / SG Handoffの実装（Brand後の独立工程）
+- SG Brandのproduction API / 実商品受入（DEC-0104のoffline実装採用後に別Owner承認）、SG SLSのproduction / live受入、runtime切替、SG Handoff実装（Step 9以降の独立工程。offline SLS最小runtimeはPR #107 / DEC-0109で採用済み）
 - MY／THの実装（共通Token / Catalog基盤を再利用する将来工程）
 - AI候補の1クリック採用 Ver0.3
 - wrong category蓄積 Ver0.4
@@ -292,6 +294,7 @@ DEC-0049の`BETA_AFTER_CANDIDATE`、DB化、他市場展開、出品後商品改
 - Resolver成功は英字商品名から正しいASINへの到達性能で判断する。
 - 未確認の既存出品ツール契約を実装済みとして扱わない。
 - SG Category Mapper Minimum BetaはPR #82でformal mainへ統合済みのoffline製品成果である。正式SG Gate入力、検証済みSG catalog、Category AI Coreのoffline候補契約、商品単位の人間確認、ASIN単位保存を提供する。SG UIのlive OpenAI API経路は閉鎖済みで、現在は手動Category確認だけを提供する。SG operationはINACTIVE、Category確定後も`listing_ready=false`を維持し、Brand、SLS runtime、Handoffは後続独立工程とする。
+- SG Minimum Beta Step 8はDEC-0111の半自動完成線に対する`COMPLETION_GATE_PASS_CANDIDATE`であり、Ownerのformal受入待ちである。完成候補は手動確認とSeller Center手動出品を含む少量Betaで、SG operation `INACTIVE`、`listing_ready=false`、export / handoff CLOSEDを維持する。これはStep 9のSG実運用開始承認、production Brand / SLS live acceptance、全商品安全保証ではない。
 - MY／THの順序は証拠と事業判断なしに固定しない。
 - 出品支援ツールの内部工程間の連携は、必要な場合に別設計ゲートを通す。
 - Category Mapper AI Shadowと自動出品は、明示承認なしに開始しない。

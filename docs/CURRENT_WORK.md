@@ -4,6 +4,12 @@
 
 ## 現在の単一作業
 
+SG Minimum Beta完成判定（Roadmap Step 8）のdocs-only候補を作成中。formal main `4ea2fc2`を基準としたread-only監査を行い、`COMPLETION_GATE_PASS_CANDIDATE`が妥当と判断した。これは現行成果に商品単位の人間確認を加えれば、重大リスクを隔離した少量の半自動Betaが成立可能という完成候補であり、OwnerのStep 8最終受入ではない。SG operation開始、SG ACTIVE化、`listing_ready=true`、export / handoff開放、自動出品、production API / DB変更、Brand / SLS live acceptance済みを意味しない。
+
+完成線の正本候補はDEC-0111。少量商品を、SG Gate `ELIGIBLE` → 人間Category確認 → 人間Brand / No Brand確認 → SLS `ALLOW`候補 → Seller Centerで必須Attributeと商品固有条件を人間確認 → Seller Centerへ商品単位で手動出品する。未解決の`BLOCK` / `REVIEW` / `EXCLUDE` / `UNCHECKED` / `UNAVAILABLE`、CategoryまたはBrand未確認、Battery / 危険物 / 許認可等の未解決疑義がある商品は出品しない。現行Safety・Shared Battery・Community NG・own penalty・COMMON / SG BLOCK / REVIEW・SLS停止は維持する。新規Beta MUST実装の残作業はない。
+
+Step 8のformal受入はOwnerの別途明示承認を待つ。SG operationはStep 8受入後もINACTIVE、`listing_ready=false`、export / handoff閉鎖を維持する。実運用開始（Step 9）はStep 8のformal main採用・merge後検証完了後に別途判断する。production Brand GET / live受入 / schema、Attribute自動化、Seller Center E2E、SLS実商品受入の拡張、自動export・handoff等は人間作業で代替できる範囲を踏まえBeta後改善とする。今回のhandoff状態ではlocal validation・commit・push・Draft PR・CI gates・read-only reviewを進め、mandatory technical gates完了後に9項目Summaryを提示して`WAITING_APPROVAL`で停止する。
+
 SG SLS offline最小runtimeのformal main採用とmerge後確認を完了した（PR #107 / DEC-0109、docs-only最終正本化PR #108）。OwnerはPR #108のaccepted head `335f1e2296212978a3c3caa6b38e433558832fd9`と提示済みSummaryのscopeを承認し、PR #108はmerge commit `d1b6b8daf7062f15bcfd675e784242506fcb3f35`でformal mainへ通常mergeされた。GitHub上のMERGED、PR head、最新main一致を確認した。merge後PowerShell 5.1 / 7 Validate、Context Snapshot生成、read-only Verify CONTINUEを確認した。DEC-0108原文をformal mainの文言へ復元し、DEC-0109はappend-onlyで維持した。
 
 この正本化でSG SLS offline最小runtimeの承認済み範囲とtask statusを閉じる。branch / HEAD / PR / checksはGit / GitHub、長寿命状態はState、task固有状態はrepo外Task Contextを参照する。Roadmapの工程順を変えず、SG SLS実装を繰り返さない。
@@ -28,6 +34,7 @@ PR #103はOwnerのoffline限定最終承認で正式採用済み。Attribute、�
 
 ## Required Decisions
 
+- DEC-0111 — SG Minimum Beta Step 8完成候補、半自動運用の完成条件・制約、Step 9別承認境界。
 - DEC-0071 / DEC-0075 / DEC-0076 / DEC-0077 — SG Safety・Shared Battery・formal SLS assets・PH SLS runtimeの保護契約。
 - DEC-0109 — PR #107 SG SLS offline最小runtime正式採用、Owner Evidence、merge後検証と後続境界。
 - DEC-0108 — SG SLS offline最小runtime、exact ID・current内容binding、Safety非解除とOwner受入境界。
