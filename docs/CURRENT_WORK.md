@@ -4,17 +4,19 @@
 
 ## 現在の単一作業
 
-Owner Acceptance方式BはPR #105で正式採用済み（DEC-0106 / DEC-0107）。この文書正本化PRは採用後状態を記録してGovernance taskを閉じる最終docs-only工程である。Ownerの明示的な現在対象への最終承認は必須であり、承認後に限り正式採用済みhelperがcurrent値からbindingコメントを投稿する。OwnerへHEAD、verification hash、Summary binding等の技術値コピーを求めない。コメントは独立human-origin proofではなく、承認後のmachine-readable binding / transport Evidenceである。
+SG SLS設計監査をOwnerがDESIGN_GATE_PASSとして受入し、SG専用のoffline最小実装を進める（DEC-0108）。開始正本はPR #106 merge後のformal main。GitHub mainとorigin/mainが一致し、前段監査と同一であることを実測した。既存dirty PH checkoutには触れず、同じcloneのformal main起点worktreeで作業する。branch / HEAD / PR / checksの現在値はGit・GitHub、task lifecycleはrepo外Task Contextを参照する。
 
-本PRも新方式で受入する。technical gates完了後に9項目Summaryを提示して`WAITING_APPROVAL`で停止し、Ownerが現在のSummaryとscopeを明示的に最終承認した後だけ、helper → Provider再取得 → fresh signed Owner Evidence → formal Verify CONTINUE → merge直前再観測 → 通常mergeへ進む。silence、CI PASS、Codex判断、Summary生成を承認としない。正確なbranch / head / PR / checksはGit・GitHubを参照する。
+対象はcanonical + SG validated loader、SG専用evaluator、SG Mapperの独立SLS result、最小UI、offline / PH・SG protected testsと本再開案内・append-only Decision・README。current Categoryの厳密ID・path・leaf・人間確認、catalog内容digestとSLS資産versionにbindし、rerun時に再評価する。PH public runtime、正式SLS資産、Safety / Battery、DB schema、StateとSG出口は変更しない。
 
-PR #105正式採用後の最終正本化として、変更はCURRENT_WORK、append-only Decision、およびRUNBOOKのPR #105限定例外・REVOKED時のfail-closed復旧手順の明確化に限定する。README / PROJECT_ROADMAPは確認し、方式Bとの矛盾がないため変更しない。PR #105ではGovernance tests 96 passed、protected regression 612 passed、mandatory CI 6 / 6 PASS、fresh Owner Evidenceとformal Verify CONTINUE後にmergeした。merge後Validate、snapshot、read-only VerifyもCONTINUE。Provider / Verifier / Trust Anchor / State / protected capabilityと製品runtimeは不変。文書正本化PRのmerge後にこのGovernance taskをCLOSEDとし、次工程のSG SLS runtimeを新規Codex taskで開始する。
+今回の実装・検証は正式採用候補であり、formal mainへまだmergeしない。対象tests、全offline、protected.ph / protected.sg、Governance Validate / PowerShell 5.1・7、current head CIとread-only reviewを完了後、9項目Owner Acceptance Summaryを提示してWAITING_APPROVALで停止する。Ownerの現在対象への明示的な最終承認後だけ、正式採用済み方式B（DEC-0106 / DEC-0107）のhelper → Provider再取得 → fresh signed Owner Evidence → formal Verify CONTINUE → merge直前再観測 → 通常mergeへ進む。CI PASSやSummary生成を承認にしない。
+
+production Shopee / Keepa / OpenAI、Bridge、credential、production DB / migration、Attribute、deploy、SG ACTIVE、自動Category / Brand確定・出品は未実施。SG recommendationはCategory / Brand / SLS ALLOWでもlisting_ready=false、groups CSV / listing TXT / handoffは閉鎖のまま。SG Minimum Beta完成判定はRoadmap Step 8の別工程であり、本実装の検証を実商品・live受入へ昇格しない。
 
 ## 現在の正式状態
 
 Owner Acceptance方式BをPR #105で正式採用した。accepted head `629c7fc7c6f3dc22335a09ffcbecf4d1d391b34f`をmerge commit `1bfd4ee065b4121ef7e9d081d902a25cb9b40ef1`としてformal mainへ統合し、PR #105のMERGEDを確認した。Ownerの手動技術値コピーは不要となり、明示的な最終承認は引き続き必須である。GitHub OWNER_ACCEPTANCEコメントは、承認後にrepository / PR / exact head / verification_input_hash / summary_binding / scopeを固定するmachine-readable binding / transport Evidenceとして扱い、Owner本人のUI手入力を独立証明するものとは扱わない。
 
-PR #105はGovernance tests 96 passed、protected regression 612 passed、mandatory CI 6 / 6 PASSを確認した。current対象のfresh signed Owner Evidenceとformal Verify CONTINUE後に通常mergeし、merge後Validate、snapshot、read-only Verify CONTINUEを確認した。Provider / Verifier / Trust Anchor / State / protected capabilityおよび製品runtimeに変更はない。今回の文書正本化PRも方式Bを使い、Ownerの明示的最終承認後にhelperで進める。
+PR #105はGovernance tests 96 passed、protected regression 612 passed、mandatory CI 6 / 6 PASSを確認した。current対象のfresh signed Owner Evidenceとformal Verify CONTINUE後に通常mergeし、merge後Validate、snapshot、read-only Verify CONTINUEを確認した。Provider / Verifier / Trust Anchor / State / protected capabilityおよび製品runtimeに変更はない。後続の文書正本化はPR #106で正式mainへmerge済み。現在のSG SLS実装候補も方式Bで受入する。
 
 SG実catalog・6実商品のCategory acceptanceはPR #100でformal mainへ正式採用済み（DEC-0103）。Ownerの現在headとOwner Acceptance Summaryへの最終承認、fresh署名付きOwner Evidence、mandatory technical gates 6 / 6 PASS、formal Verify CONTINUEを確認して通常mergeした。merge後のformal main / PR MERGED / accepted内容一致、PowerShell 5.1 / 7 Validate、snapshot、read-only Verify CONTINUEまで確認済み。PR #100のmerge対象と受入結果を再実行・再承認する工程には戻らない。
 
@@ -27,6 +29,9 @@ SG Brand / No Brand Minimum Betaのoffline最小実装をPR #103でformal main�
 PR #103はOwnerのoffline限定最終承認で正式採用済み。live API、実商品受入、production DB / schema、Attribute / SLS、listing_ready、export / handoff、deploy、SG ACTIVE化、自動確定・出品は今回の承認範囲外であり、別途明示承認なしに実施しない。DEC-0104の設計本文は変更せず、正式採用結果はappend-onlyのDEC-0105に記録する。
 
 ## Required Decisions
+
+- DEC-0071 / DEC-0075 / DEC-0076 / DEC-0077 — SG Safety・Shared Battery・formal SLS assets・PH SLS runtimeの保護契約。
+- DEC-0108 — SG SLS offline最小runtime、exact ID・current内容binding、Safety非解除とOwner受入境界。
 
 - DEC-0107 — PR #105 Owner Acceptance方式Bの正式採用、merge後確認、Governance taskの終了と次工程。
 - DEC-0106 — Owner明示承認後のコメント搬送、移行PRの旧方式受入、維持するbindingと停止条件。
@@ -65,10 +70,10 @@ PR #100のCategory acceptance CIは当時mandatory 6 gateすべてPASS、offline
 
 ## 今後の承認境界
 
-次の単一作業はRoadmap順のSG SLS runtime設計・受入境界確認であり、新規Codex taskとして開始する。SG operation INACTIVE、`listing_ready=false`、export / handoff閉鎖、PH / SG protected capabilityを維持する。production API / 実商品、production DB / schema、runtime切替、deploy、SG ACTIVE化、自動確定・出品は、次工程でscopeとOwner承認を別途定義するまで行わない。
+現在のSG SLS実装候補はmandatory technical gates後にWAITING_APPROVALへ進む。Owner承認までformal採用・mergeを行わない。SG実商品SLS受入、Attribute、SG Minimum Beta完成判定、production API / DB / schema、runtime切替・deploy・SG ACTIVE・export / handoffには後続scopeと別途明示承認を要する。Roadmapの工程順は変更しない。
 
 ## 終了とrollback
 
-PR #105のformal採用・merge後検証と本docs-only正本化PRのformal merge・merge後検証を完了し、文書間の整合を確認した時点でこのGovernance taskをCLOSEDとする。次工程は別の新規Codex taskで開始し、本taskへ戻らない。
+本offline実装候補のOwner受入と正式merge・merge後確認が成立した場合にtaskをCLOSEDとする。現時点ではOPENであり、次のOwner受入待ちへ進む。
 
-rollbackは文書差分の通常revertとし、DEC-0106を含む過去Decisionを編集・削除しない。Provider、Trust Anchor、State、credential、GitHub設定、PH / SG product runtime、protected capabilityと既存Evidenceを変更・削除しない。force push / dirty reset禁止。
+rollbackは今回のcode / tests / 文書を通常revertする。DB migration・production復旧は不要。過去Decision、正式SLS資産、PH、State、Trust Anchor、credentialと既存Evidenceを変更・削除せず、force push / dirty resetを行わない。

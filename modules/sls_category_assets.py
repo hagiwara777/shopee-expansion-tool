@@ -16,7 +16,7 @@ _HASH = re.compile(r"[0-9a-f]{64}\Z")
 
 
 class SlsAssetError(RuntimeError):
-    """No fallback: the PH SLS-dependent exits must stop."""
+    """No fallback: SLS-dependent evaluation must stop."""
 
 
 @dataclass(frozen=True)
@@ -130,5 +130,75 @@ def load_ph_context() -> SlsEvaluationContext:
         _require(cp.read_bytes() == cb and pp.read_bytes() == pb)
         return SlsEvaluationContext("PH", taxonomy_version, version, TRANSFORM_VERSION,
                                     frozenset(taxonomy), MappingProxyType(rules))
+    except (OSError, ValueError, TypeError, KeyError, AttributeError, RecursionError) as exc:
+        raise SlsAssetError("SLS_CATEGORY_DATA_UNAVAILABLE") from exc
+
+
+@dataclass(frozen=True)
+class SgSlsRule:
+    status: str
+    quantity: str
+    source_refs: tuple[SlsSourceRef, ...]
+    group_notice: bool = False
+
+
+@dataclass(frozen=True)
+class SgSlsEvaluationContext:
+    marketplace: str
+    taxonomy_version: str
+    market_asset_version: str
+    transform_version: str
+    names: Mapping[int, tuple[str, ...]]
+    rules: Mapping[int, SgSlsRule]
+
+
+# Explicit scope adopted by SLS_SOURCE_TRANSFORM_V1; never inferred from names.
+_SG_NOTICE_IDS = tuple(range(100906, 100916))
+
+
+def load_sg_context() -> SgSlsEvaluationContext:
+    """Read only canonical/SG and their manifests; retain data-only assets."""
+    try:
+        canonical, taxonomy, taxonomy_version, cp, cb = _read_asset(ASSET_ROOT, "canonical", None)
+        sg, records, version, sp, sb = _read_asset(ASSET_ROOT, "markets/SG", "SG")
+        _require(canonical["source_ids"] == ["master"])
+        _require(sg["source_ids"] == ["master", "requirements"])
+        _require(sg["taxonomy_version"] == taxonomy_version)
+        _require(set(records) <= set(taxonomy))
+        _require(sg["missing_canonical_ids"] == sorted(set(taxonomy) - set(records)))
+        names = {}
+        for cid, record in taxonomy.items():
+            _require(set(record) == {"category_id", "names", "name_ja", "source_refs"})
+            _require(type(record["names"]) is list and len(record["names"]) == 5)
+            _require(all(type(name) is str for name in record["names"]))
+            _require(type(record["name_ja"]) is str)
+            _require(all(set(ref) == {"source_id", "sha256", "logical_record"} for ref in record["source_refs"]))
+            names[cid] = tuple(name for name in record["names"] if name)
+        anchor = records[_SG_NOTICE_IDS[0]]
+        notice = anchor["group_notice"]
+        _require(set(notice) == {"normalized_status", "scope_category_ids", "source_ref", "text"})
+        _require(notice["normalized_status"] == "NO")
+        _require(notice["scope_category_ids"] == list(_SG_NOTICE_IDS))
+        _require(all(type(cid) is int for cid in notice["scope_category_ids"]))
+        _require(type(notice["text"]) is str and bool(notice["text"].strip()))
+        _require(notice["text"] == anchor["status"] and notice["source_ref"] in anchor["source_refs"])
+        _require(notice["source_ref"]["logical_record"] == 273)
+        rules = {}
+        for cid, record in records.items():
+            keys = {"category_id", "status", "quantity", "action", "basis", "source_refs", "anomalies"}
+            scoped = cid in _SG_NOTICE_IDS
+            _require(set(record) == (keys | {"group_notice"} if scoped else keys))
+            _require(record["source_refs"] == taxonomy[cid]["source_refs"])
+            _require(type(record["status"]) is str and type(record["quantity"]) is str)
+            _require(record["action"] is None and record["basis"] == "DATA_ONLY_RUNTIME_NOT_EVALUATED")
+            _require(record["anomalies"] == [])
+            if scoped:
+                _require(record["group_notice"] == notice and record["quantity"] == "0")
+                _require(record["status"] == (notice["text"] if cid == _SG_NOTICE_IDS[0] else ""))
+            rules[cid] = SgSlsRule(record["status"], record["quantity"],
+                                    tuple(SlsSourceRef(**ref) for ref in record["source_refs"]), scoped)
+        _require(cp.read_bytes() == cb and sp.read_bytes() == sb)
+        return SgSlsEvaluationContext("SG", taxonomy_version, version, TRANSFORM_VERSION,
+                                     MappingProxyType(names), MappingProxyType(rules))
     except (OSError, ValueError, TypeError, KeyError, AttributeError, RecursionError) as exc:
         raise SlsAssetError("SLS_CATEGORY_DATA_UNAVAILABLE") from exc

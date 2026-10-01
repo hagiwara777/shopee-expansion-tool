@@ -1320,3 +1320,16 @@
 - 維持: exact repository / PR / head / verification_input_hash / summary_binding / scope、Owner actor ID、Provider署名、repo外Trust Anchor、5分freshness、変更時再承認、編集・削除・REVOKED・API / Provider失敗時HOLD、formal Verify、merge直前fresh再観測を維持する。helperは最新REVOKEDをAPPROVEDで自動上書きせず、新しいOwner明示判断後の完全形式コメントだけを稀なfail-closed復旧経路として許す。Provider / Verifier / Trust Anchor / State / PH / SG protected capabilityおよび製品runtimeは不変。
 - 文書正本化と次工程: CURRENT_WORKとRUNBOOKのPR #105限定例外・REVOKED時復旧境界の明確化、本記録の追記を行うdocs-only PRも方式Bを使い、technical gates後に9項目Summaryを提示してWAITING_APPROVALで停止する。明示的最終承認と正式helper経由のProvider / Evidence / Verifyを経てmergeした場合にGovernance taskをCLOSEDとし、次のSG SLS runtime工程は新規Codex taskとして開始する。
 - rollback: 今回の正本化文書は通常revertする。DEC-0106その他の過去Decisionを変更せず、credential separation、第二GitHub account、branch protection / ruleset、Actions secret、Trust Anchor交換、製品runtime変更を行わない。
+
+
+## DEC-0108 — SG SLSを専用offline最小runtimeとして実装し出口閉鎖を維持する
+
+- 日付: 2026-09-30
+- authority: Ownerはcurrent SG production Categoryとformal SLS SG assetのread-only設計監査をDESIGN_GATE_PASSとして受入し、同じtaskでoffline最小実装・tests・local commit・push・Draft PR・CI・read-only reviewを指示した。formal main mergeは現在対象のOwner最終承認まで行わない。
+- 決定: B（SG専用最小追加）を採用する。load_sg_contextはcanonical / SGと各manifestのみを読み、hash・schema・transform・market・taxonomy・ID・source_refs・data-only metadata・明示notice scopeを検証する。SG専用evaluatorを追加し、PH load_ph_context / evaluate_ph_categoryのpublic behaviorを変えない。正式assetのaction=null / basis=DATA_ONLY_RUNTIME_NOT_EVALUATEDは維持する。
+- 判定: runtime JOIN authorityはUnique Category ID exact matchのみ。人間確認済みCategoryとcurrent SG catalogの同ID / path / leafを前提とし、NOはquantityに優先してEXCLUDE、YES + No limitはALLOW候補、Shopee確認・数量・below 5kg・unknown / missing / unresolvedはREVIEW、未確定はUNCHECKED、資産またはcurrent catalog検証失敗はUNAVAILABLEとする。名前・Amazon / Keepa・fuzzy・親・旧ID推測によるmappingは行わない。
+- notice / drift: SLS_SOURCE_TRANSFORM_V1の明示Pet Food scope（100906–100915）だけを検証して禁止noticeを適用し、別IDへ継承しない。exact ID取得後にcanonical pathとの明らかなidentity driftを停止させ、空白差は許容する。巨大なtaxonomy reconciliationは追加しない。現在catalogは時刻・件数だけのcacheを信用せず、全内容の再読取・構造検証・digestと資産versionでresultをbindしてrerun / 確定 / 再利用時に再評価する。
+- 保護: SLSはSG recommendation上の独立状態で、Category / Brand / manual review / upstream Safetyを上書きしない。Brand操作がSLS REVIEW / EXCLUDEを解除しない。Shared Battery・Community NG・own penalty・COMMON / SG BLOCK / REVIEWを維持する。SG listing_readyは常にfalse、groups CSV / listing TXT / handoff / external exportを追加しない。DB approval table、SLS ALLOW永続化、migration、production DB変更、State変更はない。
+- 検証・採用境界: 対象SG / PH / Guardrail tests、全offline pytest、protected.ph / protected.sg、Governance / PowerShell 5.1・7とcurrent head CIを必須とする。shared loader変更はSHARED_COREとして両protected capabilityを適用する。正確な実行結果はGit外EvidenceとGitHub checksを参照する。実装候補の成立はformal採用・live acceptance・SG Minimum Beta完成を意味しない。technical gates後に9項目SummaryとWAITING_APPROVAL、明示承認後に方式Bで受入する。
+- 未実施・後続: production Shopee / Keepa / OpenAI API、Bridge、credential変更、実商品受入、production DB / schema、Attribute、deploy、SG ACTIVE、自動確定・出品は今回対象外。current catalogでSLS ruleがない5 leafはREVIEWとし、別ID fallbackしない。SG Minimum Beta完成判定はRoadmap Step 8、live工程・出口開放は別承認で扱う。
+- rollback: 今回のcode / tests / 文書を通常revertする。DB migrationやproduction復旧は伴わず、正式assets、PH、State、credential、Trust Anchor、過去DecisionとEvidenceを変更・削除しない。

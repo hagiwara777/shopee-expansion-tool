@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import csv
 import json
-from dataclasses import dataclass, replace
+import sqlite3
+from dataclasses import dataclass, field, replace
 from hashlib import sha256
 from io import StringIO
 from typing import Mapping, Sequence
@@ -17,6 +18,8 @@ from modules.category_mapper_ai import (
     build_category_ai_catalog,
     generate_ai_category_suggestions,
 )
+from modules.sls_category_assets import SlsAssetError, load_sg_context
+from modules.sls_category_rules_sg import SgSlsCategoryResult, evaluate_sg_category
 from modules.category_mapper_store import CategoryMapperStore, normalize_brand
 from modules.shopee_catalog_client import ShopeeCatalogClient, ShopeeCatalogError, BRAND_STATUS_NORMAL
 from modules.keepa_client import normalize_asin
@@ -94,6 +97,7 @@ class SGMapperRecommendation:
     brand_candidates: tuple[tuple[int, str], ...] = ()
     brand_review_reason: str = "SG Brand requires current catalog and human confirmation."
     brand_current_valid: bool = False
+    sls_result: SgSlsCategoryResult = field(default_factory=SgSlsCategoryResult)
 
     @property
     def listing_ready(self) -> bool:
@@ -373,7 +377,7 @@ def build_sg_recommendations(
                     manual_review_reason="",
                 )
         recommendations.append(recommendation)
-    return tuple(recommendations)
+    return refresh_sg_sls_results(tuple(recommendations), store=store)
 
 
 def build_sg_category_ai_catalog(store: CategoryMapperStore) -> CategoryCatalog:
@@ -425,6 +429,8 @@ def confirm_sg_category(
         or recommendation.input_safety_state != GATE_ELIGIBLE
     ):
         raise SGCategoryMapperError("Only an SG GATE_ELIGIBLE product can be confirmed.")
+    if type(category_id) is not int or category_id <= 0:
+        raise SGCategoryMapperError("Selected Category ID must be a positive integer.")
     current = store.get_category(SG_MARKETPLACE, category_id)
     if (
         current is None
@@ -441,8 +447,9 @@ def confirm_sg_category(
         category_path=_text(current["category_path"]),
         note="SG Category Mapper Minimum Beta product confirmation",
     )
-    return replace(
+    updated = replace(
         recommendation,
+        sls_result=SgSlsCategoryResult(category_id=category_id),
         category_recommendation_status="CONFIRMED",
         recommended_category_id=int(current["category_id"]),
         recommended_category_path=_text(current["category_path"]),
@@ -459,6 +466,7 @@ def confirm_sg_category(
         brand_review_reason="SG Brand requires current catalog and human confirmation.",
         brand_current_valid=False,
     )
+    return refresh_sg_sls_results((updated,), store=store)[0]
 
 
 @dataclass(frozen=True)
@@ -754,3 +762,52 @@ def _strict_positive_int(value: object, field: str, row_number: int) -> int:
 
 def _text(value: object) -> str:
     return "" if value is None else str(value).strip()
+
+
+def refresh_sg_sls_results(recommendations: Sequence[SGMapperRecommendation], *,
+                           store: CategoryMapperStore) -> tuple[SGMapperRecommendation, ...]:
+    """Re-read current bytes/content; replace only the independent SLS result."""
+    if any(item.marketplace != "SG" for item in recommendations):
+        raise SGCategoryMapperError("SG SLS refresh requires SG recommendations.")
+    try:
+        context = load_sg_context()
+        current_rows = store.list_categories_for_category_ai_catalog("SG")
+        if not current_rows or any(
+            type(row["category_id"]) is not int or row["category_id"] <= 0
+            or (row["parent_category_id"] is not None and
+                (type(row["parent_category_id"]) is not int or row["parent_category_id"] <= 0))
+            or type(row["is_leaf"]) is not int or row["is_leaf"] not in (0, 1)
+            or any(type(row[key]) is not str for key in ("category_name", "category_path", "synced_at"))
+            for row in current_rows
+        ):
+            raise SGCategoryMapperError("Current SG SLS catalog is invalid.")
+        catalog = CategoryCatalog("SG", "SG_SLS_CURRENT_V1:" + max(row["synced_at"] for row in current_rows),
+            tuple(CategoryNode(row["category_id"], row["parent_category_id"], row["category_name"],
+                               row["category_path"], bool(row["is_leaf"])) for row in current_rows))
+        _validate_sg_catalog_paths(catalog)
+        rows = sorted((node.category_id, node.parent_category_id, node.category_name,
+                       node.category_path, node.is_leaf) for node in catalog.nodes)
+        digest = sha256(json.dumps(rows, ensure_ascii=False, separators=(",", ":")).encode("utf-8")).hexdigest()
+        version = catalog.catalog_version + ":" + digest
+        by_id = {node.category_id: node for node in catalog.nodes}
+    except (SlsAssetError, SGCategoryMapperError, ValueError, TypeError, KeyError, OSError, sqlite3.Error):
+        return tuple(replace(item, sls_result=SgSlsCategoryResult(
+            check_state="UNAVAILABLE" if item.category_is_confirmed else "UNCHECKED",
+            category_id=item.recommended_category_id, reason_codes=("SLS_CATEGORY_DATA_UNAVAILABLE",),
+        )) for item in recommendations)
+    results = []
+    for item in recommendations:
+        cid = item.recommended_category_id
+        current = by_id.get(cid) if type(cid) is int and cid > 0 else None
+        result = evaluate_sg_category(
+            marketplace=item.marketplace, category_id=cid,
+            category_confirmed=item.category_is_confirmed and item.category_verification_status == "USER_CONFIRMED",
+            category_path=item.recommended_category_path,
+            current_category_path=current.category_path if current else None,
+            current_is_leaf=current.is_leaf if current else False,
+            catalog_version=version, context=context,
+        )
+        if item.input_safety_state != GATE_ELIGIBLE:
+            result = replace(result, check_state="EVALUATED", action="CATEGORY_REVIEW", reason_codes=("UPSTREAM_SAFETY_STOP",))
+        results.append(replace(item, sls_result=result))
+    return tuple(results)
