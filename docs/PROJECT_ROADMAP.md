@@ -283,7 +283,7 @@ DEC-0049の`BETA_AFTER_CANDIDATE`、DB化、他市場展開、出品後商品改
 - 既存出品ツールの正式入力契約の証拠回収（自動投入またはE2E接続を検討する場合）
 - Category自動確定
 - 自動出品
-- SG Brandのproduction API / 実商品受入（DEC-0104の最小実装・offline検証後の別Owner承認）、SG SLS runtime / SG Handoffの実装（Brand後の独立工程）
+- SG Brandのproduction API / 実商品受入（DEC-0104のoffline実装採用後に別Owner承認）、SG SLSのproduction / live受入、runtime切替、SG Handoff実装（Step 9以降の独立工程。offline SLS最小runtimeはPR #107 / DEC-0109で採用済み）
 - MY／THの実装（共通Token / Catalog基盤を再利用する将来工程）
 - AI候補の1クリック採用 Ver0.3
 - wrong category蓄積 Ver0.4
