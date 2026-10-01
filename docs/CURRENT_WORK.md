@@ -4,9 +4,9 @@
 
 ## 現在の単一作業
 
-SG SLS offline最小runtimeはPR #107のformal main採用・merge後検証を完了した（DEC-0109）。accepted head e11f71cc74e936ce637f461f6bf81ca83a9b65b4を通常merge commit 10d54992caf45fa1ce5ad442b5c8dfc876af510dへ統合し、GitHub MERGED・最新mainを確認した。fresh Owner Provider Evidence、formal Verify CONTINUE、merge直前のfresh Verify CONTINUEを確認した。offline CI 1,721 passed / 1 skipped、protected PH / SG 616 passed、mandatory CI 6 / 6 SUCCESS、GitGuardian SUCCESS。merge後PowerShell 5.1 / 7 Validate、snapshot、read-only Verify CONTINUEも確認した。
+SG SLS offline最小runtimeのformal main採用とmerge後確認を完了した（PR #107 / DEC-0109、docs-only最終正本化PR #108）。OwnerはPR #108のaccepted head `335f1e2296212978a3c3caa6b38e433558832fd9`と提示済みSummaryのscopeを承認し、PR #108はmerge commit `d1b6b8daf7062f15bcfd675e784242506fcb3f35`でformal mainへ通常mergeされた。GitHub上のMERGED、PR head、最新main一致を確認した。merge後PowerShell 5.1 / 7 Validate、Context Snapshot生成、read-only Verify CONTINUEを確認した。DEC-0108原文をformal mainの文言へ復元し、DEC-0109はappend-onlyで維持した。
 
-次は同じタスクでCURRENT_WORK、append-only Decision、READMEを最小docs-only PRとして正本化する。worktree branch / head / PR / checksはGit / GitHub、task lifecycleはrepo外Task Contextを参照する。Roadmapの工程順を変えず、SG SLS実装を繰り返さない。docs-only PRにもmandatory gatesとOwner Acceptanceが必要であり、technical gates後に新PR専用9項目Summaryを提示してWAITING_APPROVALで停止する。PR #107への過去承認をdocs-only PRへ流用しない。
+この正本化でSG SLS offline最小runtimeの承認済み範囲とtask statusを閉じる。branch / HEAD / PR / checksはGit / GitHub、長寿命状態はState、task固有状態はrepo外Task Contextを参照する。Roadmapの工程順を変えず、SG SLS実装を繰り返さない。
 
 SG SLSの正式採用はoffline codeに限る。SG operation INACTIVE、listing_ready=false、SG export / handoff閉鎖を維持する。実商品SLS acceptance、Attribute、Step 8完成判定、production API / Bridge / DB / migration、credential、deploy、SG ACTIVE、自動確定・出品は本工程に含めない。
 
@@ -68,10 +68,10 @@ PR #100のCategory acceptance CIは当時mandatory 6 gateすべてPASS、offline
 
 ## 今後の承認境界
 
-PR #107で採用済みSG SLS offline実装の正本化docs-only PRをOwner受入前まで進める。PR #107のOwner承認はこの別PRに適用しない。新PRのmandatory technical gates完了後、9項目Owner Acceptance Summaryを提示してWAITING_APPROVALで停止する。実商品SLS受入、Attribute、SG Minimum Beta Step 8、production API / DB / schema、runtime切替・deploy・SG ACTIVE・export / handoffには後続scopeと別途明示承認を要する。Roadmap工程順は不変。
+SG SLS offline最小runtimeのformal main採用はPR #107 / DEC-0109とPR #108の最終正本化で完了した。実商品SLS受入、Attribute、SG Minimum Beta Step 8、production API / DB / schema、runtime切替・deploy・SG ACTIVE・export / handoffには、後続scopeと別途明示承認を要する。Roadmap工程順は不変。
 
 ## 終了とrollback
 
-PR #107のoffline実装正式採用は完了した。docs-only PRのOwner受入・正式merge・merge後確認まで同じタスクをOPENで継続し、その完了後にCLOSEDとする。現時点ではdocs-only PRのOwner受入待ちに入る。
+PR #107のoffline実装正式採用、PR #108によるDEC-0108原文復元とPR #107採用記録の最終正本化、およびmerge後確認を完了した。SG SLS offline最小runtimeの次の実装・live工程は、別taskと必要なOwner承認の範囲で扱う。
 
 rollbackは今回のcode / tests / 文書を通常revertする。DB migration・production復旧は不要。過去Decision、正式SLS資産、PH、State、Trust Anchor、credentialと既存Evidenceを変更・削除せず、force push / dirty resetを行わない。
