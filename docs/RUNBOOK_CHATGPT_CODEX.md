@@ -99,7 +99,7 @@ GitHubはPR author自身のApprove reviewを受け付けない。OwnerのPR Conv
 公開鍵をrepo内の自己申告から採用しない。秘密鍵をGit、Task Context、ログ、Evidence、コマンド引数へ
 書き出さない。鍵未設定・不一致ならHOLDとし、手製JSONや旧形式のOwner Evidenceで代替しない。
 
-technical gates完了後、Owner Acceptance Summaryを生成し、Ownerへ9項目と対象PR・事業scopeを提示して
+technical gates完了後、下記「Post-Merge Stability」の反実仮想merge確認がPASSとなった場合だけOwner Acceptance Summaryを生成し、Ownerへ9項目と対象PR・事業scopeを提示して
 `WAITING_APPROVAL`で停止する。Ownerが現在対象のformal main採用を明示的に最終承認した場合だけ、
 Codexは承認された一行の事業scopeと現在のPR・head・Verify・Summaryから次のコメントを決定論的に生成・投稿する。
 OwnerへSHA・hash・bindingのコピーを要求しない。Owner silence、CI PASS、Codex判断、Summary生成だけでは承認しない。
@@ -132,7 +132,7 @@ python -m governance.owner_acceptance_transport --context outputs/governance/con
   --summary outputs/governance/owner-summary.json --scope '<Ownerが承認した一行の事業範囲>'
 ```
 
-PR #105のGovernance移行PR自身は、当時のformal mainの旧方式で受入済みである。この旧方式の例外はPR #105だけに適用する。今回の文書正本化PRを含む後続PRは、通常、Ownerの明示的最終承認後にformal mainへ採用済みのhelperを使い、技術値の手動コピーを求めない。helperはOwner actorの最新コメントが`OWNER_ACCEPTANCE: REVOKED`ならHOLDし、APPROVEDを自動投稿しない。稀な再承認では新しいOwner明示判断と新コメントを要し、完全形式の手動コメントによるfail-closed復旧を許す。新helperはPR #105がformal mainへ採用される前には起動を拒否する。
+PR #105のGovernance移行PR自身は、当時のformal mainの旧方式で受入済みである。この旧方式の例外はPR #105だけに適用する。後続PRは、通常、Ownerの明示的最終承認後にformal mainへ採用済みのhelperを使い、技術値の手動コピーを求めない。helperはOwner actorの最新コメントが`OWNER_ACCEPTANCE: REVOKED`ならHOLDし、APPROVEDを自動投稿しない。稀な再承認では新しいOwner明示判断と新コメントを要し、完全形式の手動コメントによるfail-closed復旧を許す。新helperはPR #105がformal mainへ採用される前には起動を拒否する。
 
 GitHub取得は`python -m governance.owner_comment_provider`だけが行い、GeneratorとVerifierは外部fetchを
 行わない。ProviderはGitHub APIでrepository・PR・Owner numeric actor ID・head・コメント本文・編集状態・
@@ -225,13 +225,13 @@ pushまたはPRだけを理由に必須化しない。project名、chat名、wor
 同一問題で修正・テストの反復が3回程度を超えたら、機械的に終了せず、
 タスク分割または原因分析への立返りを一度見直す。
 
-基本順序は `実装・修正 → テスト → 結果確認 → 正本化 → 前タスク終了 → handoff → 新規タスク開始`。
+基本順序は下記「Post-Merge Stability」のNo Recursive Finalizationを適用する。
 終了・handoff時は今回の変更範囲に応じて次を実施する。
 
 1. 採用するコード・設定・テストを確定する。
 2. 対象testと必要な回帰testの結果を確認する。mock、実API、実データ、Owner受入を分ける。
 3. `git status`とdiffで、無関係な変更、未追跡ファイル、secret混入がないか確認する。
-4. 実作業状態が変わった場合はCURRENT_WORKを更新する。Required Decisionsも「Decision読込」に従い見出し一覧と照合する。
+4. formal mainで成立する再開案内が変わる場合は、merge後にも正しいCURRENT_WORKを同一PRへ含める。Required Decisionsも「Decision読込」に従い見出し一覧と照合する。
 5. 恒久判断が変わった場合だけDECISION_LOGへ新IDで追記し、既存entryを書き換えない。
 6. 長期工程・順序が変わる場合だけPROJECT_ROADMAPを更新する。
 7. 恒久ルールが変わる場合だけAGENTS等を更新する。詳細を複数文書に複製しない。
@@ -244,6 +244,88 @@ pushまたはPRだけを理由に必須化しない。project名、chat名、wor
 判断できることを完了条件とする。テスト失敗、無関係なdirty変更、snapshot生成失敗、正本矛盾で
 正本化できない場合は阻害要因を示して停止する。handoff自体は正本の代替にしない。
 handoffには完了内容、確認済みtests、未解決事項、次タスクの目的、最初に読む正本fileまたはcommitを記載する。
+
+## Post-Merge Stability
+
+DEC-0114を適用する。DEC-0072 / DEC-0073 / DEC-0106のtechnical gates、Owner最終承認、
+fresh Owner Evidence、binding、formal Verify、protected capability契約は維持する。
+過去Decisionの個別受入事実は保持するが、後続の成功記録PRを通常終了工程とする部分は本節に置き換える。
+
+### A. Post-Merge Stability Rule
+
+Git管理文書へ追加・変更する現在状態は「このPRが今このままformal mainへmergeされた直後」にも正しくする。
+branch上の文面は採用後の再開案内として用意し、formal採用の成立はGitHub / Gitから別に確認する。
+merge直後に古くなる現在状態の例は、WAITING_APPROVAL、OWNER_ACCEPTANCE_REQUIRED、
+Owner承認待ち、Owner Acceptance待ち、Owner最終承認を待つ、未マージ、Draft PR、merge前、
+このPRをmerge後に正本化する、current headの承認待ちである。
+これらはGitHub、repo外Task Context、Git外Evidenceで管理し、CURRENT_WORKへ複製しない。
+accepted済み過去PR番号・確定commit等の恒久的な事実参照は許す。
+手順の条件分岐・禁止例と歴史Decisionは、現在状態の主張と区別する。
+
+### B. CURRENT_WORK Responsibility Rule
+
+CURRENT_WORKは再開案内に限定し、formal mainで成立する状態、完了工程、次の独立工程、
+未解決の既知制約、停止条件、必要なRequired Decisionsを保持する。
+open PR状態、current branch / head、CI待ち、Owner Acceptance待ち、merge予定、
+一時的Task Context状態は保持しない。branch / head / PR / checksはGit / GitHub、
+タスク固有状態はrepo外Task Contextを正本とする。詳細な実行結果はEvidenceへ置く。
+
+### C. No Recursive Finalization
+
+通常終了フローは次に固定する。
+
+成果物作成 → tests → 正本文書をmerge後にも正しい形で同一PRへ含める →
+mandatory technical gates → Owner Acceptance → merge → formal main確認 →
+Validate → snapshot → read-only Verify → Task Context CLOSED → 終了。
+
+merge commit、MERGED状態、CI結果はGitHub、post-merge Verify結果はTask Context / Evidenceを正本とする。
+post-merge Verify成功だけをGitへ記録する追加PRや「前PRをmergeした結果を記録するPR」を通常工程にしない。
+同一PRへ採用後の再開案内を含めることが正本化であり、成功記録の再正本化を要求しない。
+
+### D. Decision Necessity Gate
+
+新Decisionは恒久仕様、Safety / Risk方針、完成条件、Owner承認境界、Governance恒久ルール、
+長期再利用する設計判断が変わった場合だけappend-onlyで追加する。
+commit、push、PR作成、CI PASS、当該PRのOwner承認、merge、post-merge Verify成功、
+Task Context CLOSEDだけでは追加しない。それに伴う実際の恒久判断変更は別に判断する。
+今回のルールのような恒久判断にも、その候補PR番号・current head・短命承認状態を埋め込まない。
+
+### E. Pre-Acceptance Counterfactual Merge Check
+
+Owner Acceptance Summary作成前に、変更した全Git管理文書の差分と周辺文脈をread-onlyで読み、
+「このheadを今mergeしたと仮定すると、直後にfalse / obsoleteになる記述がないか」を確認する。
+現在状態、同一PRの予定・承認・採用主張、終了・次工程境界を確認し、手順の条件分岐や過去事実と区別する。
+1件でも不成立ならPOST_MERGE_STABILITY_FAILでOwner Acceptanceへ進まず同一PR内で修正する。
+修正後は必要なtests / gatesを現在headで再確認する。
+PASS結果はGit外Evidence / Task Contextへ記録し、9項目Summaryの「確認済みEvidence」に
+「Post-Merge Stability Check: PASS」を含める。Summary項目数・binding・承認境界は変更しない。
+
+最小自動回帰はtests/test_governance_docs_contract.pyでCURRENT_WORK全文の明確なtransient markerを検出する。
+再開案内へ短命履歴・禁止例を追加せず、必要な履歴はDECISION_LOG、ルール説明は本節へ置く。
+一般語の「候補」「head」「PR」、accepted済み過去PR参照、次工程の別承認条件は禁止しない。
+DECISION_LOG全体へ禁止語検査を適用しない。現在文書PASS、各marker差込みFAIL、stable text PASSを
+mandatory tests.offlineの全pytestで実行する。意味全体の反実仮想確認はread-only reviewで補完する。
+engine / manifest / schema / gate定義を拡張せず、正規表現PASSだけを本節の意味確認PASSに昇格しない。
+
+### F. Formalization Loop Fuse
+
+同一の独立成果物について、前の正本化 / closeout PRの状態を直すだけのdocs-only corrective PRを
+2件目として提案する場合はFORMALIZATION_LOOP_DETECTEDで自動継続を止める。
+最初のcloseout PRに続く補正PRを1件目と数え、その次の同目的補正PRを提案する前に発火させる。
+単にPR番号が増えた場合や独立した実障害修正には適用せず、
+同一成果物の正本化結果を記録・補正するだけの連鎖に限定する。
+
+新PR作成前に、前PRがmerge後stableでなかった理由、volatile stateを書いた場所、
+Git / Task Context / Evidenceの責務混同、新PRなしで正本から判断できるかを原因分析してOwnerへ報告する。
+Owner報告後も同じ補正を自動再提案せず、原因解消と必要なscope判断を先に行う。
+
+### G. Post-Merge Closure Rule
+
+Owner承認済みPRのGitHub MERGED、最新formal main一致、Validate、snapshot、read-only Verifyが
+成功し、新しい実障害・正本矛盾・恒久判断変更がなければTask ContextをCLOSEDにして終了する。
+成功した事実をGit文書へ書くための次PR・新Decisionは作らない。
+post-mergeで実不具合または正本矛盾を見つけた場合だけ、通常のbug / correctionとして別判断する。
+恒久判断が変わった場合はDecision Necessity Gateを適用する。失敗・未確認をCLOSEDにしない。
 
 ## Browser E2E
 
