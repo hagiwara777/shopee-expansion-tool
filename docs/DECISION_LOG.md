@@ -1395,3 +1395,16 @@
 - 完了状態・保護: Step 8は正式採用・最終正本化まで完了しCLOSED。新規Beta MUST実装の残作業はない。SG operation `INACTIVE`、`listing_ready=false`、SG export / handoff CLOSED、PH `ACTIVE / ALLOWED`、SG `INACTIVE / ALLOWED`、`ph.beta.operation` / `sg.safety.baseline` `ACCEPTED`、既存Safety / Battery / SLS停止条件を維持する。Brand / SLS live acceptanceとSeller Center E2Eは未実施。production API / DB変更、deploy、SG ACTIVE化、自動出品は未承認・未実施。
 - 次工程境界: 次の独立工程はRoadmap Step 9「SG実運用」。Step 9は未承認・未着手であり、新規Task Contextを用いる別タスクとOwnerの別途明示承認後にだけ開始できる。本Step 8補正タスクでは着手しない。
 - rollback: 今回のCURRENT_WORKとDecision追記は通常のdocs-only revertで戻せる。既存Decision、State、製品code / tests、Safety資産、credential、Trust Anchor、過去Evidenceは変更・削除しない。force push / dirty resetを行わない。
+
+## DEC-0114 — Post-Merge Stabilityと正本化連鎖防止を恒久Governanceルールにする
+
+- 日付: 2026-10-01
+- 背景: 同一成果物の採用結果を記録する文書PRに短命状態を置き、そのPRのmerge・検証成功を再度Gitへ記録すると、正本化PRが再帰的に必要になる。
+- 決定: Git管理文書の現在状態は、そのPRを今formal mainへmergeした直後にも正しくする。再開案内と恒久判断は成果物と同一PRへ含める。CURRENT_WORKはformal状態、完了工程、次の独立工程、既知制約、停止条件、Required Decisionsだけを保持し、PR処理状態はGitHub、タスク固有状態はrepo外Task Context、検証結果はEvidenceへ置く。
+- 終了・Decision必要条件: 成果物・tests・安定した正本文書・mandatory technical gates・Owner Acceptance・merge・formal main確認・Validate・snapshot・read-only Verifyを経て、新しい実障害・正本矛盾・恒久判断変更がなければTask ContextをCLOSEDとして終了する。成功記録だけの追加PRやDecisionは作らない。恒久仕様・Safety / Risk方針・完成条件・Owner承認境界・Governanceルール・再利用する設計判断が変わる場合だけDecisionをappend-onlyで追加する。
+- 受入前確認: 変更したGit管理文書を反実仮想mergeでread-only確認し、merge直後に不成立となる現在状態があればPOST_MERGE_STABILITY_FAILとして同一PR内で修正する。PASSは9項目Summaryの確認済みEvidenceへ含め、項目数・binding・明示的最終承認を維持する。
+- 連鎖fuse: 同一独立成果物の前の正本化 / closeout状態を補正するだけのdocs-only corrective PRを2件目として提案する場合、FORMALIZATION_LOOP_DETECTEDで自動継続を止め、新PR作成前に不安定だった原因、volatile stateの記録先、正本責務混同、新PR不要で判断できるかを分析してOwnerへ報告する。PR番号の増加や独立した実障害だけでは発火しない。
+- 置換範囲: DEC-0103 / DEC-0107 / DEC-0109 / DEC-0110 / DEC-0112 / DEC-0113等の過去正本化・closeoutにある、採用・merge後検証成功を記録する後続文書PRを通常終了工程とする部分だけを本ルールへ置き換える。既存本文・受入事実・Evidenceは保持し、Step 8完成条件とStep 9別承認境界は変更しない。
+- 最小検査: 専用docs contract testでCURRENT_WORKの明確なtransient markerをmandatory tests.offlineから検出する。現在文書とstable textのPASS、marker差込みのFAILを確認する。一般語・accepted済み過去PR参照は許容し、歴史正本DECISION_LOGへ禁止語検査を適用しない。詳細手順はRUNBOOK「Post-Merge Stability」に置く。
+- 保護・非対象: DEC-0072 / DEC-0073 / DEC-0106の承認・Trust契約、mandatory gates、HOLD / HARD_STOP、PH / SG protected capabilityを維持する。engine / manifest / schema / gate定義、governance/state.json、製品runtime、Safety / Battery / SLS、live API、production DB、credential、deployを変更しない。Step 8はCLOSED、次の独立工程Step 9は未承認・未着手で、別タスク・別Owner承認を要する。
+- rollback / 再検討: 本ルールとdocs contract testを通常revertできる。判断の撤回・訂正は新Decisionへ追記し、歴史本文・過去Evidenceを削除しない。false positive、意味確認漏れ、正本矛盾が実際に見つかった場合だけ最小補正を判断する。force push / dirty resetを使わない。

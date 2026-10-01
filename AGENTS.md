@@ -84,8 +84,21 @@ AGENTSには毎タスク必須の恒久原則、[RUNBOOK](docs/RUNBOOK_CHATGPT_C
   長大化では分割を検討し、RUNBOOK「タスク境界・正本化」の見直し条件を適用する。
 - handoffより先に正本化する。終了・handoff時は同節のチェックリストを必ず実施する。
   正式状態、確認済み・未解決事項、次の単一作業、停止条件を過去会話なしで再開可能にする。
-- 実作業状態変更時はCURRENT_WORK、判断変更時はDECISION_LOGへ新IDで追記（既存entryを書き換えない）、
+- formal mainで成立する再開案内の変更は同一PR内のCURRENT_WORKへ、恒久判断変更はDECISION_LOGへ新IDで追記（既存entryを書き換えない）、
   工程順変更時はPROJECT_ROADMAP、恒久ルール変更時はAGENTS等を更新する。詳細を重複複製しない。
 - CURRENT_WORKまたはDECISION_LOG更新時はRUNBOOK「開始・実行」に従いsnapshotを再生成・検証する。
   テスト失敗、無関係なdirty変更、snapshot生成失敗、正本矛盾で正本化できない場合は、
   阻害要因を明示して停止し完了扱いにしない。復旧時はRUNBOOK「Rollback」を適用する。
+
+## Post-Merge Stability・正本化連鎖防止
+
+- Git管理文書の現在状態は、そのPRを今formal mainへmergeした直後にも正しくする。
+  CURRENT_WORKはformal mainの状態・完了工程・次の独立工程・既知制約・停止条件・Required Decisionsに限定し、
+  open PR、承認・CI待ち、branch / head、merge予定を複製しない。短命状態はGitHub / repo外Task Context / Git外Evidenceで管理する。
+- Owner Acceptance Summary作成前に変更したGit管理文書をread-onlyで反実仮想merge確認し、
+  不成立ならPOST_MERGE_STABILITY_FAILとして同一PRで修正する。詳細はRUNBOOK「Post-Merge Stability」を必須適用する。
+- commit・push・PR作成・CI PASS・承認・merge・Verify成功・Task Context CLOSEDだけでは新Decisionを作らない。
+  恒久判断が変わった場合だけ追記する。
+- post-merge確認成功後はTask ContextをCLOSEDとして終了し、成功記録だけの次PRを作らない。
+  同一成果物の正本化状態を補正するだけのdocs-only corrective PRを2件目として提案する場合は
+  FORMALIZATION_LOOP_DETECTEDで自動継続を止め、RUNBOOKの原因分析・Owner報告を行う。
