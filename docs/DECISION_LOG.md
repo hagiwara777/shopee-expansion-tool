@@ -1384,3 +1384,14 @@
 - 維持・未実施: PH ACTIVE / ALLOWED、SG INACTIVE / ALLOWED、両protected capability ACCEPTED、listing_ready=false、SG export / handoff CLOSED、Safety非緩和を維持する。production API / Brand GET / Bridge / DB / schema、deploy、SG ACTIVE、出口開放、自動出品は未実施・未承認。Brand / SLS live acceptance、Seller Center E2E、全商品・全Categoryの安全保証は成立済みと扱わない。
 - 最終正本化・次工程: CURRENT_WORK、README、Roadmapの現在表示をStep 8正式採用済みへ最小更新し、本Decisionをappend-onlyで追加する。同一タスクのdocs-only最終正本化候補はPR #110と別head / Summaryの受入対象であり、technical gatesとread-only review後に9項目Summaryを提示してWAITING_APPROVALで停止する。PR #110の承認を流用してmergeしない。Step 9は未承認・未着手で、このタスクでは進めない。
 - rollback: 最終正本化文書だけを通常revertできる。過去Decision、製品code / tests、State、Safety資産、PH、Trust Anchor、credential、過去Evidenceを変更・削除せず、force push / dirty resetを行わない。
+
+## DEC-0113 — PR #111でStep 8最終正本化を正式採用しStep 8を終了する
+
+- 日付: 2026-10-01
+- authority / scope: OwnerはPR #111のaccepted head `148b9d53600583b12bbde6d21655258d87424695`とdocs-only正本化Summaryを確認し、PR #110のStep 8正式採用・merge後検証結果を記録する4文書の最終正本化を明示承認した。この記録補正はその既承認scope内の事実をCURRENT_WORKとappend-only Decisionへ反映するだけで、Step 8の完成条件やStep 9 scopeを変更しない。
+- Owner Acceptance / formal採用: PR #111のOwner最終承認後、GitHubのcurrent-head mandatory technical gates 6 / 6 PASS、fresh署名付きOwner Evidence、formal Verify CONTINUEを確認後に通常mergeした。PR #111はMERGED。accepted headはmainの祖先であり、merge commitは`9d37cf1a60475b6e1a0347744397cf9833f7cfc7`。GitHub main、origin/main、formal checkoutの一致とaccepted内容一致を確認した。
+- merge後確認: formal main上でPowerShell 5.1 / 7 Validate PASS、Context Snapshot生成、read-only Verify CONTINUEを確認した。`governance/state.json`、PH operation、SG operation、protected capabilitiesは不変。旧Step 8 Task ContextはCLOSEDのまま保持し、本補正用Task Contextを分けて管理した。
+- docs-only対象: PR #111は`docs/CURRENT_WORK.md`、`docs/DECISION_LOG.md`、`docs/PROJECT_ROADMAP.md`、`README.md`を更新した。既存DEC-0111の半自動完成線と完成条件、DEC-0112のPR #110正式採用記録は変更しない。PR #111のmerge後受入結果を本Decisionに記録し、現在のStep 8状態をCLOSEDとして明確化する。
+- 完了状態・保護: Step 8は正式採用・最終正本化まで完了しCLOSED。新規Beta MUST実装の残作業はない。SG operation `INACTIVE`、`listing_ready=false`、SG export / handoff CLOSED、PH `ACTIVE / ALLOWED`、SG `INACTIVE / ALLOWED`、`ph.beta.operation` / `sg.safety.baseline` `ACCEPTED`、既存Safety / Battery / SLS停止条件を維持する。Brand / SLS live acceptanceとSeller Center E2Eは未実施。production API / DB変更、deploy、SG ACTIVE化、自動出品は未承認・未実施。
+- 次工程境界: 次の独立工程はRoadmap Step 9「SG実運用」。Step 9は未承認・未着手であり、新規Task Contextを用いる別タスクとOwnerの別途明示承認後にだけ開始できる。本Step 8補正タスクでは着手しない。
+- rollback: 今回のCURRENT_WORKとDecision追記は通常のdocs-only revertで戻せる。既存Decision、State、製品code / tests、Safety資産、credential、Trust Anchor、過去Evidenceは変更・削除しない。force push / dirty resetを行わない。
