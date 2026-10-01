@@ -198,8 +198,8 @@ DECISION_LOG読込軽量化はPR #91、ShopeeCatalogClient marketplace-neutral�
 5. **SG実商品Category acceptance（完了）** — DEC-0103で6件人間確認、保存・再利用、current ID / path / leaf再validationを正式採用済み。listing_ready=falseを維持し、広い商品群の精度保証へ拡張しない。
 6. **SG Brand（offline最小実装を正式採用）** — PR #103 / DEC-0105でstrict current取得、real Brand alias再validation、商品単位No Brand保存をoffline実装として正式採用した。production Brand GET、実商品Brand / No Brand受入、production DB schema適用、SG runtimeや出口開放は含まない。後続live工程には別Owner承認を要し、`listing_ready=false` / SG export・handoff閉鎖を維持する。
 7. **SG SLS runtime（offline最小runtime正式採用済み）** — PR #107 / DEC-0109でoffline成果をformal mainへ採用済み。production / live acceptance、Attribute、出口開放、SG operation変更を含まない。
-8. **SG Minimum Beta完成判定（COMPLETION_GATE_PASS_CANDIDATE / Owner Acceptance待ち）** — DEC-0111の半自動完成線を候補として正本化する。Gate `ELIGIBLE`、人間確認済みCategory・Brand / No Brand、SLS `ALLOW`候補、Seller Centerの必須Attribute・商品固有条件確認済みの商品だけを少量手動出品する。未解決停止は出品しない。read-only auditで追加Beta MUST実装は確認されていない。OwnerのStep 8最終受入は別途必要。
-9. **SG実運用（Step 9）** — Step 8 formal main採用・merge後検証完了後、別Owner承認後にだけ検討する。Step 8受入自体ではSG `INACTIVE`、`listing_ready=false`、export / handoff CLOSEDを維持し、SG ACTIVE化や出口開放を行わない。
+8. **SG Minimum Beta完成判定（Step 8正式採用済み）** — `COMPLETION_GATE_PASS_CANDIDATE`で示したDEC-0111の半自動完成線をOwner最終承認後にPR #110で正式採用した（DEC-0112）。Gate `ELIGIBLE`、人間確認済みCategory・Brand / No Brand、SLS `ALLOW`候補、Seller Centerの必須Attribute・商品固有条件確認済みの商品だけを少量手動出品する。未解決停止は出品しない。read-only auditで追加Beta MUST実装は確認されていない。Step 8のmerge後検証は完了済み。
+9. **SG実運用（Step 9 / 未承認・未着手）** — Step 8 formal main採用・merge後検証は完了済み。実運用は別Owner承認後にだけ検討する。Step 8受入自体ではSG `INACTIVE`、`listing_ready=false`、export / handoff CLOSEDを維持し、SG ACTIVE化や出口開放を行わない。
 10. **MY展開** — 共通Source / Catalog基盤を再利用し、MY固有Safety、source identity、production確認だけを追加する。MY runtimeを先行有効化しない。
 11. **TH展開** — 同じ共通基盤を再利用し、TH固有差分だけを追加する。TH runtimeを先行有効化しない。
 
@@ -293,8 +293,8 @@ DEC-0049の`BETA_AFTER_CANDIDATE`、DB化、他市場展開、出品後商品改
 - 証拠保存機能の完成だけでResolver成功を宣言しない。
 - Resolver成功は英字商品名から正しいASINへの到達性能で判断する。
 - 未確認の既存出品ツール契約を実装済みとして扱わない。
-- SG Category Mapper Minimum BetaはPR #82でformal mainへ統合済みのoffline製品成果である。正式SG Gate入力、検証済みSG catalog、Category AI Coreのoffline候補契約、商品単位の人間確認、ASIN単位保存を提供する。SG UIのlive OpenAI API経路は閉鎖済みで、現在は手動Category確認だけを提供する。SG operationはINACTIVE、Category確定後も`listing_ready=false`を維持し、Brand、SLS runtime、Handoffは後続独立工程とする。
-- SG Minimum Beta Step 8はDEC-0111の半自動完成線に対する`COMPLETION_GATE_PASS_CANDIDATE`であり、Ownerのformal受入待ちである。完成候補は手動確認とSeller Center手動出品を含む少量Betaで、SG operation `INACTIVE`、`listing_ready=false`、export / handoff CLOSEDを維持する。これはStep 9のSG実運用開始承認、production Brand / SLS live acceptance、全商品安全保証ではない。
+- SG Category Mapper Minimum BetaはPR #82でformal mainへ統合済みのoffline製品成果である。正式SG Gate入力、検証済みSG catalog、Category AI Coreのoffline候補契約、商品単位の人間確認、ASIN単位保存を提供する。SG UIのlive OpenAI API経路は閉鎖済みで、現在は手動Category確認だけを提供する。SG operationはINACTIVE、Category確定後も`listing_ready=false`を維持する。BrandとSLSのoffline最小成果は正式採用済みで、live連携・Handoffは別承認の後続工程とする。
+- SG Minimum Beta Step 8はDEC-0111の半自動完成線に対する`COMPLETION_GATE_PASS_CANDIDATE`をPR #110で正式採用済みである（DEC-0112）。採用した完成線は手動確認とSeller Center手動出品を含む少量Betaで、SG operation `INACTIVE`、`listing_ready=false`、export / handoff CLOSEDを維持する。これはStep 9のSG実運用開始承認、production Brand / SLS live acceptance、全商品安全保証ではない。
 - MY／THの順序は証拠と事業判断なしに固定しない。
 - 出品支援ツールの内部工程間の連携は、必要な場合に別設計ゲートを通す。
 - Category Mapper AI Shadowと自動出品は、明示承認なしに開始しない。
