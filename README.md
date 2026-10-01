@@ -97,7 +97,7 @@ Category Mapperの「Shopee ACCESS_TOKEN（一時利用）」には、既存管�
 
 ### SG Category Mapper Minimum Beta
 
-PR #82のoffline製品実装に続き、実SG production catalogと6実商品のCategory acceptanceは正式完了済みです（DEC-0103）。SG Brandの最小実装・offline検証はPR #103 / DEC-0105で正式採用済みです。隔離acceptance DBだけを明示初期化し、fake transportを使います。production Brand API・Bridge取得、実商品Brand / No Brand受入、production DB schema適用は未実施です。現在状態と後続工程は[CURRENT_WORK](docs/CURRENT_WORK.md)、設計は[DEC-0104](docs/DECISION_LOG.md#dec-0104--sg-brand--no-brand-minimum-betaの設計を確定しdocs-onlyで正本化する)、採用記録は[DEC-0105](docs/DECISION_LOG.md#dec-0105--sg-brand-minimum-beta-offline実装をpr-103で正式採用しmerge後検証を完了する)を参照してください。SG operationはINACTIVE、`listing_ready=false`、export / handoff閉鎖を維持します。SG SLS offline最小runtimeはPR #107で正式採用済みです（DEC-0109）。Attribute、live SLS受入、deploy、自動確定・出品は未実施です。
+PR #82のSG Category Mapper offline実装、実SG production catalogと6実商品のCategory acceptance（DEC-0103）、SG Brand offline最小実装（PR #103 / DEC-0105）、SG SLS offline最小runtime（PR #107 / DEC-0109）はformal mainへ採用済みです。Brand API取得、実商品Brand / No Brand live受入、production DB schema、実商品SLS live受入、Attribute自動処理は未実施です。現在のStep 8完成判定候補は[DEC-0111](docs/DECISION_LOG.md#dec-0111--sg-minimum-beta-step-8の半自動完成候補とstep-9の承認境界を固定する)、現在状態は[CURRENT_WORK](docs/CURRENT_WORK.md)を参照してください。
 
 SG画面は、全行ELIGIBLEの正式SG Prelisting Gate CSVだけを受け付けます。ファイル名は`prelisting_gate_eligible_sg_expansion.csv`または`prelisting_gate_eligible_sg_resolver.csv`です。PH・市場混在、REVIEW / EXCLUDE、source_type混在、audit CSV、raw Candidate CSVは拒否します。
 
@@ -106,6 +106,10 @@ Category catalogは、`marketplace,category_id,parent_category_id,category_name,
 SG向けCategory AI Core契約はoffline Fake Provider testsで検証しますが、live OpenAI APIは未承認のためSG UIに実行ボタンやprovider生成経路を設けません。現在のSG UIは、検証済みSG catalogから商品単位でleafを手動選択して確定します。確定結果はASIN単位で保存されますが、再利用時に現在catalogのID・path・leafを再検証します。Category確定後も`listing_ready=false`で停止し、SG groups CSV、listing TXT、handoffは出力しません。SG operationはINACTIVEです。
 
 SG SLSはCategory確定後に、現在catalogのID / path / leafとformal canonical / SG資産を再検証します。画面にはUNCHECKED、ALLOW候補、REVIEW、EXCLUDE、UNAVAILABLEと理由を表示します。NOは数量より優先してEXCLUDE、YES + No limitだけがALLOW候補、数量・重量・Shopee確認・missingはREVIEWです。ALLOW候補はSLS Category条件による追加停止がないことだけを意味し、商品全体のSafetyを保証しません。Brand操作でもSLS停止は保持し、SG listing_ready / export / handoffは閉鎖します。資産更新はアプリ停止・更新・再起動・新sessionで行い、検証失敗時に過去ALLOWへfallbackしません。
+
+SG Minimum Beta Step 8は`COMPLETION_GATE_PASS_CANDIDATE`であり、Ownerの正式受入前です。候補となる半自動運用では、SG Gate `ELIGIBLE`、人間確認済みCategory・Brand / No Brand、SLS `ALLOW`候補を確認し、Seller Centerで必須Attributeと商品固有条件を入力・確認してから商品単位で手動出品します。未解決の`BLOCK` / `REVIEW` / `EXCLUDE` / `UNCHECKED` / `UNAVAILABLE`、カテゴリやBrandの未確認、Battery / 危険物 / 許認可の未解決疑義がある商品は出品しません。人間確認でSafetyやSLSの停止を解除しません。
+
+この完成候補では`listing_ready=false`、SG operation INACTIVE、SG export / handoff閉鎖を維持します。自動export・handoff・出品、production Brand GET / live acceptance、Attribute自動処理、全商品・全Categoryの安全保証は対象外です。Seller Center実操作、実商品Brand / No Brand・SLS acceptanceは未確認です。Step 8正式受入はSG実運用開始、ACTIVE化、出口開放、production API / DB変更を承認しません。Step 9はStep 8 formal採用後の検証完了後に別途判断します。
 
 ### Category AI Benchmark Ver1（独立実験）
 
