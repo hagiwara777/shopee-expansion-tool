@@ -97,7 +97,7 @@ Category Mapperの「Shopee ACCESS_TOKEN（一時利用）」には、既存管�
 
 ### SG Category Mapper Minimum Beta
 
-PR #82のSG Category Mapper offline実装、実SG production catalogと6実商品のCategory acceptance（DEC-0103）、SG Brand offline最小実装（PR #103 / DEC-0105）、SG SLS offline最小runtime（PR #107 / DEC-0109）はformal mainへ採用済みです。Brand API取得、実商品Brand / No Brand live受入、production DB schema、実商品SLS live受入、Attribute自動処理は未実施です。現在のStep 8完成判定候補は[DEC-0111](docs/DECISION_LOG.md#dec-0111--sg-minimum-beta-step-8の半自動完成候補とstep-9の承認境界を固定する)、現在状態は[CURRENT_WORK](docs/CURRENT_WORK.md)を参照してください。
+PR #82のSG Category Mapper offline実装、実SG production catalogと6実商品のCategory acceptance（DEC-0103）、SG Brand offline最小実装（PR #103 / DEC-0105）、SG SLS offline最小runtime（PR #107 / DEC-0109）はformal mainへ採用済みです。Brand API取得、実商品Brand / No Brand live受入、production DB schema、実商品SLS live受入、Attribute自動処理は未実施です。正式採用したStep 8完成線は[DEC-0111](docs/DECISION_LOG.md#dec-0111--sg-minimum-beta-step-8の半自動完成候補とstep-9の承認境界を固定する)、現在状態は[CURRENT_WORK](docs/CURRENT_WORK.md)を参照してください。
 
 SG画面は、全行ELIGIBLEの正式SG Prelisting Gate CSVだけを受け付けます。ファイル名は`prelisting_gate_eligible_sg_expansion.csv`または`prelisting_gate_eligible_sg_resolver.csv`です。PH・市場混在、REVIEW / EXCLUDE、source_type混在、audit CSV、raw Candidate CSVは拒否します。
 
@@ -107,9 +107,9 @@ SG向けCategory AI Core契約はoffline Fake Provider testsで検証します�
 
 SG SLSはCategory確定後に、現在catalogのID / path / leafとformal canonical / SG資産を再検証します。画面にはUNCHECKED、ALLOW候補、REVIEW、EXCLUDE、UNAVAILABLEと理由を表示します。NOは数量より優先してEXCLUDE、YES + No limitだけがALLOW候補、数量・重量・Shopee確認・missingはREVIEWです。ALLOW候補はSLS Category条件による追加停止がないことだけを意味し、商品全体のSafetyを保証しません。Brand操作でもSLS停止は保持し、SG listing_ready / export / handoffは閉鎖します。資産更新はアプリ停止・更新・再起動・新sessionで行い、検証失敗時に過去ALLOWへfallbackしません。
 
-SG Minimum Beta Step 8は`COMPLETION_GATE_PASS_CANDIDATE`であり、Ownerの正式受入前です。候補となる半自動運用では、SG Gate `ELIGIBLE`、人間確認済みCategory・Brand / No Brand、SLS `ALLOW`候補を確認し、Seller Centerで必須Attributeと商品固有条件を入力・確認してから商品単位で手動出品します。未解決の`BLOCK` / `REVIEW` / `EXCLUDE` / `UNCHECKED` / `UNAVAILABLE`、カテゴリやBrandの未確認、Battery / 危険物 / 許認可の未解決疑義がある商品は出品しません。人間確認でSafetyやSLSの停止を解除しません。
+SG Minimum Beta Step 8の`COMPLETION_GATE_PASS_CANDIDATE`で示した半自動完成線は、Ownerの最終承認を受けPR #110でformal mainへ正式採用済みです（DEC-0112）。この完成線では、SG Gate `ELIGIBLE`、人間確認済みCategory・Brand / No Brand、SLS `ALLOW`候補を確認し、Seller Centerで必須Attributeと商品固有条件を入力・確認してから商品単位で手動出品します。未解決の`BLOCK` / `REVIEW` / `EXCLUDE` / `UNCHECKED` / `UNAVAILABLE`、カテゴリやBrandの未確認、Battery / 危険物 / 許認可の未解決疑義がある商品は出品しません。人間確認でSafetyやSLSの停止を解除しません。
 
-この完成候補では`listing_ready=false`、SG operation INACTIVE、SG export / handoff閉鎖を維持します。自動export・handoff・出品、production Brand GET / live acceptance、Attribute自動処理、全商品・全Categoryの安全保証は対象外です。Seller Center実操作、実商品Brand / No Brand・SLS acceptanceは未確認です。Step 8正式受入はSG実運用開始、ACTIVE化、出口開放、production API / DB変更を承認しません。Step 9はStep 8 formal採用後の検証完了後に別途判断します。
+この正式採用した完成線では`listing_ready=false`、SG operation INACTIVE、SG export / handoff閉鎖を維持します。自動export・handoff・出品、production Brand GET / live acceptance、Attribute自動処理、全商品・全Categoryの安全保証は対象外です。Seller Center実操作、実商品Brand / No Brand・SLS acceptanceは未確認です。Step 8正式受入はSG実運用開始、ACTIVE化、出口開放、production API / DB変更を承認しません。Step 8のmerge後検証は完了済みですが、Step 9は未承認・未着手であり、別途判断します。
 
 ### Category AI Benchmark Ver1（独立実験）
 
