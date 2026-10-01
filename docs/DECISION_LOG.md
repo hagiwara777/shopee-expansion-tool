@@ -1345,3 +1345,14 @@
 - 維持 / 未実施: PH public runtime / assets / export contract、Shared Battery、Safety / Guardrail、DB schema / migration、State、SG operation INACTIVE、listing_ready=false、export / handoff閉鎖を維持した。production API / Bridge、credential変更、production DB、実商品/live SLS受入、Attribute、deploy、SG ACTIVE、自動確定・出品は未実施。Roadmap Step 8 / SG Minimum Beta全体の受入を意味しない。
 - 後続正本化 / 承認: CURRENT_WORK、append-only Decision、READMEのformal-state表示を更新するdocs-only PRは、同じタスク内で別のOwner Acceptance対象とする。PR #107承認を後続PRへ流用しない。technical gates後、新PR専用9項目Summaryを提示しWAITING_APPROVALで停止する。明示承認後だけ方式Bに従う。
 - rollback: PR #107 code / testsと本記録を通常revertする。production DB migration・復旧を伴わず、正式assets、PH、State、Trust Anchor、credential、過去DecisionとEvidenceを変更・削除しない。force push / dirty reset禁止。
+
+## DEC-0110 — PR #108のDEC-0108訂正を正式採用しSG SLS offline runtime文書を最終正本化する
+
+- 日付: 2026-10-01
+- authority: OwnerはPR #108のaccepted head `335f1e2296212978a3c3caa6b38e433558832fd9`と提示済みOwner Acceptance Summaryのscopeでformal main採用を明示承認した。この承認はPR #108およびそのSummary scopeに限る。
+- 変更・正式採用: PR #108でDEC-0108の既存文言をformal main上の原文へ完全に復元し、PR #107採用記録であるappend-only DEC-0109を維持した。通常merge commit `d1b6b8daf7062f15bcfd675e784242506fcb3f35`でformal mainへ統合し、GitHub MERGED、accepted head、最新main一致を確認した。
+- Owner Acceptance / formal: formal mainの`owner_acceptance_transport` helperを用い、ProviderでOwner承認bindingをfresh取得し、fresh signed Owner Evidenceを生成した。merge直前のfresh再確認とformal Verify CONTINUE後に通常mergeした。mandatory technical gatesはcurrent headで6 / 6 PASS。
+- 検証: merge後にPowerShell 5.1 / 7 Validate PASS、Context Snapshot生成、read-only Verify CONTINUEを確認した。Verifyのmandatory `governance.ps51` / `governance.ps7`は実行済みlocal evidenceへbindした。最新formal mainは`d1b6b8daf7062f15bcfd675e784242506fcb3f35`。
+- 維持・未実施: DEC-0108の技術判断と既存scope、DEC-0109の採用記録を維持した。SG operation INACTIVE、`listing_ready=false`、export / handoff閉鎖を維持し、production / live API、実商品受入、production DB / schema、Attribute、deploy、SG ACTIVE、自動確定・出品は実施していない。
+- 正本化・次工程: CURRENT_WORKをPR #108のformal採用・merge後検証済みへ更新した。SG SLS offline runtimeの正式採用で本taskの対象を完了し、Roadmap Step 8、live受入、runtime切替・出口開放は別scope・別承認とする。
+- rollback: 本docs-only変更は通常revert可能。製品code、正式assets、PH、State、credential、Trust Anchor、過去Evidenceを変更・削除せず、force push / dirty resetを行わない。
