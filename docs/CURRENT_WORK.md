@@ -4,13 +4,13 @@
 
 ## 現在の単一作業
 
-SG Minimum Beta完成判定（Roadmap Step 8）の半自動完成線をPR #110でformal mainへ正式採用し、merge後検証を完了した（DEC-0111 / DEC-0112）。OwnerはPR #110の提示済み9項目Owner Acceptance Summaryとaccepted head `223577f2b4b11b99e3d0dd96528398b96949d40d`を最終承認した。fresh署名付きOwner Evidenceとformal Verify CONTINUE後に通常mergeし、GitHub MERGED、最新formal main一致、PowerShell 5.1 / 7 Validate、snapshot、read-only Verify CONTINUEを確認済み。
+SG Minimum Beta完成判定（Roadmap Step 8）は正式採用・最終正本化を完了し、CLOSEDとする。PR #110で半自動完成線を採用し（DEC-0111 / DEC-0112）、PR #111でその採用結果とmerge後検証を4文書へ正式記録した（DEC-0113）。PR #111はaccepted head `148b9d53600583b12bbde6d21655258d87424695`、merge commit `9d37cf1a60475b6e1a0347744397cf9833f7cfc7`でformal mainへ通常merge済み。fresh Owner Evidenceとformal Verify CONTINUE後にmergeし、GitHub MERGED / main一致、PowerShell 5.1 / 7 Validate、snapshot、read-only Verify CONTINUEを確認した。Step 8の新規Beta MUST実装残作業はない。
 
-完成判定は`COMPLETION_GATE_PASS_CANDIDATE`として示した半自動完成線の正式採用であり、SG実運用開始の承認ではない。少量商品について、SG Gate `ELIGIBLE` → 人間Category確認 → 人間Brand / No Brand確認 → SLS `ALLOW`候補 → Seller Centerで必須Attribute・商品固有条件を人間確認 → 商品単位の手動出品、という成立条件を採用した。未解決の`BLOCK` / `REVIEW` / `EXCLUDE` / `UNCHECKED` / `UNAVAILABLE`、Category・Brand未確認、Battery / 危険物 / 許認可等の疑義がある商品は出品しない。新規Beta MUST実装の残作業は確認されていない。既存Safety・Shared Battery・Community NG・own penalty・COMMON / SG BLOCK / REVIEW・SLS停止を維持する。
+採用済み完成線は少量商品ごとのSG Gate `ELIGIBLE`、人間Category・Brand / No Brand確認、SLS `ALLOW`候補、Seller Center必須Attribute・商品固有発送条件確認を経た手動出品である。未解決BLOCK / REVIEW / EXCLUDE / UNCHECKED / UNAVAILABLE、Category / Brand未確認、Battery / 危険物 / 許認可等の未解決疑義があれば出品しない。Safety / Battery / SLS停止条件を維持する。
 
-現在の単一作業は、PR #110の正式採用・merge後検証結果を記録するdocs-only最終正本化。本候補のtechnical gatesとread-only review後、新しいheadにbindした9項目Summaryを提示して`WAITING_APPROVAL`で停止する。PR #110の承認を後続PRへ流用しない。Step 9には着手しない。
+SG operationはINACTIVE、`listing_ready=false`、SG export / handoff CLOSEDを維持する。PHはACTIVE / ALLOWED、SGはINACTIVE / ALLOWED、`ph.beta.operation`と`sg.safety.baseline`はACCEPTEDを維持する。production API / DB変更、deploy、SG ACTIVE化、自動出品は未承認で未実施。Brand / SLS live acceptanceとSeller Center E2Eは未実施の既知制約である。
 
-SG operation INACTIVE、`listing_ready=false`、SG export / handoff CLOSEDを維持する。PH ACTIVE / ALLOWED、SG INACTIVE / ALLOWED、`ph.beta.operation` / `sg.safety.baseline` ACCEPTEDは不変。production API / Bridge / DB / schema、credential、deploy、SG ACTIVE、自動出品は未実施。Brand / SLS live acceptance、Seller Center E2Eは未検証であり、実運用開始はStep 9で別途明示承認を要する。
+Step 8を終了し、次の独立工程はRoadmap Step 9「SG実運用」とする。Step 9は未承認・未着手であり、開始には別タスクとOwnerの別途明示承認が必要である。この補正ではStep 9へ進まない。
 
 ## 現在の正式状態
 
@@ -30,6 +30,7 @@ PR #103はOwnerのoffline限定最終承認で正式採用済み。Attribute、�
 
 ## Required Decisions
 
+- DEC-0113 — PR #111のStep 8最終正本化、merge後確認、Step 8 CLOSEDとStep 9別承認境界。
 - DEC-0112 — PR #110のStep 8正式採用、Owner Evidence、merge後検証、最終正本化とStep 9停止。
 - DEC-0111 — SG Minimum Beta Step 8完成候補、半自動運用の完成条件・制約、Step 9別承認境界。
 - DEC-0071 / DEC-0075 / DEC-0076 / DEC-0077 — SG Safety・Shared Battery・formal SLS assets・PH SLS runtimeの保護契約。
