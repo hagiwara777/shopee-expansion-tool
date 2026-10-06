@@ -307,7 +307,7 @@ DEC-0049の`BETA_AFTER_CANDIDATE`、DB化、他市場展開、出品後商品改
 - Resolver成功は英字商品名から正しいASINへの到達性能で判断する。
 - 未確認の既存出品ツール契約を実装済みとして扱わない。
 - SG Category Mapper Minimum BetaはPR #82でformal mainへ統合済みのoffline製品成果である。正式SG Gate入力、検証済みSG catalog、Category AI Coreのoffline候補契約、商品単位の人間確認、ASIN単位保存を提供する。通常PH画面内のSG live AIと出口は閉鎖する。DEC-0127の専用SGベータでは承認枠によるlive候補・Brand確認・手動準備出力を使用する。Category確認object単独の`listing_ready=false`は維持する。
-- SG Minimum Beta Step 8はDEC-0111の半自動完成線に対する`COMPLETION_GATE_PASS_CANDIDATE`をPR #110で正式採用済みである（DEC-0112）。採用した完成線は手動確認とSeller Center手動出品を含む少量Betaで、SG operation `INACTIVE`、`listing_ready=false`、export / handoff CLOSEDを維持する。これはStep 9のSG実運用開始承認、production Brand / SLS live acceptance、全商品安全保証ではない。
+- SG Minimum Beta Step 8はDEC-0111の半自動完成線に対する`COMPLETION_GATE_PASS_CANDIDATE`をPR #110で正式採用済みである（DEC-0112）。採用した完成線は手動確認とSeller Center手動出品を含む少量Betaで、Step 8受入時はSG operation `INACTIVE`、`listing_ready=false`、export / handoff CLOSEDを維持した。Step 9の専用環境はDEC-0127を参照する。Step 8受入自体はproduction Brand / SLS live acceptance、全商品安全保証ではない。
 - MY／THの順序は証拠と事業判断なしに固定しない。
 - 出品支援ツールの内部工程間の連携は、必要な場合に別設計ゲートを通す。
 - Category Mapper AI Shadowと自動出品は、明示承認なしに開始しない。

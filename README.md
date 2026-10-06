@@ -127,7 +127,7 @@ Category catalogは、`marketplace,category_id,parent_category_id,category_name,
 
 通常PH画面内のSG UIは、検証済みSG catalogから商品単位でleafを手動選択して確定します。live OpenAI経路やSG出口はこの画面で開きません。確定結果はASIN単位で保存され、再利用時に現在catalogのID・path・leafを再検証します。Category確認objectの`listing_ready=false`は維持します。SG operationは専用少量ベータのためACTIVEとし、[SG専用環境](docs/SG_BETA_ENVIRONMENT.md)で承認枠付き候補提示・Brand確認・手動準備CSV / TXTを利用します。
 
-SG SLSはCategory確定後に、現在catalogのID / path / leafとformal canonical / SG資産を再検証します。画面にはUNCHECKED、ALLOW候補、REVIEW、EXCLUDE、UNAVAILABLEと理由を表示します。NOは数量より優先してEXCLUDE、YES + No limitだけがALLOW候補、数量・重量・Shopee確認・missingはREVIEWです。ALLOW候補はSLS Category条件による追加停止がないことだけを意味し、商品全体のSafetyを保証しません。Brand操作でもSLS停止は保持し、SG listing_ready / export / handoffは閉鎖します。資産更新はアプリ停止・更新・再起動・新sessionで行い、検証失敗時に過去ALLOWへfallbackしません。
+SG SLSはCategory確定後に、現在catalogのID / path / leafとformal canonical / SG資産を再検証します。画面にはUNCHECKED、ALLOW候補、REVIEW、EXCLUDE、UNAVAILABLEと理由を表示します。NOは数量より優先してEXCLUDE、YES + No limitだけがALLOW候補、数量・重量・Shopee確認・missingはREVIEWです。ALLOW候補はSLS Category条件による追加停止がないことだけを意味し、商品全体のSafetyを保証しません。Brand操作でもSLS停止は保持し、通常PH画面内のSG出口は閉鎖します。専用ベータ出口もSLS停止を解除しません。資産更新はアプリ停止・更新・再起動・新sessionで行い、検証失敗時に過去ALLOWへfallbackしません。
 
 SG Minimum Beta Step 8の`COMPLETION_GATE_PASS_CANDIDATE`で示した半自動完成線は、Ownerの最終承認を受けPR #110でformal mainへ正式採用済みです（DEC-0112）。この完成線では、SG Gate `ELIGIBLE`、人間確認済みCategory・Brand / No Brand、SLS `ALLOW`候補を確認し、Seller Centerで必須Attributeと商品固有条件を入力・確認してから商品単位で手動出品します。未解決の`BLOCK` / `REVIEW` / `EXCLUDE` / `UNCHECKED` / `UNAVAILABLE`、カテゴリやBrandの未確認、Battery / 危険物 / 許認可の未解決疑義がある商品は出品しません。人間確認でSafetyやSLSの停止を解除しません。
 

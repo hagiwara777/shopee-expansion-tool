@@ -25,7 +25,7 @@ MY / THの市場runtime開始はこの利用確認後に別scopeで判断する�
 
 ## 成立済み成果と保護境界
 
-- PH / SGのCategory Mapperは共通の市場選択入口と確認手順を使用する（DEC-0115）。
+- 通常PH画面内のPH / SG Category Mapperは共通の市場選択入口と確認手順を使用する（DEC-0115）。
   Category検索・採用の表記を揃え、PHのグループ確認とSGの商品単位確認を維持する。
   SGのAI候補・Brand確認結果保存・CSV / TXT出力は未提供として表示し、機能を有効化しない。
 - PHはACTIVE / ALLOWED、SGはACTIVE / ALLOWED、MY / THはINACTIVE / NOT_STARTED。
