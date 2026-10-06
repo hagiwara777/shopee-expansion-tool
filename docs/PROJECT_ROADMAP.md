@@ -5,8 +5,8 @@
 現状PH BetaをSG / MY / THの初期完成基準に固定する（DEC-0116）。
 SGをPH相当へ揃える過程で共通moduleを整え、その後MY / THへ国別情報を追加して展開する。
 詳細は[PH Beta市場展開](PH_BETA_MARKET_PARITY.md)を参照する。
-SGの手動出品準備出力・ベータ入口は採用候補として準備する（DEC-0126）。
-実装候補と正式環境での利用開始を区別し、[採用範囲](SG_BETA_RELEASE.md)に従う。
+SGの手動出品準備出力・ベータ入口を専用の少量利用環境へ接続する（DEC-0126 / DEC-0127）。
+コード採用と端末設置・実API確認を区別し、[利用環境](SG_BETA_ENVIRONMENT.md)に従う。
 画像AI対象選択も共通処理＋国別設定とし、PH / SGの現行PH条件とMY / THの初期設定を用意する（DEC-0123）。
 MY / THの市場runtime・Safety・出品接続はSG機能統一後の後続工程とする。
 
@@ -77,7 +77,7 @@ ASIN到達性能とResolver成功は未評価であり、Evidence Persistenceの
 
 ### 3. Category決定
 
-- Category Mapper（Safety判定を通過した候補について、対象市場ごとのCategory IDを決定・確認する。PHは正式成果あり、SGはPR #82でoffline Category Mapper Minimum Betaをformal mainへ統合済みで、operationはINACTIVEのまま商品単位確認で停止する）
+- Category Mapper（Safety判定を通過した候補について、対象市場ごとのCategory IDを決定・確認する。PHは正式成果あり、SGはPR #82のoffline成果に加え、専用の少量ベータ環境で商品単位確認と手動準備出力を行う）
 - Category predictionとSafety判定を混同しない
 
 ### 4. Category依存Safety
@@ -207,7 +207,7 @@ DECISION_LOG読込軽量化はPR #91、ShopeeCatalogClient marketplace-neutral�
 6. **SG Brand（offline最小実装を正式採用）** — PR #103 / DEC-0105でstrict current取得、real Brand alias再validation、商品単位No Brand保存をoffline実装として正式採用した。production Brand GET、実商品Brand / No Brand受入、production DB schema適用、SG runtimeや出口開放は含まない。後続live工程には別Owner承認を要し、`listing_ready=false` / SG export・handoff閉鎖を維持する。
 7. **SG SLS runtime（offline最小runtime正式採用済み）** — PR #107 / DEC-0109でoffline成果をformal mainへ採用済み。production / live acceptance、Attribute、出口開放、SG operation変更を含まない。
 8. **SG Minimum Beta完成判定（Step 8正式採用済み）** — `COMPLETION_GATE_PASS_CANDIDATE`で示したDEC-0111の半自動完成線をOwner最終承認後にPR #110で正式採用した（DEC-0112）。Gate `ELIGIBLE`、人間確認済みCategory・Brand / No Brand、SLS `ALLOW`候補、Seller Centerの必須Attribute・商品固有条件確認済みの商品だけを少量手動出品する。未解決停止は出品しない。read-only auditで追加Beta MUST実装は確認されていない。Step 8のmerge後検証は完了済み。
-9. **SG実運用（Step 9 / 未承認・未着手）** — Step 8 formal main採用・merge後検証は完了済み。実運用は別Owner承認後にだけ検討する。Step 8受入自体ではSG `INACTIVE`、`listing_ready=false`、export / handoff CLOSEDを維持し、SG ACTIVE化や出口開放を行わない。
+9. **SG実運用（Step 9 / 専用少量ベータ）** — DEC-0127に基づきSG ACTIVEと専用手動準備出力を採用する。固定release・専用起動先・コード外の永続DB / API枠を使い、PH環境を維持する。端末設置と実行結果はrepo外Task Context / Git外Evidenceを参照する。新規API枠は具体的対象・取得数・費用の承認を要する。自動出品・通常DB移行・MY / TH開始は含まない。
 10. **MY展開** — 共通Source / Catalog基盤を再利用し、MY固有Safety、source identity、production確認だけを追加する。MY runtimeを先行有効化しない。
 11. **TH展開** — 同じ共通基盤を再利用し、TH固有差分だけを追加する。TH runtimeを先行有効化しない。
 
@@ -306,8 +306,8 @@ DEC-0049の`BETA_AFTER_CANDIDATE`、DB化、他市場展開、出品後商品改
 - 証拠保存機能の完成だけでResolver成功を宣言しない。
 - Resolver成功は英字商品名から正しいASINへの到達性能で判断する。
 - 未確認の既存出品ツール契約を実装済みとして扱わない。
-- SG Category Mapper Minimum BetaはPR #82でformal mainへ統合済みのoffline製品成果である。正式SG Gate入力、検証済みSG catalog、Category AI Coreのoffline候補契約、商品単位の人間確認、ASIN単位保存を提供する。SG UIのlive OpenAI API経路は閉鎖済みで、現在は手動Category確認だけを提供する。SG operationはINACTIVE、Category確定後も`listing_ready=false`を維持する。BrandとSLSのoffline最小成果は正式採用済みで、live連携・Handoffは別承認の後続工程とする。
-- SG Minimum Beta Step 8はDEC-0111の半自動完成線に対する`COMPLETION_GATE_PASS_CANDIDATE`をPR #110で正式採用済みである（DEC-0112）。採用した完成線は手動確認とSeller Center手動出品を含む少量Betaで、SG operation `INACTIVE`、`listing_ready=false`、export / handoff CLOSEDを維持する。これはStep 9のSG実運用開始承認、production Brand / SLS live acceptance、全商品安全保証ではない。
+- SG Category Mapper Minimum BetaはPR #82でformal mainへ統合済みのoffline製品成果である。正式SG Gate入力、検証済みSG catalog、Category AI Coreのoffline候補契約、商品単位の人間確認、ASIN単位保存を提供する。通常PH画面内のSG live AIと出口は閉鎖する。DEC-0127の専用SGベータでは承認枠によるlive候補・Brand確認・手動準備出力を使用する。Category確認object単独の`listing_ready=false`は維持する。
+- SG Minimum Beta Step 8はDEC-0111の半自動完成線に対する`COMPLETION_GATE_PASS_CANDIDATE`をPR #110で正式採用済みである（DEC-0112）。採用した完成線は手動確認とSeller Center手動出品を含む少量Betaで、Step 8受入時はSG operation `INACTIVE`、`listing_ready=false`、export / handoff CLOSEDを維持した。Step 9の専用環境はDEC-0127を参照する。Step 8受入自体はproduction Brand / SLS live acceptance、全商品安全保証ではない。
 - MY／THの順序は証拠と事業判断なしに固定しない。
 - 出品支援ツールの内部工程間の連携は、必要な場合に別設計ゲートを通す。
 - Category Mapper AI Shadowと自動出品は、明示承認なしに開始しない。
@@ -318,7 +318,7 @@ DEC-0049の`BETA_AFTER_CANDIDATE`、DB化、他市場展開、出品後商品改
 
 1. Versioned State / Config / schema、repo外Task Context、Trust Anchor、Generator / Verifierをformal mainへ統合する。
 2. PH Beta運用を継続し、`ph.beta.operation`をprotected capabilityとして回帰保護する。
-3. SGはoperation INACTIVE / development ALLOWEDを維持する。SG Category Mapper Minimum Betaのoffline実装はPR #82でformal mainへ統合済みであり、`sg.safety.baseline`はprotected capabilityとして維持する。
+3. SGはoperation ACTIVE / development ALLOWEDとし、専用少量ベータだけを利用する（DEC-0127）。SG Category Mapper Minimum Betaのoffline実装はPR #82でformal mainへ統合済みであり、`sg.safety.baseline`はprotected capabilityとして維持する。
 4. SG Brand / SLS runtime / Handoffへ戻る条件は、SG Category Mapper Minimum Betaとは別の設計Gate、PH/SG保護gate成立、別タスク開始承認である。
 5. MY / THはNOT_STARTEDを維持し、capabilityを先行定義しない。
 

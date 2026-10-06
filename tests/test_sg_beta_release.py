@@ -47,7 +47,10 @@ def ready(tmp_path):
     return workflow, item
 
 
-def test_current_inactive_state_blocks_before_workflow_access():
+def test_inactive_state_blocks_before_workflow_access(activation):
+    path, state = activation
+    state['markets']['SG']['operation'] = 'INACTIVE'
+    path.write_text(json.dumps(state), encoding='utf-8')
     with pytest.raises(release.SGBetaNotAdopted):
         build_sg_beta_preparation_files((), workflow=None)
 
@@ -111,7 +114,10 @@ def test_activation_change_during_build_closes_output(activation, ready, monkeyp
     with pytest.raises(release.SGBetaNotAdopted): build_sg_beta_preparation_files((item,), workflow=workflow)
 
 
-def test_beta_entry_before_adoption_never_opens_a_runtime(preview, monkeypatch):
+def test_beta_entry_before_adoption_never_opens_a_runtime(activation, preview, monkeypatch):
+    path, state = activation
+    state['markets']['SG']['operation'] = 'INACTIVE'
+    path.write_text(json.dumps(state), encoding='utf-8')
     monkeypatch.setattr('modules.sg_live_runtime.SGLiveRuntime',
                         lambda **kwargs: pytest.fail('Runtime must not open before adoption'))
     app = AppTest.from_file(str(Path(__file__).resolve().parents[1] / 'app_sg_beta.py')).run()

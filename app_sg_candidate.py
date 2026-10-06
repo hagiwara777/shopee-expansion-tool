@@ -52,7 +52,7 @@ def render_sg_candidate(*, live_grant_path=None, api_env_path=None):
     render_sg_category_mapper(brand_workflow=workflow, ai_engine=state.get("sg_candidate_engine"))
 
 
-def render_sg_live_candidate(grant_path, *, api_env_path=None, beta_output=False):
+def render_sg_live_candidate(grant_path, *, api_env_path=None, beta_output=False, runtime_root=None):
     """Explicit launch only; initialization is local and buttons perform I/O."""
     from modules.sg_live_runtime import SGLiveRunGrant, SGLiveRuntime
     if beta_output:
@@ -67,13 +67,16 @@ def render_sg_live_candidate(grant_path, *, api_env_path=None, beta_output=False
             "承認済みの対象・取得上限・費用枠内で読み取り確認を行う隔離環境です。出力は開発用です。")
     try:
         grant=SGLiveRunGrant.from_file(grant_path)
-        grant.validate(Path(__file__).parent/"outputs"/"sg-live-ui"/grant.digest/"validation.sqlite3")
+        data_root = (Path(runtime_root).resolve() if runtime_root is not None else
+                     Path(__file__).parent/"outputs"/"sg-live-ui")
+        grant.validate(data_root/grant.digest/"validation.sqlite3")
     except Exception:
         st.error("実接続の設定を確認できません。承認済みの対象・上限を確認してください。")
         return
     state=st.session_state
     existing=state.get("sg_live_runtime")
-    if existing is not None and state.get("sg_live_grant_digest")!=grant.digest:
+    if existing is not None and (state.get("sg_live_grant_digest")!=grant.digest
+                                 or state.get("sg_live_data_root") != str(data_root)):
         existing.close()
         _clear_candidate(state)
         state.pop("sg_live_runtime",None)
@@ -85,9 +88,11 @@ def render_sg_live_candidate(grant_path, *, api_env_path=None, beta_output=False
             if not key and api_env_path is not None:
                 from dotenv import dotenv_values
                 key=dotenv_values(api_env_path).get("OPENAI_API_KEY") or ""
-            runtime=SGLiveRuntime(grant=grant,run_path=Path(__file__).parent/"outputs"/"sg-live-ui"/grant.digest,api_key=key)
+            runtime=SGLiveRuntime(grant=grant,run_path=data_root/grant.digest,api_key=key,
+                                 **({"claim_dir":data_root/"claims"} if runtime_root is not None else {}))
             state["sg_live_runtime"]=runtime
             state["sg_live_grant_digest"]=grant.digest
+            state["sg_live_data_root"]=str(data_root)
         except Exception:
             st.error("隔離環境を開けません。既存の取得記録・設定・認証を確認してください。")
     runtime=state.get("sg_live_runtime")

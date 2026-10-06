@@ -16,15 +16,19 @@ SG Minimum Beta完成判定（Roadmap Step 8）は正式採用済みでCLOSED。
 
 次の開発目標は現状PH Betaを固定基準とするSG機能統一である（DEC-0116）。
 共通moduleを改善し、市場別の判断材料とadapterを分離する。
-SG実運用（Roadmap Step 9）は未承認・未着手であり、機能統一のlocal開発とは区別する。
+SG実運用（Roadmap Step 9）は専用の少量ベータ環境を対象とする（DEC-0127）。
+SG ACTIVE化とPH形式の手動準備出力を採用し、固定release・専用保存先・承認枠で起動する。
+端末の設置・最新API利用枠・実行確認はrepo外Task Context / Git外Evidenceを参照する。
+次の単一作業は、[SG専用環境](SG_BETA_ENVIRONMENT.md)で少量商品を利用し、実務上の不足を確認する。
+MY / THの市場runtime開始はこの利用確認後に別scopeで判断する。
 完成基準と順序は[PH Beta市場展開](PH_BETA_MARKET_PARITY.md)を参照する。
 
 ## 成立済み成果と保護境界
 
-- PH / SGのCategory Mapperは共通の市場選択入口と確認手順を使用する（DEC-0115）。
+- 通常PH画面内のPH / SG Category Mapperは共通の市場選択入口と確認手順を使用する（DEC-0115）。
   Category検索・採用の表記を揃え、PHのグループ確認とSGの商品単位確認を維持する。
   SGのAI候補・Brand確認結果保存・CSV / TXT出力は未提供として表示し、機能を有効化しない。
-- PHはACTIVE / ALLOWED、SGはINACTIVE / ALLOWED、MY / THはINACTIVE / NOT_STARTED。
+- PHはACTIVE / ALLOWED、SGはACTIVE / ALLOWED、MY / THはINACTIVE / NOT_STARTED。
   `ph.beta.operation`と`sg.safety.baseline`はACCEPTED。
 - SG production Category source確認、catalog import offline成果、6実商品の人間Category確認・
   保存・再利用・current ID / path / leaf再validationは正式採用済み（DEC-0093 / DEC-0098 / DEC-0103）。
@@ -79,8 +83,8 @@ SG実運用（Roadmap Step 9）は未承認・未着手であり、機能統一�
   再生modeを既定とし、初期化・再描画ではAPIを呼ばない。最新catalog取得失敗は準備候補を閉じる。
   商品ごとの準備確認・不足手順を表示し、正式出口を開かず開発用CSV / TXTを検証できる。
   SGベータ採用候補は別入口とPH形式の準備CSV / TXTを実装する（DEC-0126）。
-  正式StateでSG ACTIVEになった場合だけ利用でき、現在のINACTIVEや通常PH環境は変更しない。
-  [採用候補](SG_BETA_RELEASE.md)と[MY / TH資料の準備状況](MY_TH_GUARDRAIL_READINESS.md)を参照する。
+  正式StateのSG ACTIVEを毎回確認し、専用環境だけで利用する（DEC-0127）。通常PH環境は変更しない。
+  [準備出力](SG_BETA_RELEASE.md)と[MY / TH資料の準備状況](MY_TH_GUARDRAIL_READINESS.md)を参照する。
   通常画面は有効化せず、接続結果から人間確認を自動生成しない。実接続の結果と認証上の未解決事項は
   repo外Task Context / Git外Evidenceを参照する。部品実装は一連実用確認の完了を意味しない。
   SG自動同期はPHの既存処理を保つ追加ファイルと別SG Bridgeへ分離する設計とする（DEC-0119）。
@@ -101,10 +105,13 @@ Step 8で採用した完成線は、少量商品ごとのSG Gate `ELIGIBLE`、
 UNAVAILABLE、Category / Brand未確認、Battery / 危険物 / 許認可等の未解決疑義があれば出品しない。
 人間確認でSafety / Battery / SLS停止を解除しない。
 
-SG operation INACTIVE、`listing_ready=false`、SG export / handoff CLOSEDを維持する。
+通常PH画面内のSG出口と、既存SG Category確認objectの`listing_ready=false`を維持する。
+専用SGベータの準備対象だけ、再validation後に`listing_ready=TRUE`の手動準備CSV / TXTを出す。
+これはSeller Centerの出品完了・属性入力完了・商品全体の安全保証ではない。
 Brand / No Brand・SLS live acceptanceとSeller Center E2Eは未実施。
 production API / DB / schema、Bridge / credential変更、runtime切替、deploy、
-SG ACTIVE化、listing_ready変更、出口開放、自動確定・出品は別scope・別途明示承認を要する。
+専用環境の範囲を超える出口開放、自動確定・出品は別scope・別途明示承認を要する。
+新しいAPI枠は具体的対象・取得数・費用の明示承認を要し、過去枠をリセットしない。
 MY / THは画像対象設定・共通選択契約だけを準備する。市場runtime / Safety / 出品接続は未着手とする。未実施事項だけを新しいBeta MUSTへ昇格しない。
 
 共通Catalog / Access Token Sourceの既存責務は維持する。Mapper側refreshは行わず、
@@ -112,6 +119,8 @@ Source明示ON時のsilent fallbackを許さない。Bridge全面書込み障害
 SG Brand responseにmarketplace / Category echoがないため、server内部の別Category誤応答の独立検出は保証しない。
 
 ## Required Decisions
+
+- DEC-0127 — 採用済み固定コード・SG専用起動先・永続データとAPI枠で少量ベータを利用。
 
 - DEC-0126 — SGベータ入口・手動出品準備出力の採用候補と正式採用前の閉鎖。
 

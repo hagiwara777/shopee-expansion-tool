@@ -125,13 +125,13 @@ SG画面は、全行ELIGIBLEの正式SG Prelisting Gate CSVだけを受け付け
 
 Category catalogは、`marketplace,category_id,parent_category_id,category_name,category_path,is_leaf`の6列を持つ、出所確認済みSG catalog CSVを使用します。全件を検証してからSG catalogだけをreplaceするため、削除済みIDは残りません。SG SLS canonical / Master MatrixはAI catalogに使用しません。production source確認と隔離DBでの実catalog受入は完了しており、実運用DBへのreplaceは別承認です。
 
-SG向けCategory AI Core契約はoffline Fake Provider testsで検証しますが、live OpenAI APIは未承認のためSG UIに実行ボタンやprovider生成経路を設けません。現在のSG UIは、検証済みSG catalogから商品単位でleafを手動選択して確定します。確定結果はASIN単位で保存されますが、再利用時に現在catalogのID・path・leafを再検証します。Category確定後も`listing_ready=false`で停止し、SG groups CSV、listing TXT、handoffは出力しません。SG operationはINACTIVEです。
+通常PH画面内のSG UIは、検証済みSG catalogから商品単位でleafを手動選択して確定します。live OpenAI経路やSG出口はこの画面で開きません。確定結果はASIN単位で保存され、再利用時に現在catalogのID・path・leafを再検証します。Category確認objectの`listing_ready=false`は維持します。SG operationは専用少量ベータのためACTIVEとし、[SG専用環境](docs/SG_BETA_ENVIRONMENT.md)で承認枠付き候補提示・Brand確認・手動準備CSV / TXTを利用します。
 
-SG SLSはCategory確定後に、現在catalogのID / path / leafとformal canonical / SG資産を再検証します。画面にはUNCHECKED、ALLOW候補、REVIEW、EXCLUDE、UNAVAILABLEと理由を表示します。NOは数量より優先してEXCLUDE、YES + No limitだけがALLOW候補、数量・重量・Shopee確認・missingはREVIEWです。ALLOW候補はSLS Category条件による追加停止がないことだけを意味し、商品全体のSafetyを保証しません。Brand操作でもSLS停止は保持し、SG listing_ready / export / handoffは閉鎖します。資産更新はアプリ停止・更新・再起動・新sessionで行い、検証失敗時に過去ALLOWへfallbackしません。
+SG SLSはCategory確定後に、現在catalogのID / path / leafとformal canonical / SG資産を再検証します。画面にはUNCHECKED、ALLOW候補、REVIEW、EXCLUDE、UNAVAILABLEと理由を表示します。NOは数量より優先してEXCLUDE、YES + No limitだけがALLOW候補、数量・重量・Shopee確認・missingはREVIEWです。ALLOW候補はSLS Category条件による追加停止がないことだけを意味し、商品全体のSafetyを保証しません。Brand操作でもSLS停止は保持し、通常PH画面内のSG出口は閉鎖します。専用ベータ出口もSLS停止を解除しません。資産更新はアプリ停止・更新・再起動・新sessionで行い、検証失敗時に過去ALLOWへfallbackしません。
 
 SG Minimum Beta Step 8の`COMPLETION_GATE_PASS_CANDIDATE`で示した半自動完成線は、Ownerの最終承認を受けPR #110でformal mainへ正式採用済みです（DEC-0112）。この完成線では、SG Gate `ELIGIBLE`、人間確認済みCategory・Brand / No Brand、SLS `ALLOW`候補を確認し、Seller Centerで必須Attributeと商品固有条件を入力・確認してから商品単位で手動出品します。未解決の`BLOCK` / `REVIEW` / `EXCLUDE` / `UNCHECKED` / `UNAVAILABLE`、カテゴリやBrandの未確認、Battery / 危険物 / 許認可の未解決疑義がある商品は出品しません。人間確認でSafetyやSLSの停止を解除しません。
 
-この正式採用した完成線では`listing_ready=false`、SG operation INACTIVE、SG export / handoff閉鎖を維持します。自動export・handoff・出品、production Brand GET / live acceptance、Attribute自動処理、全商品・全Categoryの安全保証は対象外です。Seller Center実操作、実商品Brand / No Brand・SLS acceptanceは未確認です。Step 8正式受入はSG実運用開始、ACTIVE化、出口開放、production API / DB変更を承認しません。Step 8のmerge後検証は完了済みですが、Step 9は未承認・未着手であり、別途判断します。
+Step 8受入自体では`listing_ready=false`、SG operation INACTIVE、SG export / handoff閉鎖を維持しました。Step 9の専用少量ベータはDEC-0127を参照してください。自動出品、Seller Center操作・属性の自動入力、全商品・全Categoryの安全保証は含みません。端末の設置と実API実行結果はrepo外Task Context / Git外Evidenceで確認し、過去受入を新しい実行確認へ転用しません。
 
 ### Category AI Benchmark Ver1（独立実験）
 
@@ -286,9 +286,9 @@ SG追加機能の隔離開発版は `app_sg_candidate.py` と `scripts/Start-SGC
 Brand・属性・安全資料・対象商品の武器画像検査から開発用CSV / TXTまで操作します。実APIや正式SG出力は
 有効化しません。[確認手順と到達点](docs/SG_LOCAL_REVIEW_GUIDE.md)を参照してください。
 
-SGベータ入口と手動出品準備CSV / TXTの採用候補は
-[SGベータ採用候補](docs/SG_BETA_RELEASE.md)を参照してください。
-正式StateでSGを有効にするまで、この入口は利用を開始しません。
+SGベータ入口と手動出品準備CSV / TXTは[SGベータ](docs/SG_BETA_RELEASE.md)、
+専用ショートカット・使用データ・API枠は[SG利用環境](docs/SG_BETA_ENVIRONMENT.md)を参照してください。
+採用済み固定コード・SG専用データ・承認枠を起動前に確認します。PHの起動先を変更しません。
 MY / THは[Guardrail資料の準備状況](docs/MY_TH_GUARDRAIL_READINESS.md)にある土台を再利用する後続工程です。
 
 ```powershell
@@ -475,4 +475,5 @@ instead of using the legacy Access Token. PH uses the existing
 `SHOPEE_PH_SHOP_ID` / `SHOPEE_PH_ACCESS_TOKEN` names; SG uses
 `SHOPEE_SG_SHOP_ID` / `SHOPEE_SG_ACCESS_TOKEN`. The partner ID and key remain
 shared. SG production Catalog API use is not approved by this offline client
-contract. SG operation and MY/TH runtime remain inactive.
+contract. Dedicated SG beta operation follows DEC-0127 and its explicit grants;
+MY/TH runtime remains inactive.
