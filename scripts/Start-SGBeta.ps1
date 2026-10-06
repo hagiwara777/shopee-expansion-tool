@@ -6,6 +6,7 @@ param(
     [switch]$ShowError
 )
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'SGBetaProcess.ps1')
 try {
 $profile = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
 $scriptRoot = Split-Path -Parent $PSScriptRoot
@@ -27,10 +28,8 @@ try {
         if ($listeners.Count) {
             if (-not (Test-Path -LiteralPath $recordPath)) { throw 'SG port is used by another application.' }
             $record = Get-Content -LiteralPath $recordPath -Raw | ConvertFrom-Json
-            $process = Get-CimInstance Win32_Process -Filter "ProcessId=$($record.pid)"
-            if ($null -eq $process -or @($listeners | Where-Object OwningProcess -ne $record.pid).Count -or
-                $record.config_sha256 -ne $configHash -or -not $process.CommandLine.Contains($appPath) -or
-                $record.created_utc -ne $process.CreationDate.ToUniversalTime().ToString('o')) {
+            $identity = Get-SGBetaProcessIdentity -AppPath $appPath -Port 8502 -RecordedIdentity $record
+            if ($null -eq $identity -or $record.config_sha256 -ne $configHash) {
                 throw 'The listening process is not the configured SG beta.'
             }
         } else {
@@ -51,9 +50,6 @@ try {
                     -WindowStyle Hidden -RedirectStandardOutput (Join-Path $logs "$stamp.out.log") `
                     -RedirectStandardError (Join-Path $logs "$stamp.err.log") -PassThru
             } finally { $env:GOOGLE_APPLICATION_CREDENTIALS = $previousReader }
-            $process = Get-CimInstance Win32_Process -Filter "ProcessId=$($server.Id)"
-            @{pid=$server.Id;config_sha256=$configHash;created_utc=$process.CreationDate.ToUniversalTime().ToString('o')} |
-                ConvertTo-Json | Set-Content -LiteralPath $recordPath -Encoding utf8
             $ready = $false
             for ($attempt=0; $attempt -lt 30; $attempt++) {
                 if ($server.HasExited) { throw 'SG beta server exited before becoming ready.' }
@@ -67,6 +63,9 @@ try {
                 if (-not $server.HasExited) { $server.Kill() }
                 throw 'SG beta server did not become ready.'
             }
+            $identity = Get-SGBetaProcessIdentity -AppPath $appPath -Port 8502 -LauncherId $server.Id
+            @{schema_version=1;pid=$identity.pid;config_sha256=$configHash;created_utc_ticks=$identity.created_utc_ticks} |
+                ConvertTo-Json | Set-Content -LiteralPath $recordPath -Encoding utf8
         }
         if (-not $NoBrowser) { Start-Process 'http://127.0.0.1:8502' }
         Write-Output 'PASS: SG beta is available at http://127.0.0.1:8502'
