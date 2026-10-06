@@ -201,12 +201,14 @@ class ScopedSGCategoryEngine:
 
 
 class SGLiveRuntime:
-    def __init__(self, *, grant, run_path, fresh_client_factory=None, api_key="", api_session=None, image_session=None):
+    def __init__(self, *, grant, run_path, fresh_client_factory=None, api_key="", api_session=None, image_session=None,
+                 claim_dir=None):
         self.run_path=Path(run_path).resolve()
         db=self.run_path/"validation.sqlite3"
         grant.validate(db)
-        CLAIM_DIR.mkdir(parents=True,exist_ok=True)
-        claim=CLAIM_DIR/f"{grant.digest}.json"
+        claims = CLAIM_DIR if claim_dir is None else Path(claim_dir).resolve()
+        claims.mkdir(parents=True,exist_ok=True)
+        claim=claims/f"{grant.digest}.json"
         try:
             with claim.open("x",encoding="utf-8") as file:
                 json.dump({"run_path":str(self.run_path)},file)

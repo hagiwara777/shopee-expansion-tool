@@ -1534,3 +1534,14 @@
 - MY / TH: 情報の所在と不足をread-onlyで監査する。既存SLS・Community NG・販売規制ガイド・武器画像初期設定は土台として保持するが、国別辞書・評価処理・資料現行性は未完成。市場runtimeや新しい禁止規則を先行実装しない。
 - 置換範囲: DEC-0116 / DEC-0117 / DEC-0124の正式出力未実装を、別入口の採用候補として実装済みにする。正式採用前の実出口閉鎖、SG INACTIVE、PH operation、既存Safety停止、過去Evidenceを維持する。
 - rollback: SGベータ入口の利用を止め、今回の追加入口・出力部品・tests・docsを通常revertできる。通常PH環境や過去の消費記録を復旧対象へ含めない。
+
+## DEC-0127 — 固定release・SG専用起動先・永続API枠で少量ベータを利用する
+
+- 日付: 2026-10-06
+- authority: Ownerは「SGの起動先・使用データ・API利用枠を整え、ベータを使える環境へ反映する」作業を明示依頼した。通常PH環境を変更せず、専用SG環境の準備・反映を対象とする。新しい費用枠とformal mainへの現在対象の最終承認は個別に扱う。
+- 決定: SG operationをACTIVE / development ALLOWEDとし、既存ベータ入口の手動準備CSV / TXTを専用少量環境で使用する。通常PH画面内のSG未提供経路は有効化しない。コードはorigin/mainへ採用済みのcommitへ固定し、dirty・未採用コード・設定不一致では起動しない。SG Beta専用ショートカットとport8502を使い、PHのport8501・ショートカット・DBを保持する。
+- データ: SG専用DB・消費記録・claim・起動記録はコード外の永続保存先へ置く。コード更新でgrant結合や消費をリセットしない。既存grantは一つのrunへ結合し、欠落・不正時に再初期化しない。初期資料のSHA・Candidateとsidecar・SG Gateと対象ASINを事前確認し、PH DBや過去の人間確認を移植しない。Owner確認済み全商品CSVの同一性はGit外に保持する。
+- 接続・費用: 既存API設定とGoogle readerをpathで参照し、秘密値をコピーしない。SG Bridgeから操作ごとに最新tokenを取得し、Mapper refresh・PHへの書戻しをしない。起動・再描画でAPIを呼ばず、最大3商品・OpenAI上限1米ドルと明示されたShopee取得枠を維持する。新規枠は具体的対象・取得数・費用承認から作成し、設定ファイルを承認の証明にしない。枠の追加を過去grantのリセットで代用しない。
+- 置換範囲: DEC-0126の採用前SG INACTIVE・専用出口未利用と、DEC-0116以降の起動先未反映を専用少量ベータの範囲で置換する。Category確認object単独はlisting_ready=falseを維持する。準備CSVのTRUEは手動準備対象で、Seller Center属性完了・自動出品・安全保証ではない。一般商品画像の人間確認は再導入しない。
+- 保護・境界: PH / SG protected capability、Guardrail / Battery / SLS停止、武器画像用途、商品単位Category / Brand確認を維持する。通常DB移行、credential変更、自動出品、MY / TH runtime開始は行わない。コード採用、端末設置、実API確認、実務受入は別の確認とし、端末・APIの実行結果はTask Context / Git外Evidenceを参照する。
+- rollback: 記録したSG processの起動時刻・コマンド・portを確認して停止し、専用ショートカットを外すか承認済み旧releaseへの設定を検証する。PH processは停止しない。SG DB・過去Evidence・grant・ledger・claimは削除せず保持する。正式Stateの停止・変更には既存承認手順を適用する。

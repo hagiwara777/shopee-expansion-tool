@@ -1,4 +1,4 @@
-# SGベータ版の採用候補
+# SGベータ版の手動出品準備
 
 固定PH Betaと同じく、確認した商品をCategory・BrandごとにCSV / TXTへまとめ、
 Seller Centerや既存出品ツールへ手動入力する。自動出品は含めない。
@@ -36,12 +36,14 @@ output_scope=SG_BETA_MANUAL_PREPARATIONを付ける。このTRUEは手動出品�
 正式StateでSG operation ACTIVE、development_policy ALLOWED、既存PH / SG保護capability
 ACCEPTEDが成立し、blocking open itemがない場合だけ、ベータ入口と出力を利用できる。
 毎回現在のStateを読み、出力生成の前後にも確認する。環境変数・画面checkboxで解除しない。
-現在のSG INACTIVEは今回のlocal実装・合成テストで変更しない。
+SG operationはDEC-0127に基づく専用ベータ環境のためACTIVEとする。
+通常PH画面のSG未提供機能を有効化せず、専用の固定release・保存先・承認枠を使用する。
+普段の起動には[SGベータ利用環境](SG_BETA_ENVIRONMENT.md)の専用ショートカットと事前確認を用いる。
 
-今回の変更をreview可能なGit対象へ確定し、mandatory technical gatesとOwnerの最終承認を経て
-正式採用する。StateのACTIVE化・普段の起動先への反映は、対象releaseと戻し方を確定して実施する。
+コードやStateを更新するときは、mandatory technical gatesとOwnerの最終承認を経て
+正式採用する。利用環境への反映は、採用済みreleaseと戻し方を確定して実施する。
 実APIの新規確認は具体的対象・取得数・費用枠への承認を得てから行う。
 以前の使い切ったgrantやledgerを再利用・リセットして追加実行しない。
 停止時はSG入口を閉じ、SG Stateを承認済みの手順で戻す。通常PH環境と過去の記録を保持する。
 
-ローカル・合成検証は実務受入の代替ではなく、実装候補の完成と正式環境の完成を区別する。
+ローカル・合成検証は実務受入の代替ではなく、コード採用と端末の設置・実API確認を区別する。
