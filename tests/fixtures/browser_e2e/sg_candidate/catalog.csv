@@ -1,0 +1,4 @@
+﻿marketplace,category_id,parent_category_id,category_name,category_path,is_leaf
+SG,100869,9000001,Shampoo,Beauty > Hair Care > Shampoo,TRUE
+SG,9000000,,Beauty,Beauty,FALSE
+SG,9000001,9000000,Hair Care,Beauty > Hair Care,FALSE

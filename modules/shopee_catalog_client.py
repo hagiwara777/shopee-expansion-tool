@@ -344,7 +344,10 @@ def _strict_brand_page(
         if any(not isinstance(name, str) or not name.strip() for name in names):
             raise _response_error(_BRAND_PATH, "brand name was invalid")
         display, original = (name.strip() for name in names)
-        classifications = (display.casefold() == "no brand", original.casefold() == "no brand")
+        # SG returns display "No brand" with original "NoBrand". Recognize
+        # those exact English variants in both fields; never infer from ID 0.
+        no_brand_names = {"no brand", "nobrand"}
+        classifications = (display.casefold() in no_brand_names, original.casefold() in no_brand_names)
         if classifications[0] != classifications[1]:
             raise _response_error(_BRAND_PATH, "No Brand name classification was ambiguous")
         brand = {"brand_id": brand_id, "brand_name": display,

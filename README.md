@@ -1,5 +1,20 @@
 # Shopee Expansion Tool Ver1
 
+市場展開の開発目標は、[固定PH Beta基準のSG / MY / TH機能統一](docs/PH_BETA_MARKET_PARITY.md)を参照してください。
+SG Brandの確認画面部品は隔離offline検証用です。通常SG画面と実運用DBには接続していません。
+隔離検証では明示注入したoffline client / engineでBrand候補取得・保存とAI Category候補・人間採用を確認します。
+グループCategory確認、SG必須属性表示、開発用確認状況CSVも隔離検証の対象です。
+確認状況CSVは出品用ではなく、全件listing_ready=FALSEの記録です。
+隔離画面でcurrent Category / Brand / SLS条件と対象商品の武器画像検査が成立した商品には、
+開発用の準備候補CSV / TXTを表示します。こちらも出品用ではなくlisting_ready=FALSEです。
+PHと同じ組立処理でCategory・BrandごとにASINをまとめ、SGの必須属性の未取得と取得済み0件を区別します。
+隔離SG画面では商品候補の元CSVと対応する説明・未評価画像ファイルを読み込み、安全判定・武器画像検査の入力資料にできます。
+元CSVとの対応とSGの商品情報を検証し、資料を差し替えると過去の確認を無効化します。
+PHで評価・確認済みの画像ファイルは受け付けません。元の未評価ファイルを使用してください。
+隔離SG画面ではoffline接続を明示指定したときだけ、商品ごとの画像疑義確認を検証できます。
+画像は武器・武器形状の疑義検出にだけ使います。対象外と検査完了・疑義なしでは人間確認を要求せず、疑義あり・判断不能だけ画像の人間判断を行います（DEC-0125）。
+武器画像の対象選択は共通処理と国別設定を使用します。実APIは承認枠付き隔離modeの明示実行に限り、通常経路は閉じたままです。
+
 ASINを1件入力し、Keepa APIから `brand + category` 基準の候補ASINを取得して、画面表示とCSVダウンロードを行うローカルWebアプリです。
 
 KeepaのWeb画面操作、Amazonページ操作、Amazon/Keepaスクレイピングは行いません。
@@ -96,6 +111,13 @@ code＋asset更新、再起動、新sessionの順とし、稼働中の差替え�
 Category Mapperの「Shopee ACCESS_TOKEN（一時利用）」には、既存管理シートで更新済みのtokenを伏字で貼り付けられます。入力値はそのブラウザsessionのCategory / Brand / Attribute参照だけに使い、設定ファイルやローカルDBへ保存しません。空欄の場合は既存の認証設定を使用します。token更新、refresh、OAuthはCategory Mapperの責務に含みません。
 
 ### SG Category Mapper Minimum Beta
+
+Category Mapperの共通入口でMarketplaceをPHまたはSGから選択します。
+商品CSV → Category → Brand / No Brand → 発送条件（SLS） → 出品準備情報の順を共通表示し、
+選択した市場の入力と操作だけを表示します。PHはグループ単位、SGは商品単位で確認します。
+SGのAI候補提示、Brand / No Brand確認結果の画面保存、出品準備CSV / TXT出力は未提供です。
+SGのCategory catalog取込は「設定：Category catalog（通常は変更不要）」内にあります。
+この表示統一はSG実運用開始・live API・DB移行・出口開放の承認を含みません。
 
 PR #82のSG Category Mapper offline実装、実SG production catalogと6実商品のCategory acceptance（DEC-0103）、SG Brand offline最小実装（PR #103 / DEC-0105）、SG SLS offline最小runtime（PR #107 / DEC-0109）はformal mainへ採用済みです。Brand API取得、実商品Brand / No Brand live受入、production DB schema、実商品SLS live受入、Attribute自動処理は未実施です。正式採用したStep 8完成線は[DEC-0111](docs/DECISION_LOG.md#dec-0111--sg-minimum-beta-step-8の半自動完成候補とstep-9の承認境界を固定する)、現在状態は[CURRENT_WORK](docs/CURRENT_WORK.md)を参照してください。
 
@@ -258,6 +280,16 @@ KEEPA_API_KEY=your_actual_keepa_api_key
 `.env`、`*.env`、`*.env.txt` は `.gitignore` に含めています。GitHubには含めないでください。
 
 ## 起動方法
+
+SG追加機能の隔離開発版は `app_sg_candidate.py` と `scripts/Start-SGCandidate.ps1`から
+別起動できます。通常PHのDB・ショートカットを変更せず、合成再生資料でCategory AI候補・
+Brand・属性・安全資料・対象商品の武器画像検査から開発用CSV / TXTまで操作します。実APIや正式SG出力は
+有効化しません。[確認手順と到達点](docs/SG_LOCAL_REVIEW_GUIDE.md)を参照してください。
+
+SGベータ入口と手動出品準備CSV / TXTの採用候補は
+[SGベータ採用候補](docs/SG_BETA_RELEASE.md)を参照してください。
+正式StateでSGを有効にするまで、この入口は利用を開始しません。
+MY / THは[Guardrail資料の準備状況](docs/MY_TH_GUARDRAIL_READINESS.md)にある土台を再利用する後続工程です。
 
 ```powershell
 cd shopee-expansion-tool

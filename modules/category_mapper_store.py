@@ -599,6 +599,34 @@ class CategoryMapperStore:
                 ),
             )
 
+    def save_sg_category_group(self, asins: tuple[str, ...], *, category_id: int, category_path: str) -> None:
+        """Atomic per-ASIN confirmations for an explicitly initialized isolated DB."""
+        self._require_sg_brand_acceptance()
+        from modules.keepa_client import normalize_asin
+        if not asins or len(set(asins)) != len(asins) or any(normalize_asin(asin) != asin for asin in asins):
+            raise ValueError("Invalid SG group product identities.")
+        category_id = _require_category_id(category_id)
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            current = connection.execute(
+                "SELECT category_path, is_leaf FROM catalog_categories WHERE marketplace='SG' AND category_id=?",
+                (category_id,),
+            ).fetchone()
+            if current is None or not current["is_leaf"] or current["category_path"] != category_path:
+                raise ValueError("SG group Category is no longer current.")
+            connection.executemany("""
+                INSERT INTO category_mappings (
+                    marketplace, mapping_key_type, mapping_key, canonical_product_type,
+                    category_id, category_path, verification_status, support_count,
+                    user_confirmed, last_verified_at, note
+                ) VALUES ('SG', 'ASIN', ?, '', ?, ?, 'USER_CONFIRMED', 1, 1, ?, ?)
+                ON CONFLICT(marketplace, mapping_key_type, mapping_key) DO UPDATE SET
+                    category_id=excluded.category_id, category_path=excluded.category_path,
+                    verification_status='USER_CONFIRMED', support_count=category_mappings.support_count+1,
+                    user_confirmed=1, last_verified_at=excluded.last_verified_at, note=excluded.note
+            """, [(normalize_mapping_key(asin), category_id, category_path, utc_now_iso(), "SG human group Category confirmation")
+                   for asin in asins])
+
     def find_confirmed_category_mapping(
         self,
         marketplace: str,

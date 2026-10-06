@@ -83,7 +83,12 @@ def _sg_gate_csv():
 def _test_app(monkeypatch, tmp_path):
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "localappdata"))
     monkeypatch.setattr(logging.Logger, "warning", _standard_logger_warning)
-    return AppTest.from_file(str(APP_PATH), default_timeout=10).run()
+    return _sg_app()
+
+
+def _sg_app():
+    app = AppTest.from_file(str(APP_PATH), default_timeout=10).run()
+    return app.selectbox(key="category_mapper_marketplace").set_value("SG").run()
 
 
 def _seed_sg_catalog(tmp_path):
@@ -114,7 +119,10 @@ def test_sg_category_mapper_ui_exposes_isolated_minimum_beta(monkeypatch, tmp_pa
 
     assert not app.exception
     assert provider_calls == []
-    assert any(item.value == "SG Category Mapper Minimum Beta" for item in app.subheader)
+    assert any(item.value == "Category / Brand確認" for item in app.subheader)
+    assert app.selectbox(key="category_mapper_marketplace").value == "SG"
+    assert not any(uploader.key == "category_mapper_source_csv" for uploader in app.file_uploader)
+    assert not any(item.key == "category_mapper_temporary_access_token" for item in app.text_input)
     assert app.file_uploader(key="sg_category_mapper_catalog_csv").label == (
         "出所確認済みSG Category catalog CSV"
     )
@@ -125,6 +133,21 @@ def test_sg_category_mapper_ui_exposes_isolated_minimum_beta(monkeypatch, tmp_pa
         button.key and button.key.startswith("sg_category_mapper_")
         for button in app.download_button
     )
+
+
+def test_market_switch_keeps_inputs_and_live_actions_separate(monkeypatch, tmp_path):
+    provider_calls = _forbid_live_openai(monkeypatch)
+    app = _test_app(monkeypatch, tmp_path)
+    app.selectbox(key="category_mapper_marketplace").set_value("PH").run()
+    assert not app.exception
+    assert any(item.key == "category_mapper_source_csv" for item in app.file_uploader)
+    assert not any(item.key == "sg_category_mapper_source_csv" for item in app.file_uploader)
+    app.selectbox(key="category_mapper_marketplace").set_value("SG").run()
+    assert not app.exception
+    assert provider_calls == []
+    assert any(item.key == "sg_category_mapper_source_csv" for item in app.file_uploader)
+    assert not any(item.key == "category_mapper_source_csv" for item in app.file_uploader)
+    assert not app.download_button
     assert not any(
         button.key == "sg_category_mapper_build_ai_suggestions" for button in app.button
     )
@@ -137,7 +160,7 @@ def test_sg_category_mapper_ui_confirms_one_product_and_stops(monkeypatch, tmp_p
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "localappdata"))
     monkeypatch.setattr(logging.Logger, "warning", _standard_logger_warning)
     _seed_sg_catalog(tmp_path)
-    app = AppTest.from_file(str(APP_PATH), default_timeout=10).run()
+    app = _sg_app()
 
     app.file_uploader(key="sg_category_mapper_source_csv").set_value(
         (
@@ -154,6 +177,7 @@ def test_sg_category_mapper_ui_confirms_one_product_and_stops(monkeypatch, tmp_p
     assert before.listing_ready is False
     assert before.group_key == ""
     app.number_input(key="sg_category_mapper_manual_category_0").set_value(900001).run()
+    assert app.button(key="sg_category_mapper_confirm_manual_0").label == "このCategoryを採用"
     app.button(key="sg_category_mapper_confirm_manual_0").click().run()
 
     confirmed = app.session_state["sg_category_mapper_recommendations"][0]
@@ -163,6 +187,9 @@ def test_sg_category_mapper_ui_confirms_one_product_and_stops(monkeypatch, tmp_p
     assert confirmed.recommended_category_id == 900001
     assert confirmed.listing_ready is False
     assert confirmed.group_key == ""
+    assert any("3. Brand / No Brandを確認" in str(item.value) for item in app.markdown)
+    assert any("確認結果を保存しません" in str(item.value) for item in app.info)
+    assert any("CSV / TXT出力は未提供" in str(item.value) for item in app.info)
     assert provider_calls == []
     assert not any(
         button.key == "sg_category_mapper_build_ai_suggestions" for button in app.button

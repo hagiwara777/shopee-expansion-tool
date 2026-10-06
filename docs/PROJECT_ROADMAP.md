@@ -2,6 +2,14 @@
 
 ## 当面の全体目標
 
+現状PH BetaをSG / MY / THの初期完成基準に固定する（DEC-0116）。
+SGをPH相当へ揃える過程で共通moduleを整え、その後MY / THへ国別情報を追加して展開する。
+詳細は[PH Beta市場展開](PH_BETA_MARKET_PARITY.md)を参照する。
+SGの手動出品準備出力・ベータ入口は採用候補として準備する（DEC-0126）。
+実装候補と正式環境での利用開始を区別し、[採用範囲](SG_BETA_RELEASE.md)に従う。
+画像AI対象選択も共通処理＋国別設定とし、PH / SGの現行PH条件とMY / THの初期設定を用意する（DEC-0123）。
+MY / THの市場runtime・Safety・出品接続はSG機能統一後の後続工程とする。
+
 出品支援ツールの目的は、安全に出品準備できるASIN数を少ない人手で増やすことである。
 
 **開発原則：完成度最大化ではなく、実務上使えるMinimum Betaを早く成立させ、実利用→ボトルネック発見→次Version改善を反復する。**
@@ -205,6 +213,11 @@ DECISION_LOG読込軽量化はPR #91、ShopeeCatalogClient marketplace-neutral�
 
 MY / THの具体的な着手順は将来のEvidenceと事業優先順位で変更できるものとし、今回固定しすぎない。
 
+DEC-0116以降の製品開発優先順は、固定PH Beta基準のSG機能統一・共通module整備 →
+必要な実環境確認とSG実運用判断 → MY / TH展開とする。上記Step 8の受入履歴は維持する。
+SG Brand UI、AI候補、必須属性表示、出品準備CSV / TXT等のPH相当機能は、従来のBETA_AFTER指定から
+新しい機能統一目標へ移す。実API実行・production migration・出口の正式採用は別境界を維持する。
+
 ### BETA_AFTER_CANDIDATE
 
 - 画像Safetyのtitle trigger、subcategory細分化、全rootの網羅的画像リスク調査（DEC-0053）
@@ -283,7 +296,7 @@ DEC-0049の`BETA_AFTER_CANDIDATE`、DB化、他市場展開、出品後商品改
 - 既存出品ツールの正式入力契約の証拠回収（自動投入またはE2E接続を検討する場合）
 - Category自動確定
 - 自動出品
-- SG Brandのproduction API / 実商品受入（DEC-0104のoffline実装採用後に別Owner承認）、SG SLSのproduction / live受入、runtime切替、SG Handoff実装（Step 9以降の独立工程。offline SLS最小runtimeはPR #107 / DEC-0109で採用済み）
+- SG Brandのproduction API / 実商品受入（DEC-0104のoffline実装採用後に別Owner承認）、SG SLSのproduction / live受入、runtime切替。SG Handoffのlocal設計・開発はDEC-0116の機能統一に含め、実運用出口の採用と区別する。
 - MY／THの実装（共通Token / Catalog基盤を再利用する将来工程）
 - AI候補の1クリック採用 Ver0.3
 - wrong category蓄積 Ver0.4

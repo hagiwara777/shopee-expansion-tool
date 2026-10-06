@@ -156,19 +156,21 @@ def test_category_mapper_shows_catalog_admin_controls_when_explicitly_enabled(mo
     assert any("PH catalog sync status" in str(caption.value) for caption in app.caption)
     assert app.button(key="category_mapper_sync_categories").label == "PH Category Treeを同期"
 
-def test_category_mapper_tab_is_ph_only_and_uploads_csv(monkeypatch, tmp_path):
+def test_category_mapper_defaults_to_ph_and_uploads_csv(monkeypatch, tmp_path):
     app = _test_app(monkeypatch, tmp_path)
 
     assert not app.exception
     assert [tab.label for tab in app.tabs][-1] == "Category Mapper"
     marketplace = app.selectbox(key="category_mapper_marketplace")
     assert marketplace.value == "PH"
-    assert marketplace.disabled is True
+    assert marketplace.disabled is False
+    assert marketplace.options == ["PH", "SG"]
     assert any(
         uploader.label == "Expansion候補CSV または Prelisting Gate eligible CSV"
         for uploader in app.file_uploader
     )
-    assert any("SG / MY / TH" in str(caption.value) for caption in app.caption)
+    assert any("MY / TH" in str(caption.value) for caption in app.caption)
+    assert not any(uploader.key == "sg_category_mapper_source_csv" for uploader in app.file_uploader)
 
 
 def test_category_mapper_temporary_access_token_input_is_masked_and_session_only(

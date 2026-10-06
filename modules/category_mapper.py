@@ -25,6 +25,7 @@ from modules.prelisting_gate_csv import (
 from modules.shopee_catalog_client import BrandPage, ShopeeCatalogError, ShopeeRateLimitError
 from modules.sls_category_assets import SlsEvaluationContext, load_ph_context
 from modules.sls_category_rules import SlsCategoryResult, evaluate_ph_category, is_local_allow
+from modules.preparation_group_output import PREPARATION_GROUP_COLUMNS, format_preparation_groups
 
 
 PH_MARKETPLACE = "PH"
@@ -73,19 +74,7 @@ RECOMMENDATION_COLUMNS = (
     "manual_review_required",
     "manual_review_reason",
 )
-GROUP_COLUMNS = (
-    "marketplace",
-    "group_key",
-    "category_id",
-    "category_path",
-    "brand_id",
-    "brand_name",
-    "mandatory_attribute_count",
-    "verification_status",
-    "listing_ready",
-    "asin_count",
-    "asin",
-)
+GROUP_COLUMNS = PREPARATION_GROUP_COLUMNS
 _SHAMPOO_EXCLUSIONS = (
     "収納ケース",
     "case for",
@@ -690,52 +679,18 @@ def build_mapper_exports(recommendations: Iterable[MapperRecommendation]) -> Map
     ordered = refresh_sls_results(materialized, context=load_ph_context())
     recommendation_rows = [_recommendation_row(item) for item in ordered]
     ready = [item for item in ordered if item.listing_ready]
-    grouped: dict[str, list[MapperRecommendation]] = {}
-    for item in ready:
-        grouped.setdefault(item.group_key, []).append(item)
-    group_rows: list[dict[str, Any]] = []
-    text_blocks: list[str] = []
-    for group_key, items in grouped.items():
-        first = items[0]
-        verification_status = (
-            first.category_verification_status
-            if first.category_verification_status == USER_CONFIRMED
-            else LISTING_TOOL_ACCEPTED
-        )
-        for item in items:
-            group_rows.append(
-                {
-                    "marketplace": item.marketplace,
-                    "group_key": group_key,
-                    "category_id": item.recommended_category_id,
-                    "category_path": item.recommended_category_path,
-                    "brand_id": item.recommended_brand_id,
-                    "brand_name": item.recommended_brand_name,
-                    "mandatory_attribute_count": item.mandatory_attribute_count,
-                    "verification_status": verification_status,
-                    "listing_ready": "TRUE",
-                    "asin_count": len(items),
-                    "asin": item.candidate_asin,
-                }
-            )
-        header = (
-            f"［{first.marketplace} / {first.recommended_category_path} / "
-            f"{first.recommended_brand_name}］"
-        )
-        lines = [
-            header,
-            f"Category ID: {first.recommended_category_id}",
-            f"Brand ID: {first.recommended_brand_id}",
-            f"Mandatory attributes: {first.mandatory_attribute_count or 0}",
-            f"ASIN count: {len(items)}",
-            "",
-            *(item.candidate_asin for item in items),
-        ]
-        text_blocks.append("\n".join(lines))
+    groups_csv, listing_tool_text = format_preparation_groups({
+        "marketplace": item.marketplace, "group_key": item.group_key,
+        "category_id": item.recommended_category_id, "category_path": item.recommended_category_path,
+        "brand_id": item.recommended_brand_id, "brand_name": item.recommended_brand_name,
+        "mandatory_attribute_count": item.mandatory_attribute_count,
+        "verification_status": USER_CONFIRMED if item.category_verification_status == USER_CONFIRMED else LISTING_TOOL_ACCEPTED,
+        "listing_ready": "TRUE", "asin": item.candidate_asin,
+    } for item in ready)
     return MapperExportBundle(
         recommendations_csv=_rows_to_csv(RECOMMENDATION_COLUMNS, recommendation_rows),
-        groups_csv=_rows_to_csv(GROUP_COLUMNS, group_rows),
-        listing_tool_text="\n\n".join(text_blocks),
+        groups_csv=groups_csv,
+        listing_tool_text=listing_tool_text,
         evaluated_recommendations=ordered,
     )
 

@@ -1,0 +1,20 @@
+{
+  "candidate_schema_version": "PRELISTING_CANDIDATE_V1",
+  "candidate_sha256": "7cf26155bdbca8178e68e78d7bb0460deefc0fe9f30ad6dabf07d6fea61f4361",
+  "rows": [
+    {
+      "evaluation": null,
+      "fact": {
+        "candidate_asin": "B000000001",
+        "capture_error": false,
+        "image_urls": [
+          "https://m.media-amazon.com/images/I/one.jpg"
+        ],
+        "provider": "keepa",
+        "root_category_id": 13299531
+      },
+      "human": null
+    }
+  ],
+  "schema_version": "PH_IMAGE_SAFETY_V1"
+}

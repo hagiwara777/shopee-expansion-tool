@@ -9,6 +9,8 @@ from typing import Any, Iterable, Mapping
 
 import streamlit as st
 
+from modules.brand_confirmation import brand_option_label, search_brand_options
+from modules.category_suggestion_ui import render_category_suggestion_batch, suggestion_status_label
 from modules.category_mapper_sg_ui import render_sg_category_mapper
 from modules.category_ai_core import CategoryAIEngine
 from modules.category_ai_openai import OpenAIResponsesCategoryProvider
@@ -60,6 +62,14 @@ CATALOG_ADMIN_UI_ENABLED_ENV = "CATEGORY_MAPPER_CATALOG_ADMIN_UI_ENABLED"
 
 def render_category_mapper_tab() -> None:
     """Keep SLS failure local to Mapper; never retain successful output on error."""
+    st.subheader("Category / Brand確認")
+    marketplace = st.selectbox(
+        "Marketplace", ("PH", "SG"), key="category_mapper_marketplace"
+    )
+    st.caption("商品CSV → Category → Brand / No Brand → 発送条件（SLS） → 出品準備情報")
+    if marketplace == "SG":
+        render_sg_category_mapper()
+        return
     area = st.empty()
     try:
         with area.container():
@@ -75,18 +85,16 @@ def render_category_mapper_tab() -> None:
         with area.container():
             st.error("SLS Category dataを検証できないため出力停止")
             st.metric("出品グループ対象", 0)
-    render_sg_category_mapper()
 
 
 def _render_category_mapper_body() -> None:
     """Render PH-only mapping without executing catalog calls unless requested."""
 
-    st.subheader("Category Mapper Ver0.1")
     st.caption(
         "Category / Brand を推測だけで確定せず、確認済みプロファイルとユーザー確認を優先します。"
     )
-    marketplace = st.selectbox("Marketplace", ("PH",), disabled=True, key="category_mapper_marketplace")
-    st.caption("SG / MY / TH は未検証・未対応のため、この画面から内部APIへ渡しません。")
+    marketplace = "PH"
+    st.caption("PHは同じCategory候補の商品をグループで確認します。MY / THは未対応です。")
     st.text_input(
         "Shopee ACCESS_TOKEN（一時利用）",
         type="password",
@@ -97,6 +105,7 @@ def _render_category_mapper_body() -> None:
     if os.environ.get(CATALOG_ADMIN_UI_ENABLED_ENV) == "1":
         _render_catalog_status(store, marketplace)
 
+    st.subheader("1. 商品CSVを読み込む")
     source_file = st.file_uploader(
         "Expansion候補CSV または Prelisting Gate eligible CSV",
         type=["csv"],
@@ -115,7 +124,7 @@ def _render_category_mapper_body() -> None:
         st.info("入力が変わったため、前回の推薦結果を削除しました。")
 
     if source_file is not None and st.button(
-        "推薦を作成",
+        "Category確認を開始",
         type="primary",
         icon=":material/playlist_add_check:",
         key="category_mapper_build",
@@ -223,25 +232,7 @@ def _render_ai_suggestion_action(
     batch = st.session_state.get(_AI_RESULT_KEY)
     if not isinstance(batch, AICategorySuggestionBatch):
         return
-    first, second, third = st.columns(3)
-    first.metric("成功", batch.success_count)
-    second.metric("失敗", batch.failure_count)
-    third.metric("スキップ", batch.skip_count)
-    st.dataframe(
-        [
-            {
-                "ASIN": item.candidate_asin,
-                "AI状態": _ai_status_label(item.status),
-                "Category ID": item.predicted_category_id or "",
-                "Category候補": item.predicted_category_path,
-                "confidence": "" if item.confidence is None else f"{item.confidence:.3f}",
-                "理由": item.short_reason,
-                "error": item.error_code,
-            }
-            for item in batch.suggestions
-        ],
-        hide_index=True,
-    )
+    render_category_suggestion_batch(batch)
 
 
 def _render_catalog_status(store: CategoryMapperStore, marketplace: str) -> None:
@@ -311,13 +302,13 @@ def _render_recommendations(
     current = exports.evaluated_recommendations
     st.session_state[_RESULT_KEY] = current
     blockers = summarize_output_blockers(current)
-    st.subheader("SLS Category確認")
+    st.subheader("4. 発送条件（SLS）を確認")
     st.dataframe([{"ASIN": item.candidate_asin,
                    "Shopee Category ID": item.recommended_category_id,
                    "SLS Category action": item.sls_result.action or item.sls_result.check_state,
                    "理由": sls_reason_text(item.sls_result)} for item in current], hide_index=True)
     ready = blockers["ready"]
-    st.subheader("出力")
+    st.subheader("5. 出品準備情報")
     st.download_button(
         "詳細推薦CSVをダウンロード",
         data=exports.recommendations_csv,
@@ -406,7 +397,7 @@ def _render_category_controls(
     store: CategoryMapperStore,
 ) -> None:
     first = members[0]
-    st.markdown("##### 1. Category")
+    st.markdown("##### 2. Categoryを確認")
     if first.category_is_confirmed and first.recommended_category_id:
         st.success("Category：確認済み", icon=":material/check_circle:")
         st.write(first.recommended_category_path)
@@ -686,7 +677,7 @@ def _render_brand_controls(
     if recommendation.recommended_category_id is None:
         st.info("Brand候補はCategoryを採用した後に表示します。")
         return
-    st.markdown("##### 2. Brand")
+    st.markdown("##### 3. Brand / No Brandを確認")
     category_id = recommendation.recommended_category_id
     if recommendation.no_brand_selected_by_user or recommendation.brand_is_confirmed:
         st.success("Brand：確認済み", icon=":material/check_circle:")
@@ -769,13 +760,7 @@ def _render_brand_controls(
         key=f"category_mapper_brand_search_{index}",
         placeholder="Brand名またはBrand ID",
     )
-    filtered_brands = [
-        brand
-        for brand in brands
-        if not query.strip()
-        or query.casefold() in str(brand["brand_name"]).casefold()
-        or query.strip() in str(brand["brand_id"])
-    ]
+    filtered_brands = search_brand_options(brands, query)
     if not filtered_brands:
         st.info("一致するBrand候補はありません。未確定のまま保留できます。")
         return
@@ -783,7 +768,7 @@ def _render_brand_controls(
     if not real_filtered:
         st.info("一致する実Brand候補はありません。No brandで確定するか、保留してください。")
         return
-    options = [f"{brand['brand_id']} | {brand['brand_name']}" for brand in real_filtered]
+    options = [brand_option_label(brand) for brand in real_filtered]
     selected = st.selectbox(
         "確認するShopee Brand",
         options,
@@ -922,13 +907,7 @@ def _category_status_label(status: str) -> str:
 
 
 def _ai_status_label(status: str) -> str:
-    return {
-        AI_SUGGESTED: "候補あり",
-        AI_ABSTAIN: "ABSTAIN（採用不可）",
-        AI_FAILED: "FAILED（採用不可）",
-        AI_CATALOG_MISMATCH: "catalog不整合（採用不可）",
-        AI_SKIPPED_CONFIRMED: "確認済みCategoryのためスキップ",
-    }.get(status, status)
+    return suggestion_status_label(status)
 
 
 def _brand_status_label(status: str) -> str:

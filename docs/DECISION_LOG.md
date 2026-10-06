@@ -1408,3 +1408,129 @@
 - 最小検査: 専用docs contract testでCURRENT_WORKの明確なtransient markerをmandatory tests.offlineから検出する。現在文書とstable textのPASS、marker差込みのFAILを確認する。一般語・accepted済み過去PR参照は許容し、歴史正本DECISION_LOGへ禁止語検査を適用しない。詳細手順はRUNBOOK「Post-Merge Stability」に置く。
 - 保護・非対象: DEC-0072 / DEC-0073 / DEC-0106の承認・Trust契約、mandatory gates、HOLD / HARD_STOP、PH / SG protected capabilityを維持する。engine / manifest / schema / gate定義、governance/state.json、製品runtime、Safety / Battery / SLS、live API、production DB、credential、deployを変更しない。Step 8はCLOSED、次の独立工程Step 9は未承認・未着手で、別タスク・別Owner承認を要する。
 - rollback / 再検討: 本ルールとdocs contract testを通常revertできる。判断の撤回・訂正は新Decisionへ追記し、歴史本文・過去Evidenceを削除しない。false positive、意味確認漏れ、正本矛盾が実際に見つかった場合だけ最小補正を判断する。force push / dirty resetを使わない。
+
+## DEC-0115 — PH / SGの操作入口を共通化し未提供機能の境界を表示する
+
+- 日付: 2026-10-04
+- authority: OwnerはPH / SGで国ごとに操作が変わる負担を減らすことと普段の起動先・データ調査を依頼し、範囲を「まず操作を統一し、SGの機能差は表示する」と指定した。
+- 決定: Category Mapper入口でPH / SGを選択し、商品CSV、Category、Brand / No Brand、発送条件（SLS）、出品準備情報の段階とCategory検索・採用ボタンの表記を共通化する。選択していない市場の画面・入力・操作を実行しない。PHは既存グループ確認、SGは既存商品単位確認を維持し、SGのcatalog取込を設定領域へまとめる。
+- 機能差: SGはAI候補提示、Brand / No Brand確認結果のUI保存、CSV / TXT出力を未提供として明示する。Seller Centerでの人間確認案内は確認済み記録や停止解除へ昇格しない。SG listing_ready=false、export / handoff CLOSED、operation INACTIVEを維持する。
+- 非対象: Safety / Battery / SLS判定、Candidate schema、DB schema、catalog内容、認証契約、実API、SG実運用開始、PH稼働環境、ショートカット変更、データ移行、credential変更、deploy、MY / THを変更しない。起動先・保存データの所在調査は読み取りだけとし、設定値や商品本文を報告へ出さない。共有UIはPH / SGの既存保護を回帰確認する。
+- 完成線: この操作統一を新しいBeta MUSTやSG実運用開始前の追加live gateへ昇格しない。SG Step 8の受入内容とStep 9別承認境界（DEC-0111〜0113）は維持する。正式採用には既存technical gatesと現在対象のOwner最終承認を必要とする。
+- rollback: UIと関連テスト・説明文書を通常revertで戻せる。実運用DB、PH稼働環境、認証、過去Evidenceの復旧を伴わず、既存Decisionを変更しない。
+
+## DEC-0116 — 固定PH Betaを各国の初期目標としSG機能統一から共通化する
+
+- 日付: 2026-10-04
+- authority: Ownerは現状PH BetaをSG / MY / THの最初の到達目標とし、共通機能を共通moduleで更新、判断材料を国別に更新する方針を指定した。SGをPHへ揃え、その後MY / THの仕組みを作る順序を確認し、このチャットで開発を進めることを指示した。
+- 決定: 2026-10-04のPH Betaを固定基準とし、SGの画面と支援機能を揃える。後続PH改善で初期目標を自動的に増やさない。機能目標と共通 / 国別分離、実装順はPH_BETA_MARKET_PARITY.mdを正本とする。現状の共通基盤を再利用し、国ごとのツール全体複製は行わない。
+- 履歴と置換: DEC-0111〜0113の半手動SG Beta受入は保持するが、これだけでPH相当の機能統一済みとは扱わない。DEC-0115の操作統一のみという当面の開発scopeを、PH相当を目指す段階的local開発へ拡張する。RoadmapはSG機能統一をSG実運用判断・MY / TH展開より先に置く。従来の独立工程ごとの新チャット指定は今回Ownerが指定した同じチャット内の開発には強制しない。repo外Task Contextのscopeを更新し、既存gateと停止条件は緩和しない。
+- 最初の実装: PH / SG共通のBrand候補検索と、既存strict SG Brand契約を使う隔離offlineの画面部品。人間の選択・商品確認、保存・current再検証、商品情報やcatalog変更後の未確認化を検証する。No Brandの実IDを保持し、商品間へNo Brand確定を転用しない。PHのUI / 保存契約とSG SLS・Safety停止を維持する。
+- 承認境界: scope内local開発とoffline testは今回の開発指示で進める。live API / 有料API実行、通常DB migration、credential、起動先変更、deploy、formal main merge、SG実運用開始は本開発指示だけで実行しない。今回のBrand部品を通常SG画面へ接続せず、実API factory・環境変数による有効化を追加しない。SG listing_ready=false / export閉鎖は今回の実装で変更しない。出口開放を目指す後続設計・開発と、実運用出口の正式採用は区別する。
+- MY / TH: 同じ固定PH基準と共通moduleを使う後続目標。SG段階ではMY / TH runtime・国別ルール実装・Stateを変更しない。
+- 保護とrollback: PH / SG protected capability、既存Safety / Battery / SLS、現在の通常DB・起動環境を維持し、local code / tests / 文書差分を通常revertできる。過去DecisionとEvidenceを変更・削除せず、未実施live確認をPASSにしない。
+
+## DEC-0117 — SG隔離開発版で一連操作を接続しlive採用と分ける
+
+- 日付: 2026-10-04
+- authority: Ownerの「残りの開発も終わらせてください」に基づき、DEC-0116内のlocal開発を個別部品から操作可能な隔離入口まで接続する。live・通常環境移行・formal採用の承認をこの依頼から推定しない。
+- 決定: SG用の別入口・起動script・合成再生資料を用意する。明示初期化した新規隔離DBへ、現在SG catalog、Candidate・説明・未評価画像を取り込み、Category AI候補・人間採用、Brand / No Brand、属性、商品説明・画像確認、共通formatterの準備候補CSV / TXTまで接続する。shop / Category / offset、商品・catalog・request profile、画像requestへの結合を検証し、不一致・欠落で外部接続や架空の候補へfallbackしない。
+- 画像対象: 隔離開発用の一括対象は、現在SG Gate ELIGIBLE・SAFEでKeepa資料がある商品全部。PH専用4 rootの適用やSG合法性の推測をせず、選択だけでは問い合わせない。明示一括実行前に対象全件の人間確認を失効させ、全体失敗で出力を閉じる。これをliveの費用・運用方針の受入と扱わない。実接続時の実費・対象範囲は採用時に判断する。
+- 保存・変更: 既存DBを上書き・複製・移行しない。再生資料の変更・削除・再初期化で結果・確認widgetを破棄する。画像素材は再生資料としてsession内に保持するが、評価結果・DBには画像bytesを保存しない。再生資料のSHA一致はserver由来・現況・所有者受入を証明しない。
+- 維持: 通常PH / SG画面、State、Safety / Battery / SLS、credential / Bridge、通常起動先、SG listing_ready=false / export CLOSEDを維持する。通常経路のAPI factory・環境変数による有効化は設けない。MY / TH runtime・国別Ruleには着手しない。
+- 完成・次工程: offlineの一連確認とlive実精度・認証・正式出力・環境採用は別である。手順と採用時の説明はSG_LOCAL_REVIEW_GUIDE.mdへ置く。ローカル結果だけでSG機能統一・実運用・正式採用の完了を宣言しない。
+- rollback: 追加入口の利用を停止し、コード・tests・文書を通常revertできる。通常PHデータと過去Decision / Evidenceを変更・削除しない。
+
+## DEC-0118 — SG隔離実接続を最大3商品・OpenAI上限1米ドルで検証する
+
+- 日付: 2026-10-04
+- authority: Ownerは隔離環境で最大3商品、OpenAI費用上限1米ドルの実API検証を明示許可し、既存シートからAccess Tokenを取得する仕組みの再利用を指定した。
+- 決定: 通常画面と別の明示CLIに限定してKeepa / Shopeeの読み取りとOpenAI接続を検証する。商品数・SG shop・隔離DBを結合し、有料問い合わせ前に保守的な費用上限を予約する。再試行・timeoutも予約を返却せず、上限を超える問い合わせと既存実行ledgerの再初期化を拒否する。費用予約は実際の請求額の証明ではない。
+- 認証: 既存Access Token Sourceの優先順位と明示ON時のfail-closedを再利用する。指定Bridgeは隔離processだけへ設定し、認証失敗時に別tokenへfallbackしない。元管理シートからの直接取得、Mapper refresh、シート編集・権限変更・通常設定の変更は実行しない。
+- 置換範囲: DEC-0116 / DEC-0117のlive未承認境界を今回の少量検証に限り置換する。通常SG UIのlive閉鎖、SG operation INACTIVE、listing_ready=false、formal export / handoff CLOSED、PH環境、MY / TH未着手は維持する。接続成功からCategory / Brand・画像の人間確認や正式採用を自動生成しない。
+- 完成と停止: transport確認と人間確認を含む一連実用確認は区別する。認証・取得資料の不一致・Safety停止・予算上限等は未確認として記録し、過去受入を新しい実接続PASSへ転用しない。通常移行、起動先変更、正式出口採用、自動出品は別scopeである。
+- rollback: 隔離CLIの利用を停止し、追加コード・tests・文書を通常revertできる。通常DB・認証・過去Evidenceの復旧を伴わない。
+
+## DEC-0119 — PH同期を維持しSGの自動受渡しを別Bridgeへ準備する
+
+- 日付: 2026-10-04
+- authority: OwnerはSGの自動同期調査後、判断・承認が必要になるまで作業を進めるよう指定した。Google側の反映・実行・共有変更をこの指示から推定しない。
+- 背景: 設置済みの既存同期projectはPH専用であり、同じBridgeにSG行が存在してもこの処理では更新しない。共通Sourceは全行を検証するため、SGの空欄化・不正行が同じBridgeのPH取得も停止させ得る。
+- 決定: 既存PHコード・5分トリガー・Bridgeを保持し、同じApps Script projectへのSG追加ファイルと別のSG専用Bridgeを準備する。共通read-only Sourceを再利用し、通常SG factory・通常設定を有効化しない。SGのexpected shopは既存設定へbindし、元表・Bridgeのshop不一致を停止する。元表はSG行のB / C / Eだけを読み、Refresh Token更新責務を既存在庫管理ツールに保持する。
+- 停止・保護: SG旧tokenを先に空にし、取得・検証・書込み・読戻し失敗でSG側を無効化する。PH / 元表をSG targetにした場合は書込み前に拒否する。SGの失敗でPHを変更しない。全面書込み障害やlock取得不能時の旧token消去、3列contractによるfreshness独立証明は保証しない。
+- 承認境界: local候補コード・tests・反映手順を先に完成する。新SGシート作成、既存readerへのViewer共有、Google側コード / Script Properties追加、初回同期実行と5分トリガー有効化は具体的な対象を提示して別承認を得る。現Google状態はこのDecisionだけで変更しない。SG同期の受入、少量実API確認、正式利用・通常移行を区別する。
+- 維持・rollback: PH protected capability、SG Safety、SG INACTIVE / listing_ready=false / formal export CLOSED、MY / TH未着手を維持する。local候補を通常revertできる。反映後の復旧はSGトリガー停止・SG専用token消去・SG reader停止に限定し、PHを保つ。詳細はSG_ACTIVATION.mdを参照する。
+
+
+## DEC-0120 — 専用末端全件比較と関連分類探索後に適切なOthersを候補にする
+
+- 日付: 2026-10-04
+- authority: Ownerは大分類を探索開始点として見直し可能にし、専用末端を全件比較、関連別分類も確認した後で適切なOthersを候補にする方向の修正と数商品のAPI testを明示承認した。
+- 決定: 市場共通の明示V2探索moduleを隔離SGへ用意する。最初の大分類内の専用末端全件を最大80件のbatchへ分割し、すべてのbatchを評価して候補を比較する。専用候補がない場合に別の関連大分類を探す。最大3大分類の上限到達は探索完了と扱わず保留する。
+- Others境界: 商品の正体・用途を理解でき、専用カテゴリーがなく、残る大分類に適合する関連先がないと判断した場合だけ、探索済み大分類のOthers末端を比較する。親pathに適合しないOthersや商品不明を推測で採用しない。API失敗・不正ID・不完全探索はOthers fallbackへ変換しない。候補は現在catalog ID/path/leaf再検証と人間採用を必要とし、正解・Safety保証ではない。
+- Version・保護: V1 Benchmark promptとPH通常AIを変更しない。V2のprompt/hash/探索契約を区別し、旧評価の性能保証を転用しない。SG_OFFLINE_REPLAY_V2と明示隔離CLIでだけ選択する。PH/SG Safety・Battery・SLS、DB schema、通常起動先、SG INACTIVE/listing_ready=false/正式出口閉鎖、MY/TH未着手を維持する。
+- 検証・承認境界: 合成testと実APIの候補提示確認、人間による正解確認、正式採用を区別する。今回の少量API検証の対象と費用記録はrepo外Task Context/Git外Evidenceへ保持する。通常UIのlive有効化、正式採用、DB移行、出品をこの決定から推定しない。
+- rollback: 隔離V2の選択を停止し、追加module・接続・tests・文書を通常revertできる。V1と既存データ、過去Decision/Evidenceを維持する。
+
+## DEC-0121 — SG BrandのNo Brand表記差をstrict検証で扱う
+
+- 日付: 2026-10-05
+- authority / 背景: Ownerは傘以外の4商品のCategory案を確認し、SG Brand・属性確認を含む開発続行を指示した。許可済みの隔離API確認で、SG Brand応答の表示名`No brand`と元名`NoBrand`が従来の空白付き完全一致検証で区分不一致となることを観測した。
+- 決定: strict parserは両name欄のtrim / casefold後の`no brand`と`nobrand`だけを同じNo Brand区分と認識する。原文nameとAPIの実IDを保持し、ID 0からの区分推定、名前欠落の補完、部分一致、商品Brand不明からのNo Brand自動確定をしない。片方が実Brand名・未対応表記なら従来どおり拒否する。
+- 保護: 既存ID / name / pagination / complete取得 / session / shop / Category binding、商品単位の明示確認、current再validation、SG Safety / Battery / SLS停止を維持する。PHの通常permissive parserは変更しない。通常DB・起動先・credential・SG INACTIVE / listing_ready=false / 正式出口閉鎖・MY / TH未着手を維持する。
+- 境界: API取得成功はBrand人間確認や一連実商品受入の代替にしない。元Candidate・全SGショップの既存出品資料との結合がない実商品資料はGate ELIGIBLEへ昇格させない。今回の隔離確認と結果はTask Context / Git外Evidenceへ保持する。
+- rollback: parser・関連tests・説明を通常revertできる。実運用データと過去Evidenceは変更・削除しない。
+
+## DEC-0122 — 隔離Brand取得の追加承認枠をCategoryと累積ページ上限へ結合する
+
+- 日付: 2026-10-05
+- authority: Ownerはイヤホン・美容液・カメラ用マウントの3カテゴリーについて、各最大50ページ、合計最大150回のSG Brand読み取り、追加OpenAIなし・自動retryなしを明示許可した。DHCは既存SLS発送不可、傘はCategory未確認として今回の取得対象から除外する。具体的なASIN / Category / 取得結果はTask Context / Git外Evidenceへ保持する。
+- 決定: `SGLiveValidationScope`へ明示Brandページ上限と最大3Categoryのallowlistを追加する。既定10ページ、明示設定の最大50ページとし、10を超える設定はCategory allowlistを必須にする。同じscope内の対象Category別requestを送信前に累積予約し、失敗や同じCategoryの再取得でも予約を返却しない。API default transport・shop・隔離DB・Category bindingとcomplete取得後のtransactional replaceを維持する。
+- 置換範囲: DEC-0104の10ページ初期内部上限は通常 / offline・既定liveに維持する。Ownerが具体的な追加読み取り枠を承認した隔離検証でだけ、当該枠の値へ拡張できる。コード設定だけでOwner承認や全件取得を証明しない。実行先は新規Git外保存先を用い、request ledgerを保持し、既存実行を再初期化しない。
+- 停止・保護: 対象外Category、上限、不完全取得、API / 契約失敗はcurrent Brand不存在・No Brand確定・準備完了へ変換しない。PH通常挙動、SG Safety / Battery / SLS、通常DB・起動先・credential、SG INACTIVE / listing_ready=false / 正式出口閉鎖、MY / TH未着手を維持する。商品単位のBrand確認、元Candidateと全ショップGate資料の必要条件を緩和しない。
+- rollback: 追加scope設定の利用を停止し、コード・tests・説明を通常revertできる。通常DB・過去Evidence・旧予算ledgerを変更・削除しない。
+
+
+## DEC-0123 — 画像AI対象選択の共通化と国別設定
+
+- 日付: 2026-10-05
+- authority: Ownerは画像対象をカテゴリーで絞るPH仕様を確認し、「基本処理を共通module、判断材料を国別設定」とする変更と、MY / THも同じ仕組みで動く設計準備を明示指示した。
+- 決定: 画像AIの武器形状疑義検出transportは既存の共通再利用を維持し、Amazon / Keepa rootによる対象選択を共通moduleへ移す。対象rootは市場別JSONへ分離する。PH / SG / MY / THの初期設定はDEC-0053の4 root（おもちゃ、ホビー、スポーツ＆アウトドア、DIY・工具・ガーデン）とする。Shopee CategoryやAI予測Categoryをこの選択根拠へ読み替えない。
+- 選択: root不明・不正は対象、その他の正常rootは対象外・未実行、既存BLOCKは除外優先とする。設定欠落・不正・未知市場は停止し、他市場へのfallbackをしない。選択だけでは実APIを呼ばず、対象外をNO_SIGNAL・安全保証にしない。
+- 置換範囲: DEC-0117のSG隔離開発版で全SAFE / ELIGIBLE Keepa商品を対象とした部分を、SG国別設定による対象選択へ置換する。対象外では画像AIを準備条件に要求せず、商品説明・画像の人間確認、理由、既存Safety / Battery / SLS停止を維持する。rootを商品資料bindingへ含め、rootまたは市場設定が変われば古い人間確認を失効させる。
+- MY / TH境界: 共通selectorと独立国別設定の初期準備だけを今回行う。市場のSafety・runtime・認証・出品機能の実装または有効化、規制適合性の受入を意味しない。国別情報は後続の具体的Evidenceにより更新する。
+- 保護: PHの画像対象4 root・不明対象化・BLOCK優先・AIモデル・結果契約を維持する。既存PH評価・人間判断をSGへ流用しない。通常起動先・DB・credential、SG INACTIVE・listing_ready=false・正式出口閉鎖、実API承認境界を維持する。
+- rollback: 共通selectorへの接続と国別設定を通常revertできる。実運用DBと過去Evidenceを変更・削除しない。
+
+
+## DEC-0124 — 承認枠を保持する隔離SG実接続画面と準備確認
+
+- 日付: 2026-10-05
+- authority: OwnerはPH Betaとの差分説明を受け、残る接続・出力に必要な開発を指示した。local実装・合成testを進め、実APIの追加実行枠・通常環境反映・正式採用は既存の承認境界を維持する。
+- 決定: SG開発版へ明示起動だけのread-only実接続modeを追加する。起動時に指定する承認済みrun設定へSG shop・最大3 ASIN・Brand対象Category・各上限・OpenAI上限0〜1 USDを結合する。設定ファイル・authorization_refはOwner承認そのものの証明ではなく、承認済み枠の搬送に限る。再生modeは既定のままとし、通常PH / SG画面を変更しない。
+- 接続: 初期化・再描画では外部APIを呼ばず、明示操作だけで既存SG Bridgeから最新Access Tokenを取得してShopeeへ渡す。Mapperでrefreshせず、PHのtoken・環境変数へ書き戻さない。対象外shop / 商品 / Categoryは拒否する。live catalogは明示取得し、失敗時はBrand / 属性 / AI / 準備候補を閉じる。
+- 上限: 同じ承認枠は一つの隔離runに結合する。request ledgerを送信前に永続化し、失敗・同Category再取得・再起動でも取得数・費用予約を返却・再初期化しない。同一runの同時起動をOS lockで拒否し、記録欠落・不正・grant変更は停止する。OpenAI枠0ではCategory AI / 画像APIを生成せず、画像対象商品の検査必要条件は維持する。
+- 準備: current Category / Brand・SLS・商品資料・対象画像検査・人間確認を一つの準備確認処理へまとめ、商品ごとの不足手順を表示する。開発用CSV / TXTもこの処理を使う。属性取得状態は別に表示し、件数を入力完了と扱わない。
+- 保護: 正式出力・SG ACTIVE・listing_ready=trueを今回開放しない。通常DB・起動先・credential・PH挙動・既存Safety / Battery / SLS停止を維持する。Keepa追加取得や過去PH評価・人間判断の流用をしない。MY / THの市場接続は後続工程とする。
+- rollback: 隔離実接続modeの利用を停止し、追加runtime・画面接続・testsを通常revertできる。既存DB・過去Evidence・消費記録を変更・削除しない。
+
+## DEC-0125 — 全商品の説明・画像の人間確認を削除し画像用途を武器疑義へ限定する
+
+- 日付: 2026-10-06
+- authority: Ownerは追加されたASINと説明・画像の内容一致を人間が確認する必要性を問い、「必要のない機能なら削除」「画像は武器の確認以外では現状必要ありません」と明示した。
+- 決定: 全商品へ説明・画像の人間確認、両方の確認チェック、商品確認理由を要求する追加機能と準備候補の必須条件を削除する。画像は武器・武器形状の疑義検出と、その疑義に対する人間判断に限定する。
+- PH整合: 国別root設定による対象外は画像未実行のまま通し、対象の検査がCOMPLETED / NO_SIGNALなら追加の人間確認を要求しない。疑義あり・判断不能は停止し、武器画像の人間判断だけを記録する。未取得画像を疑義なしへ変換しない。
+- 維持: ASIN・元Candidateとsidecarの自動照合、SG Guardrail / Shared Battery、Category / Brandの確認、SLS、認証失敗の停止を維持する。対象外は画像資料の有無で停止せず、root不明は従来どおり武器画像検査の対象とする。通常PH・DB・credential・SG operation INACTIVE・正式出口閉鎖を維持し、追加実APIは行わない。
+- 置換範囲: DEC-0117 / DEC-0123 / DEC-0124と市場展開仕様に含まれた全商品の説明・画像の人間確認、およびNO_SIGNAL後も人間確認を求める条件だけを置換する。過去の実行記録・消費枠を変更・リセットせず、削除された確認をOwner確認済みとして記録しない。
+- rollback: 今回の武器限定処理と画面・tests・文書の変更を通常revertできる。過去Evidenceと通常環境を変更しない。
+
+## DEC-0126 — SGベータ入口と手動出品準備出力の採用候補を実装する
+
+- 日付: 2026-10-06
+- authority: Ownerは開発版の残り検証の報告を受け、「SGのベータ版としての完成」を依頼し、MY / TH Guardrailに必要な情報の準備状況を質問した。
+- 決定: SGベータ用の入口と、現行のCategory / Brand / SLS / 説明Safety / 武器画像条件を再検証したPH形式の手動出品準備CSV / TXTを実装する。対象商品だけの準備出力にlisting_ready=TRUEとSG_BETA_MANUAL_PREPARATIONを付ける。自動出品・Seller Centerの属性入力完了・全面的な安全保証を意味しない。SG Category確認だけのobjectは従来どおりlisting_ready=false。
+- 採用境界: 既存canonical StateでSG ACTIVE / ALLOWED、PH / SG保護capability ACCEPTED、blocking open itemなしの場合だけ入口と出力を利用できる。出力生成前後にも現在Stateを再確認する。local実装や合成testでStateを変更しない。正式採用は現在対象のtechnical gates・Owner最終承認、実環境反映は対象と復旧手順の確認後に行う。
+- 再利用: 既存の別SG DB・Bridge token取得・grant・永続ledgerを再利用する。1枠最大3商品・OpenAI最大1米ドルを維持し、使い切った枠をリセットしない。新しい実API実行・通常PH DB移行・デスクトップ起動先変更・credential変更・自動出品は今回実行しない。
+- MY / TH: 情報の所在と不足をread-onlyで監査する。既存SLS・Community NG・販売規制ガイド・武器画像初期設定は土台として保持するが、国別辞書・評価処理・資料現行性は未完成。市場runtimeや新しい禁止規則を先行実装しない。
+- 置換範囲: DEC-0116 / DEC-0117 / DEC-0124の正式出力未実装を、別入口の採用候補として実装済みにする。正式採用前の実出口閉鎖、SG INACTIVE、PH operation、既存Safety停止、過去Evidenceを維持する。
+- rollback: SGベータ入口の利用を止め、今回の追加入口・出力部品・tests・docsを通常revertできる。通常PH環境や過去の消費記録を復旧対象へ含めない。
