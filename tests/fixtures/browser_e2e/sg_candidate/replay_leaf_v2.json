@@ -1,0 +1,86 @@
+{
+  "schema": "SG_OFFLINE_REPLAY_V2",
+  "marketplace": "SG",
+  "shop_id": 22,
+  "catalog_responses": {
+    "brand:100869:0": {
+      "response": {
+        "brand_list": [
+          {
+            "brand_id": 7,
+            "display_brand_name": "Example Brand",
+            "original_brand_name": "Example Brand"
+          },
+          {
+            "brand_id": 99,
+            "display_brand_name": "No Brand",
+            "original_brand_name": "No Brand"
+          }
+        ],
+        "has_next_page": false,
+        "next_offset": 0
+      }
+    },
+    "attribute:100869": {
+      "response": {
+        "list": [
+          {
+            "category_id": 100869,
+            "attribute_tree": []
+          }
+        ]
+      }
+    }
+  },
+  "category_predictions": {
+    "ebdae85905efa27796abea31195e2e63c8b3dc75f022c45ce7ccb11c8e1bd50d": {
+      "prompt_version": "CATEGORY_LEAF_SEARCH_V2",
+      "product_type_summary": "synthetic product",
+      "decision": "SELECT",
+      "selected_category_id": 9000000,
+      "confidence": 0.8,
+      "short_reason": "synthetic contract selection",
+      "product_understood": true
+    },
+    "a17e9c3510cc391006e2d6ca0aea8e6face2f0f13979c08b4ea74859bbbc6734": {
+      "prompt_version": "CATEGORY_LEAF_SEARCH_V2",
+      "product_type_summary": "synthetic product",
+      "decision": "SELECT",
+      "selected_category_id": 100869,
+      "confidence": 0.8,
+      "short_reason": "synthetic contract selection",
+      "product_understood": true
+    },
+    "0ce2c6e4017c7ca77d6016fc95c1e907722530f39784260bf330790780cdc552": {
+      "prompt_version": "CATEGORY_LEAF_SEARCH_V2",
+      "product_type_summary": "synthetic product",
+      "decision": "SELECT",
+      "selected_category_id": 100869,
+      "confidence": 0.8,
+      "short_reason": "synthetic contract selection",
+      "product_understood": true
+    }
+  },
+  "images": {
+    "https://m.media-amazon.com/images/I/one.jpg": "iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAIAAAAmkwkpAAAAE0lEQVR4nGP8//8/AwwwwVl4OQCWbgMF7ZjH1AAAAABJRU5ErkJggg=="
+  },
+  "image_predictions": {
+    "4247652aba0ff46ece466a359c860ee8e0a5965d5a09fc5585e413c119d12c3c": {
+      "status": "completed",
+      "model": "gpt-5.6-terra",
+      "output": [
+        {
+          "type": "message",
+          "role": "assistant",
+          "status": "completed",
+          "content": [
+            {
+              "type": "output_text",
+              "text": "{\"status\": \"NO_SIGNAL\", \"note\": \"synthetic\"}"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -12,10 +12,11 @@ import re
 import uuid
 from typing import Any, Mapping
 
+from modules.image_inspection_policy import normalize_root, load_image_inspection_policy, select_image_inspection
+
 SCHEMA = "PH_IMAGE_SAFETY_V1"
 PROMPT_VERSION = "PH_WEAPON_IMAGE_V1"
 MODEL = "gpt-5.6-terra"
-TARGET_ROOTS = frozenset({13299531, 2277721051, 14304371, 2016929051})
 MAX_IMAGES = 3
 IMAGE_REASON_CODES = ("IMAGE_SAFETY_REVIEW", "IMAGE_SAFETY_EXCLUDE")
 SEMANTIC_RESULTS = frozenset({"NO_SIGNAL", "REVIEW", "INDETERMINATE"})
@@ -29,16 +30,15 @@ _HASH = re.compile(r"[a-f0-9]{64}")
 _ASIN = re.compile(r"[A-Z0-9]{10}")
 
 
+def __getattr__(name):
+    # Preserve the legacy export without reading PH settings for SG imports.
+    if name == "TARGET_ROOTS":
+        return load_image_inspection_policy("PH").target_roots
+    raise AttributeError(name)
+
+
 class ImageSafetyError(RuntimeError):
     """An untrusted contract or whole-system failure: stop the gate."""
-
-
-def normalize_root(value: Any) -> int | None:
-    if type(value) is int and 0 < value <= 2**63 - 1:
-        return value
-    if isinstance(value, str) and re.fullmatch(r"[0-9]{1,19}", value.strip()):
-        return normalize_root(int(value.strip()))
-    return None
 
 
 def valid_image_url(value: Any) -> bool:
@@ -134,15 +134,11 @@ def image_fact_from_product(
 
 def select_images(fact: dict, guardrail_status: str) -> str:
     _validate_fact(fact)
-    if guardrail_status not in {"SAFE", "REVIEW", "BLOCK"}:
-        raise ImageSafetyError("既存Safety状態が不正です。")
-    if guardrail_status == "BLOCK":
-        return "EXISTING_BLOCK"
-    if fact["provider"] == "canopy_test":
-        return "PROVIDER_UNSUPPORTED"
-    if fact["root_category_id"] is None:
-        return "ROOT_UNKNOWN"
-    return "TARGET_ROOT" if fact["root_category_id"] in TARGET_ROOTS else "OTHER_ROOT"
+    try:
+        return select_image_inspection(marketplace="PH", root_category_id=fact["root_category_id"],
+                                       provider=fact["provider"], guardrail_status=guardrail_status)
+    except ValueError as exc:
+        raise ImageSafetyError("画像検査対象の設定またはSafety状態が不正です。") from exc
 
 
 def create_image_sidecar(

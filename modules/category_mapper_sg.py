@@ -556,6 +556,20 @@ def sync_sg_brand_catalog_offline(
     The injected transport must be an offline fake. The default network transport
     is refused. Response identity echoes are neither required nor invented.
     """
+    return _sync_sg_brand_catalog(client=client, session=session, store=store,
+                                  confirmed_category_id=confirmed_category_id)
+
+
+def sync_sg_brand_catalog_live_validation(*, client, session, store, confirmed_category_id, scope):
+    from modules.sg_live_validation import SGLiveValidationScope
+    if not isinstance(scope, SGLiveValidationScope):
+        raise SGCategoryMapperError("Explicit limited SG live scope required")
+    scope.require_client(client, store)
+    return _sync_sg_brand_catalog(client=client, session=session, store=store,
+                                  confirmed_category_id=confirmed_category_id, live_scope=scope)
+
+
+def _sync_sg_brand_catalog(*, client, session, store, confirmed_category_id, live_scope=None):
     category_id = confirmed_category_id
     session.invalidate(category_id)
     if type(category_id) is not int or category_id <= 0:
@@ -564,8 +578,12 @@ def sync_sg_brand_catalog_offline(
 
     def check_run() -> None:
         if (session.marketplace != "SG" or client.marketplace != "SG"
-                or client.credentials.shop_id != session.shop_id or client.uses_default_transport):
+                or client.credentials.shop_id != session.shop_id
+                or client.uses_default_transport and live_scope is None):
             raise SGCategoryMapperError("SG Brand offline client/run binding is invalid.")
+        if live_scope is not None:
+            live_scope.require_client(client, store)
+            live_scope.require_brand_category(category_id)
         client._require_marketplace("SG")
 
     check_run()
@@ -576,12 +594,15 @@ def sync_sg_brand_catalog_offline(
     page_signatures = set()
     offsets = set()
     offset = 0
-    for page_number in range(1, 11):
+    page_limit = live_scope.brand_page_limit if live_scope is not None else 10
+    for page_number in range(1, page_limit + 1):
         check_run()
         if offset in offsets:
             raise SGCategoryMapperError("SG Brand pagination cycle.")
         offsets.add(offset)
         try:
+            if live_scope is not None:
+                live_scope.reserve_brand_page(category_id)
             page = client.get_brand_list("SG", category_id, offset=offset,
                                          page_size=100, status=BRAND_STATUS_NORMAL, strict=True)
         except (ShopeeCatalogError, ValueError):
@@ -608,7 +629,7 @@ def sync_sg_brand_catalog_offline(
         if page.next_offset <= offset or page.next_offset in offsets:
             raise SGCategoryMapperError("SG Brand pagination did not advance.")
         offset = page.next_offset
-    return SGBrandSyncResult("INCOMPLETE", 10, review_reason="Brand page budget exhausted; Category requires REVIEW.")
+    return SGBrandSyncResult("INCOMPLETE", page_limit, review_reason="Brand page budget exhausted; Category requires REVIEW.")
 
 
 def sg_no_brand_evidence_digest(item: SGMapperRecommendation) -> str:

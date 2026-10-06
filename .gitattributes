@@ -1,0 +1,2 @@
+# Synthetic sidecars bind exact CSV bytes; keep them stable on Windows checkouts.
+tests/fixtures/browser_e2e/sg_candidate/*.csv text eol=lf

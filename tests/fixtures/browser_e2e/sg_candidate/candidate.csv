@@ -1,0 +1,2 @@
+﻿schema_version,source_type,source_id,source_asin,candidate_asin,input_title,product_title,brand,category,amazon_url,source_status,source_verification,source,fetched_at,source_note
+PRELISTING_CANDIDATE_V1,EXPANSION,,B000000000,B000000001,,Example personal care item,Example Brand,Personal Care,,,,keepa_product_finder_strict,2026-09-01T00:00:00+00:00,

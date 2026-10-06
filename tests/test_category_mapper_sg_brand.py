@@ -132,6 +132,52 @@ def test_no_brand_uses_name_and_actual_nonzero_id_only():
     assert rows[1]["brand_id"] == 99
 
 
+@pytest.mark.parametrize("brand_id", [0, 99])
+def test_strict_accepts_sg_live_no_brand_name_variants(brand_id):
+    row = {**raw_brand(brand_id, "No brand"), "original_brand_name": "NoBrand"}
+    client, _ = client_for([payload([row])])
+    assert client.get_brand_list("SG", 11, strict=True).brands == (
+        {"brand_id": brand_id, "brand_name": "No brand",
+         "original_brand_name": "NoBrand", "is_no_brand": True},
+    )
+
+
+@pytest.mark.parametrize("original", ["Maker", "NoBrand Accessories", "No_Brand"])
+def test_strict_no_brand_variant_does_not_accept_ambiguous_names(original):
+    row = {**raw_brand(99, "No brand"), "original_brand_name": original}
+    client, _ = client_for([payload([row])])
+    with pytest.raises(ShopeeCatalogError):
+        client.get_brand_list("SG", 11, strict=True)
+
+
+def test_explicit_live_brand_grant_completes_after_legacy_limit(store):
+    from modules.sg_live_validation import SGLiveValidationScope
+    from modules.category_mapper_sg import sync_sg_brand_catalog_live_validation
+    client, calls = client_for([payload([raw_brand(i + 1)], next_offset=i + 1,
+                                      has_next_page=i < 11) for i in range(12)])
+    scope = SGLiveValidationScope(("B000000001",), 22, store.db_path,
+                                 brand_page_limit=50, allowed_brand_category_ids=(11,))
+    session = SGBrandSession(marketplace="SG", shop_id=22)
+    result = sync_sg_brand_catalog_live_validation(client=client, session=session, store=store,
+                                                  confirmed_category_id=11, scope=scope)
+    assert result.status == "SUCCESS" and result.pages == len(calls) == 12
+    assert len(store.list_brands("SG", 11)) == 12
+    session.require_current(11, store=store)
+
+
+def test_extended_live_brand_scope_refuses_unapproved_category_before_request(store):
+    from modules.sg_live_validation import SGLiveValidationScope, LiveValidationStopped
+    from modules.category_mapper_sg import sync_sg_brand_catalog_live_validation
+    client, calls = client_for([])
+    scope = SGLiveValidationScope(("B000000001",), 22, store.db_path,
+                                 brand_page_limit=50, allowed_brand_category_ids=(11,))
+    with pytest.raises(LiveValidationStopped):
+        sync_sg_brand_catalog_live_validation(client=client,
+            session=SGBrandSession(marketplace="SG", shop_id=22), store=store,
+            confirmed_category_id=12, scope=scope)
+    assert not calls
+
+
 def test_ph_default_normalization_is_unchanged():
     client, _ = client_for([payload([None, raw_brand(0, "Real"),
                                     {"brand_id": 8, "brand_name": "Legacy"}])], marketplace="PH")
