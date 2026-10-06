@@ -175,6 +175,8 @@ def test_candidate_entry_from_files_to_group_downloads(tmp_path, monkeypatch):
     app.file_uploader(key="sg_category_mapper_source_csv").set_value((material["gate_filename"], material["gate_content"], "text/csv")).run()
     upload_files(app, material)
     app.button(key="sg_review_load_files").click().run()
+    assert not app.error
+    assert app.session_state["sg_candidate_workflow"].can_load_product_evidence
     app.button(key="sg_category_mapper_build").click().run()
     app.button(key="sg_category_mapper_build_ai_suggestions").click().run()
     assert app.session_state["sg_category_mapper_ai_suggestions"].suggestions[0].predicted_category_id == 100869
