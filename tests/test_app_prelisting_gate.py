@@ -91,9 +91,14 @@ def _standard_logger_warning(self, message, *args, **kwargs):
 
 
 def test_third_top_level_tab_preserves_the_existing_two_tabs():
+    renderer = next(
+        node
+        for node in APP_TREE.body
+        if isinstance(node, ast.FunctionDef) and node.name == "render_application"
+    )
     tab_call = next(
         node.value
-        for node in APP_TREE.body
+        for node in renderer.body
         if isinstance(node, ast.Assign)
         and isinstance(node.value, ast.Call)
         and isinstance(node.value.func, ast.Attribute)

@@ -1,5 +1,9 @@
 # Shopee Expansion Tool Ver1
 
+PH / SGの普段の入口は[統一ベータ](docs/BETA_APPLICATION.md)です。
+共通の「対象国」プルダウンで4工程を切り替え、既存PHの保存先とSG専用のデータ・API取得枠を保持します。
+下記の`app.py`単独起動・旧SG offline画面の説明は従来入口の仕様です。
+
 市場展開の開発目標は、[固定PH Beta基準のSG / MY / TH機能統一](docs/PH_BETA_MARKET_PARITY.md)を参照してください。
 SG Brandの確認画面部品は隔離offline検証用です。通常SG画面と実運用DBには接続していません。
 隔離検証では明示注入したoffline client / engineでBrand候補取得・保存とAI Category候補・人間採用を確認します。

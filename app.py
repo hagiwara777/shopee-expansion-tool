@@ -47,6 +47,7 @@ from modules.amazon_data_provider import (
     create_amazon_data_client,
 )
 from modules.config import load_settings
+from modules.beta_runtime_paths import current_beta_paths
 from modules.direct_chat_assist import build_copy_button_html, is_valid_chatgpt_project_url
 from modules.keepa_client import (
     SEARCH_MODE_LABELS,
@@ -133,7 +134,10 @@ EVIDENCE_RESTORABLE_SESSION_KEYS = (
     "asin_resolver_evidence_source_input",
     "asin_resolver_evidence_next_action",
 )
-EVIDENCE_RUNTIME_ROOT = Path(__file__).resolve().parent / "outputs" / "asin_resolver_runs"
+def _evidence_runtime_root():
+    paths = current_beta_paths()
+    root = paths.ph_root if paths else Path(__file__).resolve().parent
+    return root / "outputs" / "asin_resolver_runs"
 ASIN_RESOLVER_VERSION = "0.4.3"
 PRELISTING_GATE_MARKETPLACES = ("SG", "PH")
 
@@ -320,15 +324,19 @@ def _render_prelisting_gate_result(result, exports, *, source_type: str) -> None
     )
 
 
-def _render_prelisting_gate_input_tab() -> None:
+def _render_prelisting_gate_input_tab(marketplace=None) -> None:
     """Render input parsing, gate execution, and current result presentation."""
 
     st.subheader("出品前保安ゲート")
-    marketplace = st.selectbox(
-        "対象市場",
-        PRELISTING_GATE_MARKETPLACES,
-        key="prelisting_gate_marketplace",
-    )
+    if marketplace is None:
+        marketplace = st.selectbox(
+            "対象市場",
+            PRELISTING_GATE_MARKETPLACES,
+            key="prelisting_gate_marketplace",
+        )
+    if marketplace not in PRELISTING_GATE_MARKETPLACES:
+        st.error("対象国を確認してください。")
+        return
     st.write(f"対象国: {marketplace}")
 
     expected_shop_count = st.number_input(
@@ -696,931 +704,955 @@ def _render_prelisting_gate_input_tab() -> None:
             st.error(safe_prelisting_gate_error_summary("unexpected"))
 
 
-st.set_page_config(page_title="Shopee Expansion Tool Ver1", layout="centered")
+def render_application(marketplace=None, *, sg_config_path=None):
+    """Render the existing work tabs, optionally bound to one beta market."""
+    beta_marketplace = marketplace
+    if beta_marketplace is None:
+        st.set_page_config(page_title="Shopee Expansion Tool Ver1", layout="centered")
+        st.title("Shopee Expansion Tool Ver1")
+    elif beta_marketplace not in {"PH", "SG"}:
+        st.error("対象国を確認してください。")
+        st.stop()
 
-st.title("Shopee Expansion Tool Ver1")
+    try:
+        amazon_settings = load_settings()
+    except AmazonDataProviderConfigurationError as exc:
+        st.error(str(exc))
+        st.stop()
 
-try:
-    amazon_settings = load_settings()
-except AmazonDataProviderConfigurationError as exc:
-    st.error(str(exc))
-    st.stop()
+    previous_provider = st.session_state.get("active_amazon_data_provider")
+    if previous_provider and previous_provider != amazon_settings.amazon_data_provider:
+        st.session_state.pop("result", None)
+        st.session_state.pop("asin_resolver_rows", None)
+    st.session_state["active_amazon_data_provider"] = amazon_settings.amazon_data_provider
 
-previous_provider = st.session_state.get("active_amazon_data_provider")
-if previous_provider and previous_provider != amazon_settings.amazon_data_provider:
-    st.session_state.pop("result", None)
-    st.session_state.pop("asin_resolver_rows", None)
-st.session_state["active_amazon_data_provider"] = amazon_settings.amazon_data_provider
+    if amazon_settings.amazon_data_provider == CANOPY_TEST_PROVIDER:
+        st.warning("Amazon data provider: Canopy TEST")
 
-if amazon_settings.amazon_data_provider == CANOPY_TEST_PROVIDER:
-    st.warning("Amazon data provider: Canopy TEST")
-
-expansion_tab, resolver_tab, prelisting_gate_tab, category_mapper_tab = st.tabs(
-    ["ASIN Expansion", "ASIN Resolver", "出品前保安ゲート", "Category Mapper"]
-)
-
-with expansion_tab:
-    with st.form("search_form", clear_on_submit=False):
-        asin_input = st.text_input("ASIN", placeholder="B07TSC47PH")
-        if amazon_settings.amazon_data_provider == KEEPA_PROVIDER:
-            search_mode = st.selectbox(
-                "検索モード",
-                SEARCH_MODE_OPTIONS,
-                index=0,
-                format_func=lambda value: SEARCH_MODE_LABELS[value],
-            )
-            st.caption(SEARCH_MODE_NOTES[search_mode])
-            search_pages = st.selectbox(
-                "検索ページ数",
-                PAGE_OPTIONS,
-                index=0,
-                format_func=lambda value: f"{value}ページ",
-            )
-            st.caption(
-                f"取得予定候補数: {planned_candidate_count(search_pages)}件 / "
-                f"推定消費トークン: 約{estimate_token_usage(search_pages)} tokens"
-            )
-        else:
-            search_mode = "canopy_test"
-            search_pages = 1
-            st.caption(
-                "Canopy TEST: 起点商品のbrandでJP検索し、1ページだけから"
-                "brand完全一致候補を最大5件確認します（最大7 requests、retryなし）。"
-            )
-        search_clicked = st.form_submit_button(
-            "検索開始",
-            type="primary",
-            width="stretch",
-        )
-
-    if search_clicked:
-        st.session_state["result"] = None
-
-        try:
-            source_asin = normalize_asin(asin_input)
-            client = create_amazon_data_client(amazon_settings)
-
-            if amazon_settings.amazon_data_provider == KEEPA_PROVIDER:
-                with st.spinner(
-                    "Keepa APIから候補ASINを取得しています。"
-                    "トークン不足時は自動で回復待ちします..."
-                ):
-                    result = client.find_related_products(
-                        source_asin=source_asin,
-                        search_pages=search_pages,
-                        search_mode=search_mode,
-                    )
-            else:
-                with st.spinner("Canopy TESTで候補ASINを確認しています（retryなし）..."):
-                    result = client.find_related_products(source_asin=source_asin)
-
-        except ValueError as exc:
-            st.error(str(exc))
-        except AmazonDataProviderError as exc:
-            st.error(str(exc))
-        except Exception:
-            st.error(
-                "想定外のエラーが発生しました。アプリを再起動し、同じASINで再実行してください。"
-            )
-        else:
-            st.session_state["result"] = result
-
-    result = st.session_state.get("result")
-
-    if result:
-        if result.final_display_count:
-            st.success(f"{result.final_display_count}件の候補ASINを取得しました。")
-        elif amazon_settings.amazon_data_provider == CANOPY_TEST_PROVIDER:
-            st.warning("候補ASINは0件でした。Canopy TESTのbrand完全一致候補はありません。")
-        else:
-            st.warning("候補ASINは0件でした。検索条件をstandardまたはbroadに広げて再検索してください。")
-
-        st.write(f"取得したbrand: {result.brand}")
-        if amazon_settings.amazon_data_provider == KEEPA_PROVIDER:
-            st.write(f"取得したcategory: {result.category}")
-            st.write(f"検索モード: {SEARCH_MODE_LABELS.get(result.search_mode, result.search_mode)}")
-            st.write(f"検索モードの注意: {result.search_mode_note}")
-            st.write(f"利用カテゴリ条件: {result.category_filter_note}")
-            st.write(f"検索ページ数: {result.search_pages}ページ")
-            st.write(f"取得予定候補数: {result.planned_candidates}件")
-            st.write(f"推定消費トークン: 約{result.token_estimate} tokens")
-            if result.total_results is not None:
-                st.write(f"Product Finder totalResults: {result.total_results}件")
-            st.write(f"Product Finder returned ASIN count: {result.raw_candidate_count}件")
-            st.write(f"詳細取得成功数: {result.detail_success_count}件")
-            st.write(f"詳細取得失敗数: {result.detail_failed_count}件")
-            st.write(f"重複除外数: {result.duplicate_removed_count}件")
-            st.write(f"自己ASIN除外数: {result.self_excluded_count}件")
-            st.write(f"既出品除外: {result.existing_listing_exclusion_status}")
-            st.write(f"削除済みASIN除外: {result.deleted_asin_exclusion_status}")
-            st.write(f"最終表示件数: {result.final_display_count}件")
-            st.write(f"キャッシュ利用: {'あり' if result.cache_hit else 'なし'}")
-            if result.total_results_note:
-                st.info(result.total_results_note)
-            if result.strict_low_count_suggestion:
-                st.warning(result.strict_low_count_suggestion)
-            st.info(result.token_status)
-
-            if result.note:
-                st.warning(result.note)
-
-            if result.diagnostics:
-                with st.expander("Product Finder診断結果"):
-                    for diagnostic in result.diagnostics:
-                        st.write(diagnostic)
-        else:
-            st.write(f"JP検索結果ASIN数: {result.raw_candidate_count}件")
-            st.write(f"詳細取得失敗数: {result.detail_failed_count}件")
-            st.write(f"brand不一致除外数: {result.brand_mismatch_excluded_count}件")
-            st.write(f"重複除外数: {result.duplicate_removed_count}件")
-            st.write(f"自己ASIN除外数: {result.self_excluded_count}件")
-            st.write(f"不正ASIN除外数: {result.invalid_excluded_count}件")
-            st.write(f"最終表示件数: {result.final_display_count}件")
-            st.write(f"request数: {result.request_count} / 7")
-            st.caption("Canopy結果はKeepa SQLite cacheへ保存しません。")
-
-        try:
-            expansion_prelisting_rows = expansion_rows_to_prelisting_candidates(result.rows)
-            expansion_prelisting_csv = rows_to_prelisting_candidate_csv(expansion_prelisting_rows)
-            expansion_safety_facts = facts_for_candidate_rows(
-                expansion_prelisting_rows,
-                result.rows,
-            )
-            expansion_safety_sidecar = rows_to_ingredient_safety_sidecar(
-                expansion_prelisting_csv,
-                expansion_prelisting_rows,
-                expansion_safety_facts,
-            )
-            expansion_product_text_facts = product_text_facts_for_candidate_rows(
-                expansion_prelisting_rows,
-                result.rows,
-            )
-            expansion_product_text_sidecar = rows_to_product_text_safety_sidecar(
-                expansion_prelisting_csv,
-                expansion_prelisting_rows,
-                expansion_product_text_facts,
-            )
-            expansion_image_sidecar = create_image_sidecar(
-                expansion_prelisting_csv, expansion_prelisting_rows, result.rows,
-            )
-        except PrelistingCandidateCsvError:
-            st.error(
-                "出品前保安ゲート用CSVを生成できませんでした。候補データを確認してください。"
-            )
-        except IngredientSafetyError:
-            st.error(
-                "出品前保安ゲート用CSVを生成できませんでした。候補データを確認してください。"
-            )
-        except (ProductTextSafetyError, ImageSafetyError):
-            st.error(
-                "出品前保安ゲート用CSVを生成できませんでした。候補データを確認してください。"
-            )
-        else:
-            st.caption(
-                "このCSVは外部出品ツールへ直接渡さず、対象市場（SG／PH）を選んだ出品前保安ゲートの候補CSVとして使用してください。"
-            )
-            st.download_button(
-                label="出品前保安ゲート用CSVダウンロード",
-                data=expansion_prelisting_csv,
-                file_name=f"prelisting_candidates_expansion_{result.source_asin}.csv",
-                mime="text/csv",
-                key="prelisting-expansion-download",
-                width="stretch",
-            )
-            st.download_button(
-                label="Ingredient Safety Fact sidecarダウンロード",
-                data=expansion_safety_sidecar,
-                file_name=f"ingredient_safety_facts_expansion_{result.source_asin}.csv",
-                mime="text/csv",
-                key="ingredient-safety-expansion-download",
-                width="stretch",
-            )
-            st.download_button(
-                label="Product Text Safety Fact sidecarダウンロード",
-                data=expansion_product_text_sidecar,
-                file_name=f"product_text_safety_facts_expansion_{result.source_asin}.csv",
-                mime="text/csv",
-                key="product-text-safety-expansion-download",
-                width="stretch",
-            )
-            st.download_button(
-                label="PH画像確認ファイルをダウンロード", data=expansion_image_sidecar,
-                file_name=f"ph_image_safety_expansion_{result.source_asin}.json",
-                mime="application/json", key="ph-image-safety-expansion-download", width="stretch",
-            )
-        st.dataframe(pd.DataFrame(result.rows), width="stretch", hide_index=True)
-
-with resolver_tab:
-    st.subheader("ASIN Resolver Tool Ver0.4.3")
-    if os.environ.get("ASIN_RESOLVER_EVIDENCE_UI_ENABLED") == "1":
-        with st.expander("Evidence Batch（PH固定30件基準実行用）", expanded=True):
-            active_manifest_path = _active_evidence_manifest_path()
-            if active_manifest_path is None:
-                st.warning(
-                    "現在はlegacy／非証跡モードです。Evidence Manifest、source map、再開保証を"
-                    "持たないため、formalな固定30件基準実行には使用できません。"
-                )
-            else:
-                st.success(f"Evidence Batch: {active_manifest_path.parent.name}")
-
-            with st.form("asin_resolver_evidence_batch_form", clear_on_submit=False):
-                recorded_formal_commit = st.text_input(
-                    "記録する formal main commit（40桁SHA、必須）",
-                    key="asin_resolver_recorded_formal_commit",
-                )
-                st.caption(
-                    "承認値は環境変数 ASIN_RESOLVER_APPROVED_FORMAL_MAIN_COMMIT からのみ取得します。"
-                )
-                create_batch_clicked = st.form_submit_button("新規 Evidence Batchを作成")
-
-            if create_batch_clicked:
-                try:
-                    manifest_path = create_evidence_batch(
-                        EVIDENCE_RUNTIME_ROOT,
-                        batch_id=generate_batch_id(),
-                        formal_main_commit=recorded_formal_commit,
-                        resolver_version=ASIN_RESOLVER_VERSION,
-                    )
-                    _clear_evidence_state()
-                    _restore_evidence_session(manifest_path)
-                    st.success(f"Evidence Batchを作成しました: {manifest_path.parent.name}")
-                except EvidenceValidationError as exc:
-                    st.error(f"Evidence Batchを作成せず停止しました: {exc}")
-
-            resume_path_text = st.text_input(
-                "既存 Evidence Manifest のローカルパス",
-                key="asin_resolver_evidence_resume_path",
-                placeholder=".../outputs/asin_resolver_runs/<batch_id>/evidence_manifest.json",
-            )
-            if st.button("Evidence Manifestを検証して再開", width="stretch"):
-                try:
-                    manifest_path = Path(resume_path_text)
-                    manifest = load_and_validate_batch(manifest_path)
-                    if manifest["batch_status"] == "PAUSED":
-                        resume_batch(manifest_path)
-                    _restore_evidence_session(manifest_path)
-                    st.success(
-                        "Evidence Manifestを検証しました。"
-                        f"次のcheckpoint: {manifest['resume_from_checkpoint']}"
-                    )
-                except (EvidenceValidationError, OSError) as exc:
-                    st.error(f"Evidence Manifestを変更せず停止しました: {exc}")
-
-            active_manifest_path = _active_evidence_manifest_path()
-            if active_manifest_path is not None:
-                try:
-                    active_manifest = load_and_validate_batch(active_manifest_path)
-                except (EvidenceValidationError, OSError) as exc:
-                    st.error(f"Evidence Batchを変更せず停止しました: {exc}")
-                    _clear_evidence_state()
-                else:
-                    status_columns = st.columns(3)
-                    status_columns[0].metric("batch status", active_manifest["batch_status"])
-                    status_columns[1].metric(
-                        "last checkpoint", active_manifest["last_completed_checkpoint"]
-                    )
-                    status_columns[2].metric(
-                        "resume checkpoint", active_manifest["resume_from_checkpoint"]
-                    )
-                    artifact_rows = [
-                        {
-                            "artifact_id": artifact["artifact_id"],
-                            "filename": artifact["filename"],
-                            "sha256": artifact["sha256"],
-                            "producer": artifact["producer"],
-                            "acceptance_status": artifact["acceptance_status"],
-                            "storage_alias": artifact["storage_alias"],
-                            "parent_artifact_ids": "; ".join(artifact["parent_artifact_ids"]),
-                        }
-                        for artifact in active_manifest["artifacts"]
-                    ]
-                    if artifact_rows:
-                        st.dataframe(pd.DataFrame(artifact_rows), hide_index=True, width="stretch")
-                    action_columns = st.columns(2)
-                    if action_columns[0].button(
-                        "Evidence Batchを一時停止",
-                        width="stretch",
-                        disabled=active_manifest["last_completed_checkpoint"] == "COMPLETED",
-                    ):
-                        try:
-                            pause_batch(active_manifest_path)
-                            st.info("Evidence BatchをPAUSEDとして保存しました。")
-                        except EvidenceValidationError as exc:
-                            st.error(f"Evidence Batchを変更せず停止しました: {exc}")
-                    if action_columns[1].button(
-                        "Evidence Batchを完了", width="stretch", disabled=active_manifest[
-                            "last_completed_checkpoint"
-                        ] != "EXPORT_SAVED"
-                    ):
-                        try:
-                            complete_batch(active_manifest_path)
-                            st.session_state["asin_resolver_evidence_next_action"] = "view_only"
-                            st.success("Evidence BatchをCOMPLETEDとして保存しました。")
-                        except EvidenceValidationError as exc:
-                            st.error(f"Evidence Batchを変更せず停止しました: {exc}")
-
-    active_evidence_path = _active_evidence_manifest_path()
-    evidence_next_action = st.session_state.get("asin_resolver_evidence_next_action")
-    evidence_prompt_action_allowed = active_evidence_path is None or evidence_next_action in {
-        "save_source_input_and_source_map",
-        "generate_initial_prompt",
-    }
-    evidence_response_action_allowed = active_evidence_path is None or evidence_next_action in {
-        "enter_initial_response",
-        "parse_saved_initial_response",
-        "enter_retry_response",
-        "parse_saved_retry_response",
-    }
-    evidence_retry_action_allowed = active_evidence_path is None or evidence_next_action in {
-        "prepare_retry_or_export",
-        "generate_retry_prompt",
-    }
-    evidence_export_action_allowed = active_evidence_path is None or evidence_next_action in {
-        "prepare_retry_or_export",
-        "export",
-    }
-
-    if active_evidence_path is not None and isinstance(evidence_next_action, str):
-        st.info(f"Evidence Batch再開ガイド: 次の操作は `{evidence_next_action}` です。")
-
-    prompt_tab, verify_tab, retry_tab, research_csv_adapter_tab = st.tabs(
-        [
-            "商品名 → AI用プロンプト",
-            "AI返答 → ASIN確認",
-            "不明商品 → 再検索プロンプト",
-            "Shopee調査CSV取込",
-        ]
+    expansion_tab, resolver_tab, prelisting_gate_tab, category_mapper_tab = st.tabs(
+        ["ASIN Expansion", "ASIN Resolver", "出品前保安ゲート", "Category Mapper"]
     )
 
-    with prompt_tab:
-        st.info(
-            "商品名は1行1商品で貼り付けてください。"
-            "このタブではAmazon検索を行わず、外部AIへ貼るためのプロンプトを生成します。"
-        )
-        with st.form("asin_resolver_prompt_form", clear_on_submit=False):
-            product_names_text = st.text_area(
-                "商品名リスト",
-                placeholder=(
-                    "Anua Heartleaf 77 Toner 250ml\n"
-                    "HAKUBA Camera Case Plus Shell City 04 Camera Pouch M Black"
-                ),
-                height=180,
-                key="asin_resolver_product_names_input",
-            )
-            prompt_clicked = st.form_submit_button(
-                "AI用プロンプト生成",
+    with expansion_tab:
+        with st.form("search_form", clear_on_submit=False):
+            asin_input = st.text_input("ASIN", placeholder="B07TSC47PH")
+            if amazon_settings.amazon_data_provider == KEEPA_PROVIDER:
+                search_mode = st.selectbox(
+                    "検索モード",
+                    SEARCH_MODE_OPTIONS,
+                    index=0,
+                    format_func=lambda value: SEARCH_MODE_LABELS[value],
+                )
+                st.caption(SEARCH_MODE_NOTES[search_mode])
+                search_pages = st.selectbox(
+                    "検索ページ数",
+                    PAGE_OPTIONS,
+                    index=0,
+                    format_func=lambda value: f"{value}ページ",
+                )
+                st.caption(
+                    f"取得予定候補数: {planned_candidate_count(search_pages)}件 / "
+                    f"推定消費トークン: 約{estimate_token_usage(search_pages)} tokens"
+                )
+            else:
+                search_mode = "canopy_test"
+                search_pages = 1
+                st.caption(
+                    "Canopy TEST: 起点商品のbrandでJP検索し、1ページだけから"
+                    "brand完全一致候補を最大5件確認します（最大7 requests、retryなし）。"
+                )
+            search_clicked = st.form_submit_button(
+                "検索開始",
                 type="primary",
                 width="stretch",
-                disabled=not evidence_prompt_action_allowed,
             )
 
-        if prompt_clicked:
+        if search_clicked:
+            st.session_state["result"] = None
+
             try:
-                active_manifest_path = _active_evidence_manifest_path()
-                prompt_source_input: str | None = None
-                if active_manifest_path is not None:
-                    active_manifest = load_and_validate_batch(active_manifest_path)
-                    checkpoint = active_manifest["last_completed_checkpoint"]
-                    if checkpoint == "BATCH_CREATED":
-                        if not product_names_text.strip():
-                            st.warning("商品名リストを入力してください。")
-                        else:
-                            entries = persist_source_input_and_source_map(
-                                active_manifest_path,
-                                product_names_text,
-                                search_title_builder=build_search_title,
-                            )
-                            prompt_source_input = product_names_text
-                            st.session_state["asin_resolver_evidence_next_action"] = (
-                                "generate_initial_prompt"
-                            )
-                    elif checkpoint == "SOURCE_MAP_SAVED":
-                        entries = st.session_state.get("asin_resolver_evidence_source_entries", [])
-                        prompt_source_input = st.session_state.get(
-                            "asin_resolver_evidence_source_input", ""
+                source_asin = normalize_asin(asin_input)
+                client = create_amazon_data_client(amazon_settings)
+
+                if amazon_settings.amazon_data_provider == KEEPA_PROVIDER:
+                    with st.spinner(
+                        "Keepa APIから候補ASINを取得しています。"
+                        "トークン不足時は自動で回復待ちします..."
+                    ):
+                        result = client.find_related_products(
+                            source_asin=source_asin,
+                            search_pages=search_pages,
+                            search_mode=search_mode,
                         )
-                        if not prompt_source_input:
-                            raise EvidenceValidationError("saved source input is unavailable for resume")
-                    else:
-                        raise EvidenceValidationError(
-                            f"prompt generation is not allowed at checkpoint {checkpoint}"
-                        )
-                elif product_names_text.strip():
-                    entries = []
-                    prompt_source_input = product_names_text
                 else:
-                    st.warning("商品名リストを入力してください。")
+                    with st.spinner("Canopy TESTで候補ASINを確認しています（retryなし）..."):
+                        result = client.find_related_products(source_asin=source_asin)
 
-                if prompt_source_input is None:
-                    pass
-                else:
-                    if active_manifest_path is not None:
-                        source_map = {
-                            (
-                                entry.resolver_source_id
-                                if hasattr(entry, "resolver_source_id")
-                                else entry["resolver_source_id"]
-                            ): (
-                                entry.original_title
-                                if hasattr(entry, "original_title")
-                                else entry["original_title"]
-                            )
-                            for entry in entries
-                        }
-                        st.session_state["asin_resolver_evidence_source_entries"] = [
-                            entry.to_record() if hasattr(entry, "to_record") else entry
-                            for entry in entries
-                        ]
-                    else:
-                        source_map = build_source_map(prompt_source_input)
-                    generated_prompt = build_ai_prompt(prompt_source_input)
-                    if active_manifest_path is not None:
-                        record_initial_prompt(active_manifest_path, generated_prompt)
-                        st.session_state["asin_resolver_evidence_response_phase"] = "initial"
-                        st.session_state["asin_resolver_evidence_next_action"] = (
-                            "enter_initial_response"
-                        )
-                    st.session_state["asin_resolver_prompt"] = generated_prompt
-                    st.session_state["asin_resolver_prompt_display"] = generated_prompt
-                    st.session_state["asin_resolver_source_map"] = source_map
-                    st.session_state["asin_resolver_preview_rows"] = []
-                    st.session_state["asin_resolver_rows"] = []
-                    st.session_state["asin_resolver_input_line_count"] = 0
-                    st.session_state.pop("asin_resolver_selection_editor", None)
-                    _clear_retry_state()
-            except EvidenceValidationError as exc:
-                st.error(f"Evidence Batchを変更せず停止しました: {exc}")
-
-        st.text_area(
-            "生成されたプロンプト",
-            height=320,
-            key="asin_resolver_prompt_display",
-        )
-        _render_direct_chat_assist(
-            "asin_resolver_prompt_display",
-            "asin-resolver-initial-prompt-copy",
-        )
-
-    with verify_tab:
-        st.info(
-            "商品名だけではAmazon検索は行いません。"
-            "Amazon.co.jp URLまたはASINを含むAI返答を貼り付けてください。"
-        )
-        with st.form("asin_resolver_verify_form", clear_on_submit=False):
-            ai_response_text = st.text_area(
-                "ChatGPT / Geminiの返答",
-                placeholder=(
-                    "source_id\tinput_title\tamazon_url\n"
-                    "R0001\tAnua Heartleaf 77 Toner 250ml\thttps://www.amazon.co.jp/dp/B08C4Z1XF4\n"
-                    "R0002\tUnknown Product\t不明"
-                ),
-                height=220,
-            )
-            parse_clicked = st.form_submit_button(
-                "AI返答を解析",
-                type="primary",
-                width="stretch",
-                disabled=not evidence_response_action_allowed,
-            )
-
-        if parse_clicked:
-            st.session_state["asin_resolver_preview_rows"] = []
-            st.session_state["asin_resolver_rows"] = []
-            st.session_state["asin_resolver_input_line_count"] = 0
-            st.session_state.pop("asin_resolver_selection_editor", None)
-            _clear_retry_state()
-
-            active_manifest_path = _active_evidence_manifest_path()
-            use_saved_response = False
-            if not ai_response_text.strip() and active_manifest_path is not None:
-                restored = restore_batch_state(active_manifest_path)
-                checkpoint = restored["manifest"]["last_completed_checkpoint"]
-                if checkpoint == "INITIAL_RESPONSE_SAVED":
-                    ai_response_text = restored["initial_ai_response"]
-                    st.session_state["asin_resolver_evidence_response_phase"] = "initial"
-                    use_saved_response = True
-                elif checkpoint == "RETRY_RESPONSE_SAVED":
-                    ai_response_text = restored["retry_ai_response"]
-                    st.session_state["asin_resolver_evidence_response_phase"] = "retry"
-                    use_saved_response = True
-
-            if not ai_response_text.strip():
-                st.warning("ChatGPT / Geminiの返答を入力してください。")
+            except ValueError as exc:
+                st.error(str(exc))
+            except AmazonDataProviderError as exc:
+                st.error(str(exc))
+            except Exception:
+                st.error(
+                    "想定外のエラーが発生しました。アプリを再起動し、同じASINで再実行してください。"
+                )
             else:
-                try:
-                    response_phase = st.session_state.get(
-                        "asin_resolver_evidence_response_phase", "initial"
-                    )
-                    if active_manifest_path is not None and not use_saved_response:
-                        if response_phase == "initial":
-                            record_initial_response(active_manifest_path, ai_response_text)
-                            st.session_state["asin_resolver_evidence_next_action"] = (
-                                "parse_saved_initial_response"
-                            )
-                        elif response_phase == "retry":
-                            record_retry_response(active_manifest_path, ai_response_text)
-                            st.session_state["asin_resolver_evidence_next_action"] = (
-                                "parse_saved_retry_response"
-                            )
-                        else:
-                            raise EvidenceValidationError("unknown Evidence response phase")
-                    preview_rows = preview_candidates(
-                        ai_response_text,
-                        st.session_state.get("asin_resolver_source_map"),
-                    )
-                    if active_manifest_path is not None:
-                        candidate_csv = rows_to_resolver_csv(preview_rows)
-                        if response_phase == "initial":
-                            record_initial_parse(active_manifest_path, preview_rows, candidate_csv)
-                            st.session_state["asin_resolver_evidence_next_action"] = (
-                                "prepare_retry_or_export"
-                            )
-                        else:
-                            record_retry_parse(active_manifest_path, preview_rows, candidate_csv)
-                            st.session_state["asin_resolver_evidence_next_action"] = "export"
-                    st.session_state["asin_resolver_preview_rows"] = preview_rows
-                    st.session_state["asin_resolver_input_line_count"] = len(
-                        clean_ai_response(ai_response_text).splitlines()
-                    )
-                    if preview_rows:
-                        st.success(f"{len(preview_rows)}件の候補行を解析しました。")
-                    else:
-                        st.warning("確認対象または候補として残す行はありませんでした。")
-                except EvidenceValidationError as exc:
-                    st.error(f"Evidence Batchを変更せず停止しました: {exc}")
+                st.session_state["result"] = result
 
-        preview_rows = st.session_state.get("asin_resolver_preview_rows", [])
-        if preview_rows:
-            editable_preview = st.data_editor(
-                pd.DataFrame(preview_rows),
-                column_config={
-                    "selected": st.column_config.CheckboxColumn("確認対象"),
-                    "row_id": None,
-                    "source_id_known": None,
-                },
-                disabled=[
-                    "source_id",
-                    "input_title",
-                    "amazon_url",
-                    "asin",
-                    "parse_status",
-                    "status",
-                    "verification",
-                    "note",
-                    "row_id",
-                    "source_id_known",
-                ],
-                hide_index=True,
-                key="asin_resolver_selection_editor",
-                width="stretch",
-            )
-            selected_preview_rows = editable_preview.to_dict("records")
-            preview_summary = summarize_preview(selected_preview_rows)
-            input_line_count = st.session_state.get("asin_resolver_input_line_count", 0)
-            verified_count = sum(
-                1
-                for row in st.session_state.get("asin_resolver_rows", [])
-                if row.get("verification") != "NOT_CHECKED"
-            )
-            st.caption(
-                f"解析対象入力行数: {input_line_count}件（空行・コードブロックを除く）。"
-                f"選択されたAmazon商品確認対象ASIN数: {preview_summary['selected_unique_asins']}件"
-                "（重複を除く）。"
-                "プレビューではAmazon data providerを呼びません。"
-                "AI返答を変更した場合は、もう一度解析してください。"
-            )
-            preview_cols = st.columns(3)
-            preview_cols[0].metric("抽出候補行数", preview_summary["extracted_asin_rows"])
-            preview_cols[1].metric("選択候補行数", preview_summary["selected_rows"])
-            preview_cols[2].metric(
-                "選択されたユニークASIN数", preview_summary["selected_unique_asins"]
-            )
-            preview_detail_cols = st.columns(2)
-            preview_detail_cols[0].metric("選択解除件数", preview_summary["deselected_rows"])
-            preview_detail_cols[1].metric("Amazon商品確認済み件数", verified_count)
+        result = st.session_state.get("result")
 
-            verify_clicked = st.button(
-                "選択したASINをAmazon商品として確認",
-                type="primary",
-                width="stretch",
-                disabled=(
-                    preview_summary["selected_unique_asins"] == 0
-                    or not evidence_export_action_allowed
-                ),
-            )
+        if result:
+            if result.final_display_count:
+                st.success(f"{result.final_display_count}件の候補ASINを取得しました。")
+            elif amazon_settings.amazon_data_provider == CANOPY_TEST_PROVIDER:
+                st.warning("候補ASINは0件でした。Canopy TESTのbrand完全一致候補はありません。")
+            else:
+                st.warning("候補ASINは0件でした。検索条件をstandardまたはbroadに広げて再検索してください。")
 
-            if verify_clicked:
-                st.session_state["asin_resolver_rows"] = []
-                try:
-                    client = create_amazon_data_client(amazon_settings)
-                    with st.spinner("Amazon data providerでASINの実在確認をしています..."):
-                        verified_rows = verify_selected_rows(
-                            selected_preview_rows,
-                            client,
-                        )
-                        active_manifest_path = _active_evidence_manifest_path()
-                        if active_manifest_path is not None:
-                            response_phase = st.session_state.get(
-                                "asin_resolver_evidence_response_phase", "initial"
-                            )
-                            record_resolver_export(
-                                active_manifest_path,
-                                rows_to_resolver_csv(verified_rows),
-                                source_phase=response_phase,
-                            )
-                            st.session_state["asin_resolver_evidence_next_action"] = (
-                                "complete_or_view"
-                            )
-                    st.session_state["asin_resolver_rows"] = verified_rows
-                except AmazonDataProviderError as exc:
-                    st.error(str(exc))
-                except EvidenceValidationError as exc:
-                    st.error(f"Evidence Batchを変更せず停止しました: {exc}")
-                except Exception:
-                    st.error(
-                        "想定外のエラーが発生しました。アプリを再起動し、同じ内容で再実行してください。"
-                    )
+            st.write(f"取得したbrand: {result.brand}")
+            if amazon_settings.amazon_data_provider == KEEPA_PROVIDER:
+                st.write(f"取得したcategory: {result.category}")
+                st.write(f"検索モード: {SEARCH_MODE_LABELS.get(result.search_mode, result.search_mode)}")
+                st.write(f"検索モードの注意: {result.search_mode_note}")
+                st.write(f"利用カテゴリ条件: {result.category_filter_note}")
+                st.write(f"検索ページ数: {result.search_pages}ページ")
+                st.write(f"取得予定候補数: {result.planned_candidates}件")
+                st.write(f"推定消費トークン: 約{result.token_estimate} tokens")
+                if result.total_results is not None:
+                    st.write(f"Product Finder totalResults: {result.total_results}件")
+                st.write(f"Product Finder returned ASIN count: {result.raw_candidate_count}件")
+                st.write(f"詳細取得成功数: {result.detail_success_count}件")
+                st.write(f"詳細取得失敗数: {result.detail_failed_count}件")
+                st.write(f"重複除外数: {result.duplicate_removed_count}件")
+                st.write(f"自己ASIN除外数: {result.self_excluded_count}件")
+                st.write(f"既出品除外: {result.existing_listing_exclusion_status}")
+                st.write(f"削除済みASIN除外: {result.deleted_asin_exclusion_status}")
+                st.write(f"最終表示件数: {result.final_display_count}件")
+                st.write(f"キャッシュ利用: {'あり' if result.cache_hit else 'なし'}")
+                if result.total_results_note:
+                    st.info(result.total_results_note)
+                if result.strict_low_count_suggestion:
+                    st.warning(result.strict_low_count_suggestion)
+                st.info(result.token_status)
 
-        resolver_rows = st.session_state.get("asin_resolver_rows", [])
-        if resolver_rows:
-            summary = summarize_statuses(resolver_rows)
-            st.success(f"{len(resolver_rows)}件のAmazon商品確認を完了しました。")
-            st.write(f"FOUND: {summary['FOUND']}件")
-            st.write(f"UNKNOWN: {summary['UNKNOWN']}件")
-            st.write(f"ERROR: {summary['ERROR']}件")
-            st.download_button(
-                label="起点ASIN候補CSVダウンロード",
-                data=rows_to_resolver_csv(resolver_rows),
-                file_name="asin_resolver_candidates.csv",
-                mime="text/csv",
-                width="stretch",
-            )
+                if result.note:
+                    st.warning(result.note)
+
+                if result.diagnostics:
+                    with st.expander("Product Finder診断結果"):
+                        for diagnostic in result.diagnostics:
+                            st.write(diagnostic)
+            else:
+                st.write(f"JP検索結果ASIN数: {result.raw_candidate_count}件")
+                st.write(f"詳細取得失敗数: {result.detail_failed_count}件")
+                st.write(f"brand不一致除外数: {result.brand_mismatch_excluded_count}件")
+                st.write(f"重複除外数: {result.duplicate_removed_count}件")
+                st.write(f"自己ASIN除外数: {result.self_excluded_count}件")
+                st.write(f"不正ASIN除外数: {result.invalid_excluded_count}件")
+                st.write(f"最終表示件数: {result.final_display_count}件")
+                st.write(f"request数: {result.request_count} / 7")
+                st.caption("Canopy結果はKeepa SQLite cacheへ保存しません。")
+
             try:
-                resolver_prelisting = resolver_rows_to_prelisting_candidates(resolver_rows)
-                st.write(
-                    "Amazon実在確認済み候補行: "
-                    f"{resolver_prelisting.eligible_row_count}件"
+                expansion_prelisting_rows = expansion_rows_to_prelisting_candidates(result.rows)
+                expansion_prelisting_csv = rows_to_prelisting_candidate_csv(expansion_prelisting_rows)
+                expansion_safety_facts = facts_for_candidate_rows(
+                    expansion_prelisting_rows,
+                    result.rows,
                 )
-                st.write(
-                    "未確認・不明・エラー等による除外件数: "
-                    f"{resolver_prelisting.excluded_row_count}件"
+                expansion_safety_sidecar = rows_to_ingredient_safety_sidecar(
+                    expansion_prelisting_csv,
+                    expansion_prelisting_rows,
+                    expansion_safety_facts,
                 )
-                if resolver_prelisting.eligible_row_count > 0:
-                    resolver_gate_handoff = normalize_resolver_gate_handoff(
-                        resolver_prelisting.output_rows, resolver_rows
-                    )
-                    st.write(
-                        "保安ゲート対象商品: "
-                        f"{resolver_gate_handoff.unique_candidate_count}件"
-                    )
-                    st.write(
-                        "同一ASIN統合: "
-                        f"{resolver_gate_handoff.consolidated_row_count}行"
-                    )
-                    resolver_prelisting_csv = rows_to_prelisting_candidate_csv(
-                        resolver_gate_handoff.candidate_rows
-                    )
-                    resolver_safety_facts = facts_for_candidate_rows(
-                        resolver_gate_handoff.candidate_rows,
-                        resolver_gate_handoff.source_rows,
-                    )
-                    resolver_safety_sidecar = rows_to_ingredient_safety_sidecar(
-                        resolver_prelisting_csv,
-                        resolver_gate_handoff.candidate_rows,
-                        resolver_safety_facts,
-                    )
-                    resolver_product_text_facts = product_text_facts_for_candidate_rows(
-                        resolver_gate_handoff.candidate_rows,
-                        resolver_gate_handoff.source_rows,
-                    )
-                    resolver_product_text_sidecar = rows_to_product_text_safety_sidecar(
-                        resolver_prelisting_csv,
-                        resolver_gate_handoff.candidate_rows,
-                        resolver_product_text_facts,
-                    )
-                    resolver_image_sidecar = create_image_sidecar(
-                        resolver_prelisting_csv,
-                        resolver_gate_handoff.candidate_rows,
-                        resolver_gate_handoff.source_rows,
-                    )
-            except ResolverGateHandoffError as exc:
+                expansion_product_text_facts = product_text_facts_for_candidate_rows(
+                    expansion_prelisting_rows,
+                    result.rows,
+                )
+                expansion_product_text_sidecar = rows_to_product_text_safety_sidecar(
+                    expansion_prelisting_csv,
+                    expansion_prelisting_rows,
+                    expansion_product_text_facts,
+                )
+                expansion_image_sidecar = create_image_sidecar(
+                    expansion_prelisting_csv, expansion_prelisting_rows, result.rows,
+                )
+            except PrelistingCandidateCsvError:
                 st.error(
-                    "Resolver重複Evidenceを保安ゲート用に統合できませんでした: "
-                    f"{exc}"
+                    "出品前保安ゲート用CSVを生成できませんでした。候補データを確認してください。"
                 )
-            except PrelistingCandidateCsvError as exc:
+            except IngredientSafetyError:
                 st.error(
-                    "出品前保安ゲート用Candidate CSVを生成できませんでした: "
-                    f"{exc}"
+                    "出品前保安ゲート用CSVを生成できませんでした。候補データを確認してください。"
                 )
-            except IngredientSafetyError as exc:
+            except (ProductTextSafetyError, ImageSafetyError):
                 st.error(
-                    "Ingredient Safety sidecarを生成できませんでした: "
-                    f"{exc}"
-                )
-            except ProductTextSafetyError as exc:
-                st.error(
-                    "Product Text Safety sidecarを生成できませんでした: "
-                    f"{exc}"
-                )
-            except ImageSafetyError as exc:
-                st.error(
-                    "PH Image Safety sidecarを生成できませんでした: "
-                    f"{exc}"
+                    "出品前保安ゲート用CSVを生成できませんでした。候補データを確認してください。"
                 )
             else:
-                if resolver_prelisting.eligible_row_count == 0:
-                    st.info(
-                        "Amazon実在確認が完了した候補がないため、"
-                        "出品前保安ゲート用CSVは生成しません。"
-                    )
-                else:
-                    st.caption(
-                        "ここでの除外は、Amazon実在確認が完了していないため、"
-                        "保安ゲート用CSVへ含めない件数です。"
-                    )
-                    st.caption(
-                        "このCSVは外部出品ツールへ直接渡さず、"
-                        "出品前保安ゲートの候補CSVとして使用してください。"
-                    )
-                    st.download_button(
-                        label="出品前保安ゲート用CSVダウンロード",
-                        data=resolver_prelisting_csv,
-                        file_name="prelisting_candidates_resolver.csv",
-                        mime="text/csv",
-                        key="prelisting-resolver-download",
-                        width="stretch",
-                    )
-                    st.download_button(
-                        label="Ingredient Safety Fact sidecarダウンロード",
-                        data=resolver_safety_sidecar,
-                        file_name="ingredient_safety_facts_resolver.csv",
-                        mime="text/csv",
-                        key="ingredient-safety-resolver-download",
-                        width="stretch",
-                    )
-                    st.download_button(
-                        label="Product Text Safety Fact sidecarダウンロード",
-                        data=resolver_product_text_sidecar,
-                        file_name="product_text_safety_facts_resolver.csv",
-                        mime="text/csv",
-                        key="product-text-safety-resolver-download",
-                        width="stretch",
-                    )
-                    st.download_button(
-                        label="PH画像確認ファイルをダウンロード", data=resolver_image_sidecar,
-                        file_name="ph_image_safety_resolver.json", mime="application/json",
-                        key="ph-image-safety-resolver-download", width="stretch",
-                    )
-            comparison_columns = [
-                "source_id",
-                "input_title",
-                "product_title",
-                "product_brand",
-                "amazon_url",
-                "asin",
-                "status",
-                "verification",
-                "note",
-            ]
-            comparison_rows = [
-                {column: row.get(column, "") or "" for column in comparison_columns}
-                for row in resolver_rows
-            ]
-            st.subheader("Amazon商品候補比較")
-            st.dataframe(
-                pd.DataFrame(comparison_rows),
-                column_config={
-                    "source_id": st.column_config.TextColumn("source_id", width="small", pinned=True),
-                    "input_title": st.column_config.TextColumn("input_title", width="large"),
-                    "product_title": st.column_config.TextColumn("product_title", width="large"),
-                    "product_brand": st.column_config.TextColumn("product_brand", width="medium"),
-                    "amazon_url": st.column_config.TextColumn("amazon_url", width="large"),
-                    "asin": st.column_config.TextColumn("asin", width="small"),
-                    "status": st.column_config.TextColumn("status", width="small"),
-                    "verification": st.column_config.TextColumn("verification", width="medium"),
-                    "note": st.column_config.TextColumn("note", width="large"),
-                },
-                width="stretch",
-                hide_index=True,
-            )
-
-    with retry_tab:
-        st.info(
-            "初回AI返答で「不明」になった既知source_idの商品だけを、手動修正したタイトルで再検索できます。"
-            "このタブではKeepa APIを呼びません。"
-        )
-        preview_rows = st.session_state.get("asin_resolver_preview_rows", [])
-        if not preview_rows:
-            st.info("先に「AI返答 → ASIN確認」で初回AI返答を解析してください。")
-        else:
-            if st.button(
-                "再検索対象を生成",
-                width="stretch",
-                disabled=not evidence_retry_action_allowed,
-            ):
-                _clear_retry_state()
-                st.session_state["asin_resolver_retry_rows"] = build_retry_rows(
-                    preview_rows,
-                    st.session_state.get("asin_resolver_source_map"),
+                st.caption(
+                    "このCSVは外部出品ツールへ直接渡さず、対象市場（SG／PH）を選んだ出品前保安ゲートの候補CSVとして使用してください。"
                 )
-
-            retry_rows = st.session_state.get("asin_resolver_retry_rows", [])
-            if not retry_rows:
-                if "asin_resolver_retry_rows" in st.session_state:
-                    st.info("再検索対象の初回不明商品はありません。")
-                else:
-                    st.caption("初回不明商品を確認するには、再検索対象を生成してください。")
-            else:
-                editable_retry_rows = st.data_editor(
-                    pd.DataFrame(retry_rows),
-                    column_config={
-                        "selected": st.column_config.CheckboxColumn("再検索対象"),
-                        "row_id": None,
-                    },
-                    disabled=["source_id", "input_title", "initial_search_title", "row_id"],
-                    hide_index=True,
-                    key="asin_resolver_retry_editor",
+                st.download_button(
+                    label="出品前保安ゲート用CSVダウンロード",
+                    data=expansion_prelisting_csv,
+                    file_name=f"prelisting_candidates_expansion_{result.source_asin}.csv",
+                    mime="text/csv",
+                    key="prelisting-expansion-download",
                     width="stretch",
                 )
-                selected_retry_rows = editable_retry_rows.to_dict("records")
-                retry_summary = summarize_retry_rows(selected_retry_rows)
-                retry_columns = st.columns(3)
-                retry_columns[0].metric("初回不明商品数", retry_summary["initial_unknown_products"])
-                retry_columns[1].metric("再検索対象として選択", retry_summary["selected_products"])
-                retry_columns[2].metric("再検索対象から外した商品", retry_summary["deselected_products"])
-                retry_detail_columns = st.columns(2)
-                retry_detail_columns[0].metric(
-                    "再検索用タイトル未入力", retry_summary["missing_retry_search_titles"]
+                st.download_button(
+                    label="Ingredient Safety Fact sidecarダウンロード",
+                    data=expansion_safety_sidecar,
+                    file_name=f"ingredient_safety_facts_expansion_{result.source_asin}.csv",
+                    mime="text/csv",
+                    key="ingredient-safety-expansion-download",
+                    width="stretch",
                 )
-                retry_detail_columns[1].metric(
-                    "再検索プロンプトへ出力するsource_id数", retry_summary["prompt_source_ids"]
+                st.download_button(
+                    label="Product Text Safety Fact sidecarダウンロード",
+                    data=expansion_product_text_sidecar,
+                    file_name=f"product_text_safety_facts_expansion_{result.source_asin}.csv",
+                    mime="text/csv",
+                    key="product-text-safety-expansion-download",
+                    width="stretch",
+                )
+                st.download_button(
+                    label="PH画像確認ファイルをダウンロード", data=expansion_image_sidecar,
+                    file_name=f"ph_image_safety_expansion_{result.source_asin}.json",
+                    mime="application/json", key="ph-image-safety-expansion-download", width="stretch",
+                )
+            st.dataframe(pd.DataFrame(result.rows), width="stretch", hide_index=True)
+
+    with resolver_tab:
+        st.subheader("ASIN Resolver Tool Ver0.4.3")
+        if os.environ.get("ASIN_RESOLVER_EVIDENCE_UI_ENABLED") == "1":
+            with st.expander("Evidence Batch（PH固定30件基準実行用）", expanded=True):
+                active_manifest_path = _active_evidence_manifest_path()
+                if active_manifest_path is None:
+                    st.warning(
+                        "現在はlegacy／非証跡モードです。Evidence Manifest、source map、再開保証を"
+                        "持たないため、formalな固定30件基準実行には使用できません。"
+                    )
+                else:
+                    st.success(f"Evidence Batch: {active_manifest_path.parent.name}")
+
+                with st.form("asin_resolver_evidence_batch_form", clear_on_submit=False):
+                    recorded_formal_commit = st.text_input(
+                        "記録する formal main commit（40桁SHA、必須）",
+                        key="asin_resolver_recorded_formal_commit",
+                    )
+                    st.caption(
+                        "承認値は環境変数 ASIN_RESOLVER_APPROVED_FORMAL_MAIN_COMMIT からのみ取得します。"
+                    )
+                    create_batch_clicked = st.form_submit_button("新規 Evidence Batchを作成")
+
+                if create_batch_clicked:
+                    try:
+                        manifest_path = create_evidence_batch(
+                            _evidence_runtime_root(),
+                            batch_id=generate_batch_id(),
+                            formal_main_commit=recorded_formal_commit,
+                            resolver_version=ASIN_RESOLVER_VERSION,
+                        )
+                        _clear_evidence_state()
+                        _restore_evidence_session(manifest_path)
+                        st.success(f"Evidence Batchを作成しました: {manifest_path.parent.name}")
+                    except EvidenceValidationError as exc:
+                        st.error(f"Evidence Batchを作成せず停止しました: {exc}")
+
+                resume_path_text = st.text_input(
+                    "既存 Evidence Manifest のローカルパス",
+                    key="asin_resolver_evidence_resume_path",
+                    placeholder=".../outputs/asin_resolver_runs/<batch_id>/evidence_manifest.json",
+                )
+                if st.button("Evidence Manifestを検証して再開", width="stretch"):
+                    try:
+                        manifest_path = Path(resume_path_text)
+                        manifest = load_and_validate_batch(manifest_path)
+                        if manifest["batch_status"] == "PAUSED":
+                            resume_batch(manifest_path)
+                        _restore_evidence_session(manifest_path)
+                        st.success(
+                            "Evidence Manifestを検証しました。"
+                            f"次のcheckpoint: {manifest['resume_from_checkpoint']}"
+                        )
+                    except (EvidenceValidationError, OSError) as exc:
+                        st.error(f"Evidence Manifestを変更せず停止しました: {exc}")
+
+                active_manifest_path = _active_evidence_manifest_path()
+                if active_manifest_path is not None:
+                    try:
+                        active_manifest = load_and_validate_batch(active_manifest_path)
+                    except (EvidenceValidationError, OSError) as exc:
+                        st.error(f"Evidence Batchを変更せず停止しました: {exc}")
+                        _clear_evidence_state()
+                    else:
+                        status_columns = st.columns(3)
+                        status_columns[0].metric("batch status", active_manifest["batch_status"])
+                        status_columns[1].metric(
+                            "last checkpoint", active_manifest["last_completed_checkpoint"]
+                        )
+                        status_columns[2].metric(
+                            "resume checkpoint", active_manifest["resume_from_checkpoint"]
+                        )
+                        artifact_rows = [
+                            {
+                                "artifact_id": artifact["artifact_id"],
+                                "filename": artifact["filename"],
+                                "sha256": artifact["sha256"],
+                                "producer": artifact["producer"],
+                                "acceptance_status": artifact["acceptance_status"],
+                                "storage_alias": artifact["storage_alias"],
+                                "parent_artifact_ids": "; ".join(artifact["parent_artifact_ids"]),
+                            }
+                            for artifact in active_manifest["artifacts"]
+                        ]
+                        if artifact_rows:
+                            st.dataframe(pd.DataFrame(artifact_rows), hide_index=True, width="stretch")
+                        action_columns = st.columns(2)
+                        if action_columns[0].button(
+                            "Evidence Batchを一時停止",
+                            width="stretch",
+                            disabled=active_manifest["last_completed_checkpoint"] == "COMPLETED",
+                        ):
+                            try:
+                                pause_batch(active_manifest_path)
+                                st.info("Evidence BatchをPAUSEDとして保存しました。")
+                            except EvidenceValidationError as exc:
+                                st.error(f"Evidence Batchを変更せず停止しました: {exc}")
+                        if action_columns[1].button(
+                            "Evidence Batchを完了", width="stretch", disabled=active_manifest[
+                                "last_completed_checkpoint"
+                            ] != "EXPORT_SAVED"
+                        ):
+                            try:
+                                complete_batch(active_manifest_path)
+                                st.session_state["asin_resolver_evidence_next_action"] = "view_only"
+                                st.success("Evidence BatchをCOMPLETEDとして保存しました。")
+                            except EvidenceValidationError as exc:
+                                st.error(f"Evidence Batchを変更せず停止しました: {exc}")
+
+        active_evidence_path = _active_evidence_manifest_path()
+        evidence_next_action = st.session_state.get("asin_resolver_evidence_next_action")
+        evidence_prompt_action_allowed = active_evidence_path is None or evidence_next_action in {
+            "save_source_input_and_source_map",
+            "generate_initial_prompt",
+        }
+        evidence_response_action_allowed = active_evidence_path is None or evidence_next_action in {
+            "enter_initial_response",
+            "parse_saved_initial_response",
+            "enter_retry_response",
+            "parse_saved_retry_response",
+        }
+        evidence_retry_action_allowed = active_evidence_path is None or evidence_next_action in {
+            "prepare_retry_or_export",
+            "generate_retry_prompt",
+        }
+        evidence_export_action_allowed = active_evidence_path is None or evidence_next_action in {
+            "prepare_retry_or_export",
+            "export",
+        }
+
+        if active_evidence_path is not None and isinstance(evidence_next_action, str):
+            st.info(f"Evidence Batch再開ガイド: 次の操作は `{evidence_next_action}` です。")
+
+        prompt_tab, verify_tab, retry_tab, research_csv_adapter_tab = st.tabs(
+            [
+                "商品名 → AI用プロンプト",
+                "AI返答 → ASIN確認",
+                "不明商品 → 再検索プロンプト",
+                "Shopee調査CSV取込",
+            ]
+        )
+
+        with prompt_tab:
+            st.info(
+                "商品名は1行1商品で貼り付けてください。"
+                "このタブではAmazon検索を行わず、外部AIへ貼るためのプロンプトを生成します。"
+            )
+            with st.form("asin_resolver_prompt_form", clear_on_submit=False):
+                product_names_text = st.text_area(
+                    "商品名リスト",
+                    placeholder=(
+                        "Anua Heartleaf 77 Toner 250ml\n"
+                        "HAKUBA Camera Case Plus Shell City 04 Camera Pouch M Black"
+                    ),
+                    height=180,
+                    key="asin_resolver_product_names_input",
+                )
+                prompt_clicked = st.form_submit_button(
+                    "AI用プロンプト生成",
+                    type="primary",
+                    width="stretch",
+                    disabled=not evidence_prompt_action_allowed,
                 )
 
-                current_fingerprint = retry_rows_fingerprint(selected_retry_rows)
-                saved_fingerprint = st.session_state.get("asin_resolver_retry_prompt_fingerprint")
-                if saved_fingerprint is not None and saved_fingerprint != current_fingerprint:
-                    st.session_state["asin_resolver_retry_prompt"] = ""
-                    st.session_state["asin_resolver_retry_prompt_display"] = ""
-                    st.session_state.pop("asin_resolver_retry_prompt_fingerprint", None)
-                    st.info("編集内容が変更されています。再検索プロンプトを再生成してください。")
+            if prompt_clicked:
+                try:
+                    active_manifest_path = _active_evidence_manifest_path()
+                    prompt_source_input: str | None = None
+                    if active_manifest_path is not None:
+                        active_manifest = load_and_validate_batch(active_manifest_path)
+                        checkpoint = active_manifest["last_completed_checkpoint"]
+                        if checkpoint == "BATCH_CREATED":
+                            if not product_names_text.strip():
+                                st.warning("商品名リストを入力してください。")
+                            else:
+                                entries = persist_source_input_and_source_map(
+                                    active_manifest_path,
+                                    product_names_text,
+                                    search_title_builder=build_search_title,
+                                )
+                                prompt_source_input = product_names_text
+                                st.session_state["asin_resolver_evidence_next_action"] = (
+                                    "generate_initial_prompt"
+                                )
+                        elif checkpoint == "SOURCE_MAP_SAVED":
+                            entries = st.session_state.get("asin_resolver_evidence_source_entries", [])
+                            prompt_source_input = st.session_state.get(
+                                "asin_resolver_evidence_source_input", ""
+                            )
+                            if not prompt_source_input:
+                                raise EvidenceValidationError("saved source input is unavailable for resume")
+                        else:
+                            raise EvidenceValidationError(
+                                f"prompt generation is not allowed at checkpoint {checkpoint}"
+                            )
+                    elif product_names_text.strip():
+                        entries = []
+                        prompt_source_input = product_names_text
+                    else:
+                        st.warning("商品名リストを入力してください。")
 
-                retry_prompt_clicked = st.button(
-                    "再検索用プロンプト生成",
+                    if prompt_source_input is None:
+                        pass
+                    else:
+                        if active_manifest_path is not None:
+                            source_map = {
+                                (
+                                    entry.resolver_source_id
+                                    if hasattr(entry, "resolver_source_id")
+                                    else entry["resolver_source_id"]
+                                ): (
+                                    entry.original_title
+                                    if hasattr(entry, "original_title")
+                                    else entry["original_title"]
+                                )
+                                for entry in entries
+                            }
+                            st.session_state["asin_resolver_evidence_source_entries"] = [
+                                entry.to_record() if hasattr(entry, "to_record") else entry
+                                for entry in entries
+                            ]
+                        else:
+                            source_map = build_source_map(prompt_source_input)
+                        generated_prompt = build_ai_prompt(prompt_source_input)
+                        if active_manifest_path is not None:
+                            record_initial_prompt(active_manifest_path, generated_prompt)
+                            st.session_state["asin_resolver_evidence_response_phase"] = "initial"
+                            st.session_state["asin_resolver_evidence_next_action"] = (
+                                "enter_initial_response"
+                            )
+                        st.session_state["asin_resolver_prompt"] = generated_prompt
+                        st.session_state["asin_resolver_prompt_display"] = generated_prompt
+                        st.session_state["asin_resolver_source_map"] = source_map
+                        st.session_state["asin_resolver_preview_rows"] = []
+                        st.session_state["asin_resolver_rows"] = []
+                        st.session_state["asin_resolver_input_line_count"] = 0
+                        st.session_state.pop("asin_resolver_selection_editor", None)
+                        _clear_retry_state()
+                except EvidenceValidationError as exc:
+                    st.error(f"Evidence Batchを変更せず停止しました: {exc}")
+
+            st.text_area(
+                "生成されたプロンプト",
+                height=320,
+                key="asin_resolver_prompt_display",
+            )
+            _render_direct_chat_assist(
+                "asin_resolver_prompt_display",
+                "asin-resolver-initial-prompt-copy",
+            )
+
+        with verify_tab:
+            st.info(
+                "商品名だけではAmazon検索は行いません。"
+                "Amazon.co.jp URLまたはASINを含むAI返答を貼り付けてください。"
+            )
+            with st.form("asin_resolver_verify_form", clear_on_submit=False):
+                ai_response_text = st.text_area(
+                    "ChatGPT / Geminiの返答",
+                    placeholder=(
+                        "source_id\tinput_title\tamazon_url\n"
+                        "R0001\tAnua Heartleaf 77 Toner 250ml\thttps://www.amazon.co.jp/dp/B08C4Z1XF4\n"
+                        "R0002\tUnknown Product\t不明"
+                    ),
+                    height=220,
+                )
+                parse_clicked = st.form_submit_button(
+                    "AI返答を解析",
+                    type="primary",
+                    width="stretch",
+                    disabled=not evidence_response_action_allowed,
+                )
+
+            if parse_clicked:
+                st.session_state["asin_resolver_preview_rows"] = []
+                st.session_state["asin_resolver_rows"] = []
+                st.session_state["asin_resolver_input_line_count"] = 0
+                st.session_state.pop("asin_resolver_selection_editor", None)
+                _clear_retry_state()
+
+                active_manifest_path = _active_evidence_manifest_path()
+                use_saved_response = False
+                if not ai_response_text.strip() and active_manifest_path is not None:
+                    restored = restore_batch_state(active_manifest_path)
+                    checkpoint = restored["manifest"]["last_completed_checkpoint"]
+                    if checkpoint == "INITIAL_RESPONSE_SAVED":
+                        ai_response_text = restored["initial_ai_response"]
+                        st.session_state["asin_resolver_evidence_response_phase"] = "initial"
+                        use_saved_response = True
+                    elif checkpoint == "RETRY_RESPONSE_SAVED":
+                        ai_response_text = restored["retry_ai_response"]
+                        st.session_state["asin_resolver_evidence_response_phase"] = "retry"
+                        use_saved_response = True
+
+                if not ai_response_text.strip():
+                    st.warning("ChatGPT / Geminiの返答を入力してください。")
+                else:
+                    try:
+                        response_phase = st.session_state.get(
+                            "asin_resolver_evidence_response_phase", "initial"
+                        )
+                        if active_manifest_path is not None and not use_saved_response:
+                            if response_phase == "initial":
+                                record_initial_response(active_manifest_path, ai_response_text)
+                                st.session_state["asin_resolver_evidence_next_action"] = (
+                                    "parse_saved_initial_response"
+                                )
+                            elif response_phase == "retry":
+                                record_retry_response(active_manifest_path, ai_response_text)
+                                st.session_state["asin_resolver_evidence_next_action"] = (
+                                    "parse_saved_retry_response"
+                                )
+                            else:
+                                raise EvidenceValidationError("unknown Evidence response phase")
+                        preview_rows = preview_candidates(
+                            ai_response_text,
+                            st.session_state.get("asin_resolver_source_map"),
+                        )
+                        if active_manifest_path is not None:
+                            candidate_csv = rows_to_resolver_csv(preview_rows)
+                            if response_phase == "initial":
+                                record_initial_parse(active_manifest_path, preview_rows, candidate_csv)
+                                st.session_state["asin_resolver_evidence_next_action"] = (
+                                    "prepare_retry_or_export"
+                                )
+                            else:
+                                record_retry_parse(active_manifest_path, preview_rows, candidate_csv)
+                                st.session_state["asin_resolver_evidence_next_action"] = "export"
+                        st.session_state["asin_resolver_preview_rows"] = preview_rows
+                        st.session_state["asin_resolver_input_line_count"] = len(
+                            clean_ai_response(ai_response_text).splitlines()
+                        )
+                        if preview_rows:
+                            st.success(f"{len(preview_rows)}件の候補行を解析しました。")
+                        else:
+                            st.warning("確認対象または候補として残す行はありませんでした。")
+                    except EvidenceValidationError as exc:
+                        st.error(f"Evidence Batchを変更せず停止しました: {exc}")
+
+            preview_rows = st.session_state.get("asin_resolver_preview_rows", [])
+            if preview_rows:
+                editable_preview = st.data_editor(
+                    pd.DataFrame(preview_rows),
+                    column_config={
+                        "selected": st.column_config.CheckboxColumn("確認対象"),
+                        "row_id": None,
+                        "source_id_known": None,
+                    },
+                    disabled=[
+                        "source_id",
+                        "input_title",
+                        "amazon_url",
+                        "asin",
+                        "parse_status",
+                        "status",
+                        "verification",
+                        "note",
+                        "row_id",
+                        "source_id_known",
+                    ],
+                    hide_index=True,
+                    key="asin_resolver_selection_editor",
+                    width="stretch",
+                )
+                selected_preview_rows = editable_preview.to_dict("records")
+                preview_summary = summarize_preview(selected_preview_rows)
+                input_line_count = st.session_state.get("asin_resolver_input_line_count", 0)
+                verified_count = sum(
+                    1
+                    for row in st.session_state.get("asin_resolver_rows", [])
+                    if row.get("verification") != "NOT_CHECKED"
+                )
+                st.caption(
+                    f"解析対象入力行数: {input_line_count}件（空行・コードブロックを除く）。"
+                    f"選択されたAmazon商品確認対象ASIN数: {preview_summary['selected_unique_asins']}件"
+                    "（重複を除く）。"
+                    "プレビューではAmazon data providerを呼びません。"
+                    "AI返答を変更した場合は、もう一度解析してください。"
+                )
+                preview_cols = st.columns(3)
+                preview_cols[0].metric("抽出候補行数", preview_summary["extracted_asin_rows"])
+                preview_cols[1].metric("選択候補行数", preview_summary["selected_rows"])
+                preview_cols[2].metric(
+                    "選択されたユニークASIN数", preview_summary["selected_unique_asins"]
+                )
+                preview_detail_cols = st.columns(2)
+                preview_detail_cols[0].metric("選択解除件数", preview_summary["deselected_rows"])
+                preview_detail_cols[1].metric("Amazon商品確認済み件数", verified_count)
+
+                verify_clicked = st.button(
+                    "選択したASINをAmazon商品として確認",
                     type="primary",
                     width="stretch",
                     disabled=(
-                        retry_summary["prompt_source_ids"] == 0
-                        or not evidence_retry_action_allowed
+                        preview_summary["selected_unique_asins"] == 0
+                        or not evidence_export_action_allowed
                     ),
                 )
-                if retry_prompt_clicked:
-                    retry_prompt = build_retry_prompt(selected_retry_rows)
-                    if not retry_prompt:
-                        st.warning("再検索対象と再検索用タイトルを確認してください。")
-                    else:
-                        try:
+
+                if verify_clicked:
+                    st.session_state["asin_resolver_rows"] = []
+                    try:
+                        client = create_amazon_data_client(amazon_settings)
+                        with st.spinner("Amazon data providerでASINの実在確認をしています..."):
+                            verified_rows = verify_selected_rows(
+                                selected_preview_rows,
+                                client,
+                            )
                             active_manifest_path = _active_evidence_manifest_path()
                             if active_manifest_path is not None:
-                                active_manifest = load_and_validate_batch(active_manifest_path)
-                                checkpoint = active_manifest["last_completed_checkpoint"]
-                                if checkpoint == "INITIAL_PARSE_SAVED":
-                                    prepare_retry(active_manifest_path, selected_retry_rows)
-                                elif checkpoint != "RETRY_PREPARED":
-                                    raise EvidenceValidationError(
-                                        f"retry prompt generation is not allowed at checkpoint {checkpoint}"
-                                    )
-                                record_retry_prompt(active_manifest_path, retry_prompt)
-                                st.session_state["asin_resolver_evidence_response_phase"] = "retry"
-                                st.session_state["asin_resolver_evidence_next_action"] = (
-                                    "enter_retry_response"
+                                response_phase = st.session_state.get(
+                                    "asin_resolver_evidence_response_phase", "initial"
                                 )
-                            st.session_state["asin_resolver_retry_prompt"] = retry_prompt
-                            st.session_state["asin_resolver_retry_prompt_display"] = retry_prompt
-                            st.session_state["asin_resolver_retry_prompt_fingerprint"] = current_fingerprint
-                        except EvidenceValidationError as exc:
-                            st.error(f"Evidence Batchを変更せず停止しました: {exc}")
+                                record_resolver_export(
+                                    active_manifest_path,
+                                    rows_to_resolver_csv(verified_rows),
+                                    source_phase=response_phase,
+                                )
+                                st.session_state["asin_resolver_evidence_next_action"] = (
+                                    "complete_or_view"
+                                )
+                        st.session_state["asin_resolver_rows"] = verified_rows
+                    except AmazonDataProviderError as exc:
+                        st.error(str(exc))
+                    except EvidenceValidationError as exc:
+                        st.error(f"Evidence Batchを変更せず停止しました: {exc}")
+                    except Exception:
+                        st.error(
+                            "想定外のエラーが発生しました。アプリを再起動し、同じ内容で再実行してください。"
+                        )
 
-                if st.session_state.get("asin_resolver_retry_prompt"):
-                    st.text_area(
-                        "生成された再検索用プロンプト",
-                        height=320,
-                        key="asin_resolver_retry_prompt_display",
+            resolver_rows = st.session_state.get("asin_resolver_rows", [])
+            if resolver_rows:
+                summary = summarize_statuses(resolver_rows)
+                st.success(f"{len(resolver_rows)}件のAmazon商品確認を完了しました。")
+                st.write(f"FOUND: {summary['FOUND']}件")
+                st.write(f"UNKNOWN: {summary['UNKNOWN']}件")
+                st.write(f"ERROR: {summary['ERROR']}件")
+                st.download_button(
+                    label="起点ASIN候補CSVダウンロード",
+                    data=rows_to_resolver_csv(resolver_rows),
+                    file_name="asin_resolver_candidates.csv",
+                    mime="text/csv",
+                    width="stretch",
+                )
+                try:
+                    resolver_prelisting = resolver_rows_to_prelisting_candidates(resolver_rows)
+                    st.write(
+                        "Amazon実在確認済み候補行: "
+                        f"{resolver_prelisting.eligible_row_count}件"
                     )
-                    _render_direct_chat_assist(
-                        "asin_resolver_retry_prompt_display",
-                        "asin-resolver-retry-prompt-copy",
+                    st.write(
+                        "未確認・不明・エラー等による除外件数: "
+                        f"{resolver_prelisting.excluded_row_count}件"
                     )
-                    st.caption(
-                        "ChatGPT / Geminiの返答は「AI返答 → ASIN確認」へ貼り付けてください。"
+                    if resolver_prelisting.eligible_row_count > 0:
+                        resolver_gate_handoff = normalize_resolver_gate_handoff(
+                            resolver_prelisting.output_rows, resolver_rows
+                        )
+                        st.write(
+                            "保安ゲート対象商品: "
+                            f"{resolver_gate_handoff.unique_candidate_count}件"
+                        )
+                        st.write(
+                            "同一ASIN統合: "
+                            f"{resolver_gate_handoff.consolidated_row_count}行"
+                        )
+                        resolver_prelisting_csv = rows_to_prelisting_candidate_csv(
+                            resolver_gate_handoff.candidate_rows
+                        )
+                        resolver_safety_facts = facts_for_candidate_rows(
+                            resolver_gate_handoff.candidate_rows,
+                            resolver_gate_handoff.source_rows,
+                        )
+                        resolver_safety_sidecar = rows_to_ingredient_safety_sidecar(
+                            resolver_prelisting_csv,
+                            resolver_gate_handoff.candidate_rows,
+                            resolver_safety_facts,
+                        )
+                        resolver_product_text_facts = product_text_facts_for_candidate_rows(
+                            resolver_gate_handoff.candidate_rows,
+                            resolver_gate_handoff.source_rows,
+                        )
+                        resolver_product_text_sidecar = rows_to_product_text_safety_sidecar(
+                            resolver_prelisting_csv,
+                            resolver_gate_handoff.candidate_rows,
+                            resolver_product_text_facts,
+                        )
+                        resolver_image_sidecar = create_image_sidecar(
+                            resolver_prelisting_csv,
+                            resolver_gate_handoff.candidate_rows,
+                            resolver_gate_handoff.source_rows,
+                        )
+                except ResolverGateHandoffError as exc:
+                    st.error(
+                        "Resolver重複Evidenceを保安ゲート用に統合できませんでした: "
+                        f"{exc}"
+                    )
+                except PrelistingCandidateCsvError as exc:
+                    st.error(
+                        "出品前保安ゲート用Candidate CSVを生成できませんでした: "
+                        f"{exc}"
+                    )
+                except IngredientSafetyError as exc:
+                    st.error(
+                        "Ingredient Safety sidecarを生成できませんでした: "
+                        f"{exc}"
+                    )
+                except ProductTextSafetyError as exc:
+                    st.error(
+                        "Product Text Safety sidecarを生成できませんでした: "
+                        f"{exc}"
+                    )
+                except ImageSafetyError as exc:
+                    st.error(
+                        "PH Image Safety sidecarを生成できませんでした: "
+                        f"{exc}"
+                    )
+                else:
+                    if resolver_prelisting.eligible_row_count == 0:
+                        st.info(
+                            "Amazon実在確認が完了した候補がないため、"
+                            "出品前保安ゲート用CSVは生成しません。"
+                        )
+                    else:
+                        st.caption(
+                            "ここでの除外は、Amazon実在確認が完了していないため、"
+                            "保安ゲート用CSVへ含めない件数です。"
+                        )
+                        st.caption(
+                            "このCSVは外部出品ツールへ直接渡さず、"
+                            "出品前保安ゲートの候補CSVとして使用してください。"
+                        )
+                        st.download_button(
+                            label="出品前保安ゲート用CSVダウンロード",
+                            data=resolver_prelisting_csv,
+                            file_name="prelisting_candidates_resolver.csv",
+                            mime="text/csv",
+                            key="prelisting-resolver-download",
+                            width="stretch",
+                        )
+                        st.download_button(
+                            label="Ingredient Safety Fact sidecarダウンロード",
+                            data=resolver_safety_sidecar,
+                            file_name="ingredient_safety_facts_resolver.csv",
+                            mime="text/csv",
+                            key="ingredient-safety-resolver-download",
+                            width="stretch",
+                        )
+                        st.download_button(
+                            label="Product Text Safety Fact sidecarダウンロード",
+                            data=resolver_product_text_sidecar,
+                            file_name="product_text_safety_facts_resolver.csv",
+                            mime="text/csv",
+                            key="product-text-safety-resolver-download",
+                            width="stretch",
+                        )
+                        st.download_button(
+                            label="PH画像確認ファイルをダウンロード", data=resolver_image_sidecar,
+                            file_name="ph_image_safety_resolver.json", mime="application/json",
+                            key="ph-image-safety-resolver-download", width="stretch",
+                        )
+                comparison_columns = [
+                    "source_id",
+                    "input_title",
+                    "product_title",
+                    "product_brand",
+                    "amazon_url",
+                    "asin",
+                    "status",
+                    "verification",
+                    "note",
+                ]
+                comparison_rows = [
+                    {column: row.get(column, "") or "" for column in comparison_columns}
+                    for row in resolver_rows
+                ]
+                st.subheader("Amazon商品候補比較")
+                st.dataframe(
+                    pd.DataFrame(comparison_rows),
+                    column_config={
+                        "source_id": st.column_config.TextColumn("source_id", width="small", pinned=True),
+                        "input_title": st.column_config.TextColumn("input_title", width="large"),
+                        "product_title": st.column_config.TextColumn("product_title", width="large"),
+                        "product_brand": st.column_config.TextColumn("product_brand", width="medium"),
+                        "amazon_url": st.column_config.TextColumn("amazon_url", width="large"),
+                        "asin": st.column_config.TextColumn("asin", width="small"),
+                        "status": st.column_config.TextColumn("status", width="small"),
+                        "verification": st.column_config.TextColumn("verification", width="medium"),
+                        "note": st.column_config.TextColumn("note", width="large"),
+                    },
+                    width="stretch",
+                    hide_index=True,
+                )
+
+        with retry_tab:
+            st.info(
+                "初回AI返答で「不明」になった既知source_idの商品だけを、手動修正したタイトルで再検索できます。"
+                "このタブではKeepa APIを呼びません。"
+            )
+            preview_rows = st.session_state.get("asin_resolver_preview_rows", [])
+            if not preview_rows:
+                st.info("先に「AI返答 → ASIN確認」で初回AI返答を解析してください。")
+            else:
+                if st.button(
+                    "再検索対象を生成",
+                    width="stretch",
+                    disabled=not evidence_retry_action_allowed,
+                ):
+                    _clear_retry_state()
+                    st.session_state["asin_resolver_retry_rows"] = build_retry_rows(
+                        preview_rows,
+                        st.session_state.get("asin_resolver_source_map"),
                     )
 
-    with research_csv_adapter_tab:
-        render_research_csv_adapter_tab()
+                retry_rows = st.session_state.get("asin_resolver_retry_rows", [])
+                if not retry_rows:
+                    if "asin_resolver_retry_rows" in st.session_state:
+                        st.info("再検索対象の初回不明商品はありません。")
+                    else:
+                        st.caption("初回不明商品を確認するには、再検索対象を生成してください。")
+                else:
+                    editable_retry_rows = st.data_editor(
+                        pd.DataFrame(retry_rows),
+                        column_config={
+                            "selected": st.column_config.CheckboxColumn("再検索対象"),
+                            "row_id": None,
+                        },
+                        disabled=["source_id", "input_title", "initial_search_title", "row_id"],
+                        hide_index=True,
+                        key="asin_resolver_retry_editor",
+                        width="stretch",
+                    )
+                    selected_retry_rows = editable_retry_rows.to_dict("records")
+                    retry_summary = summarize_retry_rows(selected_retry_rows)
+                    retry_columns = st.columns(3)
+                    retry_columns[0].metric("初回不明商品数", retry_summary["initial_unknown_products"])
+                    retry_columns[1].metric("再検索対象として選択", retry_summary["selected_products"])
+                    retry_columns[2].metric("再検索対象から外した商品", retry_summary["deselected_products"])
+                    retry_detail_columns = st.columns(2)
+                    retry_detail_columns[0].metric(
+                        "再検索用タイトル未入力", retry_summary["missing_retry_search_titles"]
+                    )
+                    retry_detail_columns[1].metric(
+                        "再検索プロンプトへ出力するsource_id数", retry_summary["prompt_source_ids"]
+                    )
+
+                    current_fingerprint = retry_rows_fingerprint(selected_retry_rows)
+                    saved_fingerprint = st.session_state.get("asin_resolver_retry_prompt_fingerprint")
+                    if saved_fingerprint is not None and saved_fingerprint != current_fingerprint:
+                        st.session_state["asin_resolver_retry_prompt"] = ""
+                        st.session_state["asin_resolver_retry_prompt_display"] = ""
+                        st.session_state.pop("asin_resolver_retry_prompt_fingerprint", None)
+                        st.info("編集内容が変更されています。再検索プロンプトを再生成してください。")
+
+                    retry_prompt_clicked = st.button(
+                        "再検索用プロンプト生成",
+                        type="primary",
+                        width="stretch",
+                        disabled=(
+                            retry_summary["prompt_source_ids"] == 0
+                            or not evidence_retry_action_allowed
+                        ),
+                    )
+                    if retry_prompt_clicked:
+                        retry_prompt = build_retry_prompt(selected_retry_rows)
+                        if not retry_prompt:
+                            st.warning("再検索対象と再検索用タイトルを確認してください。")
+                        else:
+                            try:
+                                active_manifest_path = _active_evidence_manifest_path()
+                                if active_manifest_path is not None:
+                                    active_manifest = load_and_validate_batch(active_manifest_path)
+                                    checkpoint = active_manifest["last_completed_checkpoint"]
+                                    if checkpoint == "INITIAL_PARSE_SAVED":
+                                        prepare_retry(active_manifest_path, selected_retry_rows)
+                                    elif checkpoint != "RETRY_PREPARED":
+                                        raise EvidenceValidationError(
+                                            f"retry prompt generation is not allowed at checkpoint {checkpoint}"
+                                        )
+                                    record_retry_prompt(active_manifest_path, retry_prompt)
+                                    st.session_state["asin_resolver_evidence_response_phase"] = "retry"
+                                    st.session_state["asin_resolver_evidence_next_action"] = (
+                                        "enter_retry_response"
+                                    )
+                                st.session_state["asin_resolver_retry_prompt"] = retry_prompt
+                                st.session_state["asin_resolver_retry_prompt_display"] = retry_prompt
+                                st.session_state["asin_resolver_retry_prompt_fingerprint"] = current_fingerprint
+                            except EvidenceValidationError as exc:
+                                st.error(f"Evidence Batchを変更せず停止しました: {exc}")
+
+                    if st.session_state.get("asin_resolver_retry_prompt"):
+                        st.text_area(
+                            "生成された再検索用プロンプト",
+                            height=320,
+                            key="asin_resolver_retry_prompt_display",
+                        )
+                        _render_direct_chat_assist(
+                            "asin_resolver_retry_prompt_display",
+                            "asin-resolver-retry-prompt-copy",
+                        )
+                        st.caption(
+                            "ChatGPT / Geminiの返答は「AI返答 → ASIN確認」へ貼り付けてください。"
+                        )
+
+        with research_csv_adapter_tab:
+            render_research_csv_adapter_tab()
 
 
-with prelisting_gate_tab:
-    _render_prelisting_gate_input_tab()
+    with prelisting_gate_tab:
+        _render_prelisting_gate_input_tab(beta_marketplace)
 
-with category_mapper_tab:
-    render_category_mapper_tab()
+    with category_mapper_tab:
+        if beta_marketplace == "SG":
+            from app_sg_beta import render_sg_beta
+            from modules.sg_beta_environment import preflight, SGBetaEnvironmentError
+            if sg_config_path is None:
+                st.info("SGの利用設定を接続してください。")
+            else:
+                try:
+                    sg_config = preflight(sg_config_path)
+                except SGBetaEnvironmentError:
+                    st.error("SGの起動設定・取得枠・商品資料を確認してください。")
+                else:
+                    render_sg_beta(sg_config['grant_path'], api_env_path=sg_config['api_env_path'],
+                                   runtime_root=sg_config['data_root'])
+        else:
+            render_category_mapper_tab(beta_marketplace)
+
+
+if __name__ == "__main__":
+    render_application()

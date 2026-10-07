@@ -12,6 +12,7 @@ import time
 from io import BytesIO
 
 import requests
+from modules.beta_runtime_paths import beta_env_value
 from PIL import Image, UnidentifiedImageError
 
 from modules.ph_image_safety import (
@@ -76,8 +77,8 @@ class OpenAIImageAnalyzer:
     @classmethod
     def from_environment(cls):
         return cls(
-            api_key=os.getenv("OPENAI_API_KEY", ""),
-            enabled=os.getenv("PH_IMAGE_SAFETY_API_ENABLED", "") == "1",
+            api_key=beta_env_value("OPENAI_API_KEY"),
+            enabled=beta_env_value("PH_IMAGE_SAFETY_API_ENABLED") == "1",
         )
 
     def preflight(self):

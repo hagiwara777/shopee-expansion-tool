@@ -1545,3 +1545,14 @@
 - 置換範囲: DEC-0126の採用前SG INACTIVE・専用出口未利用と、DEC-0116以降の起動先未反映を専用少量ベータの範囲で置換する。Category確認object単独はlisting_ready=falseを維持する。準備CSVのTRUEは手動準備対象で、Seller Center属性完了・自動出品・安全保証ではない。一般商品画像の人間確認は再導入しない。
 - 保護・境界: PH / SG protected capability、Guardrail / Battery / SLS停止、武器画像用途、商品単位Category / Brand確認を維持する。通常DB移行、credential変更、自動出品、MY / TH runtime開始は行わない。コード採用、端末設置、実API確認、実務受入は別の確認とし、端末・APIの実行結果はTask Context / Git外Evidenceを参照する。
 - rollback: 記録したSG processの起動時刻・コマンド・portを確認して停止し、専用ショートカットを外すか承認済み旧releaseへの設定を検証する。PH processは停止しない。SG DB・過去Evidence・grant・ledger・claimは削除せず保持する。正式Stateの停止・変更には既存承認手順を適用する。
+
+## DEC-0128 — PH / SGを1つのアプリ内の対象国選択へ統一する
+
+- 日付: 2026-10-07
+- authority: OwnerはPH / SGを同じアプリ内のタブまたはプルダウンで切り替えることを希望し、「統一アプリの形にしてください」と明示依頼した。
+- 決定: `app_beta.py`と共通ショートカットを普段の入口にし、上部の対象国選択を既存の候補生成・Gate・Category Mapperの4工程へ渡す。候補生成は市場非依存のまま、Gateは選択市場だけを評価し、SG Mapperは採用済み専用ベータ処理へ接続する。既存app本体を再利用し、国ごとに製品codeを複製しない。未知市場・SG設定不正では該当処理を停止し、旧offline画面へfallbackしない。
+- 分離: 国の切替で未保存入力・表示中の候補 / 出力・一時tokenをクリアし、SG runtimeを閉じる。保存済みDB確認・grant・ledger・claimを別国へ転用しない。SG再開時は同じ枠へ結合し、現行catalogを明示取得する。切替・初期化・再描画でAPIを呼ばない。
+- 保存・認証: PHの既存Keepa cache / Resolver Evidence rootとuser-local Category DBを参照し、移行しない。PHの既存API設定はrender scope内で読み、process環境へ秘密値をコピーしない。SGの既存専用設定・DB・自動更新Bridge・承認枠を保持する。共通server起動記録は別root、port8503を使い、実listener・command・作成時刻を照合する。
+- 置換範囲: DEC-0127の普段の起動をPH / SG別ショートカットに限定する部分と、DEC-0115の工程内国選択を、統一入口でのみ置換する。旧入口は復旧用に保持し、旧`app.py`単独起動のSG閉鎖を維持する。SG専用データ / 取得枠 / 出力条件、PH挙動、既存Guardrail / Battery / SLS、武器画像用途、商品単位人間確認、MY / TH NOT_STARTEDは変更しない。
+- 採用・反映: scope内local実装・offline検証・PRを本依頼で進める。formal main採用は現在対象のtechnical gatesとOwner最終承認を経る。端末の共通入口設置は採用済み固定releaseを使い、旧入口と既存保存先を保持して実機確認する。新規API枠・費用・credential書換え・通常DB移行・自動出品を追加しない。実行結果はTask Context / Git外Evidenceへ記録する。
+- rollback: 共通serverだけを照合して停止し、旧PH / SG入口へ戻す。共通UI・path参照の追加を通常revertでき、DB・grant・過去消費・claimを削除しない。

@@ -60,12 +60,16 @@ _STATE_KEYS = (_RESULT_KEY, _FINGERPRINT_KEY, _SOURCE_TYPE_KEY, _AI_RESULT_KEY)
 CATALOG_ADMIN_UI_ENABLED_ENV = "CATEGORY_MAPPER_CATALOG_ADMIN_UI_ENABLED"
 
 
-def render_category_mapper_tab() -> None:
+def render_category_mapper_tab(marketplace=None) -> None:
     """Keep SLS failure local to Mapper; never retain successful output on error."""
     st.subheader("Category / Brand確認")
-    marketplace = st.selectbox(
-        "Marketplace", ("PH", "SG"), key="category_mapper_marketplace"
-    )
+    if marketplace is None:
+        marketplace = st.selectbox(
+            "Marketplace", ("PH", "SG"), key="category_mapper_marketplace"
+        )
+    if marketplace not in {"PH", "SG"}:
+        st.error("対象国を確認してください。")
+        return
     st.caption("商品CSV → Category → Brand / No Brand → 発送条件（SLS） → 出品準備情報")
     if marketplace == "SG":
         render_sg_category_mapper()

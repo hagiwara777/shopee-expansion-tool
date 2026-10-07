@@ -4,7 +4,8 @@
 Seller Centerや既存出品ツールへ手動入力する。自動出品は含めない。
 全商品の説明・画像を人間が確認する機能はない。画像の用途は武器疑義のみ。
 
-入口は `app_sg_beta.py`。既存のSG workflow・自動更新Bridge・永続取得記録を再利用する。
+普段の入口は[統一ベータ](BETA_APPLICATION.md)の `app_beta.py`。SGを選ぶと `app_sg_beta.py` の処理へ接続する。
+旧SG専用入口も保持し、既存のSG workflow・自動更新Bridge・永続取得記録を再利用する。
 通常PH DBやショートカットを変更せず、承認済み対象のSG用DBで確認を保持する。
 再起動でAPI枠を戻さず、資料変更・取得失敗・現行ID不一致は古い確認を使用しない。
 現在の取得契約は1枠最大3商品・OpenAI上限1米ドル。通常利用の無制限枠へ変更しない。
@@ -37,8 +38,8 @@ output_scope=SG_BETA_MANUAL_PREPARATIONを付ける。このTRUEは手動出品�
 ACCEPTEDが成立し、blocking open itemがない場合だけ、ベータ入口と出力を利用できる。
 毎回現在のStateを読み、出力生成の前後にも確認する。環境変数・画面checkboxで解除しない。
 SG operationはDEC-0127に基づく専用ベータ環境のためACTIVEとする。
-通常PH画面のSG未提供機能を有効化せず、専用の固定release・保存先・承認枠を使用する。
-普段の起動には[SGベータ利用環境](SG_BETA_ENVIRONMENT.md)の専用ショートカットと事前確認を用いる。
+旧`app.py`単独起動のSG未提供機能を有効化せず、統一入口から専用の固定release・保存先・承認枠を使用する。
+普段の起動には[統一ベータ](BETA_APPLICATION.md)の共通ショートカットと、既存SG設定の事前確認を用いる。
 
 コードやStateを更新するときは、mandatory technical gatesとOwnerの最終承認を経て
 正式採用する。利用環境への反映は、採用済みreleaseと戻し方を確定して実施する。

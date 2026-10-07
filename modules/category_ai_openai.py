@@ -12,6 +12,7 @@ from time import perf_counter
 from typing import Any, Mapping
 
 from dotenv import load_dotenv
+from modules.beta_runtime_paths import current_beta_paths, beta_env_value
 import requests
 
 from modules.category_ai_core import (
@@ -41,8 +42,9 @@ class OpenAIResponsesCategoryProvider:
 
     @classmethod
     def from_environment(cls) -> "OpenAIResponsesCategoryProvider":
-        load_dotenv(PROJECT_ROOT / ".env")
-        return cls(os.getenv("OPENAI_API_KEY", ""))
+        if current_beta_paths() is None:
+            load_dotenv(PROJECT_ROOT / ".env")
+        return cls(beta_env_value("OPENAI_API_KEY"))
 
     def select(self, request: StepRequest, profile: BenchmarkRequestProfile) -> StepResult:
         if profile.provider != self.name:
