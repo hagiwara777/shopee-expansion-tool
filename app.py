@@ -47,6 +47,7 @@ from modules.amazon_data_provider import (
     create_amazon_data_client,
 )
 from modules.config import load_settings
+from modules.beta_runtime_paths import current_beta_paths
 from modules.direct_chat_assist import build_copy_button_html, is_valid_chatgpt_project_url
 from modules.keepa_client import (
     SEARCH_MODE_LABELS,
@@ -133,7 +134,10 @@ EVIDENCE_RESTORABLE_SESSION_KEYS = (
     "asin_resolver_evidence_source_input",
     "asin_resolver_evidence_next_action",
 )
-EVIDENCE_RUNTIME_ROOT = Path(__file__).resolve().parent / "outputs" / "asin_resolver_runs"
+def _evidence_runtime_root():
+    paths = current_beta_paths()
+    root = paths.ph_root if paths else Path(__file__).resolve().parent
+    return root / "outputs" / "asin_resolver_runs"
 ASIN_RESOLVER_VERSION = "0.4.3"
 PRELISTING_GATE_MARKETPLACES = ("SG", "PH")
 
@@ -320,15 +324,19 @@ def _render_prelisting_gate_result(result, exports, *, source_type: str) -> None
     )
 
 
-def _render_prelisting_gate_input_tab() -> None:
+def _render_prelisting_gate_input_tab(marketplace=None) -> None:
     """Render input parsing, gate execution, and current result presentation."""
 
     st.subheader("出品前保安ゲート")
-    marketplace = st.selectbox(
-        "対象市場",
-        PRELISTING_GATE_MARKETPLACES,
-        key="prelisting_gate_marketplace",
-    )
+    if marketplace is None:
+        marketplace = st.selectbox(
+            "対象市場",
+            PRELISTING_GATE_MARKETPLACES,
+            key="prelisting_gate_marketplace",
+        )
+    if marketplace not in PRELISTING_GATE_MARKETPLACES:
+        st.error("対象国を確認してください。")
+        return
     st.write(f"対象国: {marketplace}")
 
     expected_shop_count = st.number_input(
@@ -696,9 +704,13 @@ def _render_prelisting_gate_input_tab() -> None:
             st.error(safe_prelisting_gate_error_summary("unexpected"))
 
 
-st.set_page_config(page_title="Shopee Expansion Tool Ver1", layout="centered")
-
-st.title("Shopee Expansion Tool Ver1")
+beta_marketplace = globals().get("BETA_MARKETPLACE")
+if beta_marketplace is None:
+    st.set_page_config(page_title="Shopee Expansion Tool Ver1", layout="centered")
+    st.title("Shopee Expansion Tool Ver1")
+elif beta_marketplace not in {"PH", "SG"}:
+    st.error("対象国を確認してください。")
+    st.stop()
 
 try:
     amazon_settings = load_settings()
@@ -936,7 +948,7 @@ with resolver_tab:
             if create_batch_clicked:
                 try:
                     manifest_path = create_evidence_batch(
-                        EVIDENCE_RUNTIME_ROOT,
+                        _evidence_runtime_root(),
                         batch_id=generate_batch_id(),
                         formal_main_commit=recorded_formal_commit,
                         resolver_version=ASIN_RESOLVER_VERSION,
@@ -1620,7 +1632,22 @@ with resolver_tab:
 
 
 with prelisting_gate_tab:
-    _render_prelisting_gate_input_tab()
+    _render_prelisting_gate_input_tab(beta_marketplace)
 
 with category_mapper_tab:
-    render_category_mapper_tab()
+    if beta_marketplace == "SG":
+        from app_sg_beta import render_sg_beta
+        from modules.sg_beta_environment import preflight, SGBetaEnvironmentError
+        sg_config_path = globals().get("BETA_SG_CONFIG_PATH")
+        if sg_config_path is None:
+            st.info("SGの利用設定を接続してください。")
+        else:
+            try:
+                sg_config = preflight(sg_config_path)
+            except SGBetaEnvironmentError:
+                st.error("SGの起動設定・取得枠・商品資料を確認してください。")
+            else:
+                render_sg_beta(sg_config['grant_path'], api_env_path=sg_config['api_env_path'],
+                               runtime_root=sg_config['data_root'])
+    else:
+        render_category_mapper_tab(beta_marketplace)

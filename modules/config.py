@@ -2,7 +2,8 @@ from dataclasses import dataclass
 from pathlib import Path
 import os
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv, dotenv_values
+from modules.beta_runtime_paths import current_beta_paths
 
 from modules.amazon_data_provider import (
     AmazonDataProviderConfigurationError,
@@ -27,14 +28,21 @@ class Settings:
 
 
 def load_settings() -> Settings:
-    load_dotenv(ENV_PATH)
-    api_key = os.getenv("KEEPA_API_KEY", "").strip()
-    domain = os.getenv("KEEPA_DOMAIN", DEFAULT_KEEPA_DOMAIN).strip() or DEFAULT_KEEPA_DOMAIN
-    amazon_search_project_url = os.getenv("AMAZON_SEARCH_PROJECT_URL", "").strip()
+    paths = current_beta_paths()
+    if paths is None:
+        load_dotenv(ENV_PATH)
+        values = os.environ
+    else:
+        # Explicit existing PH settings, without leaking them to the SG runtime
+        # or to concurrent sessions. Preserve environment-over-file precedence.
+        values = {**dotenv_values(paths.ph_api_env), **os.environ}
+    api_key = (values.get("KEEPA_API_KEY") or "").strip()
+    domain = (values.get("KEEPA_DOMAIN") or DEFAULT_KEEPA_DOMAIN).strip() or DEFAULT_KEEPA_DOMAIN
+    amazon_search_project_url = (values.get("AMAZON_SEARCH_PROJECT_URL") or "").strip()
     amazon_data_provider = normalize_amazon_data_provider(
-        os.getenv("AMAZON_DATA_PROVIDER", "keepa")
+        values.get("AMAZON_DATA_PROVIDER") or "keepa"
     )
-    canopy_api_key = os.getenv("CANOPY_API_KEY", "").strip()
+    canopy_api_key = (values.get("CANOPY_API_KEY") or "").strip()
     return Settings(
         keepa_api_key=api_key,
         keepa_domain=domain,

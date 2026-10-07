@@ -19,7 +19,10 @@ SG Minimum Beta完成判定（Roadmap Step 8）は正式採用済みでCLOSED。
 SG実運用（Roadmap Step 9）は専用の少量ベータ環境を対象とする（DEC-0127）。
 SG ACTIVE化とPH形式の手動準備出力を採用し、固定release・専用保存先・承認枠で起動する。
 端末の設置・最新API利用枠・実行確認はrepo外Task Context / Git外Evidenceを参照する。
-次の単一作業は、[SG専用環境](SG_BETA_ENVIRONMENT.md)で少量商品を利用し、実務上の不足を確認する。
+PH / SGは[統一ベータ入口](BETA_APPLICATION.md)で対象国を切り替え、同じ4工程を使う（DEC-0128）。
+共通入口は既存PHの保存先とSG専用DB / API枠を参照し、国別の確認・消費を混ぜない。
+端末設置の状態はrepo外Task Context / Git外Evidenceを参照する。
+次の単一作業は、統一入口で少量商品を利用し、実務上の不足を確認する。
 MY / THの市場runtime開始はこの利用確認後に別scopeで判断する。
 完成基準と順序は[PH Beta市場展開](PH_BETA_MARKET_PARITY.md)を参照する。
 
@@ -105,7 +108,7 @@ Step 8で採用した完成線は、少量商品ごとのSG Gate `ELIGIBLE`、
 UNAVAILABLE、Category / Brand未確認、Battery / 危険物 / 許認可等の未解決疑義があれば出品しない。
 人間確認でSafety / Battery / SLS停止を解除しない。
 
-通常PH画面内のSG出口と、既存SG Category確認objectの`listing_ready=false`を維持する。
+旧`app.py`単独起動のSG出口と、既存SG Category確認objectの`listing_ready=false`を維持する。
 専用SGベータの準備対象だけ、再validation後に`listing_ready=TRUE`の手動準備CSV / TXTを出す。
 これはSeller Centerの出品完了・属性入力完了・商品全体の安全保証ではない。
 Brand / No Brand・SLS live acceptanceとSeller Center E2Eは未実施。
@@ -119,6 +122,8 @@ Source明示ON時のsilent fallbackを許さない。Bridge全面書込み障害
 SG Brand responseにmarketplace / Category echoがないため、server内部の別Category誤応答の独立検出は保証しない。
 
 ## Required Decisions
+
+- DEC-0128 — 1つのアプリ内でPH / SGを切り替え、既存の国別保存先・認証・API枠を維持。
 
 - DEC-0127 — 採用済み固定コード・SG専用起動先・永続データとAPI枠で少量ベータを利用。
 

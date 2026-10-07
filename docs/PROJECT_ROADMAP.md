@@ -7,6 +7,8 @@ SGをPH相当へ揃える過程で共通moduleを整え、その後MY / THへ国
 詳細は[PH Beta市場展開](PH_BETA_MARKET_PARITY.md)を参照する。
 SGの手動出品準備出力・ベータ入口を専用の少量利用環境へ接続する（DEC-0126 / DEC-0127）。
 コード採用と端末設置・実API確認を区別し、[利用環境](SG_BETA_ENVIRONMENT.md)に従う。
+PH / SGの普段の入口は[統一アプリ](BETA_APPLICATION.md)とし、1つの対象国選択で既存4工程を使う（DEC-0128）。
+国別の保存先・認証・消費記録を保持し、MY / THの追加は後続市場runtime工程で行う。
 画像AI対象選択も共通処理＋国別設定とし、PH / SGの現行PH条件とMY / THの初期設定を用意する（DEC-0123）。
 MY / THの市場runtime・Safety・出品接続はSG機能統一後の後続工程とする。
 

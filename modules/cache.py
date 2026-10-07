@@ -7,6 +7,7 @@ import sqlite3
 from typing import Any
 
 from modules.config import CACHE_DB_PATH, CACHE_TTL_DAYS
+from modules.beta_runtime_paths import current_beta_paths
 
 
 def utc_now_iso() -> str:
@@ -14,7 +15,10 @@ def utc_now_iso() -> str:
 
 
 class KeepaCache:
-    def __init__(self, db_path: str | Path = CACHE_DB_PATH, ttl_days: int = CACHE_TTL_DAYS):
+    def __init__(self, db_path: str | Path | None = None, ttl_days: int = CACHE_TTL_DAYS):
+        if db_path is None:
+            paths = current_beta_paths()
+            db_path = paths.ph_root / "cache" / "keepa_cache.sqlite3" if paths else CACHE_DB_PATH
         self.db_path = Path(db_path)
         self.ttl = timedelta(days=ttl_days)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
