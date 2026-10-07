@@ -1,11 +1,11 @@
 """One Streamlit app, one country selector, existing PH and bounded SG flows."""
 import argparse
 from pathlib import Path
-import runpy
 
 import streamlit as st
 
 from modules.beta_runtime_paths import beta_runtime_paths, BetaRuntimePathError
+from app import render_application
 
 
 def clear_country_session():
@@ -38,9 +38,7 @@ def render_beta(*, sg_config_path=None, ph_runtime_root=None, ph_api_env_path=No
     st.caption('国を切り替えると未保存の入力をクリアします。保存済みの確認・API消費記録は保持します。')
     try:
         with beta_runtime_paths(ph_runtime_root, ph_api_env_path):
-            runpy.run_path(str(Path(__file__).with_name('app.py')),
-                           init_globals={'BETA_MARKETPLACE': marketplace,
-                                         'BETA_SG_CONFIG_PATH': sg_config_path})
+            render_application(marketplace, sg_config_path=sg_config_path)
     except BetaRuntimePathError:
         # Path validation occurs before rendering any work area.
         st.error('PHの保存先・既存API設定を確認してください。')
