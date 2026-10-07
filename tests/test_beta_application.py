@@ -81,7 +81,10 @@ def test_sg_switch_close_and_reopen_preserve_actual_persistent_budget(tmp_path, 
         return actual_runtime(**kwargs, fresh_client_factory=factory(calls))
     monkeypatch.setattr(sg_live_runtime, 'SGLiveRuntime', local_runtime)
     source = f"from app_beta import render_beta\nrender_beta(sg_config_path={str(tmp_path / 'synthetic.json')!r})"
-    app = AppTest.from_string(source, default_timeout=15).run()
+    # This exercises all four real work tabs with a cold Windows CI runner.
+    # Use the same bounded wait as the installed-beta UI verification; retain
+    # every routing, lock, claim and spend assertion below.
+    app = AppTest.from_string(source, default_timeout=60).run()
     app.selectbox(key='beta_marketplace').select('SG').run()
     assert not app.exception and not calls
     app.button(key='sg_live_open').click().run()
