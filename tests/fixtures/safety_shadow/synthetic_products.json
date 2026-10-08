@@ -1,0 +1,30 @@
+{
+  "evidence_kind": "SYNTHETIC",
+  "retrieved_at_utc": "SYNTHETIC_NOT_PROVIDER_FETCH",
+  "products": [
+    {"asin":"B0SYN00001","domainId":5,"title":"Kitchen knife","categoryTree":[{"catId":490276011,"name":"Synthetic knife body"}],"expected":{"KNIFE":"BODY_CANDIDATE"}},
+    {"asin":"B0SYN00002","domainId":5,"title":"Kitchen knife case","categoryTree":[{"catId":13945801,"name":"Synthetic accessory"}],"expected":{"KNIFE":"ACCESSORY_CANDIDATE"}},
+    {"asin":"B0SYN00003","domainId":5,"title":"Chef knife sharpener","categories":[13945801,14617042051],"expected":{"KNIFE":"ACCESSORY_CANDIDATE"}},
+    {"asin":"B0SYN00004","domainId":5,"title":"包丁ケース","features":["包丁は付属しません"],"expected":{"KNIFE":"ACCESSORY_CANDIDATE"}},
+    {"asin":"B0SYN00005","domainId":5,"title":"Knife case set","features":["Includes a knife and a sheath"],"expected":{"KNIFE":"BODY_CANDIDATE"},"expected_bundle":true},
+    {"asin":"B0SYN00006","domainId":5,"title":"Kitchen knife case","categoryTree":[{"catId":490276011,"name":"Synthetic mistaken body category"}],"expected":{"KNIFE":"CONFLICT"}},
+    {"asin":"B0SYN00007","domainId":5,"title":"Kitchen knife","categories":[13945801],"expected":{"KNIFE":"CONFLICT"}},
+    {"asin":"B0SYN00008","domainId":5,"title":"Knife","categories":[490276011,13945801],"expected":{"KNIFE":"CONFLICT"}},
+    {"asin":"B0SYN00009","domainId":5,"title":"包丁サヤケース","type":"KITCHEN_KNIFE","expected":{"KNIFE":"ACCESSORY_CANDIDATE"}},
+    {"asin":"B0SYN00010","domainId":5,"title":"Book about knives","expected":{"KNIFE":"UNKNOWN"}},
+    {"asin":"B0SYN00011","domainId":5,"title":"Book about knife sharpeners","categoryTree":[{"catId":490276011,"name":"Synthetic wrong category"}],"expected":{"KNIFE":"CONFLICT"}},
+    {"asin":"B0SYN00012","domainId":5,"title":"","categoryTree":[{"catId":13944721,"name":"Synthetic family ancestor only"}],"expected":{"KNIFE":"UNKNOWN"}},
+    {"asin":"B0SYN00013","domainId":5,"title":"Cotton towel","category_origin":"SEED_FALLBACK","categoryTree":[{"catId":490276011,"name":"Seed knife"}],"expected":{}},
+    {"asin":"B0SYN00014","domainId":5,"title":"","type":"KITCHEN_KNIFE","category":"Kitchen knife","expected":{}},
+    {"asin":"B0SYN00015","domainId":5,"title":"Contact lens","expected":{"CONTACT_LENS":"BODY_CANDIDATE"}},
+    {"asin":"B0SYN00016","domainId":5,"title":"Contact lenses case","features":["Suitable for contact lenses"],"expected":{"CONTACT_LENS":"ACCESSORY_CANDIDATE"}},
+    {"asin":"B0SYN00017","domainId":5,"title":"Contact lens solution","expected":{"CONTACT_LENS":"ACCESSORY_CANDIDATE"}},
+    {"asin":"B0SYN00018","domainId":5,"title":"コンタクトレンズ用ケース","features":["レンズは付属しません"],"expected":{"CONTACT_LENS":"ACCESSORY_CANDIDATE"}},
+    {"asin":"B0SYN00019","domainId":5,"title":"Contact lens case set","features":["Contact lenses included"],"expected":{"CONTACT_LENS":"BODY_CANDIDATE"},"expected_bundle":true},
+    {"asin":"B0SYN00020","domainId":5,"title":"Contact lenses","features":["Lenses not included"],"expected":{"CONTACT_LENS":"CONFLICT"}},
+    {"asin":"B0SYN00021","domainId":5,"title":"Book about contact lenses","expected":{"CONTACT_LENS":"UNKNOWN"}},
+    {"asin":"B0SYN00022","domainId":5,"title":"Contact lens case and knife sheath","expected":{"KNIFE":"ACCESSORY_CANDIDATE","CONTACT_LENS":"ACCESSORY_CANDIDATE"}},
+    {"asin":"B0SYN00023","domainId":5,"title":"Water bottle","features":[],"expected":{}},
+    {"asin":"B0SYN00024","domainId":5,"title":"","categories":[100435],"expected":{}}
+  ]
+}

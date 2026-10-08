@@ -1582,3 +1582,13 @@
 - 後段: SGの既存商品資料loaderと準備判定で、古いELIGIBLE CSVの対象疑義・確認済み本体を拒否する。付属品の確認記録と現在商品・文章の一致を出力時にも検査し、既存Brand／SLS／Guardrail／武器画像条件を維持する。CSV／TXTは共通の現在準備判定を使う。SLS ALLOWを本体販売Safetyの根拠にしない。
 - 保護・非対象: PH、既存辞書、Candidate15列、既存Gate CSV列、DB schema、Keepa取得・cache、State、認証、API枠、起動先、MY／THを変更しない。Shadow V3接続、汎用Review基盤、規制マスター、live／有料API、実商品処理、deployは行わない。未commitの別成果は変更・混合しない。コード採用・端末反映・実商品受入を分け、限定語句の未検出を全面安全保証へ読み替えない。
 - 次工程とrollback: 事故防止と独立してShadow V3の比較接続を技術検証する。今回のコード・tests・操作文書は通常revertできるが、DEC-0129の販売方針撤回を意味しない。確認記録・通常DB・過去Evidenceを削除せず、formal main採用は現在対象のtechnical gatesとOwner最終承認を必要とする。
+
+## DEC-0131 — Shadow V3を現在の商品Factと照合した読取専用比較へ限定する
+
+- 日付: 2026-10-09
+- authority: OwnerはPR #120のSG事故防止実装と独立して、既存SAFETY_SHADOW_V3の比較接続に必要な最小local実装とoffline検証を指示した。未commitのShadow／Keepa成果を確認せず変更・混合しない。正式採用にはtechnical gatesと現在対象のOwner Acceptanceを必要とする。
+- 決定: 通常Gateの判定後に任意の比較表示を置き、現在のSafety／Gate結果と既存V3の分類候補・根拠だけを並べる。分類Core・保存Fact adapter・合成期待値を再利用し、旧report単独のASIN一致を確定Factへ昇格しない。元の保存Factを明示入力し、一致した対象商品だけをoffline再生する。
+- binding: Candidate全15項目と全行・CSV bytes・現在市場・商品文章Fact・Gate全結果・分類versionを結合する。title／brand／取得時刻・JP domainと文章sidecarを照合し、OWN_PRODUCTカテゴリpathを照合する。cacheの出所不明をOWN_PRODUCTと推定せず、SEED_FALLBACK／MISSINGのカテゴリを分類に使わない。欠損・不一致・重複は比較不能。現在入力の変更で古い比較を表示しない。
+- 保護: 比較はGate入力・判定・確認記録・出力を変更しない。BODY_CANDIDATEだけでBLOCKせず、ACCESSORY_CANDIDATEだけでBLOCK／REVIEW／EXCLUDEを解除しない。比較失敗も既存Gateを維持する。DEC-0129／0130のSG除外、PH／SG protected capability、既存Battery／SLS／Guardrail辞書を維持する。
+- 制約・非対象: 通常Candidateのseed fallbackとprovider取得時刻の不足は一致を証明できないため比較不能にする。Keepa client／cache／保存搬送、DB・共通Fact基盤・Candidate schema・State・認証・API枠・起動先を変更しない。追加live／有料API、実商品処理、大規模再分類、規制再調査、deploy、MY／TH、自動Safety判定を行わない。別worktreeの未commit成果は保護し、未採用Keepa成果や旧Shadow管理Decisionを無条件統合しない。
+- 効果とrollback: 同じ商品の分類根拠と既存停止理由を探して照合する作業を支援する。本体・実同梱等の必要な人間確認の省略や削減実測を意味しない。追加比較module・表示・tests・docsを通常revertでき、既存確認記録・DB・Evidenceを削除しない。

@@ -31,7 +31,10 @@ SGの対象名称・指定済み商品文章から本体疑義を止め、明示
 SGの準備CSV／TXT出力でも、古いELIGIBLE入力と商品文章変更による確認流用を停止する。
 操作と既知制約は[SG本体確認](SG_BODY_SAFETY.md)を参照する。未検出の商品全体の安全保証ではない。
 コード採用と稼働端末の固定release更新・実商品受入を区別し、端末設定・DB・API消費記録を自動変更しない。
-次の独立工程はShadow V3の比較接続の技術検証。事故防止実装と独立して扱い、Safety処分変更へ自動移行しない。
+Shadow V3は通常Gate判定後の任意の読取専用比較に限る（DEC-0131）。
+一致する保存Factを現在のCandidate・市場・商品文章へ照合して分類候補と根拠を表示し、
+Safety処分・SG本体確認・出力CSVは変更しない。[接続条件と制約](SAFETY_SHADOW_COMPARISON.md)を参照する。
+次の独立工程は比較表示の実用性と比較不能事例の評価。Keepa保存・搬送改善やSafety処分変更へ自動移行しない。
 未採用のShadow／Keepa／分類接続成果を、この方針の採用によって正式成果へ昇格しない。
 MY / THの市場runtime開始はSGの利用確認後に別scopeで判断する。
 完成基準と順序は[PH Beta市場展開](PH_BETA_MARKET_PARITY.md)を参照する。
@@ -133,6 +136,7 @@ SG Brand responseにmarketplace / Category echoがないため、server内部の
 
 ## Required Decisions
 
+- DEC-0131 — Shadow V3の任意の読取専用比較、商品Fact結合、不一致時の比較不能と既存Safety保護。
 - DEC-0130 — SG本体確認記録のCandidate結合、既存Gate EXCLUDEと準備出力への最小接続。
 - DEC-0129 — SGレンズの公式根拠による本体除外、一般台所用包丁の内部暫定除外、本体不明REVIEWと実装の受入境界。
 - DEC-0044 / DEC-0052 — 確定禁止と具体的確認が可能なREVIEW、資料identityと現行性・Rule採用の分離。
