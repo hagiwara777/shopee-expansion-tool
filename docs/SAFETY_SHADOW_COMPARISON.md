@@ -15,8 +15,9 @@ SG本体・実同梱の確認と除外はDEC-0129／DEC-0130の既存処理を�
 製品経路がShadowをimportしない境界へ変更する。分類期待値を変更しない。
 旧成果の未採用管理文書はコピーせず、正式DEC-0129／0130を基準とする。
 
-mainには分類Core・商品自身のstructuredカテゴリ搬送・Shadow接続がない。
-今回追加するのは独立比較module／UI／検証と、Gate判定後の表示呼出しだけ。
+この接続の導入前のformal mainには、分類Core・商品自身のstructuredカテゴリ搬送・Shadow接続がなかった。
+既存local成果のCore／CLI／fixtureを再利用し、比較接続用に追加するのは
+独立比較module／UI／検証と、Gate判定後の表示呼出しだけ。
 Guardrail辞書・matcher、Gate判定、SG本体確認、Candidate15列、既存Gate CSV、
 Keepa client／cache、DB、Category Mapper、State、認証・API枠・起動先は変更しない。
 
