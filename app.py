@@ -88,6 +88,10 @@ from modules.ph_image_safety import (
     parse_image_sidecar, prepare_image_safety,
 )
 from modules.ph_image_safety_ui import render_image_review
+from modules.prelisting_sg_body_safety import (
+    SGBodySafetyError, parse_body_confirmations, prepare_body_confirmations,
+)
+from modules.prelisting_sg_body_safety_ui import render_sg_body_review
 from modules.prelisting_gate import PrelistingGateError, evaluate_prelisting_gate
 from modules.prelisting_gate_csv import (
     PrelistingGateCsvError,
@@ -398,6 +402,15 @@ def _render_prelisting_gate_input_tab(marketplace=None) -> None:
         image_safety_bytes = image_safety_file.getvalue() if image_safety_file is not None else None
         st.caption("候補と一緒にダウンロードした画像確認ファイル、または同じ候補の画像確認記録を指定してください。")
 
+    sg_body_file = None
+    sg_body_bytes = None
+    if marketplace == "SG":
+        sg_body_file = st.file_uploader(
+            "SG本体確認記録（再開時・任意）", type=["json"],
+            key="prelisting_gate_sg_body_file",
+        )
+        sg_body_bytes = sg_body_file.getvalue() if sg_body_file is not None else None
+
     uploaded_inventory_files = st.file_uploader(
         f"{marketplace}全ショップの既出品CSV",
         type=["csv"],
@@ -439,6 +452,7 @@ def _render_prelisting_gate_input_tab(marketplace=None) -> None:
         ),
         product_text_safety_content=product_text_safety_bytes,
         image_safety_content=image_safety_bytes,
+        sg_body_confirmation_content=sg_body_bytes,
         inventory_files=(
             (filename, content, label)
             for (filename, content), label in zip(inventory_files, labels, strict=True)
@@ -515,6 +529,20 @@ def _render_prelisting_gate_input_tab(marketplace=None) -> None:
     elif image_safety_file is not None:
         image_safety_parse_error = True
 
+    sg_body_confirmations = None
+    sg_body_parse_error = False
+    if marketplace == "SG" and candidate_result is not None and not product_text_safety_parse_error:
+        try:
+            saved_body = st.session_state.get("prelisting_gate_sg_body_confirmations")
+            if saved_body is not None:
+                sg_body_confirmations = prepare_body_confirmations(candidate_result, product_text_safety_result, saved_body)
+            elif sg_body_bytes is not None:
+                sg_body_confirmations = parse_body_confirmations(sg_body_bytes, candidate_result, product_text_safety_result)
+            else:
+                sg_body_confirmations = prepare_body_confirmations(candidate_result, product_text_safety_result)
+        except SGBodySafetyError:
+            sg_body_parse_error = True
+
     inventory_results = []
     inventory_parse_error = False
     if inventory_files and file_validation.is_valid and label_validation.is_valid:
@@ -543,6 +571,7 @@ def _render_prelisting_gate_input_tab(marketplace=None) -> None:
         and not ingredient_safety_parse_error
         and not product_text_safety_parse_error
         and not image_safety_parse_error
+        and not sg_body_parse_error
         and candidate_result is not None
         and len(inventory_results) == len(inventory_files)
         and len(inventory_files) == expected_shop_count
@@ -569,6 +598,8 @@ def _render_prelisting_gate_input_tab(marketplace=None) -> None:
 
     if image_safety_parse_error:
         st.error("画像確認ファイルを検証できません。候補との対応、画像情報、判断記録を確認してください。")
+    if sg_body_parse_error:
+        st.error("SG本体確認記録を検証できません。現在の候補・商品文章との対応を確認してください。")
 
     input_ready = preflight_ready
     if input_ready:
@@ -639,6 +670,7 @@ def _render_prelisting_gate_input_tab(marketplace=None) -> None:
                     expected_shop_count=expected_shop_count,
                     ingredient_safety=ingredient_safety_result,
                     product_text_safety=product_text_safety_result,
+                    sg_body_confirmations=sg_body_confirmations,
                 )
                 base_result = gate_result
                 if marketplace == "PH":
@@ -660,6 +692,8 @@ def _render_prelisting_gate_input_tab(marketplace=None) -> None:
         else:
             st.session_state["prelisting_gate_base_result"] = base_result
             st.session_state["prelisting_gate_image_sidecar"] = image_safety_result
+            if marketplace == "SG":
+                st.session_state["prelisting_gate_sg_body_confirmations"] = sg_body_confirmations
             st.session_state["prelisting_gate_result"] = gate_result
             st.session_state["prelisting_gate_exports"] = exports
             st.session_state["prelisting_gate_fingerprint"] = current_fingerprint
@@ -681,6 +715,17 @@ def _render_prelisting_gate_input_tab(marketplace=None) -> None:
     )
     if result_is_current:
         try:
+            if marketplace == "SG":
+                confirmations = render_sg_body_review(candidate_result, product_text_safety_result, sg_body_confirmations)
+                saved_result = evaluate_prelisting_gate(
+                    candidate_result, inventory_results, marketplace=marketplace,
+                    expected_shop_count=expected_shop_count, ingredient_safety=ingredient_safety_result,
+                    product_text_safety=product_text_safety_result, sg_body_confirmations=confirmations,
+                )
+                saved_exports = build_prelisting_gate_exports(saved_result)
+                st.session_state["prelisting_gate_sg_body_confirmations"] = confirmations
+                st.session_state["prelisting_gate_result"] = saved_result
+                st.session_state["prelisting_gate_exports"] = saved_exports
             if marketplace == "PH":
                 base_result = st.session_state["prelisting_gate_base_result"]
                 image_sidecar = st.session_state["prelisting_gate_image_sidecar"]

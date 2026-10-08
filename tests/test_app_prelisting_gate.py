@@ -178,8 +178,8 @@ def test_gate_tab_uses_formal_parsers_and_gate_public_functions_only():
 
     assert calls.count("parse_prelisting_candidate_csv") == 1
     assert calls.count("parse_listing_inventory_csv") == 1
-    assert calls.count("evaluate_prelisting_gate") == 1
-    assert calls.count("build_prelisting_gate_exports") == 2  # initial gate and human image review
+    assert calls.count("evaluate_prelisting_gate") == 2  # Initial run and current SG confirmation refresh.
+    assert calls.count("build_prelisting_gate_exports") == 3  # Initial, SG body review and PH image review.
     assert "csv.reader" not in source
     assert "pd.read_csv" not in source
     assert "apply_guardrails" not in source

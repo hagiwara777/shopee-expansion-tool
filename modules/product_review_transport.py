@@ -6,6 +6,7 @@ from modules.category_mapper_sg import parse_sg_category_mapper_input
 from modules.ph_image_safety import parse_image_sidecar
 from modules.prelisting_candidate_csv import parse_prelisting_candidate_csv
 from modules.product_text_safety import parse_product_text_safety_sidecar
+from modules.prelisting_sg_body_safety import body_checks, parse_body_confirmations
 
 
 class SGProductEvidenceLoader:
@@ -17,7 +18,7 @@ class SGProductEvidenceLoader:
     """
 
     def __init__(self, *, candidate_content, text_content, image_content,
-                 gate_content, gate_filename):
+                 gate_content, gate_filename, body_confirmation_content=None):
         for content in (candidate_content, text_content, image_content, gate_content):
             if not isinstance(content, bytes) or not content or len(content) > 10 * 1024 * 1024:
                 raise ValueError("Evidence file size/type invalid")
@@ -31,6 +32,9 @@ class SGProductEvidenceLoader:
         if any(row["evaluation"] is not None or row["human"] is not None for row in images["rows"]):
             raise ValueError("PH image decisions cannot be imported into SG review")
         gate = parse_sg_category_mapper_input(gate_content, filename=gate_filename)
+        confirmations = (parse_body_confirmations(body_confirmation_content, candidates, text)
+                         if body_confirmation_content is not None else None)
+        self._body_checks = body_checks(candidates, text, confirmations)
         original = {row.candidate_asin: row for row in candidates.rows}
         self._gate_rows = {row.candidate_asin: row for row in gate.rows}
         self._text = text.facts_by_asin
@@ -39,6 +43,7 @@ class SGProductEvidenceLoader:
             candidate = original.get(row.candidate_asin)
             if candidate is None or self._candidate_identity(candidate) != self._gate_identity(row):
                 raise ValueError("SG Gate product does not match original Candidate")
+            self._require_body_clear_asin(row.candidate_asin)
         for candidate in candidates.rows:
             if self._text[candidate.candidate_asin].provider != self._images[candidate.candidate_asin]["provider"]:
                 raise ValueError("Text/image evidence provider mismatch")
@@ -57,4 +62,16 @@ class SGProductEvidenceLoader:
                 or (item.source_type, item.source_asin, item.product_title, item.keepa_brand, item.keepa_category)
                 != self._gate_identity(row)[:5]):
             raise ValueError("Current SG product does not match loaded evidence")
+        self._require_body_clear_asin(item.candidate_asin)
         return self._text[item.candidate_asin], deepcopy(self._images[item.candidate_asin])
+
+    def _require_body_clear_asin(self, asin):
+        if any(check["candidate_asin"] == asin and check["outcome"] != "ACCESSORY_ONLY"
+               for check in self._body_checks):
+            raise ValueError("SG body suspicion or confirmed exclusion cannot use eligible input")
+
+    def require_body_clear(self, item, *, text):
+        # Revalidate the current item as well as the retained, bound confirmation.
+        if text != self._text.get(item.candidate_asin):
+            raise ValueError("Current text does not match bound SG body confirmation")
+        self(item)

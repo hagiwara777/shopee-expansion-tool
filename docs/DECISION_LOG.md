@@ -1572,3 +1572,13 @@
 - 次工程・受入境界: 方針のformal main統合と必要なGovernance確認後、新規CodexタスクでSG限定の最小事故防止実装を行う。最初に既存の停止・除外経路を確認する。Guardrail BLOCKからGate EXCLUDEへの変換は存在するが、人間の本体確認結果をGate BLOCKへ反映する専用経路は実装済みと未確認である。新しい汎用確認システムを前提にせず既存機構を最大限再利用し、確認済み本体が出品準備へ進まないところまで受入対象とする。REVIEW語句追加だけを実装完了にしない。その後にShadow V3の比較接続へ復帰し、事故防止対策と独立して技術検証する。
 - 非対象: 今回はGuardrail辞書、BLOCK／REVIEW matcher、Gate処分経路、Shadow接続、Keepa取得・保存、UI／DB／Candidate／sidecar、State、認証、起動先を変更しない。外部業務API・有料API、実商品処理、deployを実行しない。未commitのShadow／Keepa／分類接続成果を変更・移動・混合・正式採用しない。PH／SG protected capabilityと既存商品の処理を維持し、MY／TH runtimeを開始しない。既知制約を全カテゴリの新しいBeta MUSTへ拡張しない。
 - rollback: 今回の文書差分は通常revertで戻せる。判断の訂正・撤回は新Decisionへ追記し、既存Decision／Evidenceを上書きしない。製品・DB・認証・消費記録の復旧を伴わず、force pushやdirty resetは行わない。
+
+## DEC-0130 — SG本体疑義の確認結果をCandidateに結合しGate除外と準備出力へ接続する
+
+- 日付: 2026-10-08
+- authority: OwnerはDEC-0129正本化後、提示した4段階の実装順と「確認済み本体が通常フローの出力・再実行でも進めない」完成条件を支持し、既存タスクでの実装・offline testを明示依頼した。本体疑義・本体確定・付属品確認を区別し、別商品・古いCandidate・別市場への誤適用を防ぐ。
+- 決定: SG KNIFE／CONTACT_LENSだけの小さな確認処理を既存Prelisting Gateへ追加する。対象名称と指定済みProduct Text Safetyの取得済み文章は疑義だけを作り、本体を自動確定しない。人間が商品内容・実同梱の根拠を明示確認した本体・実同梱品はGate EXCLUDEへ進める。不明はREVIEW、付属品確認は今回の疑義だけを解消する。既存GuardrailのBLOCK／REVIEWと他のGate理由を維持し、confirmed bodyを単なるREVIEWのまま通過させない。
+- bindingと再利用: 新規DBを作らず、SG専用JSON確認記録をsessionと手動保存・再読込に用いる。SG・ASIN・商品群・Candidate全15項目と全行・商品文章Fact・version・DEC-0129へ結合し、内容不一致・他市場・不正記録では停止する。同じ入力の再実行は確認を保持する。記録なしの再開は未確認として停止する。本体確認済み除外を同じ確認操作で付属品へ降格しない。hashは取り違え検出であり確認者の電子署名ではない。
+- 後段: SGの既存商品資料loaderと準備判定で、古いELIGIBLE CSVの対象疑義・確認済み本体を拒否する。付属品の確認記録と現在商品・文章の一致を出力時にも検査し、既存Brand／SLS／Guardrail／武器画像条件を維持する。CSV／TXTは共通の現在準備判定を使う。SLS ALLOWを本体販売Safetyの根拠にしない。
+- 保護・非対象: PH、既存辞書、Candidate15列、既存Gate CSV列、DB schema、Keepa取得・cache、State、認証、API枠、起動先、MY／THを変更しない。Shadow V3接続、汎用Review基盤、規制マスター、live／有料API、実商品処理、deployは行わない。未commitの別成果は変更・混合しない。コード採用・端末反映・実商品受入を分け、限定語句の未検出を全面安全保証へ読み替えない。
+- 次工程とrollback: 事故防止と独立してShadow V3の比較接続を技術検証する。今回のコード・tests・操作文書は通常revertできるが、DEC-0129の販売方針撤回を意味しない。確認記録・通常DB・過去Evidenceを削除せず、formal main採用は現在対象のtechnical gatesとOwner最終承認を必要とする。

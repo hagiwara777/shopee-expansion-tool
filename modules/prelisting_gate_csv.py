@@ -9,6 +9,7 @@ import json
 from typing import Any
 
 from modules.ph_image_safety import IMAGE_REASON_CODES
+from modules.prelisting_sg_body_safety import BODY_REASON_CODES
 from modules.listing_inventory_parser import (
     ListingEvidence,
     ListingInventoryParseError,
@@ -249,7 +250,7 @@ def _validate_row(
     )
     _validate_ordered_tuple(
         row.reason_codes,
-        REASON_CODE_ORDER + IMAGE_REASON_CODES,
+        REASON_CODE_ORDER + BODY_REASON_CODES + IMAGE_REASON_CODES,
         "reason_codes",
         row_number,
     )

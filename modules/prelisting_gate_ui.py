@@ -23,6 +23,7 @@ PRELISTING_GATE_RESULT_STATE_KEYS = (
     "prelisting_gate_fingerprint",
     "prelisting_gate_base_result",
     "prelisting_gate_image_sidecar",
+    "prelisting_gate_sg_body_confirmations",
 )
 PRELISTING_GATE_PREVIEW_COLUMNS = (
     "candidate_asin",
@@ -71,6 +72,8 @@ _PRELISTING_GATE_REASON_LABELS = {
     "METADATA_INCOMPLETE": "商品情報不足",
     "IMAGE_SAFETY_REVIEW": "画像の確認が必要",
     "IMAGE_SAFETY_EXCLUDE": "画像確認で除外",
+    "SG_BODY_REVIEW": "SG本体・実同梱の確認が必要",
+    "SG_BODY_EXCLUDE": "SG本体・実同梱を確認し除外",
 }
 _PRELISTING_GATE_FINAL_ELIGIBILITIES = {"ELIGIBLE", "REVIEW", "EXCLUDE"}
 _PRELISTING_GATE_DOWNLOAD_SOURCE_TYPES = {
@@ -244,6 +247,7 @@ def build_prelisting_gate_fingerprint(
     product_text_safety_filename: str | None = None,
     product_text_safety_content: bytes | None = None,
     image_safety_content: bytes | None = None,
+    sg_body_confirmation_content: bytes | None = None,
 ) -> str:
     """Build a deterministic, non-reversible fingerprint of current inputs."""
 
@@ -293,6 +297,8 @@ def build_prelisting_gate_fingerprint(
     }
     if image_safety_content is not None:
         payload["image_safety"] = content_sha256(image_safety_content)
+    if sg_body_confirmation_content is not None:
+        payload["sg_body_confirmation"] = content_sha256(sg_body_confirmation_content)
     encoded = json.dumps(
         payload,
         ensure_ascii=False,
