@@ -1556,3 +1556,19 @@
 - 置換範囲: DEC-0127の普段の起動をPH / SG別ショートカットに限定する部分と、DEC-0115の工程内国選択を、統一入口でのみ置換する。旧入口は復旧用に保持し、旧`app.py`単独起動のSG閉鎖を維持する。SG専用データ / 取得枠 / 出力条件、PH挙動、既存Guardrail / Battery / SLS、武器画像用途、商品単位人間確認、MY / TH NOT_STARTEDは変更しない。
 - 採用・反映: scope内local実装・offline検証・PRを本依頼で進める。formal main採用は現在対象のtechnical gatesとOwner最終承認を経る。端末の共通入口設置は採用済み固定releaseを使い、旧入口と既存保存先を保持して実機確認する。新規API枠・費用・credential書換え・通常DB移行・自動出品を追加しない。実行結果はTask Context / Git外Evidenceへ記録する。
 - rollback: 共通serverだけを照合して停止し、旧PH / SG入口へ戻す。共通UI・path参照の追加を通常revertでき、DB・grant・過去消費・claimを削除しない。
+
+
+## DEC-0129 — SGレンズ本体の販売除外と一般台所用包丁本体の内部暫定除外を確定する
+
+- 日付: 2026-10-08
+- authority / 目的: OwnerはSG KNIFE／CONTACT_LENSの接続前リスク確認を受け、下記の販売除外方針を確定した。今回の成果は事業方針と後続実装の前提の記録であり、停止処理の実装・完成を意味しない。scope内の文書編集・検証・commit・push・Draft PR・CI・read-only reviewを行い、formal mainへの採用は現在対象のtechnical gatesとOwner Acceptance Summary、明示的最終承認に従う。
+- SG CONTACT_LENS: コンタクトレンズ本体と、本体が実際に含まれるセットを当社の出品対象から除外する。本体の有無が不明で該当疑義のある対象だけをREVIEWとし、レンズ本体・実同梱の有無を具体的に確認する。空ケース・ケア用品へ本体禁止を一律適用せず、他条件による既存BLOCK／REVIEWは維持する。
+- レンズの根拠: [Shopee SG禁止商品一覧](https://help.shopee.sg/portal/4/article/77211)のMedical Device／Contact lens（表示更新日2025-07-25）と、[HSA公式公表](https://www.hsa.gov.sg/announcements/hsa-joins-interpol-in-global-clampdown-on-illegal-health-products/)の段落3（公表日2026-05-07）。2026-10-08の公開ページ閲覧でオンライン販売禁止を確認した。[Shopee通常Policy](https://help.shopee.sg/portal/4/article/77151) 2(vii)から当該一覧への参照も確認した。実物レンズを含むセットへの適用は、本体を販売するという条件に基づく本Decisionの採用範囲である。
+- SG一般台所用KNIFE: 一般台所用包丁本体と、本体が実際に含まれるセットを、当社独自の暫定方針として出品対象から除外する。本体の有無が不明で該当疑義のある対象だけをREVIEWとし、包丁本体・実同梱の有無を確認する。空ケース・研ぎ器等へ本体の暫定除外を一律適用しない。
+- 包丁の根拠と未確認事項: DEC-0052および[既存Source Manifest](evidence/GUARDRAIL_SOURCE_MANIFEST.csv)の資料ID `SHOPEE_JAPAN_SALES_RESTRICTION_GUIDE`、artifact `SJ-SALES-RESTRICTION-PDF-8ef486ce851b` のPDF p.4「シンガポール／オンライン販売禁止商品／包丁」を参照する。完全SHAとstorage aliasは同Manifestを正本とする。資料日付・版・取得URLと現在のShopee SG禁止条件との対応は未確認であり、SHA一致を現在性の証明にしない。本決定の包丁除外は公式禁止の断定ではない。公式条件が明確になった場合は、この内部暫定方針を再評価する。
+- 適用と保護: SGだけに適用し、PHその他市場・COMMON_BLOCKへ推測拡張しない。既存BLOCKを解除・降格せず、既存REVIEWを自動SAFEにしない。Shadow BODY_CANDIDATE、商品カテゴリ、titleだけでは本体・実同梱を確定しない。SLS ALLOWを商品Safetyの保証にせず、未検出の全商品や付属品の販売可能性を自動保証しない。欠損・未登録だけで全商品をREVIEWにしない。
+- 確認と処分: 本体不明のREVIEWは、本体が含まれず販売可能性が残るかを具体的に確認するために用いる。本体・実同梱が確認され本Decisionの除外対象に該当する商品は、出品準備へ進めない。確定した除外対象を永久REVIEWに置いたり、単なる確認チェックで通過させたりしない。DEC-0044の確認可能なREVIEWと確定禁止の原則、およびDEC-0071の名称だけで商品実体を確定しない境界を維持する。
+- 既存Ruleとの関係: DEC-0071のSG title REVIEWや既存BLOCKはこの記録で変更しない。本決定は後続実装の国別事業方針を追加するもので、現行辞書・Gateが本体除外を実現済みという認定ではない。SGの停止漏れをShadow比較機能の完成によって解消済みにしない。
+- 次工程・受入境界: 方針のformal main統合と必要なGovernance確認後、新規CodexタスクでSG限定の最小事故防止実装を行う。最初に既存の停止・除外経路を確認する。Guardrail BLOCKからGate EXCLUDEへの変換は存在するが、人間の本体確認結果をGate BLOCKへ反映する専用経路は実装済みと未確認である。新しい汎用確認システムを前提にせず既存機構を最大限再利用し、確認済み本体が出品準備へ進まないところまで受入対象とする。REVIEW語句追加だけを実装完了にしない。その後にShadow V3の比較接続へ復帰し、事故防止対策と独立して技術検証する。
+- 非対象: 今回はGuardrail辞書、BLOCK／REVIEW matcher、Gate処分経路、Shadow接続、Keepa取得・保存、UI／DB／Candidate／sidecar、State、認証、起動先を変更しない。外部業務API・有料API、実商品処理、deployを実行しない。未commitのShadow／Keepa／分類接続成果を変更・移動・混合・正式採用しない。PH／SG protected capabilityと既存商品の処理を維持し、MY／TH runtimeを開始しない。既知制約を全カテゴリの新しいBeta MUSTへ拡張しない。
+- rollback: 今回の文書差分は通常revertで戻せる。判断の訂正・撤回は新Decisionへ追記し、既存Decision／Evidenceを上書きしない。製品・DB・認証・消費記録の復旧を伴わず、force pushやdirty resetは行わない。

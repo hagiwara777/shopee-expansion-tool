@@ -12,7 +12,8 @@
 
 SG Minimum Beta完成判定（Roadmap Step 8）は正式採用済みでCLOSED。
 半自動完成線はDEC-0111 / DEC-0112、Step 8終了はDEC-0113を参照する。
-新規Beta MUST実装の残作業はない。
+Step 8受入時点では新規Beta MUST実装の残作業はなかった。後から確認したSG本体商品の停止漏れは
+下記DEC-0129の独立した事故防止対応として扱い、Step 8の受入履歴を書き換えない。
 
 次の開発目標は現状PH Betaを固定基準とするSG機能統一である（DEC-0116）。
 共通moduleを改善し、市場別の判断材料とadapterを分離する。
@@ -22,8 +23,15 @@ SG ACTIVE化とPH形式の手動準備出力を採用し、固定release・専�
 PH / SGは[統一ベータ入口](BETA_APPLICATION.md)で対象国を切り替え、同じ4工程を使う（DEC-0128）。
 共通入口は既存PHの保存先とSG専用DB / API枠を参照し、国別の確認・消費を混ぜない。
 端末設置の状態はrepo外Task Context / Git外Evidenceを参照する。
-次の単一作業は、統一入口で少量商品を利用し、実務上の不足を確認する。
-MY / THの市場runtime開始はこの利用確認後に別scopeで判断する。
+SGのコンタクトレンズ本体・実同梱品と、一般台所用包丁本体・実同梱品の販売除外方針を採用する（DEC-0129）。
+レンズは公式根拠による除外、包丁は現行Shopee条件との対応が未解決なため当社独自の暫定除外である。
+この方針記録だけで現在のGuardrail／Gateに停止漏れがなくなったとは扱わない。
+次の単一作業は、新規CodexタスクでSG限定の最小事故防止実装を行うこと。
+最初に既存Gateの停止・除外経路を確認し、本体確認後に出品準備へ進めない最小方式を選ぶ。
+名称疑義のREVIEW追加だけで、本体確定後の除外まで完成したと報告しない。
+その後にShadow V3の比較接続へ戻り、事故防止実装と独立して技術検証する。
+未採用のShadow／Keepa／分類接続成果を、この方針の採用によって正式成果へ昇格しない。
+MY / THの市場runtime開始はSGの利用確認後に別scopeで判断する。
 完成基準と順序は[PH Beta市場展開](PH_BETA_MARKET_PARITY.md)を参照する。
 
 ## 成立済み成果と保護境界
@@ -122,6 +130,9 @@ Source明示ON時のsilent fallbackを許さない。Bridge全面書込み障害
 SG Brand responseにmarketplace / Category echoがないため、server内部の別Category誤応答の独立検出は保証しない。
 
 ## Required Decisions
+
+- DEC-0129 — SGレンズの公式根拠による本体除外、一般台所用包丁の内部暫定除外、本体不明REVIEWと実装の受入境界。
+- DEC-0044 / DEC-0052 — 確定禁止と具体的確認が可能なREVIEW、資料identityと現行性・Rule採用の分離。
 
 - DEC-0128 — 1つのアプリ内でPH / SGを切り替え、既存の国別保存先・認証・API枠を維持。
 
