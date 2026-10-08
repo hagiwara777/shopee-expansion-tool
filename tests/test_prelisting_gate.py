@@ -794,6 +794,7 @@ def test_phase1_v2_keeps_candidate_gate_schema_and_gate_public_interface_v1():
         "expected_shop_count",
         "ingredient_safety",
         "product_text_safety",
+        "sg_body_confirmations",
     )
     assert parameters["ingredient_safety"].default is None
     assert parameters["product_text_safety"].default is None

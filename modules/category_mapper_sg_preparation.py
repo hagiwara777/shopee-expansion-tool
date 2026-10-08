@@ -148,6 +148,16 @@ def assess_sg_preparation(items, *, workflow):
         if item.sls_result.check_state!="EVALUATED" or item.sls_result.action!="CATEGORY_ALLOW":
             missing.append("発送条件（SLS）の確認")
         evidence=workflow.product_review.current(item)
+        from modules.prelisting_sg_body_safety import body_suspicions
+        from modules.product_review_transport import SGProductEvidenceLoader
+        if body_suspicions(item.product_title, evidence.text if evidence is not None else None):
+            loader = workflow._product_evidence_loader
+            try:
+                if not isinstance(loader, SGProductEvidenceLoader):
+                    raise ValueError("Bound SG body confirmation required")
+                loader.require_body_clear(item, text=evidence.text if evidence is not None else None)
+            except ValueError:
+                missing.append("SG本体・実同梱の未解決疑義または確認済み除外")
         if evidence is not None:
             if evidence.guardrail_status!="SAFE":
                 missing.append("商品Safetyの未解決事項")

@@ -101,6 +101,7 @@ def evaluate_prelisting_gate(
     expected_shop_count: int,
     ingredient_safety: IngredientSafetySidecarResult | None = None,
     product_text_safety: ProductTextSafetySidecarResult | None = None,
+    sg_body_confirmations: dict | None = None,
 ) -> PrelistingGateResult:
     """Return final eligibility for validated SG or PH candidates and inventory evidence.
 
@@ -132,7 +133,13 @@ def evaluate_prelisting_gate(
             existing_index,
             marketplace=normalized_marketplace,
         )
-        return _build_result(normalized_marketplace, result_rows)
+        result = _build_result(normalized_marketplace, result_rows)
+        if normalized_marketplace == SG_MARKETPLACE:
+            from modules.prelisting_sg_body_safety import apply_sg_body_safety
+            result = apply_sg_body_safety(result, candidates, product_text_safety, sg_body_confirmations)
+        elif sg_body_confirmations is not None:
+            raise PrelistingGateError("SG本体確認記録を別市場へ適用できません。")
+        return result
     except PrelistingGateError:
         raise
     except Exception as exc:

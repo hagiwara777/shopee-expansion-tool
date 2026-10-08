@@ -25,11 +25,13 @@ PH / SGは[統一ベータ入口](BETA_APPLICATION.md)で対象国を切り替�
 端末設置の状態はrepo外Task Context / Git外Evidenceを参照する。
 SGのコンタクトレンズ本体・実同梱品と、一般台所用包丁本体・実同梱品の販売除外方針を採用する（DEC-0129）。
 レンズは公式根拠による除外、包丁は現行Shopee条件との対応が未解決なため当社独自の暫定除外である。
-この方針記録だけで現在のGuardrail／Gateに停止漏れがなくなったとは扱わない。
-次の単一作業は、新規CodexタスクでSG限定の最小事故防止実装を行うこと。
-最初に既存Gateの停止・除外経路を確認し、本体確認後に出品準備へ進めない最小方式を選ぶ。
-名称疑義のREVIEW追加だけで、本体確定後の除外まで完成したと報告しない。
-その後にShadow V3の比較接続へ戻り、事故防止実装と独立して技術検証する。
+SGの対象名称・指定済み商品文章から本体疑義を止め、明示した本体・実同梱の確認結果をGate EXCLUDEへ反映する。
+確認記録は市場・ASIN・Candidate全15項目と商品文章・versionへ結び付け、保存・再開と再実行に用いる（DEC-0130）。
+付属品確認は今回追加する疑義だけを解消し、既存BLOCK／REVIEWを維持する。
+SGの準備CSV／TXT出力でも、古いELIGIBLE入力と商品文章変更による確認流用を停止する。
+操作と既知制約は[SG本体確認](SG_BODY_SAFETY.md)を参照する。未検出の商品全体の安全保証ではない。
+コード採用と稼働端末の固定release更新・実商品受入を区別し、端末設定・DB・API消費記録を自動変更しない。
+次の独立工程はShadow V3の比較接続の技術検証。事故防止実装と独立して扱い、Safety処分変更へ自動移行しない。
 未採用のShadow／Keepa／分類接続成果を、この方針の採用によって正式成果へ昇格しない。
 MY / THの市場runtime開始はSGの利用確認後に別scopeで判断する。
 完成基準と順序は[PH Beta市場展開](PH_BETA_MARKET_PARITY.md)を参照する。
@@ -131,6 +133,7 @@ SG Brand responseにmarketplace / Category echoがないため、server内部の
 
 ## Required Decisions
 
+- DEC-0130 — SG本体確認記録のCandidate結合、既存Gate EXCLUDEと準備出力への最小接続。
 - DEC-0129 — SGレンズの公式根拠による本体除外、一般台所用包丁の内部暫定除外、本体不明REVIEWと実装の受入境界。
 - DEC-0044 / DEC-0052 — 確定禁止と具体的確認が可能なREVIEW、資料identityと現行性・Rule採用の分離。
 

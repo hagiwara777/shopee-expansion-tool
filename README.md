@@ -94,6 +94,11 @@ Ver0.4.3では、Keepa確認後に元Shopeeタイトル、Keepa商品タイト�
 
 ## 出品前保安ゲート Phase 4A-2
 
+SGでは[包丁・コンタクトレンズ本体の確認](docs/SG_BODY_SAFETY.md)を行います。
+該当疑義をREVIEWで止め、商品内容・実同梱を確認した本体はEXCLUDEとし、出品候補へ出しません。
+再開時は同じCandidate・商品文章に対応する確認記録を読み込みます。
+付属品確認で既存の別理由によるBLOCK／REVIEWは解除されません。
+
 出品前保安ゲートは、画面上でSGまたはPHを選択できます。Expansion ToolまたはASIN Resolver Toolで出力した候補CSVと、対象市場の各ショップの既出品CSVを入力し、Guardrail、既出品ASIN、入力内重複、起点ASIN自身、メタデータ不足を判定します。最終判定は `ELIGIBLE / REVIEW / EXCLUDE` とし、ELIGIBLE CSV、REVIEW CSV、全件の監査用CSVを出力します。利用者は対象市場、全ショップ数、Candidate CSV、全ショップ分の既出品CSVだけを入力します。アップロード順に内部証跡labelを自動生成し、実ショップ名は入力しません。全ショップ数とCSV数が一致しない場合は停止し、既出品ASINは全アップロードCSVを横断して照合します。
 
 PH対応は、PH専用Guardrail辞書、入力契約、ローカルテストで確認済みです。実データを使ったPHの実画面・実業務受入と、出品支援ツール全体の完成判定はまだ完了していません。

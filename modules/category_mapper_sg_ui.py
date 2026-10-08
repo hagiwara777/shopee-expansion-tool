@@ -196,10 +196,12 @@ def _render_sg_evidence_import(workflow, gate_content, gate_filename):
         candidate = st.file_uploader("商品候補の元CSV", type=["csv"], key="sg_review_candidate_csv")
         text = st.file_uploader("商品説明ファイル", type=["csv"], key="sg_review_text_csv")
         images = st.file_uploader("画像情報ファイル（未評価）", type=["json"], key="sg_review_image_json")
+        body_file = st.file_uploader("SG本体確認記録（該当商品の付属品確認）", type=["json"], key="sg_review_body_json")
+        body_content = body_file.getvalue() if body_file is not None else None
         files = (candidate, text, images)
         contents = tuple(file.getvalue() if file is not None else None for file in files)
         digest = hashlib.sha256()
-        for content in (gate_content, *contents):
+        for content in (gate_content, *contents, body_content):
             digest.update(b"missing" if content is None else hashlib.sha256(content).digest())
         digest.update(gate_filename.encode("utf-8"))
         workflow.bind_product_evidence_files(digest.hexdigest() if any(file is not None for file in files) else None)
@@ -210,7 +212,7 @@ def _render_sg_evidence_import(workflow, gate_content, gate_filename):
             try:
                 loader = SGProductEvidenceLoader(candidate_content=contents[0], text_content=contents[1],
                                                  image_content=contents[2], gate_content=gate_content,
-                                                 gate_filename=gate_filename)
+                                                 gate_filename=gate_filename, body_confirmation_content=body_content)
                 workflow.install_product_evidence_loader(loader)
             except Exception:
                 st.error("確認資料を読み込めません。元CSVとの対応、説明・画像ファイル、SG入力を確認してください。")
