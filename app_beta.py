@@ -38,7 +38,7 @@ def render_beta(*, sg_config_path=None, ph_runtime_root=None, ph_api_env_path=No
     st.caption('国を切り替えると未保存の入力をクリアします。保存済みの確認・API消費記録は保持します。')
     try:
         with beta_runtime_paths(ph_runtime_root, ph_api_env_path):
-            render_application(marketplace, sg_config_path=sg_config_path)
+            render_application(marketplace, sg_config_path=sg_config_path, enable_expansion_handoff=True)
     except BetaRuntimePathError:
         # Path validation occurs before rendering any work area.
         st.error('PHの保存先・既存API設定を確認してください。')

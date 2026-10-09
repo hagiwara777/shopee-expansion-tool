@@ -1592,3 +1592,14 @@
 - 保護: 比較はGate入力・判定・確認記録・出力を変更しない。BODY_CANDIDATEだけでBLOCKせず、ACCESSORY_CANDIDATEだけでBLOCK／REVIEW／EXCLUDEを解除しない。比較失敗も既存Gateを維持する。DEC-0129／0130のSG除外、PH／SG protected capability、既存Battery／SLS／Guardrail辞書を維持する。
 - 制約・非対象: 通常Candidateのseed fallbackとprovider取得時刻の不足は一致を証明できないため比較不能にする。Keepa client／cache／保存搬送、DB・共通Fact基盤・Candidate schema・State・認証・API枠・起動先を変更しない。追加live／有料API、実商品処理、大規模再分類、規制再調査、deploy、MY／TH、自動Safety判定を行わない。別worktreeの未commit成果は保護し、未採用Keepa成果や旧Shadow管理Decisionを無条件統合しない。
 - 効果とrollback: 同じ商品の分類根拠と既存停止理由を探して照合する作業を支援する。本体・実同梱等の必要な人間確認の省略や削減実測を意味しない。追加比較module・表示・tests・docsを通常revertでき、既存確認記録・DB・Evidenceを削除しない。
+
+## DEC-0132 — 統一ベータのExpansion生成資料を既存検証でGateへ内部引継ぎする
+
+- 日付: 2026-10-09
+- authority: OwnerはDESIGN.mdの初回8受入条件を基準としてExpansion→Gate限定の実装・offline検証・commit／push／Draft PR／CI／reviewを指示した。SG本体確認済みEXCLUDEを入力元・filenameの変更で解除しないことを追加受入条件とする。formal mainへの採用はtechnical gatesと現在対象のOwner Acceptance・明示的最終承認を経る。
+- 決定: app_beta.pyだけで明示有効化し、既存Expansion生成器のCandidate CSV・Ingredient Safety CSV・Product Text Safety CSV・PH画像確認JSONの最終filename／bytesを固定session packetで一式渡す。市場と生成identityを結合し、手動UploadedFileと同じ既存parser・Gate・export経路を使用する。候補生成をSafety判定者にしない。
+- 操作: 引継ぎとGate実行は別の明示操作とする。候補・関連資料の入力元を一つ選び、混合・欠損時のsilent fallbackを禁止する。外部CSV uploadと既存downloadを残し、全ショップ数・既出品CSVの確認義務と検証を維持する。
+- 失効と確認: 再検索開始・失敗・0件・生成不正・資料変更で旧packet／結果／出力を使わず、市場切替で全一時情報を消す。同じ入力のSG確認は既存validatorの全Candidate・商品文章・市場・version bindingを照合し、filename／入力元だけでEXCLUDEを解除しない。確認済み記録を弱い再開JSONで降格しない。別入力へ確認を適用せず、変更後の未解決疑義は止める。以前本体確認したASINの疑義が変更後の資料から消え、対応を確認できない場合も入力停止とする。同じCandidate・Safety資料・画像FactのPH確認を検証して保持し、変更時には失効する。
+- 保護・非対象: DEC-0019／0021、固定15列・sidecar／CSV／TXT契約、既存Guardrail／BLOCK／REVIEW／EXCLUDE、PH画像Safety、DEC-0129／0130のSG除外、DEC-0131の読取専用Shadowを維持する。Resolver内部引継ぎ、Gate→Mapper、Shadow Fact自動取得、新規DB、汎用Workflow／Fact基盤、分類改善、追加API、実商品、deploy、稼働release更新を含めない。別worktreeの未commit Shadow／Keepa成果を混合しない。
+- 制約と次工程: packet・一時確認はsession内だけで再起動後に自動復元しない。Fact未取得をSAFEへ補完せず、外部既出品資料の真正性は利用者が確認する。次は別scopeで少量実商品の搬送省力化・比較表示の利用価値を確認し、追加API／DBや分類ルール増加へ自動移行しない。
+- rollback: 内部入力を使わず手動経路へ戻せる。今回の接続・確認保持・tests・利用文書を通常revertでき、DB・保存済み確認・消費記録は削除しない。

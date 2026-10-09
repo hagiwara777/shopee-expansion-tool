@@ -131,7 +131,8 @@ def test_gate_tab_has_sg_ph_marketplace_controls_and_dynamic_labels():
     assert ast.unparse(_keyword(selectors[0], "key")) == "'prelisting_gate_marketplace'"
     assert "marketplace = st.selectbox(" in source
     assert "PRELISTING_GATE_MARKETPLACE =" not in APP_SOURCE
-    assert "st.radio" not in source
+    assert 'if enable_expansion_handoff:' in source
+    assert 'st.radio("候補・Safety資料の入力元", (MANUAL, INTERNAL)' in source
     assert "MY" not in source
     assert "TH" not in source
     assert len(number_input) == 1
