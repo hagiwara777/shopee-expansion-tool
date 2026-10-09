@@ -297,7 +297,7 @@ DEC-0049の`BETA_AFTER_CANDIDATE`、DB化、他市場展開、出品後商品改
 
 - Workflow層
 - SP-APIによるKeepa Expansion全面代替調査（HOLD。Beta実利用後にKeepaコスト、契約、障害、利用制限、運用負荷が実際のボトルネックになった場合だけ再検討）
-- Resolver／ExpansionからGateへの自動投入
+- ResolverからGateへの内部引継ぎ（Expansionの統一ベータ内一式引継ぎはDEC-0132）
 - GateからCategory Mapperへの自動投入
 - 既存出品ツールへの自動投入
 - 既存出品ツールの正式入力契約の証拠回収（自動投入またはE2E接続を検討する場合）

@@ -11,6 +11,10 @@ MY / THは選択肢に含めず、市場runtimeの開始後に別scopeで追加�
 SG Mapperは専用ベータのAI候補・Brand確認・武器画像検査・手動準備CSV / TXTの処理へ接続する。
 SG設定が欠落・不正ならSG Mapperを停止し、旧offline画面へ自動切替しない。
 
+Expansionは生成した4資料を[保安ゲートへ内部引継ぎ](EXPANSION_GATE_HANDOFF.md)できる（DEC-0132）。
+同じ作業中のダウンロード・再アップロードを省き、全ショップの既出品CSVとSafety確認は維持する。
+外部CSV・Resolverは従来の手動入力を使用する。
+
 国を切り替えると未保存の入力、アップロード、表示中の候補・準備出力、一時tokenをクリアする。
 SG runtimeを閉じて専用lockを解放し、国を戻したときは同じgrant / DB / claim / ledgerから再開する。
 保存済みの確認を別国へコピーせず、再利用時は既存の現行catalog / 商品資料の照合を行う。

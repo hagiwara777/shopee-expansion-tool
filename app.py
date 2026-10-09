@@ -1,4 +1,5 @@
 import os
+from uuid import uuid4
 
 import pandas as pd
 import streamlit as st
@@ -85,7 +86,7 @@ from modules.prelisting_candidate_csv import (
 )
 from modules.ph_image_safety import (
     ImageSafetyError, apply_image_safety, create_image_sidecar,
-    parse_image_sidecar, prepare_image_safety,
+    parse_image_sidecar, prepare_image_safety, image_sidecar_bytes,
 )
 from modules.ph_image_safety_ui import render_image_review
 from modules.prelisting_sg_body_safety import (
@@ -93,6 +94,11 @@ from modules.prelisting_sg_body_safety import (
 )
 from modules.prelisting_sg_body_safety_ui import render_sg_body_review
 from modules.prelisting_gate import PrelistingGateError, evaluate_prelisting_gate
+from modules.prelisting_gate_handoff import (
+    Artifact, ExpansionPacket, HandoffError, MANUAL, INTERNAL,
+    PACKET_KEY, GENERATION_KEY, SOURCE_KEY, BODY_CACHE_KEY,
+    validate_packet, current_body_confirmations, remember_body_confirmations,
+)
 from modules.prelisting_gate_csv import (
     PrelistingGateCsvError,
     build_prelisting_gate_export_filenames,
@@ -328,7 +334,7 @@ def _render_prelisting_gate_result(result, exports, *, source_type: str) -> None
     )
 
 
-def _render_prelisting_gate_input_tab(marketplace=None) -> None:
+def _render_prelisting_gate_input_tab(marketplace=None, *, enable_expansion_handoff=False) -> None:
     """Render input parsing, gate execution, and current result presentation."""
 
     st.subheader("出品前保安ゲート")
@@ -342,6 +348,15 @@ def _render_prelisting_gate_input_tab(marketplace=None) -> None:
         st.error("対象国を確認してください。")
         return
     st.write(f"対象国: {marketplace}")
+    input_source = MANUAL
+    if enable_expansion_handoff:
+        input_source = st.radio("候補・Safety資料の入力元", (MANUAL, INTERNAL), key=SOURCE_KEY)
+        previous_source = st.session_state.get("prelisting_gate_active_input_source")
+        if previous_source is not None and previous_source != input_source:
+            remember_body_confirmations(st.session_state, st.session_state.get("prelisting_gate_sg_body_confirmations"))
+            clear_prelisting_gate_result(st.session_state)
+        st.session_state["prelisting_gate_active_input_source"] = input_source
+        st.caption("内部入力を選んだ場合、下の候補・Safetyアップロード欄は使用しません。既出品CSVは両経路で必要です。")
 
     expected_shop_count = st.number_input(
         f"{marketplace}で現在運用している全ショップ数",
@@ -402,6 +417,26 @@ def _render_prelisting_gate_input_tab(marketplace=None) -> None:
         image_safety_bytes = image_safety_file.getvalue() if image_safety_file is not None else None
         st.caption("候補と一緒にダウンロードした画像確認ファイル、または同じ候補の画像確認記録を指定してください。")
 
+    handoff_error = False
+    if enable_expansion_handoff and input_source != MANUAL:
+        # Select the whole set; never fall back to individual uploaded artifacts.
+        candidate_file = ingredient_safety_file = product_text_safety_file = image_safety_file = None
+        candidate_bytes = ingredient_safety_bytes = product_text_safety_bytes = image_safety_bytes = None
+        try:
+            if input_source != INTERNAL:
+                raise HandoffError("入力元を確認してください。")
+            packet = st.session_state.get(PACKET_KEY)
+            packet_candidates = validate_packet(packet, marketplace=marketplace, generation=st.session_state.get(GENERATION_KEY))
+            candidate_file, ingredient_safety_file, product_text_safety_file = packet.candidate, packet.ingredient, packet.product_text
+            image_safety_file = packet.image if marketplace == "PH" else None
+            candidate_bytes, ingredient_safety_bytes, product_text_safety_bytes = (
+                candidate_file.getvalue(), ingredient_safety_file.getvalue(), product_text_safety_file.getvalue())
+            image_safety_bytes = image_safety_file.getvalue() if image_safety_file is not None else None
+            st.info(f"入力元: Expansion / 対象国: {marketplace} / 起点ASIN: {packet.source_asin} / 候補: {packet_candidates.data_row_count}件 / 関連Safety資料: 一式あり")
+        except (HandoffError, PrelistingCandidateCsvError, IngredientSafetyError, ProductTextSafetyError, ImageSafetyError):
+            handoff_error = True
+            st.error("現在のExpansion候補・関連Safety資料を引き継げません。対象国と最新の検索結果を確認し、引継ぎボタンを押してください。")
+
     sg_body_file = None
     sg_body_bytes = None
     if marketplace == "SG":
@@ -424,6 +459,8 @@ def _render_prelisting_gate_input_tab(marketplace=None) -> None:
     )
 
     configuration_errors: list[str] = []
+    if handoff_error:
+        configuration_errors.append("内部入力が欠損・不一致のため停止しています。")
     expected_shop_count_is_valid = (
         type(expected_shop_count) is int and expected_shop_count >= 1
     )
@@ -459,6 +496,8 @@ def _render_prelisting_gate_input_tab(marketplace=None) -> None:
         ),
     )
     saved_fingerprint = st.session_state.get("prelisting_gate_fingerprint")
+    if enable_expansion_handoff and marketplace == "SG":
+        remember_body_confirmations(st.session_state, st.session_state.get("prelisting_gate_sg_body_confirmations"))
     if saved_fingerprint is not None and saved_fingerprint != current_fingerprint:
         clear_prelisting_gate_result(st.session_state)
 
@@ -529,12 +568,33 @@ def _render_prelisting_gate_input_tab(marketplace=None) -> None:
     elif image_safety_file is not None:
         image_safety_parse_error = True
 
+    image_binding = (candidate_bytes, ingredient_safety_bytes, product_text_safety_bytes)
+    if enable_expansion_handoff and marketplace == "PH":
+        retained = st.session_state.get("prelisting_gate_bound_ph_image")
+        if retained is not None and image_safety_result is not None:
+            binding, saved_image = retained
+            if (binding == image_binding
+                    and [r["fact"] for r in saved_image["rows"]] == [r["fact"] for r in image_safety_result["rows"]]):
+                # An unchanged raw transport does not erase current confirmed images.
+                if all(r["evaluation"] is None for r in image_safety_result["rows"]):
+                    try:
+                        image_safety_result = parse_image_sidecar(
+                            image_sidecar_bytes(saved_image), candidate_content=candidate_bytes, candidates=candidate_result)
+                    except ImageSafetyError:
+                        image_safety_parse_error = True
+            else:
+                st.session_state.pop("prelisting_gate_bound_ph_image", None)
+
     sg_body_confirmations = None
     sg_body_parse_error = False
     if marketplace == "SG" and candidate_result is not None and not product_text_safety_parse_error:
         try:
             saved_body = st.session_state.get("prelisting_gate_sg_body_confirmations")
-            if saved_body is not None:
+            if enable_expansion_handoff:
+                sg_body_confirmations = current_body_confirmations(
+                    candidate_result, product_text_safety_result, sg_body_bytes,
+                    st.session_state.get(BODY_CACHE_KEY, {}))
+            elif saved_body is not None:
                 sg_body_confirmations = prepare_body_confirmations(candidate_result, product_text_safety_result, saved_body)
             elif sg_body_bytes is not None:
                 sg_body_confirmations = parse_body_confirmations(sg_body_bytes, candidate_result, product_text_safety_result)
@@ -660,6 +720,8 @@ def _render_prelisting_gate_input_tab(marketplace=None) -> None:
         width="stretch",
     )
     if run_gate_clicked:
+        if enable_expansion_handoff and marketplace == "SG":
+            remember_body_confirmations(st.session_state, sg_body_confirmations)
         clear_prelisting_gate_result(st.session_state)
         try:
             with st.spinner("出品前保安ゲートを判定しています..."):
@@ -724,6 +786,8 @@ def _render_prelisting_gate_input_tab(marketplace=None) -> None:
                 )
                 saved_exports = build_prelisting_gate_exports(saved_result)
                 st.session_state["prelisting_gate_sg_body_confirmations"] = confirmations
+                if enable_expansion_handoff:
+                    remember_body_confirmations(st.session_state, confirmations)
                 st.session_state["prelisting_gate_result"] = saved_result
                 st.session_state["prelisting_gate_exports"] = saved_exports
             if marketplace == "PH":
@@ -734,6 +798,8 @@ def _render_prelisting_gate_input_tab(marketplace=None) -> None:
                 saved_result = apply_image_safety(base_result, image_sidecar, candidate_bytes)
                 saved_exports = build_prelisting_gate_exports(saved_result)
                 st.session_state["prelisting_gate_image_sidecar"] = image_sidecar
+                if enable_expansion_handoff:
+                    st.session_state["prelisting_gate_bound_ph_image"] = (image_binding, image_sidecar)
                 st.session_state["prelisting_gate_result"] = saved_result
                 st.session_state["prelisting_gate_exports"] = saved_exports
             _render_prelisting_gate_result(
@@ -757,7 +823,7 @@ def _render_prelisting_gate_input_tab(marketplace=None) -> None:
                 st.info("Shadow比較不能：保存資料と現在の入力を確認してください。既存Gate結果は保持します。")
 
 
-def render_application(marketplace=None, *, sg_config_path=None):
+def render_application(marketplace=None, *, sg_config_path=None, enable_expansion_handoff=False):
     """Render the existing work tabs, optionally bound to one beta market."""
     beta_marketplace = marketplace
     if beta_marketplace is None:
@@ -766,6 +832,7 @@ def render_application(marketplace=None, *, sg_config_path=None):
     elif beta_marketplace not in {"PH", "SG"}:
         st.error("対象国を確認してください。")
         st.stop()
+    enable_expansion_handoff = enable_expansion_handoff and beta_marketplace in {"PH", "SG"}
 
     try:
         amazon_settings = load_settings()
@@ -777,6 +844,10 @@ def render_application(marketplace=None, *, sg_config_path=None):
     if previous_provider and previous_provider != amazon_settings.amazon_data_provider:
         st.session_state.pop("result", None)
         st.session_state.pop("asin_resolver_rows", None)
+        if enable_expansion_handoff:
+            st.session_state.pop(PACKET_KEY, None)
+            st.session_state.pop(GENERATION_KEY, None)
+            clear_prelisting_gate_result(st.session_state)
     st.session_state["active_amazon_data_provider"] = amazon_settings.amazon_data_provider
 
     if amazon_settings.amazon_data_provider == CANOPY_TEST_PROVIDER:
@@ -821,6 +892,11 @@ def render_application(marketplace=None, *, sg_config_path=None):
             )
 
         if search_clicked:
+            if enable_expansion_handoff:
+                remember_body_confirmations(st.session_state, st.session_state.get("prelisting_gate_sg_body_confirmations"))
+                st.session_state.pop(PACKET_KEY, None)
+                st.session_state.pop(GENERATION_KEY, None)
+                clear_prelisting_gate_result(st.session_state)
             st.session_state["result"] = None
 
             try:
@@ -851,10 +927,18 @@ def render_application(marketplace=None, *, sg_config_path=None):
                 )
             else:
                 st.session_state["result"] = result
+                if enable_expansion_handoff:
+                    st.session_state[GENERATION_KEY] = uuid4().hex
 
         result = st.session_state.get("result")
+        if enable_expansion_handoff and not result:
+            st.session_state.pop(PACKET_KEY, None)
+            st.session_state.pop(GENERATION_KEY, None)
 
         if result:
+            if enable_expansion_handoff:
+                # Generation failure/zero rows must not leave a usable old packet.
+                offered_packet = None
             if result.final_display_count:
                 st.success(f"{result.final_display_count}件の候補ASINを取得しました。")
             elif amazon_settings.amazon_data_provider == CANOPY_TEST_PROVIDER:
@@ -975,6 +1059,26 @@ def render_application(marketplace=None, *, sg_config_path=None):
                     file_name=f"ph_image_safety_expansion_{result.source_asin}.json",
                     mime="application/json", key="ph-image-safety-expansion-download", width="stretch",
                 )
+                if enable_expansion_handoff and expansion_prelisting_rows:
+                    offered_packet = ExpansionPacket(
+                        beta_marketplace, st.session_state.setdefault(GENERATION_KEY, uuid4().hex), result.source_asin,
+                        Artifact(f"prelisting_candidates_expansion_{result.source_asin}.csv", expansion_prelisting_csv),
+                        Artifact(f"ingredient_safety_facts_expansion_{result.source_asin}.csv", expansion_safety_sidecar),
+                        Artifact(f"product_text_safety_facts_expansion_{result.source_asin}.csv", expansion_product_text_sidecar),
+                        Artifact(f"ph_image_safety_expansion_{result.source_asin}.json", expansion_image_sidecar))
+                    try:
+                        validate_packet(offered_packet, marketplace=beta_marketplace,
+                                        generation=st.session_state.get(GENERATION_KEY))
+                    except (HandoffError, PrelistingCandidateCsvError, IngredientSafetyError, ProductTextSafetyError, ImageSafetyError):
+                        offered_packet = None
+                    if offered_packet is not None and st.button("この候補を保安ゲートで使う", key="expansion_gate_use"):
+                        st.session_state[PACKET_KEY] = offered_packet
+                        st.session_state[SOURCE_KEY] = INTERNAL
+            if (enable_expansion_handoff and st.session_state.get(PACKET_KEY) is not None
+                    and st.session_state[PACKET_KEY] != offered_packet):
+                remember_body_confirmations(st.session_state, st.session_state.get("prelisting_gate_sg_body_confirmations"))
+                st.session_state.pop(PACKET_KEY, None)
+                clear_prelisting_gate_result(st.session_state)
             st.dataframe(pd.DataFrame(result.rows), width="stretch", hide_index=True)
 
     with resolver_tab:
@@ -1687,7 +1791,7 @@ def render_application(marketplace=None, *, sg_config_path=None):
 
 
     with prelisting_gate_tab:
-        _render_prelisting_gate_input_tab(beta_marketplace)
+        _render_prelisting_gate_input_tab(beta_marketplace, enable_expansion_handoff=enable_expansion_handoff)
 
     with category_mapper_tab:
         if beta_marketplace == "SG":

@@ -35,6 +35,12 @@ Shadow V3は通常Gate判定後の任意の読取専用比較に限る（DEC-013
 一致する保存Factを現在のCandidate・市場・商品文章へ照合して分類候補と根拠を表示し、
 Safety処分・SG本体確認・出力CSVは変更しない。[接続条件と制約](SAFETY_SHADOW_COMPARISON.md)を参照する。
 次の独立工程は比較表示の実用性と比較不能事例の評価。Keepa保存・搬送改善やSafety処分変更へ自動移行しない。
+統一ベータのExpansion→Gateは、既存4資料をsession内で一式引継ぎする（DEC-0132）。
+全ショップ分の既出品CSV、PH画像Safety、SG本体確認と既存判定・出力を維持し、外部CSVの手動入力も残す。
+同一Candidate・商品Factの確認は既存validatorで照合し、入力元・filenameだけでSG本体EXCLUDEを解除しない。
+操作・失効・制約は[内部引継ぎ](EXPANSION_GATE_HANDOFF.md)を参照する。
+入力簡素化の次の独立工程は、少量実商品で搬送省力化の利用価値を確認すること。
+稼働環境更新・実商品・API利用は別の明示承認を要し、Resolver／Mapper内部接続へ自動拡張しない。
 未採用のShadow／Keepa／分類接続成果を、この方針の採用によって正式成果へ昇格しない。
 MY / THの市場runtime開始はSGの利用確認後に別scopeで判断する。
 完成基準と順序は[PH Beta市場展開](PH_BETA_MARKET_PARITY.md)を参照する。
@@ -136,6 +142,7 @@ SG Brand responseにmarketplace / Category echoがないため、server内部の
 
 ## Required Decisions
 
+- DEC-0132 — Expansion→Gateのsession内一式引継ぎ、既存検証共用、確認保持と失効、手動経路の維持。
 - DEC-0131 — Shadow V3の任意の読取専用比較、商品Fact結合、不一致時の比較不能と既存Safety保護。
 - DEC-0130 — SG本体確認記録のCandidate結合、既存Gate EXCLUDEと準備出力への最小接続。
 - DEC-0129 — SGレンズの公式根拠による本体除外、一般台所用包丁の内部暫定除外、本体不明REVIEWと実装の受入境界。

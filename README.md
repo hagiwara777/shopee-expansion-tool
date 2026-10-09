@@ -2,6 +2,9 @@
 
 PH / SGの普段の入口は[統一ベータ](docs/BETA_APPLICATION.md)です。
 共通の「対象国」プルダウンで4工程を切り替え、既存PHの保存先とSG専用のデータ・API取得枠を保持します。
+Expansionの生成結果は「この候補を保安ゲートで使う」で内部引継ぎできます。
+候補・関連Safety資料の再アップロードは不要ですが、全ショップ分の既出品CSVと従来のSafety確認は必要です。
+外部CSVの手動経路は残します。[操作・失効条件](docs/EXPANSION_GATE_HANDOFF.md)を参照してください。
 下記の`app.py`単独起動・旧SG offline画面の説明は従来入口の仕様です。
 
 市場展開の開発目標は、[固定PH Beta基準のSG / MY / TH機能統一](docs/PH_BETA_MARKET_PARITY.md)を参照してください。
