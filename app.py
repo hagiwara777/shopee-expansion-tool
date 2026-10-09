@@ -748,6 +748,14 @@ def _render_prelisting_gate_input_tab(marketplace=None) -> None:
             clear_prelisting_gate_result(st.session_state)
             st.error(safe_prelisting_gate_error_summary("unexpected"))
 
+        # Comparison failures must never clear a valid Safety decision/export.
+        if st.session_state.get("prelisting_gate_result") is not None:
+            try:
+                from modules.safety_shadow_comparison_ui import render_shadow_comparison
+                render_shadow_comparison(candidate_result, candidate_bytes, product_text_safety_result, saved_result)
+            except Exception:
+                st.info("Shadow比較不能：保存資料と現在の入力を確認してください。既存Gate結果は保持します。")
+
 
 def render_application(marketplace=None, *, sg_config_path=None):
     """Render the existing work tabs, optionally bound to one beta market."""

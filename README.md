@@ -94,6 +94,10 @@ Ver0.4.3では、Keepa確認後に元Shopeeタイトル、Keepa商品タイト�
 
 ## 出品前保安ゲート Phase 4A-2
 
+判定後の[Shadow V3比較](docs/SAFETY_SHADOW_COMPARISON.md)は任意です。
+現在の商品と一致する保存済みFactの分類候補・根拠を表示し、既存Safetyや除外・CSV出力を変更しません。
+一致を確認できない資料は比較不能として扱い、追加APIを呼びません。
+
 SGでは[包丁・コンタクトレンズ本体の確認](docs/SG_BODY_SAFETY.md)を行います。
 該当疑義をREVIEWで止め、商品内容・実同梱を確認した本体はEXCLUDEとし、出品候補へ出しません。
 再開時は同じCandidate・商品文章に対応する確認記録を読み込みます。
