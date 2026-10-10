@@ -632,7 +632,8 @@ def test_duplicate_guardrail_gate_row_id_fails_closed(monkeypatch):
 
 
 @pytest.mark.parametrize("marketplace", ["PH", "SG"])
-def test_sls_shared_battery_review_is_never_gate_eligible(marketplace):
+@pytest.mark.parametrize("term", ["rechargeable", "充電ケース", "charging case", "完全ワイヤレス", "ワイヤレスイヤホン", "ワイヤレスヘッドホン"])
+def test_sls_shared_battery_review_is_never_gate_eligible(marketplace, term):
     marketplace_inventory = inventory(
         (),
         marketplace=marketplace,
@@ -642,7 +643,7 @@ def test_sls_shared_battery_review_is_never_gate_eligible(marketplace):
     )
 
     result = evaluate(
-        [candidate(product_title="Rechargeable desk light")],
+        [candidate(product_title=f"Example {term} product")],
         [marketplace_inventory],
         marketplace=marketplace,
     )
@@ -650,7 +651,7 @@ def test_sls_shared_battery_review_is_never_gate_eligible(marketplace):
     row = result.rows[0]
     assert row.guardrail_status == "REVIEW"
     assert row.guardrail_risk_category == "shipping_restricted"
-    assert row.guardrail_matched_terms == "rechargeable"
+    assert row.guardrail_matched_terms == term
     assert row.guardrail_source == "shopee_policy"
     assert row.final_eligibility == "REVIEW"
     assert row.reason_codes == ("GUARDRAIL_REVIEW",)
@@ -864,6 +865,29 @@ def test_missing_ingredient_sidecar_does_not_create_review_but_title_still_block
     assert result.rows[0].final_eligibility == "ELIGIBLE"
     assert result.rows[1].guardrail_status == "BLOCK"
     assert result.rows[1].final_eligibility == "EXCLUDE"
+
+
+@pytest.mark.parametrize("marketplace", ["PH", "SG"])
+@pytest.mark.parametrize("term", ["充電ケース", "charging case", "完全ワイヤレス", "ワイヤレスイヤホン", "ワイヤレスヘッドホン"])
+def test_battery_sidecar_changes_safe_candidate_to_gate_review(marketplace, term):
+    row = candidate(product_title="ordinary accessory", brand="Other")
+    marketplace_inventory = inventory((), marketplace=marketplace, shop_label="Synthetic shop", source_file="synthetic.csv", data_row_count=0)
+    # Missing optional Product Text retains the pre-existing title-only behavior;
+    # it is not proof that this product has no battery.
+    before = gate.evaluate_prelisting_gate(candidate_file((row,)), (marketplace_inventory,), marketplace=marketplace, expected_shop_count=1)
+    assert before.rows[0].final_eligibility == "ELIGIBLE"
+    sidecar = ProductTextSafetySidecarResult(
+        schema_version=PRODUCT_TEXT_SAFETY_SIDECAR_SCHEMA_VERSION,
+        candidate_schema_version=PRELISTING_CANDIDATE_SCHEMA_VERSION,
+        candidate_sha256="0" * 64,
+        rows=(ProductTextSafetyFact(candidate_asin=row.candidate_asin, provider="keepa", capture_status=PRODUCT_TEXT_CAPTURED,
+            description=(f"Includes {term}",), features=(), short_description=(), safety_warning=(), item_highlights=(), fetched_at="2026-10-10T00:00:00+00:00"),),
+    )
+    after = gate.evaluate_prelisting_gate(candidate_file((row,)), (marketplace_inventory,), marketplace=marketplace, expected_shop_count=1, product_text_safety=sidecar)
+    assert after.rows[0].guardrail_status == "REVIEW"
+    assert after.rows[0].final_eligibility == "REVIEW"
+    assert after.rows[0].reason_codes == ("GUARDRAIL_REVIEW",)
+    assert term in after.rows[0].guardrail_matched_terms.split("|")
 
 
 def test_product_text_sidecar_description_hemp_blocks_at_gate():

@@ -48,7 +48,7 @@ def test_direct_export_rechecks_new_asset_and_market_binding(tmp_path, monkeypat
 
 
 @pytest.mark.parametrize("market", ["PH", "SG"])
-@pytest.mark.parametrize("title", ["Rechargeable desk light", "power bank"])
+@pytest.mark.parametrize("title", ["Rechargeable desk light", "power bank", "充電ケース", "charging case", "完全ワイヤレス", "ワイヤレスイヤホン", "ワイヤレスヘッドホン"])
 def test_battery_and_existing_safety_cannot_reach_mapper(market, title, tmp_path):
     result = evaluate([candidate(product_title=title)], [inventory((), marketplace=market,
                        shop_label=market, source_file=market + ".csv", data_row_count=0)], marketplace=market)

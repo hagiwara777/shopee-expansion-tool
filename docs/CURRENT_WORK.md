@@ -14,6 +14,12 @@ SG Minimum Beta完成判定（Roadmap Step 8）は正式採用済みでCLOSED。
 半自動完成線はDEC-0111 / DEC-0112、Step 8終了はDEC-0113を参照する。
 Step 8受入時点では新規Beta MUST実装の残作業はなかった。後から確認したSG本体商品の停止漏れは
 下記DEC-0129の独立した事故防止対応として扱い、Step 8の受入履歴を書き換えない。
+Shared Battery v0.2はv0.1の11語に限定5表現を加えた16語でPH／SGの疑義をREVIEWへ止める（DEC-0133）。
+商品文章の既存搬送・Guardrail・Gate・準備出力の再評価を共用し、BLOCKを降格させない。
+検出はBattery搭載確定ではなく、未検出・Product Text欠落をBattery不存在の根拠にしない。
+過去のPH／SG正式受入を無効化せず、稼働release更新は別承認とする。
+次の独立工程は、必要なら承認済み固定releaseへの反映と少量実利用で増えたREVIEWの妥当性・手間を確認すること。
+追加APIやBattery自動確定、無条件の人間解除へ自動拡張しない。
 
 次の開発目標は現状PH Betaを固定基準とするSG機能統一である（DEC-0116）。
 共通moduleを改善し、市場別の判断材料とadapterを分離する。
@@ -142,6 +148,7 @@ SG Brand responseにmarketplace / Category echoがないため、server内部の
 
 ## Required Decisions
 
+- DEC-0133 — Shared Battery v0.2の限定5表現、既存11語維持、汎用語非追加、REVIEWとSLSの責務分離。
 - DEC-0132 — Expansion→Gateのsession内一式引継ぎ、既存検証共用、確認保持と失効、手動経路の維持。
 - DEC-0131 — Shadow V3の任意の読取専用比較、商品Fact結合、不一致時の比較不能と既存Safety保護。
 - DEC-0130 — SG本体確認記録のCandidate結合、既存Gate EXCLUDEと準備出力への最小接続。

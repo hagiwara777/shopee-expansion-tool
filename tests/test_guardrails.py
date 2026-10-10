@@ -1,4 +1,5 @@
 import csv
+import shutil
 from io import StringIO
 from pathlib import Path
 
@@ -32,7 +33,7 @@ RISK_CSV = """term,action,risk_category,match_field,match_type,source_type,note,
 ignored,BLOCK,other,title,contains,internal_rule,Disabled keyword,FALSE
 """
 
-SLS_SHARED_BATTERY_TERMS = (
+SLS_SHARED_BATTERY_V01_TERMS = (
     "battery",
     "batteries",
     "バッテリー",
@@ -45,6 +46,14 @@ SLS_SHARED_BATTERY_TERMS = (
     "power case",
     "powercase",
 )
+SLS_SHARED_BATTERY_V02_ADDITIONS = (
+    "充電ケース",
+    "charging case",
+    "完全ワイヤレス",
+    "ワイヤレスイヤホン",
+    "ワイヤレスヘッドホン",
+)
+SLS_SHARED_BATTERY_TERMS = SLS_SHARED_BATTERY_V01_TERMS + SLS_SHARED_BATTERY_V02_ADDITIONS
 SLS_SHARED_BATTERY_COLUMNS = (
     "term",
     "action",
@@ -142,12 +151,12 @@ def candidate(brand="", title="Sample product", category="Beauty", asin="B000000
     }
 
 
-def test_sls_shared_battery_asset_has_exact_v01_contract():
+def test_sls_shared_battery_asset_has_exact_v02_contract_preserving_v01():
     rules = guardrails_module.load_sls_shared_battery_rules()
 
     assert tuple(rule.term for rule in rules) == SLS_SHARED_BATTERY_TERMS
     assert [rule.note.split(":", 1)[0] for rule in rules] == [
-        f"SLS-BAT-{index:03d}" for index in range(1, 12)
+        f"SLS-BAT-{index:03d}" for index in range(1, 17)
     ]
     assert all(rule.action == "REVIEW" for rule in rules)
     assert all(rule.risk_category == "shipping_restricted" for rule in rules)
@@ -195,11 +204,16 @@ def test_sls_shared_battery_searches_approved_product_text_fields(marketplace):
 
 
 @pytest.mark.parametrize("marketplace", ["PH", "SG"])
-def test_generic_electronics_terms_do_not_trigger_sls_shared_battery_review(marketplace):
+@pytest.mark.parametrize("title", [
+    "Bluetooth speaker headphones wireless mouse smartwatch",
+    "Bluetooth", "wireless", "ワイヤレス", "充電", "speaker", "headphone",
+    "charging casesensitive", "precharging case", "chargingcase",
+])
+def test_generic_electronics_terms_do_not_trigger_sls_shared_battery_review(marketplace, title):
     guarded = apply_guardrails(
         [
             candidate(
-                title="Bluetooth speaker headphones wireless mouse smartwatch",
+                title=title,
                 category="Consumer Electronics",
             )
         ],
@@ -208,6 +222,41 @@ def test_generic_electronics_terms_do_not_trigger_sls_shared_battery_review(mark
 
     assert guarded["guardrail_status"] == "SAFE"
     assert "SLS Shared Battery signal matched" not in guarded["guardrail_note"]
+
+
+@pytest.mark.parametrize("marketplace", ["PH", "SG"])
+@pytest.mark.parametrize("term", SLS_SHARED_BATTERY_V02_ADDITIONS)
+@pytest.mark.parametrize("field", ["description", "features", "shortDescription", "safetyWarning", "itemHighlights"])
+def test_v02_battery_terms_in_saved_product_text_require_review(marketplace, term, field):
+    row = candidate(title="Ordinary accessory", category="Consumer Electronics")
+    row[field] = (f"Includes {term}",)
+    guarded = apply_guardrails([row], marketplace=marketplace)[0]
+    assert guarded["guardrail_status"] == "REVIEW"
+    assert term in guarded["guardrail_matched_terms"].split("|")
+
+
+@pytest.mark.parametrize("marketplace", ["PH", "SG"])
+def test_charging_case_uses_existing_normalization(marketplace):
+    guarded = apply_guardrails([candidate(title="ＣＨＡＲＧＩＮＧ　ＣＡＳＥ included")], marketplace=marketplace)[0]
+    assert guarded["guardrail_status"] == "REVIEW"
+    assert "charging case" in guarded["guardrail_matched_terms"].split("|")
+
+
+@pytest.mark.parametrize("marketplace", ["PH", "SG"])
+@pytest.mark.parametrize("term", SLS_SHARED_BATTERY_V02_ADDITIONS)
+def test_new_battery_signal_keeps_existing_community_block(marketplace, term):
+    guarded = apply_guardrails([candidate(brand="LEGO", title=term)], marketplace=marketplace)[0]
+    assert guarded["guardrail_status"] == "BLOCK"
+    assert {"community_ng", "shopee_brand_list"}.intersection(guarded["guardrail_source"].split("|"))
+    assert "shipping_restricted" in guarded["guardrail_risk_category"].split("|")
+
+
+@pytest.mark.parametrize("term", SLS_SHARED_BATTERY_V02_ADDITIONS)
+def test_new_battery_signal_keeps_ph_power_bank_block(term):
+    guarded = apply_guardrails([candidate(title=f"Power bank {term}")], marketplace="PH")[0]
+    assert guarded["guardrail_status"] == "BLOCK"
+    assert "PH-D073" in guarded["guardrail_note"]
+    assert term in guarded["guardrail_matched_terms"].split("|")
 
 
 def test_ph_existing_power_bank_block_wins_over_shared_battery_review():
@@ -281,12 +330,14 @@ def test_shared_battery_review_never_downgrades_own_penalty_block():
     assert "shopee_policy" in row["guardrail_source"].split("|")
 
 
-def test_missing_sls_shared_battery_asset_fails_closed(tmp_path):
-    dictionary_dir = write_dictionaries(tmp_path)
+@pytest.mark.parametrize("marketplace", ["PH", "SG"])
+def test_missing_sls_shared_battery_asset_fails_closed(tmp_path, marketplace):
+    dictionary_dir = tmp_path / "guardrails"
+    shutil.copytree(SLS_SHARED_BATTERY_PATH.parents[1], dictionary_dir)
     (dictionary_dir / "sls_shared" / "battery_review_rules.csv").unlink()
 
     with pytest.raises(GuardrailDictionaryError, match="SLS shared battery ruleset"):
-        apply_guardrails([candidate()], dictionary_dir, marketplace="SG")
+        apply_guardrails([candidate()], dictionary_dir, marketplace=marketplace)
 
 
 @pytest.mark.parametrize(
@@ -327,18 +378,21 @@ def test_missing_sls_shared_battery_asset_fails_closed(tmp_path):
         ),
     ],
 )
+@pytest.mark.parametrize("marketplace", ["PH", "SG"])
 def test_malformed_sls_shared_battery_asset_fails_closed(
     tmp_path,
     csv_text,
     error_match,
+    marketplace,
 ):
-    dictionary_dir = write_dictionaries(tmp_path)
+    dictionary_dir = tmp_path / "guardrails"
+    shutil.copytree(SLS_SHARED_BATTERY_PATH.parents[1], dictionary_dir)
     (
         dictionary_dir / "sls_shared" / "battery_review_rules.csv"
     ).write_text(csv_text, encoding="utf-8")
 
     with pytest.raises(GuardrailDictionaryError, match=error_match):
-        apply_guardrails([candidate()], dictionary_dir, marketplace="SG")
+        apply_guardrails([candidate()], dictionary_dir, marketplace=marketplace)
 
 
 @pytest.mark.parametrize("brand", ["Biore", "biore", "Ｂｉｏｒｅ"])
