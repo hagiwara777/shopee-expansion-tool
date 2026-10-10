@@ -1603,3 +1603,15 @@
 - 保護・非対象: DEC-0019／0021、固定15列・sidecar／CSV／TXT契約、既存Guardrail／BLOCK／REVIEW／EXCLUDE、PH画像Safety、DEC-0129／0130のSG除外、DEC-0131の読取専用Shadowを維持する。Resolver内部引継ぎ、Gate→Mapper、Shadow Fact自動取得、新規DB、汎用Workflow／Fact基盤、分類改善、追加API、実商品、deploy、稼働release更新を含めない。別worktreeの未commit Shadow／Keepa成果を混合しない。
 - 制約と次工程: packet・一時確認はsession内だけで再起動後に自動復元しない。Fact未取得をSAFEへ補完せず、外部既出品資料の真正性は利用者が確認する。次は別scopeで少量実商品の搬送省力化・比較表示の利用価値を確認し、追加API／DBや分類ルール増加へ自動移行しない。
 - rollback: 内部入力を使わず手動経路へ戻せる。今回の接続・確認保持・tests・利用文書を通常revertでき、DB・保存済み確認・消費記録は削除しない。
+
+
+## DEC-0133 — Shared Battery v0.2を限定5表現だけで補強する
+
+- 日付: 2026-10-10
+- authority / 目的: OwnerはSG保存済み150商品のGate確認でBattery疑義の未検出を確認し、共有辞書と関連回帰の最小改善を指示した。旧SG手動出品確認とは独立したSafety改善とし、追加API・runtime更新・DB変更・実出品を含めない。formal main採用はtechnical gates、現在対象のOwner Acceptance Summaryと明示的最終承認を経る。
+- 決定: DEC-0075のv0.1の11語とSLS-BAT-001〜011を維持し、v0.2として充電ケース／charging case／完全ワイヤレス／ワイヤレスイヤホン／ワイヤレスヘッドホンだけをSLS-BAT-012〜016へ追加する。REVIEW、shipping_restricted、all、contains、shopee_policy、enabled TRUEの既存契約、既存正規化・一致条件を共用する。既存Decisionは書き換えない。
+- 意味と境界: 追加語はBattery搭載の確定ではなく、人間がSLS Battery要件を確認するための停止信号である。Bluetooth／wireless／ワイヤレス／充電／speaker／headphone等の単独・汎用語は追加しない。汎用語だけの未検出やProduct Text不足をBattery不存在の証明にしない。付属品・充電ケース用保護用品等でREVIEWが増える可能性は残り、無条件の人間確認解除は導入しない。
+- 既存経路と保護: Product Text sidecarのCandidate SHA・ASIN対応検証とGuardrail搬送、BLOCK > REVIEW > SAFEの優先順位、Gate REVIEW停止、Mapperの現在Safety再評価をそのまま使う。後段の国別SLS Category判定はCategory条件の別責務であり、CATEGORY_ALLOWやCategory／Brand採用によってBattery REVIEWを解除しない。PH市場別BLOCK、Community NG、own penalty、PH画像Safety、DEC-0129／0130のSG本体EXCLUDE、読取専用Shadowを維持する。
+- 検証境界: SHARED_COREとしてPH／SG双方のProtected Capability Gate、全offline tests、Governanceとmandatory CIを適用する。保存済みCandidate・Product Text・既存Gate audit／eligibleの対応を確認し、正式matcherによるBefore／After比較と代表商品を確認する。元Gateの全ショップ既出品資料・本体確認を再現できない場合はGuardrail単体比較と記録し、Gate全体を再実行済みにしない。合成のGate・準備CSV／TXT停止回帰と実商品Evidence比較を区別する。
+- 非対象・受入履歴: Candidate固定15列、sidecar schema、Expansion／Resolver、Mapper分類、SLS Category Matrix、UI、DB、API取得処理を変更しない。Battery搭載自動確定、AI Safety、汎用Safety再設計へ拡張しない。既存PH／SG Betaの正式受入・旧Taskのscopeは維持し、この改善のコード採用を稼働releaseへの反映と同一視しない。必要な実利用・release更新は別承認で判断する。
+- rollback: 辞書5行と関連tests・利用文書を通常revertできる。旧版へ戻すと今回の未検出リスクも戻る。DB・保存確認・API消費記録を変更せず、force push・dirty resetを使用しない。

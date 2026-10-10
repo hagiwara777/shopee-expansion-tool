@@ -10,3 +10,8 @@ powerbank,REVIEW,shipping_restricted,all,contains,shopee_policy,SLS-BAT-008: SLS
 モバイルバッテリー,REVIEW,shipping_restricted,all,contains,shopee_policy,SLS-BAT-009: SLS battery requirements require manual verification before listing preparation,TRUE
 power case,REVIEW,shipping_restricted,all,contains,shopee_policy,SLS-BAT-010: SLS battery requirements require manual verification before listing preparation,TRUE
 powercase,REVIEW,shipping_restricted,all,contains,shopee_policy,SLS-BAT-011: SLS battery requirements require manual verification before listing preparation,TRUE
+充電ケース,REVIEW,shipping_restricted,all,contains,shopee_policy,SLS-BAT-012: SLS battery requirements require manual verification before listing preparation,TRUE
+charging case,REVIEW,shipping_restricted,all,contains,shopee_policy,SLS-BAT-013: SLS battery requirements require manual verification before listing preparation,TRUE
+完全ワイヤレス,REVIEW,shipping_restricted,all,contains,shopee_policy,SLS-BAT-014: SLS battery requirements require manual verification before listing preparation,TRUE
+ワイヤレスイヤホン,REVIEW,shipping_restricted,all,contains,shopee_policy,SLS-BAT-015: SLS battery requirements require manual verification before listing preparation,TRUE
+ワイヤレスヘッドホン,REVIEW,shipping_restricted,all,contains,shopee_policy,SLS-BAT-016: SLS battery requirements require manual verification before listing preparation,TRUE

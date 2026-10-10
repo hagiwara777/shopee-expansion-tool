@@ -101,6 +101,23 @@ def test_beta_does_not_release_existing_stops(activation, ready, stop):
         assert build_sg_beta_preparation_files((item,), workflow=workflow)[2] == 0
 
 
+@pytest.mark.parametrize('term', ['充電ケース', 'charging case', '完全ワイヤレス', 'ワイヤレスイヤホン', 'ワイヤレスヘッドホン'])
+def test_beta_rechecks_new_battery_signals_despite_old_gate_and_category_allow(activation, ready, term):
+    from modules.category_mapper_sg_preparation import assess_sg_preparation
+    workflow, item = ready
+    assert item.input_safety_state == 'GATE_ELIGIBLE'
+    assert item.sls_result.action == 'CATEGORY_ALLOW'
+    supply(workflow.product_review, item, f'Includes {term}')
+    assessment = assess_sg_preparation((item,), workflow=workflow)[0]
+    assert workflow.product_review.current(item).guardrail_status == 'REVIEW'
+    assert '商品Safetyの未解決事項' in assessment['missing_steps']
+    assert not assessment['preparation_complete']
+    data, text, count = build_sg_beta_preparation_files((item,), workflow=workflow)
+    assert count == 0
+    assert not list(csv.DictReader(StringIO(data.decode('utf-8-sig'))))
+    assert item.candidate_asin not in text
+
+
 def test_activation_change_during_build_closes_output(activation, ready, monkeypatch):
     workflow, item = ready
     path, state = activation
