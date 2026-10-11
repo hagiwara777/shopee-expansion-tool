@@ -1,6 +1,8 @@
 # SGベータの利用環境
 
 普段のPH / SG切替には[統一ベータ](BETA_APPLICATION.md)を使う。以下はSG専用保存設定と旧入口の契約。
+[通常継続利用](SG_CONTINUOUS_OPERATION.md)はschema_version=2／mode=continuousの有限Policy契約。
+以下のschema_version=1・固定ASIN／初期SHAは旧限定検証だけに適用し、新方式へ重ねて要求しない。
 旧入口は専用の `SG Beta` ショートカットから起動する。PHの起動先・DBと分離し、
 画面は `http://127.0.0.1:8502` を使用する。PHの8501は変更しない。
 正式採用されたコードをcommit単位で固定し、変更中の作業用コードでは起動しない。

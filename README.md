@@ -2,6 +2,9 @@
 
 PH / SGの普段の入口は[統一ベータ](docs/BETA_APPLICATION.md)です。
 共通の「対象国」プルダウンで4工程を切り替え、既存PHの保存先とSG専用のデータ・API取得枠を保持します。
+SGの[通常継続利用](docs/SG_CONTINUOUS_OPERATION.md)では、有限承認枠内で新しい商品群を画面から繰り返し受付し、
+全ELIGIBLEから完成商品のみCSV／TXTへ出力します。保存Categoryは再確認候補とし、資料変更で古い確認を失効します。
+旧限定Grant・保存記録は保持し、稼働反映・新API枠・実商品受入は別承認です。
 Expansionの生成結果は「この候補を保安ゲートで使う」で内部引継ぎできます。
 候補・関連Safety資料の再アップロードは不要ですが、全ショップ分の既出品CSVと従来のSafety確認は必要です。
 外部CSVの手動経路は残します。[操作・失効条件](docs/EXPANSION_GATE_HANDOFF.md)を参照してください。

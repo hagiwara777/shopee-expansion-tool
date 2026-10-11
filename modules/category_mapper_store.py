@@ -71,6 +71,30 @@ class CategoryMapperStore:
             "using_cache": bool(category_count),
         }
 
+    @classmethod
+    def open_existing_sg(cls, db_path):
+        """Reopen an explicitly initialized SG store without repairing schema."""
+        path = Path(db_path).resolve()
+        if not path.is_file() or path == default_category_mapper_db_path().resolve():
+            raise ValueError('Existing dedicated SG database required.')
+        from contextlib import closing
+        with closing(sqlite3.connect(path.as_uri() + '?mode=ro', uri=True)) as connection:
+            if connection.execute('PRAGMA integrity_check').fetchone()[0] != 'ok':
+                raise ValueError('SG database integrity failed.')
+            tables = {row[0] for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            if not {'catalog_categories', 'catalog_attributes', 'catalog_brands', 'attribute_sync_state',
+                    'category_mappings', 'brand_aliases', 'listing_brand_policies', 'listing_profiles',
+                    'category_sync_state', 'brand_sync_state', 'product_no_brand_confirmations'} <= tables:
+                raise ValueError('Initialized SG catalog schema required.')
+            required = {'marketplace', 'candidate_asin', 'confirmed_category_id', 'no_brand_id',
+                        'no_brand_name', 'source_brand', 'product_evidence_digest', 'user_confirmed', 'last_verified_at'}
+            columns = {row[1] for row in connection.execute('PRAGMA table_info(product_no_brand_confirmations)')}
+            if columns != required:
+                raise ValueError('Initialized SG confirmation schema required.')
+        store = cls.__new__(cls)
+        store.db_path, store._explicit_db_path, store._sg_brand_acceptance_enabled = path, True, True
+        return store
+
     def save_categories(
         self,
         marketplace: str,

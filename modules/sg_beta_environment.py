@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import sqlite3
 
 from modules.sg_live_runtime import SGLiveRunGrant
 from modules.product_review_transport import SGProductEvidenceLoader
@@ -24,13 +25,16 @@ def _git(*args):
 
 
 def preflight(config_path):
-    """Require the pinned, clean formal release and exact initial input bundle.
+    """Require a clean formal release and its explicit deployment contract.
 
     This validates settings only. The grant still needs genuine owner approval;
     neither this file nor a successful preflight establishes that approval.
+    Schema 1 pins the initial bundle; schema 2 validates each bundle in the UI.
     """
     try:
         config = json.loads(Path(config_path).read_text(encoding='utf-8-sig'))
+        if config.get('schema_version') == 2:
+            return _continuous_preflight(config)
         keys = {'schema_version', 'marketplace', 'release_commit', 'repository_path',
                 'python_path', 'grant_path', 'api_env_path', 'google_credentials_path',
                 'data_root', 'inputs_dir', 'input_sha256', 'gate_filename', 'port'}
@@ -74,8 +78,34 @@ def preflight(config_path):
         # Category/Brand/Safety approval is imported from an earlier DB.
         del loader
         return config
-    except (OSError, ValueError, KeyError, TypeError, RuntimeError, ArithmeticError, subprocess.SubprocessError):
+    except (OSError, ValueError, KeyError, TypeError, RuntimeError, ArithmeticError, sqlite3.Error, subprocess.SubprocessError):
         raise SGBetaEnvironmentError('SG beta settings, adopted code or input files need confirmation.') from None
+
+
+def _continuous_preflight(config):
+    from modules.sg_continuous_runtime import SGContinuousPolicy, validate_installation
+    keys = {'schema_version', 'mode', 'marketplace', 'release_commit', 'repository_path',
+            'python_path', 'policy_path', 'api_env_path', 'google_credentials_path', 'data_root', 'port'}
+    if (set(config) != keys or type(config['schema_version']) is not int
+            or config['mode'] != 'continuous' or config['marketplace'] != 'SG'
+            or type(config['port']) is not int or config['port'] != 8502
+            or not re.fullmatch(r'[a-f0-9]{40}', config['release_commit'])):
+        raise ValueError
+    paths = {key: Path(config[key]) for key in ('repository_path', 'python_path', 'policy_path',
+             'api_env_path', 'google_credentials_path', 'data_root')}
+    if (any(not p.is_absolute() for p in paths.values()) or paths['repository_path'].resolve() != ROOT.resolve()
+            or any(not paths[key].is_file() for key in ('python_path', 'policy_path', 'api_env_path', 'google_credentials_path'))
+            or _git('rev-parse', 'HEAD') != config['release_commit']
+            or _git('status', '--porcelain', '--untracked-files=no')):
+        raise ValueError
+    _git('merge-base', '--is-ancestor', config['release_commit'], 'refs/remotes/origin/main')
+    require_sg_beta_operation()
+    data = paths['data_root'].resolve()
+    if data == ROOT.resolve() or ROOT.resolve() in data.parents:
+        raise ValueError
+    policy = SGContinuousPolicy.from_file(paths['policy_path'])
+    validate_installation(policy, data / 'continuous')
+    return config
 
 
 def main():

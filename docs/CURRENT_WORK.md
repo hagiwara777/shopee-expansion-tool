@@ -6,6 +6,16 @@
 
 ## 現在の正式状態と次の独立工程
 
+SG通常継続利用はDEC-0134の有限Policy＋画面商品群受付を使う。
+同じ統一アプリで全SG ELIGIBLEを読み、今回のCategory／Brand／必要Safety確認を満たした商品だけCSV／TXTへ出す。
+新商品群・資料変更では過去確認とcheckboxを失効し、保存Categoryは再確認候補として使用する。
+商品群ごとのCodex設定・新Grant・新DBは不要。旧限定方式と旧DB／ledger／claimは保持する。
+通常継続API枠は送信前に永続計上し、Keepaも自動retryなしの有限送信枠で保護する。
+[操作・設定・制約](SG_CONTINUOUS_OPERATION.md)を参照する。
+次の単一作業は、固定release反映・新しい有限API枠／保存先・少量2商品群の実務受入計画を具体化して別承認を得ること。
+コード採用を8503反映・実API・実商品受入へ読み替えず、MY／THへ自動拡張しない。
+以下の旧少量・offline成果は適用modeと受入履歴を区別して参照する。
+
 正本化連鎖防止ルールを採用済み（DEC-0114）。Git管理文書の現在状態をmerge後にも正しい形で
 同一PRへ含め、post-merge確認成功後はTask ContextをCLOSEDにして終了する。
 詳細手順はRUNBOOK「Post-Merge Stability」を適用する。
@@ -18,12 +28,12 @@ Shared Battery v0.2はv0.1の11語に限定5表現を加えた16語でPH／SGの
 商品文章の既存搬送・Guardrail・Gate・準備出力の再評価を共用し、BLOCKを降格させない。
 検出はBattery搭載確定ではなく、未検出・Product Text欠落をBattery不存在の根拠にしない。
 過去のPH／SG正式受入を無効化せず、稼働release更新は別承認とする。
-次の独立工程は、必要なら承認済み固定releaseへの反映と少量実利用で増えたREVIEWの妥当性・手間を確認すること。
+Batteryの既知の後続確認は、少量実利用で増えたREVIEWの妥当性・手間の評価。
 追加APIやBattery自動確定、無条件の人間解除へ自動拡張しない。
 
-次の開発目標は現状PH Betaを固定基準とするSG機能統一である（DEC-0116）。
+SG機能統一の固定基準は現状PH Betaである（DEC-0116 / DEC-0134）。
 共通moduleを改善し、市場別の判断材料とadapterを分離する。
-SG実運用（Roadmap Step 9）は専用の少量ベータ環境を対象とする（DEC-0127）。
+旧限定modeのSG実運用（Roadmap Step 9）は専用の少量ベータ環境を対象とする（DEC-0127）。
 SG ACTIVE化とPH形式の手動準備出力を採用し、固定release・専用保存先・承認枠で起動する。
 端末の設置・最新API利用枠・実行確認はrepo外Task Context / Git外Evidenceを参照する。
 PH / SGは[統一ベータ入口](BETA_APPLICATION.md)で対象国を切り替え、同じ4工程を使う（DEC-0128）。
@@ -40,18 +50,21 @@ SGの準備CSV／TXT出力でも、古いELIGIBLE入力と商品文章変更に�
 Shadow V3は通常Gate判定後の任意の読取専用比較に限る（DEC-0131）。
 一致する保存Factを現在のCandidate・市場・商品文章へ照合して分類候補と根拠を表示し、
 Safety処分・SG本体確認・出力CSVは変更しない。[接続条件と制約](SAFETY_SHADOW_COMPARISON.md)を参照する。
-次の独立工程は比較表示の実用性と比較不能事例の評価。Keepa保存・搬送改善やSafety処分変更へ自動移行しない。
+Shadowの既知の後続確認は比較表示の実用性と比較不能事例の評価。Keepa保存・搬送改善やSafety処分変更へ自動移行しない。
 統一ベータのExpansion→Gateは、既存4資料をsession内で一式引継ぎする（DEC-0132）。
 全ショップ分の既出品CSV、PH画像Safety、SG本体確認と既存判定・出力を維持し、外部CSVの手動入力も残す。
 同一Candidate・商品Factの確認は既存validatorで照合し、入力元・filenameだけでSG本体EXCLUDEを解除しない。
 操作・失効・制約は[内部引継ぎ](EXPANSION_GATE_HANDOFF.md)を参照する。
-入力簡素化の次の独立工程は、少量実商品で搬送省力化の利用価値を確認すること。
+入力簡素化の既知の後続確認は、少量実商品で搬送省力化の利用価値を評価すること。
 稼働環境更新・実商品・API利用は別の明示承認を要し、Resolver／Mapper内部接続へ自動拡張しない。
 未採用のShadow／Keepa／分類接続成果を、この方針の採用によって正式成果へ昇格しない。
 MY / THの市場runtime開始はSGの利用確認後に別scopeで判断する。
 完成基準と順序は[PH Beta市場展開](PH_BETA_MARKET_PARITY.md)を参照する。
 
 ## 成立済み成果と保護境界
+
+以下の旧隔離／offline入口と少量Grantの契約は、その方式の履歴・保護境界として保持する。
+通常継続modeの確認再利用・受付・出力にはDEC-0134を適用し、旧方式の制限を重ねない。
 
 - 通常PH画面内のPH / SG Category Mapperは共通の市場選択入口と確認手順を使用する（DEC-0115）。
   Category検索・採用の表記を揃え、PHのグループ確認とSGの商品単位確認を維持する。
@@ -147,6 +160,8 @@ Source明示ON時のsilent fallbackを許さない。Bridge全面書込み障害
 SG Brand responseにmarketplace / Category echoがないため、server内部の別Category誤応答の独立検出は保証しない。
 
 ## Required Decisions
+
+- DEC-0134 — SG通常継続利用の有限承認、商品群受付・失効、既存保護、新旧方式と実務受入・rollback。
 
 - DEC-0133 — Shared Battery v0.2の限定5表現、既存11語維持、汎用語非追加、REVIEWとSLSの責務分離。
 - DEC-0132 — Expansion→Gateのsession内一式引継ぎ、既存検証共用、確認保持と失効、手動経路の維持。

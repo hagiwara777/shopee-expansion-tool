@@ -35,6 +35,7 @@ def create_amazon_data_client(
     keepa_api: Any | None = None,
     keepa_cache: Any | None = None,
     canopy_transport: Any | None = None,
+    request_budget: Any | None = None,
 ) -> Any:
     """Create only the explicitly configured provider client."""
 
@@ -54,7 +55,12 @@ def create_amazon_data_client(
             kwargs["api"] = keepa_api
         if keepa_cache is not None:
             kwargs["cache"] = keepa_cache
+        if request_budget is not None:
+            kwargs['request_budget'] = request_budget
         return KeepaExpansionClient(**kwargs)
+
+    if request_budget is not None:
+        raise AmazonDataProviderConfigurationError('Continuous budget currently supports Keepa only.')
 
     if not settings.canopy_api_key and canopy_transport is None:
         raise AmazonDataProviderConfigurationError(

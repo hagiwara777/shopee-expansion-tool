@@ -96,6 +96,9 @@ def render_sg_category_mapper(
     source_content = source_file.getvalue() if source_file is not None else None
     resolver_content = resolver_file.getvalue() if resolver_file is not None else None
     fingerprint = _input_fingerprint(source_content, resolver_content, store)
+    if (brand_workflow is not None and brand_workflow.continuous
+            and st.session_state.get(_SG_FINGERPRINT_KEY) not in {None, fingerprint}):
+        clear_sg_batch_controls(st.session_state)
     if brand_workflow is not None:
         brand_workflow.bind_input(fingerprint)
         _render_sg_evidence_import(brand_workflow, source_content, source_file.name if source_file else "")
@@ -111,6 +114,8 @@ def render_sg_category_mapper(
     ):
         st.session_state.pop(_SG_AI_RESULT_KEY, None)
         try:
+            if brand_workflow is not None:
+                brand_workflow.require_catalog_current()
             build_sg_category_ai_catalog(store)
             source = parse_sg_category_mapper_input(
                 source_content or b"",
@@ -131,7 +136,11 @@ def render_sg_category_mapper(
                 source,
                 resolver_titles=resolver_titles,
                 store=store,
+                reuse_confirmations=not (brand_workflow is not None and brand_workflow.continuous),
             )
+            if brand_workflow is not None and brand_workflow.continuous:
+                for item in recommendations:
+                    brand_workflow._live_scope.require_product(item)
         except SGCategoryMapperError as exc:
             clear_sg_category_mapper_result(st.session_state)
             st.error(str(exc))
@@ -190,21 +199,35 @@ def clear_sg_category_mapper_result(state) -> None:
         state.pop(key, None)
 
 
+def clear_sg_batch_controls(state):
+    """Called before product widgets render; retain only the current uploads."""
+    retained = {'sg_category_mapper_source_csv', 'sg_category_mapper_resolver_csv',
+                'sg_category_mapper_catalog_csv'}
+    for key in list(state):
+        if key not in retained and key.startswith(('sg_category_mapper_', 'sg_category_group_', 'sg_weapon_review_')):
+            state.pop(key, None)
+
+
 def _render_sg_evidence_import(workflow, gate_content, gate_filename):
     with st.expander("安全判定・武器画像検査の入力資料（開発検証）"):
         st.caption("説明は既存の安全判定、画像情報は武器画像検査の対象判定に使います。商品内容の人間確認は要求しません。外部APIには問い合わせません。")
         candidate = st.file_uploader("商品候補の元CSV", type=["csv"], key="sg_review_candidate_csv")
         text = st.file_uploader("商品説明ファイル", type=["csv"], key="sg_review_text_csv")
         images = st.file_uploader("画像情報ファイル（未評価）", type=["json"], key="sg_review_image_json")
+        ingredient = (st.file_uploader('成分Safetyファイル', type=['csv'], key='sg_review_ingredient_csv')
+                      if workflow.continuous else None)
         body_file = st.file_uploader("SG本体確認記録（該当商品の付属品確認）", type=["json"], key="sg_review_body_json")
         body_content = body_file.getvalue() if body_file is not None else None
-        files = (candidate, text, images)
+        files = (candidate, text, images, ingredient) if workflow.continuous else (candidate, text, images)
         contents = tuple(file.getvalue() if file is not None else None for file in files)
         digest = hashlib.sha256()
         for content in (gate_content, *contents, body_content):
             digest.update(b"missing" if content is None else hashlib.sha256(content).digest())
         digest.update(gate_filename.encode("utf-8"))
-        workflow.bind_product_evidence_files(digest.hexdigest() if any(file is not None for file in files) else None)
+        evidence_fingerprint = digest.hexdigest() if any(file is not None for file in files) else None
+        if workflow.continuous and evidence_fingerprint != workflow._evidence_files_fingerprint:
+            clear_sg_batch_controls(st.session_state)
+        workflow.bind_product_evidence_files(evidence_fingerprint)
         if st.button("確認資料を読み込む", key="sg_review_load_files",
                      disabled=gate_content is None or any(file is None for file in files)):
             # Failed reload must discard both old evidence and its review first.
@@ -212,11 +235,14 @@ def _render_sg_evidence_import(workflow, gate_content, gate_filename):
             try:
                 loader = SGProductEvidenceLoader(candidate_content=contents[0], text_content=contents[1],
                                                  image_content=contents[2], gate_content=gate_content,
-                                                 gate_filename=gate_filename, body_confirmation_content=body_content)
+                                                 gate_filename=gate_filename, body_confirmation_content=body_content,
+                                                 ingredient_content=contents[3] if workflow.continuous else None)
                 workflow.install_product_evidence_loader(loader)
             except Exception:
                 st.error("確認資料を読み込めません。元CSVとの対応、説明・画像ファイル、SG入力を確認してください。")
             else:
+                if workflow.continuous:
+                    clear_sg_batch_controls(st.session_state)
                 st.success("入力資料を読み込みました。武器画像検査の対象判定へ進めます。")
 
 
@@ -320,6 +346,10 @@ def _render_products(
             else:
                 if brand_workflow is not None:
                     _render_sg_ai_candidate(index, recommendation, store=store)
+                if brand_workflow is not None and brand_workflow.continuous:
+                    saved = store.find_confirmed_category_mapping('SG', 'ASIN', recommendation.candidate_asin)
+                    if saved is not None:
+                        st.caption(f"以前のCategory候補: {saved['category_id']} / {saved['category_path']}。今回の商品情報で再確認してください。")
                 _render_manual_selection(index, recommendation, store)
             st.markdown("##### 3. Brand / No Brandを確認")
             if brand_workflow is not None:

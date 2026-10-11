@@ -18,7 +18,7 @@ class SGProductEvidenceLoader:
     """
 
     def __init__(self, *, candidate_content, text_content, image_content,
-                 gate_content, gate_filename, body_confirmation_content=None):
+                 gate_content, gate_filename, body_confirmation_content=None, ingredient_content=None):
         for content in (candidate_content, text_content, image_content, gate_content):
             if not isinstance(content, bytes) or not content or len(content) > 10 * 1024 * 1024:
                 raise ValueError("Evidence file size/type invalid")
@@ -38,6 +38,11 @@ class SGProductEvidenceLoader:
         original = {row.candidate_asin: row for row in candidates.rows}
         self._gate_rows = {row.candidate_asin: row for row in gate.rows}
         self._text = text.facts_by_asin
+        self._ingredients = None
+        if ingredient_content is not None:
+            from modules.ingredient_safety import parse_ingredient_safety_sidecar
+            self._ingredients = parse_ingredient_safety_sidecar(ingredient_content, filename='ingredient.csv',
+                candidate_content=candidate_content, candidates=candidates).facts_by_asin
         self._images = {row["fact"]["candidate_asin"]: deepcopy(row["fact"]) for row in images["rows"]}
         for row in gate.rows:
             candidate = original.get(row.candidate_asin)
@@ -75,3 +80,22 @@ class SGProductEvidenceLoader:
         if text != self._text.get(item.candidate_asin):
             raise ValueError("Current text does not match bound SG body confirmation")
         self(item)
+
+    def require_current_safety_clear(self):
+        """Continuous admission checks all related facts against current rules."""
+        from modules.guardrails import apply_guardrails
+        if self._ingredients is None:
+            raise ValueError('Bound Ingredient Safety sidecar required for continuous SG')
+        rows = []
+        for asin, row in self._gate_rows.items():
+            text, ingredients = self._text[asin], self._ingredients[asin]
+            if ingredients.provider != text.provider:
+                raise ValueError('Ingredient/text provider mismatch')
+            rows.append(dict(candidate_asin=asin, product_title=row.product_title,
+                brand=row.keepa_brand, category=row.keepa_category, ingredients=ingredients.ingredients,
+                activeIngredients=ingredients.active_ingredients, specialIngredients=ingredients.special_ingredients,
+                description=text.description, features=text.features, shortDescription=text.short_description,
+                safetyWarning=text.safety_warning, itemHighlights=text.item_highlights))
+        current = apply_guardrails(rows, marketplace='SG')
+        if len(current) != len(rows) or any(row['guardrail_status'] != 'SAFE' for row in current):
+            raise ValueError('Current SG Safety does not permit eligible preparation')
