@@ -5,7 +5,11 @@
 現状PH BetaをSG / MY / THの初期完成基準に固定する（DEC-0116）。
 SGをPH相当へ揃える過程で共通moduleを整え、その後MY / THへ国別情報を追加して展開する。
 詳細は[PH Beta市場展開](PH_BETA_MARKET_PARITY.md)を参照する。
-SGの手動出品準備出力・ベータ入口を専用の少量利用環境へ接続する（DEC-0126 / DEC-0127）。
+SGは[通常継続利用](SG_CONTINUOUS_OPERATION.md)で新商品群を同じ画面から反復処理する（DEC-0134）。
+有限Policyと商品群受付を分離し、全ELIGIBLEから完成商品だけ出力する。旧少量Grant受入は履歴として保持する。
+次は固定release反映・有限API枠／保存先と少量2商品群の実務受入を別承認で計画する。
+共通Keepaの送信上限は費用／token上限を意味せず、Research CSVの市場対応はBeta後改善へ残す。
+旧限定SGの手動出品準備出力・ベータ入口は専用の少量利用環境へ接続する（DEC-0126 / DEC-0127）。
 コード採用と端末設置・実API確認を区別し、[利用環境](SG_BETA_ENVIRONMENT.md)に従う。
 PH / SGの普段の入口は[統一アプリ](BETA_APPLICATION.md)とし、1つの対象国選択で既存4工程を使う（DEC-0128）。
 国別の保存先・認証・消費記録を保持し、MY / THの追加は後続市場runtime工程で行う。

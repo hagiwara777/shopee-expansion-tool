@@ -93,3 +93,70 @@ def test_beta_entry_forwards_persistent_root(activation,monkeypatch,tmp_path):
     monkeypatch.setattr(app_sg_beta,'render_sg_live_candidate',lambda *a,**k:calls.append(k))
     render_sg_beta(tmp_path/'grant.json',runtime_root=tmp_path/'data')
     assert calls[0]['runtime_root']==tmp_path/'data' and calls[0]['beta_output'] is True
+
+
+@pytest.fixture
+def continuous_profile(profile, tmp_path, monkeypatch):
+    from modules.sg_continuous_runtime import SGContinuousPolicy, initialize_continuous_operation
+    path, old, calls = profile
+    monkeypatch.setenv('LOCALAPPDATA', str(tmp_path/'appdata'))
+    policy = SGContinuousPolicy('offline-preflight', 22, 'synthetic-bridge', 2, 0, 50, 4, 3, '0',
+                                'Synthetic offline authorization only')
+    policy_path = tmp_path/'policy.json'
+    policy_path.write_text(json.dumps(asdict(policy)))
+    config = {key: old[key] for key in ('marketplace', 'release_commit', 'repository_path',
+              'python_path', 'api_env_path', 'google_credentials_path', 'data_root', 'port')}
+    config.update(schema_version=2, mode='continuous', policy_path=str(policy_path))
+    run = Path(config['data_root'])/'continuous'
+    initialize_continuous_operation(policy, run)
+    path.write_text(json.dumps(config))
+    return path, config, calls, run
+
+
+def test_continuous_preflight_has_no_fixed_input_contract(continuous_profile):
+    path, config, calls, run = continuous_profile
+    before = {p: p.read_bytes() for p in run.iterdir() if p.is_file()}
+    assert environment.preflight(path) == config
+    # The legacy input directory is irrelevant to normal admission in the UI.
+    for p in (path.parent/'inputs').iterdir():
+        p.write_bytes(b'different batch, to be validated at admission')
+    assert environment.preflight(path) == config
+    assert before == {p: p.read_bytes() for p in run.iterdir() if p.is_file()}
+    assert ('merge-base', '--is-ancestor', 'a'*40, 'refs/remotes/origin/main') in calls
+
+
+@pytest.mark.parametrize('change', ['dirty', 'not-formal', 'mode', 'market', 'ph-port', 'old-grant',
+                                  'policy', 'ledger', 'db-schema', 'db-corrupt', 'binding', 'missing-db'])
+def test_continuous_preflight_stops_without_repair(continuous_profile, monkeypatch, change):
+    import sqlite3
+    path, config, calls, run = continuous_profile
+    if change in {'dirty', 'not-formal'}:
+        def git(*args):
+            if change == 'not-formal' and args[0] == 'merge-base':
+                raise subprocess.CalledProcessError(1, 'git')
+            if args[0] == 'rev-parse': return 'a'*40
+            return ' M app.py' if change == 'dirty' else ''
+        monkeypatch.setattr(environment, '_git', git)
+    elif change == 'mode': config['mode'] = 'limited'
+    elif change == 'market': config['marketplace'] = 'PH'
+    elif change == 'ph-port': config['port'] = 8501
+    elif change == 'old-grant': config['grant_path'] = str(path.parent/'grant.json')
+    elif change == 'policy':
+        p = Path(config['policy_path']); data = json.loads(p.read_text())
+        data['keepa_request_limit'] += 1; p.write_text(json.dumps(data))
+    elif change == 'db-schema':
+        with sqlite3.connect(run/'validation.sqlite3') as db:
+            db.execute('DROP TABLE catalog_categories')
+    elif change == 'db-corrupt':
+        import gc
+        gc.collect()
+        (run/'validation.sqlite3').write_bytes(b'not a database')
+    elif change == 'missing-db':
+        import gc
+        gc.collect()  # Existing sqlite transaction contexts release on collection.
+        (run/'validation.sqlite3').unlink()
+    else: (run/('request-ledger.json' if change == 'ledger' else 'run-binding.json')).write_text('{}')
+    path.write_text(json.dumps(config))
+    before = {p: p.read_bytes() for p in run.iterdir() if p.is_file()}
+    with pytest.raises(environment.SGBetaEnvironmentError): environment.preflight(path)
+    assert before == {p: p.read_bytes() for p in run.iterdir() if p.is_file()}

@@ -217,9 +217,14 @@ class KeepaExpansionClient:
         domain: str = "JP",
         api: Any | None = None,
         cache: KeepaCache | None = None,
+        request_budget: Any | None = None,
     ):
         self.domain = domain
+        self._request_budget = request_budget
         self.api = api if api is not None else self._create_api(api_key)
+        if request_budget is not None:
+            from modules.keepa_bounded_transport import install_bounded_keepa_transport
+            self.api = install_bounded_keepa_transport(self.api, request_budget)
         self.cache = cache if cache is not None else KeepaCache()
 
     def find_related_products(
@@ -728,6 +733,8 @@ class KeepaExpansionClient:
 
     def _call_keepa(self, action: str, func: Any, *args: Any, **kwargs: Any) -> Any:
         try:
+            if self._request_budget is not None and 'wait' in kwargs:
+                kwargs['wait'] = False
             return func(*args, **kwargs)
         except Exception as exc:
             raise _to_keepa_client_error(action, exc) from exc

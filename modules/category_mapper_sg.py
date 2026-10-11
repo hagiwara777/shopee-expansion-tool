@@ -332,6 +332,7 @@ def build_sg_recommendations(
     *,
     resolver_titles: Mapping[str, str] | None,
     store: CategoryMapperStore,
+    reuse_confirmations: bool = True,
 ) -> tuple[SGMapperRecommendation, ...]:
     """Build SG rows and reuse only current-catalog-valid ASIN confirmations."""
 
@@ -359,7 +360,7 @@ def build_sg_recommendations(
         )
         if saved is not None:
             current = store.get_category(SG_MARKETPLACE, saved.get("category_id"))
-            if (
+            if reuse_confirmations and (
                 current is not None
                 and bool(current.get("is_leaf"))
                 and _text(current.get("category_path")) == _text(saved.get("category_path"))
@@ -509,6 +510,8 @@ class SGBrandSession:
             raise SGCategoryMapperError("SG Brand session binding is invalid.")
         self._binding = (marketplace, shop_id, str(uuid4()))
         self._current: dict[int, SGBrandCatalog] = {}
+        self.require_fresh_confirmation = False
+        self._product_confirmations = {}
 
     @property
     def marketplace(self) -> str:
@@ -520,6 +523,8 @@ class SGBrandSession:
 
     def invalidate(self, category_id: int) -> None:
         self._current.pop(category_id, None)
+        self._product_confirmations = {asin: saved for asin, saved in self._product_confirmations.items()
+                                       if saved[1] != category_id}
 
     def _check_binding(self, catalog: SGBrandCatalog, category_id: int) -> None:
         if (catalog.marketplace != self.marketplace or catalog.shop_id != self.shop_id
@@ -562,7 +567,8 @@ def sync_sg_brand_catalog_offline(
 
 def sync_sg_brand_catalog_live_validation(*, client, session, store, confirmed_category_id, scope):
     from modules.sg_live_validation import SGLiveValidationScope
-    if not isinstance(scope, SGLiveValidationScope):
+    from modules.sg_continuous_runtime import SGContinuousScope
+    if not isinstance(scope, (SGLiveValidationScope, SGContinuousScope)):
         raise SGCategoryMapperError("Explicit limited SG live scope required")
     scope.require_client(client, store)
     return _sync_sg_brand_catalog(client=client, session=session, store=store,
@@ -677,6 +683,17 @@ def review_sg_brand(
     except (SGCategoryMapperError, ValueError):
         return _sg_brand_review(item, "Current SG Category/Brand session validation required.")
     options = {b[0]: (b[1], b[2]) for b in current.brands}
+    if session.require_fresh_confirmation:
+        saved = session._product_confirmations.get(item.candidate_asin)
+        if (saved is not None and saved[:3] == (sg_no_brand_evidence_digest(item), category_id, current.digest)
+                and item.brand_status in {'REAL_BRAND_CONFIRMED', 'NO_BRAND_CONFIRMED'}
+                and item.confirmed_brand_id == saved[3] and item.confirmed_brand_name == saved[4]
+                and options.get(saved[3]) == (saved[4], saved[5])):
+            return _sg_brand_confirmed(item, saved[3], saved[4], saved[5])
+        candidates = tuple((bid, name) for bid, (name, no_brand) in options.items()
+                           if not no_brand and normalize_brand(name) == normalize_brand(item.keepa_brand))
+        return _sg_brand_review(item, "Current product requires human Brand / No Brand confirmation.",
+                                current=True, candidates=candidates)
     saved = store.find_sg_no_brand_confirmation(item.candidate_asin, category_id)
     if saved is not None:
         option = options.get(saved["no_brand_id"])
@@ -738,6 +755,8 @@ def confirm_sg_brand(
         brand={"brand_id": option[0], "brand_name": option[1], "is_no_brand": option[2]},
         source_brand=item.keepa_brand, product_evidence_digest=sg_no_brand_evidence_digest(item),
         expected_brands=current.brands, expected_category_path=item.recommended_category_path)
+    session._product_confirmations[item.candidate_asin] = (
+        sg_no_brand_evidence_digest(item), category_id, current.digest, option[0], option[1], option[2])
     return _sg_brand_confirmed(item, option[0], option[1], option[2])
 
 

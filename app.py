@@ -823,6 +823,27 @@ def _render_prelisting_gate_input_tab(marketplace=None, *, enable_expansion_hand
                 st.info("Shadow比較不能：保存資料と現在の入力を確認してください。既存Gate結果は保持します。")
 
 
+def _continuous_amazon_budget(marketplace, config_path):
+    if marketplace != 'SG' or config_path is None:
+        return {}
+    from modules.sg_beta_environment import preflight
+    from modules.amazon_data_provider import AmazonDataProviderConfigurationError
+    try:
+        config = preflight(config_path)
+        if config.get('mode') != 'continuous':
+            return {}
+        from modules.sg_continuous_runtime import SGContinuousRuntime, SGContinuousPolicy
+        runtime = st.session_state.get('sg_live_runtime')
+        if (not isinstance(runtime, SGContinuousRuntime)
+                or runtime.grant.digest != SGContinuousPolicy.from_file(config['policy_path']).digest
+                or runtime.run_path != (Path(config['data_root']).resolve() / 'continuous')):
+            raise ValueError
+        runtime.ledger.require_current()
+        return {'request_budget': runtime.ledger}
+    except Exception:
+        raise AmazonDataProviderConfigurationError('SG通常利用の作業を開始し、永続取得枠を確認してください。') from None
+
+
 def render_application(marketplace=None, *, sg_config_path=None, enable_expansion_handoff=False):
     """Render the existing work tabs, optionally bound to one beta market."""
     beta_marketplace = marketplace
@@ -901,7 +922,7 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
 
             try:
                 source_asin = normalize_asin(asin_input)
-                client = create_amazon_data_client(amazon_settings)
+                client = create_amazon_data_client(amazon_settings, **_continuous_amazon_budget(beta_marketplace, sg_config_path))
 
                 if amazon_settings.amazon_data_provider == KEEPA_PROVIDER:
                     with st.spinner(
@@ -1483,7 +1504,7 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
                 if verify_clicked:
                     st.session_state["asin_resolver_rows"] = []
                     try:
-                        client = create_amazon_data_client(amazon_settings)
+                        client = create_amazon_data_client(amazon_settings, **_continuous_amazon_budget(beta_marketplace, sg_config_path))
                         with st.spinner("Amazon data providerでASINの実在確認をしています..."):
                             verified_rows = verify_selected_rows(
                                 selected_preview_rows,
@@ -1805,8 +1826,13 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
                 except SGBetaEnvironmentError:
                     st.error("SGの起動設定・取得枠・商品資料を確認してください。")
                 else:
-                    render_sg_beta(sg_config['grant_path'], api_env_path=sg_config['api_env_path'],
-                                   runtime_root=sg_config['data_root'])
+                    if sg_config.get('mode') == 'continuous':
+                        from app_sg_candidate import render_sg_continuous
+                        render_sg_continuous(sg_config['policy_path'], api_env_path=sg_config['api_env_path'],
+                                             runtime_root=sg_config['data_root'])
+                    else:
+                        render_sg_beta(sg_config['grant_path'], api_env_path=sg_config['api_env_path'],
+                                       runtime_root=sg_config['data_root'])
         else:
             render_category_mapper_tab(beta_marketplace)
 

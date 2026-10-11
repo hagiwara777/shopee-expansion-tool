@@ -1615,3 +1615,19 @@
 - 検証境界: SHARED_COREとしてPH／SG双方のProtected Capability Gate、全offline tests、Governanceとmandatory CIを適用する。保存済みCandidate・Product Text・既存Gate audit／eligibleの対応を確認し、正式matcherによるBefore／After比較と代表商品を確認する。元Gateの全ショップ既出品資料・本体確認を再現できない場合はGuardrail単体比較と記録し、Gate全体を再実行済みにしない。合成のGate・準備CSV／TXT停止回帰と実商品Evidence比較を区別する。
 - 非対象・受入履歴: Candidate固定15列、sidecar schema、Expansion／Resolver、Mapper分類、SLS Category Matrix、UI、DB、API取得処理を変更しない。Battery搭載自動確定、AI Safety、汎用Safety再設計へ拡張しない。既存PH／SG Betaの正式受入・旧Taskのscopeは維持し、この改善のコード採用を稼働releaseへの反映と同一視しない。必要な実利用・release更新は別承認で判断する。
 - rollback: 辞書5行と関連tests・利用文書を通常revertできる。旧版へ戻すと今回の未検出リスクも戻る。DB・保存確認・API消費記録を変更せず、force push・dirty resetを使用しない。
+
+
+## DEC-0134 — SG通常継続利用を有限Policyと商品群受付へ分離する
+
+- 日付: 2026-10-11
+- authority / 目的: Ownerは固定PH Beta相当で新商品群を繰り返し処理するSG実務利用を目的とし、過去の限定方式が妨げる範囲の仕様変更、local実装・offline検証・validated commit／push／Draft PR／CI／read-only reviewを承認した。実API／有料API、実商品、8503反映、秘密情報、破壊的移行、formal main mergeは別承認とする。前の独立設計レビューの一度だけの限定Grant案へ戻さない。
+- 採用仕様: 同じ統一アプリとSG Category／Brand／Safety／SLS／CSV／TXT部品を再利用する。通常利用はSG shop・Bridge・専用保存先・有限累積API枠・承認参照へ結合したSGContinuousPolicyを使用する。商品群のASIN・Candidate／成分Safety／商品文章／未評価画像／必要な本体確認の対応は画面受付時に検証する。Gate正式SG ELIGIBLE全行を受け、完成商品だけ既存形式へ出力する。新しい商品選択UI、別アプリ、巨大共通基盤は作らない。
+- 置換する範囲（旧限定方式B）: DEC-0116の隔離部品だけという実装境界、DEC-0118／0122／0124の最大3 ASIN・起動時固定商品・事前指定Brand Category・限定1 USD上限、DEC-0127の初期固定入力SHA・商品群ごとの新Grant／新DB、DEC-0128から継承したそれらの通常利用制限は、schema_version=2／mode=continuousでのみ置換する。新商品群ごとの設定編集・別承認を要さず、現在受け付けた商品群と人間採用leafから取得対象を結合する。新しく承認された有限枠内の利用を意味し、旧枠を継続承認へ流用しない。
+- 引き続き有効（重大事故防止A）: 固定した正式採用コード、SG ACTIVEとPH／SG accepted保護、shop／Bridge照合、現在catalogの人間Category採用、完全Brand取得と商品単位Brand／No Brand確認、No Brand自動fallback禁止、Gate／Guardrail／本体／Battery／SLS／必要な武器画像停止、Seller Center手動属性・発送条件確認、API送信前永続予約、失敗消費維持、再起動・並行利用・破損・欠落時停止、承認境界を維持する。認証系列は既存Sourceを使い、Mapper refreshや二重認証を追加しない。PH挙動と旧DB／Grant／ledger／claimを変更・移植・リセットしない。
+- 確認再利用: DEC-0079／0102／0103のASIN一致・現在ID／path／leaf再validationによる保存Category自動採用は通常継続modeで候補表示と今回の人間再確認へ置換する。新商品群・商品／資料変更・新runtimeでCategory／Brand・AI候補・属性・画像判断・出力・widget状態を失効する。現在runtimeの取得成功Categoryは同runtime内で利用できる。Brandは商品群ごとの完全取得と明示採用を必要とする。旧記録を削除せず、同一資料rerunは現在の確認を保持する。
+- 履歴のみ保持（C）: 旧DECの個別少量Grant・取得／消費・最大3件受入・6商品Category受入・Step 8正式受入は当時の事実として保持する。新しい継続実務受入、live精度、通常利用承認へ自動昇格しない。既存Decision本文を改変・削除しない。今回と無関係な後続改善条件（D）、MY／TH、Category精度改善、全面属性、自動出品、Resolver評価共通化は追加必須にしない。
+- API契約: Category総回数、Brand累積全ページと1取得最大50ページ、Attribute総回数、Keepa HTTP総送信、Owner別承認の有限OpenAI予約上限（0可、旧1 USD限定を通常modeへ適用しない）を有限にする。0枠を許す。通常起動でDB／ledger／claimを初期化せず、初回setupだけを明示操作にする。旧Grant用ledger形式と消費は維持する。Keepa 1.5の429 wait/retryが表示回数の境界を超えるため、共通SDK解析を保った送信前永続計上・redirectなし・自動retryなしのtransportを通常継続modeへ適用する。Keepa送信上限・推定tokenを金額／実token上限として表示しない。価格改定・契約請求の厳密保証は含めない。
+- 新旧利用境界: schema_version=1は旧限定検証のまま、2は通常継続Policy専用。不正設定・欠落・mode変更で自動fallbackしない。一つの通常承認につき専用DB・ledger・claimを一度だけ用意し、商品群ごとに増やさない。新しい実API／費用枠と初回保存先setup・稼働反映は別承認で数値と保存先を具体化する。開発成果の採用だけでは8503や旧枠を変更しない。
+- 実務受入条件: offlineで4件以上と150候補の全ELIGIBLE受付、A→Bの画面だけの反復、完成分のみCSV／TXT、同一ASIN情報変更と各確認・checkbox失効、API失敗／上限／再起動／並行実行／記録破損・保存失敗の停止、PH／旧Grant／Safety回帰を確認する。別承認後の少量2商品群でExpansion派生とResolver由来、最新既出品照合、Category／完全Brand／必要Safety／完成分出力を人間が確認する。全150商品の完走や全商品のSafety保証は初期受入条件にしない。
+- 残す制約: PH固定Research CSVは任意補助で、SGの通常タイトル入力・候補生成を妨げないためBeta後改善。共通検索アルゴリズムを複製しない。Gateの発行真正性を暗号署名で保証する基盤、ledgerの悪意ある巻戻し防止、Brand応答のCategory echo欠如、Bridge全面書込み障害時の旧token無効化は今回の追加完成条件にしない。機能の限界を利用文書へ明示する。
+- 停止・rollback: Safety／予算／catalog／Brand／資料／記録不成立では未確認で停止する。新Policyや旧Grantを削除・手編集して枠を復活させない。通常利用の停止、承認済み旧限定設定／入口への復帰、または後続変更を保持した通常revertで戻す。全DB・確認記録・Policy／Grant・ledger・claimを保持する。force push・dirty reset・破壊的移行を行わない。

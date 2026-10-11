@@ -60,7 +60,7 @@ class SGLiveRunGrant:
 
 
 class SGRunLedger:
-    def __init__(self, path, grant):
+    def __init__(self, path, grant, *, initialize=True):
         self.path, self.grant = Path(path), grant
         self._lock = RLock()
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -84,12 +84,17 @@ class SGRunLedger:
                 self.data = json.loads(self.path.read_text(encoding="utf-8"))
                 self._validate()
             else:
-                self.data = {"grant_digest": grant.digest, "catalog_requests": 0,
-                    "attribute_requests": 0, "brand_page_counts": {str(cid):0 for cid in grant.brand_category_ids},
-                    "openai": {"limit_usd": grant.openai_limit_usd, "reserved_upper_bound_usd":"0", "requests":0,"stopped":False}}
+                if not initialize:
+                    raise LiveValidationStopped("Existing SG request ledger is required")
+                self.data = self._initial_data()
                 self.persist()
         except Exception:
             self.close(); raise
+
+    def _initial_data(self):
+        return {"grant_digest": self.grant.digest, "catalog_requests": 0,
+            "attribute_requests": 0, "brand_page_counts": {str(cid):0 for cid in self.grant.brand_category_ids},
+            "openai": {"limit_usd": self.grant.openai_limit_usd, "reserved_upper_bound_usd":"0", "requests":0,"stopped":False}}
 
     def _validate(self):
         d = self.data

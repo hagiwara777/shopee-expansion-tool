@@ -23,8 +23,9 @@ class SGBrandWorkflow:
                  image_inspector=None, live_validation_scope=None) -> None:
         store._require_sg_brand_acceptance()
         from modules.sg_live_validation import SGLiveValidationScope
+        from modules.sg_continuous_runtime import SGContinuousScope
         if live_validation_scope is not None:
-            if not isinstance(live_validation_scope, SGLiveValidationScope):
+            if not isinstance(live_validation_scope, (SGLiveValidationScope, SGContinuousScope)):
                 raise ValueError("Explicit limited SG validation scope required")
             live_validation_scope.require_client(client, store)
         if client.marketplace != "SG" or client.uses_default_transport and live_validation_scope is None:
@@ -33,6 +34,8 @@ class SGBrandWorkflow:
         self.store = store
         self._client = client
         self.session = SGBrandSession(marketplace="SG", shop_id=client.credentials.shop_id)
+        self.continuous = isinstance(live_validation_scope, SGContinuousScope)
+        self.session.require_fresh_confirmation = self.continuous
         self._input_bound = False
         self._input_fingerprint: str | None = None
         self._acquired_categories: set[int] = set()
@@ -56,10 +59,16 @@ class SGBrandWorkflow:
             self._acquired_categories.clear()
             self._attributes.clear()
             self.product_review.clear()
+            if self.continuous:
+                self._live_scope.clear()
+                self._product_evidence_loader = None
         self._input_fingerprint = fingerprint
         self._input_bound = True
 
     def require_catalog_current(self):
+        if self.continuous:
+            self._client.ledger.require_current()
+            self._live_scope.require_current_safety()
         if getattr(self._client,"catalog_refresh_failed",False):
             raise ValueError("Successful current SG catalog acquisition required")
 
@@ -68,6 +77,8 @@ class SGBrandWorkflow:
         if self._live_scope is not None:
             self._live_scope.require_product(item)
         category_id = _require_sg_brand_product(item, self.store)
+        if self.continuous:
+            self._live_scope.authorize_category(item, self.store)
         self._acquired_categories.add(category_id)
         if self._live_scope is not None:
             from modules.category_mapper_sg import sync_sg_brand_catalog_live_validation
@@ -84,6 +95,8 @@ class SGBrandWorkflow:
             self._live_scope.require_product(item)
             self._live_scope.require_client(self._client, self.store)
         category_id = _require_sg_brand_product(item, self.store)
+        if self.continuous:
+            self._live_scope.authorize_category(item, self.store)
         self._attributes.pop(category_id, None)
         if (self._client.marketplace != "SG" or self._client.uses_default_transport and self._live_scope is None
                 or self._client.credentials.shop_id != self.session.shop_id):
@@ -116,6 +129,13 @@ class SGBrandWorkflow:
         if not self._evidence_files_bound or fingerprint != self._evidence_files_fingerprint:
             self.product_review.clear()
             self._product_evidence_loader = None
+            if self.continuous:
+                self._live_scope.clear()
+                self.session._product_confirmations.clear()
+                for category_id in tuple(self._acquired_categories):
+                    self.session.invalidate(category_id)
+                self._acquired_categories.clear()
+                self._attributes.clear()
         self._evidence_files_bound = True
         self._evidence_files_fingerprint = fingerprint
 
@@ -124,11 +144,20 @@ class SGBrandWorkflow:
         from modules.product_review_transport import SGProductEvidenceLoader
         if not self._evidence_files_bound or not isinstance(loader, SGProductEvidenceLoader):
             raise ValueError("Explicitly bound SG evidence files required")
+        if self.continuous:
+            self._live_scope.accept(loader)
         self._product_evidence_loader = loader
 
     def clear_product_evidence_loader(self):
         self.product_review.clear()
         self._product_evidence_loader = None
+        if self.continuous:
+            self._live_scope.clear()
+            self.session._product_confirmations.clear()
+            for category_id in tuple(self._acquired_categories):
+                self.session.invalidate(category_id)
+            self._acquired_categories.clear()
+            self._attributes.clear()
 
     def load_product_evidence(self, item):
         if self._live_scope is not None:

@@ -113,6 +113,64 @@ def render_sg_live_candidate(grant_path, *, api_env_path=None, beta_output=False
     render_sg_category_mapper(brand_workflow=runtime.workflow,ai_engine=runtime.category_engine,beta_output=beta_output)
 
 
+def render_sg_continuous(policy_path, *, api_env_path=None, runtime_root):
+    """Use the same Mapper screen; no batch-specific configuration or setup."""
+    import os
+    from decimal import Decimal
+    from modules.sg_continuous_runtime import SGContinuousPolicy, SGContinuousRuntime
+    from modules.sg_beta_release import require_sg_beta_operation
+    from modules.category_mapper_sg_ui import clear_sg_batch_controls
+    state = st.session_state
+    try:
+        require_sg_beta_operation()
+        policy = SGContinuousPolicy.from_file(policy_path)
+        run_path = Path(runtime_root).resolve() / 'continuous'
+        policy.validate(run_path / 'validation.sqlite3')
+    except Exception:
+        st.error('SG通常利用の承認・保存先を確認できません。')
+        return
+    existing = state.get('sg_live_runtime')
+    binding = (policy.digest, str(run_path))
+    if existing is not None and state.get('sg_continuous_binding') != binding:
+        existing.close()
+        state.pop('sg_live_runtime', None)
+        clear_sg_batch_controls(state)
+    st.caption('SG通常利用：新しい商品群を同じ画面で確認できます。取得枠は商品群・再起動をまたいで累積します。')
+    if st.button('SGの作業を開始', key='sg_live_open', disabled=state.get('sg_live_runtime') is not None):
+        try:
+            key = ''
+            if Decimal(policy.openai_limit_usd) > 0:
+                key = os.environ.get('OPENAI_API_KEY', '')
+                if not key and api_env_path is not None:
+                    from dotenv import dotenv_values
+                    key = dotenv_values(api_env_path).get('OPENAI_API_KEY') or ''
+            runtime = SGContinuousRuntime(policy=policy, run_path=run_path, api_key=key)
+            state['sg_live_runtime'] = runtime
+            state['sg_continuous_binding'] = binding
+        except Exception:
+            st.error('SGの作業を開始できません。承認済みの保存先・取得記録を確認してください。')
+    runtime = state.get('sg_live_runtime')
+    if runtime is None:
+        return
+    if st.button('SGの最新カテゴリー一覧を取得', key='sg_live_refresh_catalog'):
+        clear_sg_batch_controls(state)
+        try:
+            count = runtime.refresh_catalog()
+        except Exception:
+            st.error('最新カテゴリーを取得できません。未確認のまま停止します。')
+        else:
+            st.success(f'SGカテゴリー {count}件を取得しました。')
+    d = runtime.ledger.data
+    st.caption(f"Category取得 {d['catalog_requests']}/{policy.catalog_request_limit}回 / "
+               f"Brand取得 {sum(d['brand_page_counts'].values())}/{policy.brand_total_page_limit}ページ "
+               f"（1取得最大{policy.brand_page_limit}ページ） / "
+               f"属性取得 {d['attribute_requests']}/{policy.attribute_request_limit}回 / "
+               f"Keepa送信 {d['keepa_requests']}/{policy.keepa_request_limit}回 / "
+               f"OpenAI予約額 {d['openai']['reserved_upper_bound_usd']}/{policy.openai_limit_usd} USD")
+    st.caption('Keepa送信上限は金額・token上限ではありません。推定token表示と契約上の費用を区別してください。')
+    render_sg_category_mapper(brand_workflow=runtime.workflow, ai_engine=runtime.category_engine, beta_output=True)
+
+
 if __name__ == "__main__":
     st.set_page_config(page_title="SG 開発版の確認", layout="wide")
     import argparse
