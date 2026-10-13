@@ -1,0 +1,5 @@
+﻿schema_version,source_type,source_id,source_asin,candidate_asin,input_title,product_title,brand,category,amazon_url,source_status,source_verification,source,fetched_at,source_note
+PRELISTING_CANDIDATE_V1,EXPANSION,,B000000000,B000000001,,Synthetic wired headphone,Synthetic Maker,Headphones,,,,synthetic,2026-10-12T00:00:00+00:00,
+PRELISTING_CANDIDATE_V1,EXPANSION,,B000000000,B000000002,,Synthetic wired headphone,Unknown Synthetic Brand,Headphones,,,,synthetic,2026-10-12T00:00:00+00:00,
+PRELISTING_CANDIDATE_V1,EXPANSION,,B000000000,B000000003,,Synthetic Bluetooth wired headphone,Synthetic Maker,Headphones,,,,synthetic,2026-10-12T00:00:00+00:00,
+PRELISTING_CANDIDATE_V1,EXPANSION,,B000000000,B000000004,,Synthetic wired headphone,Synthetic Maker,Headphones,,,,synthetic,2026-10-12T00:00:00+00:00,

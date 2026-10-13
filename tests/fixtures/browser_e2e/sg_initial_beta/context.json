@@ -1,0 +1,72 @@
+{
+  "schema": "SG_INITIAL_BETA_OFFLINE_V1",
+  "catalog_csv": "marketplace,category_id,parent_category_id,category_name,category_path,is_leaf\nSG,100578,9000000,\"Earphones, Headphones & Headsets\",\"Audio > Earphones, Headphones & Headsets\",TRUE\nSG,9000000,,Audio,Audio,FALSE\n",
+  "catalog_current": true,
+  "brands": [
+    {
+      "category_id": 100578,
+      "shop_id": "synthetic-shop",
+      "brands": [
+        [
+          7,
+          "Synthetic Maker",
+          false
+        ],
+        [
+          0,
+          "No brand",
+          true
+        ]
+      ],
+      "observation_ref": "MOCK_COMPLETE_CATALOG_1",
+      "complete": true,
+      "current": true,
+      "source": "OFFLINE_MOCK"
+    }
+  ],
+  "rules": [
+    {
+      "rule_id": "SG_WIRED_AUDIO_OFFLINE",
+      "version": "1",
+      "category_id": 100578,
+      "category_path": "Audio > Earphones, Headphones & Headsets",
+      "leaf_names": [
+        "ヘッドホン",
+        "オーバーイヤーヘッドホン",
+        "イヤホン",
+        "Headphones"
+      ],
+      "required_text": [
+        "有線",
+        "wired",
+        "3.5mm",
+        "3.5 mm"
+      ],
+      "excluded_text": [
+        "Bluetooth",
+        "wireless",
+        "ワイヤレス",
+        "充電",
+        "battery",
+        "ATH-M20xBT",
+        "replacement",
+        "交換用",
+        "ear pads",
+        "イヤーパッド"
+      ],
+      "approval_ref": "OWNER_BASIC_DESIGN_OFFLINE_DEMONSTRATION",
+      "scope": "OFFLINE_ONLY"
+    }
+  ],
+  "aliases": [
+    {
+      "source_brand": "Synthetic Maker",
+      "category_id": 100578,
+      "brand_id": 7,
+      "brand_name": "Synthetic Maker",
+      "approval_ref": "SYNTHETIC_HUMAN_ALIAS",
+      "version": "1",
+      "scope": "OFFLINE_ONLY"
+    }
+  ]
+}

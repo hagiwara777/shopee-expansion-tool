@@ -1,5 +1,9 @@
 # Shopee Expansion Tool Ver1
 
+SG初期Beta Ver1.0の追加offline機能と再生手順は[継続作業・限定自動確定](docs/SG_INITIAL_BETA_V1.md)を参照してください。
+通常PH／SGとは別の新規作業DBを明示し、模擬Brandを使って保存・確認待ち・5状態・出力を検証します。
+このoptional入口は実API・実出品・稼働release更新を開始しません。
+
 PH / SGの普段の入口は[統一ベータ](docs/BETA_APPLICATION.md)です。
 共通の「対象国」プルダウンで4工程を切り替え、既存PHの保存先とSG専用のデータ・API取得枠を保持します。
 SGの[通常継続利用](docs/SG_CONTINUOUS_OPERATION.md)では、有限承認枠内で新しい商品群を画面から繰り返し受付し、

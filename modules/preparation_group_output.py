@@ -23,7 +23,7 @@ def format_preparation_groups(rows, *, extra_columns=(), unknown_attribute_text=
     for items in groups.values():
         first = items[0]
         for row in items:
-            values = {**row, "asin_count": len(items), "verification_status": first["verification_status"]}
+            values = {**row, "asin_count": len(items)}
             safe = {}
             for column in columns:
                 value = values.get(column, "")

@@ -6,6 +6,13 @@
 
 ## 現在の正式状態と次の独立工程
 
+SG初期Beta Ver1.0の追加機能は、[offline作業画面・保存契約](SG_INITIAL_BETA_V1.md)を参照する（DEC-0135）。
+限定AUTO_RULE、項目別Fact出所、長期作業DB、確認待ち・5状態・一括出力をoffline専用入口で扱う。
+この入口は模擬catalogを明示し、既存通常SG／PHの確認契約・API枠・DB・稼働releaseを置き換えない。
+次の新機能工程は、SG 100578の対象商品自身のJP取得市場・Fact出所と、公式Brandの有効性／更新条件を
+証明する実務受入資料の整理。具体的rule適用、live API、保存先設置、release反映・実出品は別承認とする。
+旧SG通常継続利用の少量実務受入は独立して継続し、このoffline成果で完了扱いにしない。
+
 SG通常継続利用はDEC-0134の有限Policy＋画面商品群受付を使う。
 同じ統一アプリで全SG ELIGIBLEを読み、今回のCategory／Brand／必要Safety確認を満たした商品だけCSV／TXTへ出す。
 新商品群・資料変更では過去確認とcheckboxを失効し、保存Categoryは再確認候補として使用する。
@@ -160,6 +167,8 @@ Source明示ON時のsilent fallbackを許さない。Bridge全面書込み障害
 SG Brand responseにmarketplace / Category echoがないため、server内部の別Category誤応答の独立検出は保証しない。
 
 ## Required Decisions
+
+- DEC-0135 — SG初期Betaのoffline限定AUTO_RULE・Fact出所・長期保存・5状態、既存実務受入と実運用承認の分離。
 
 - DEC-0134 — SG通常継続利用の有限承認、商品群受付・失効、既存保護、新旧方式と実務受入・rollback。
 

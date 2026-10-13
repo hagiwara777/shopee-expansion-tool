@@ -2,6 +2,12 @@
 
 ## 当面の全体目標
 
+SG初期Beta Ver1.0の追加機能は、限定自動確定のoffline実証 → 長期作業保存 →
+確認待ち・5状態・一括出力 → PH／SG回帰の順で扱う（DEC-0135）。
+[追加契約](SG_INITIAL_BETA_V1.md)は既存の少量実務受入と分離し、実商品Factの出所、
+公式Brand有効性・ruleの実運用適用を確認してから稼働反映を別承認する。
+今回の実装対象はSG 1ショップのみ。PHの既存正式成果と後続市場のruntime停止を維持する。
+
 現状PH BetaをSG / MY / THの初期完成基準に固定する（DEC-0116）。
 SGをPH相当へ揃える過程で共通moduleを整え、その後MY / THへ国別情報を追加して展開する。
 詳細は[PH Beta市場展開](PH_BETA_MARKET_PARITY.md)を参照する。
@@ -307,7 +313,7 @@ DEC-0049の`BETA_AFTER_CANDIDATE`、DB化、他市場展開、出品後商品改
 - GateからCategory Mapperへの自動投入
 - 既存出品ツールへの自動投入
 - 既存出品ツールの正式入力契約の証拠回収（自動投入またはE2E接続を検討する場合）
-- Category自動確定
+- Category自動確定の実運用適用（DEC-0135のoffline限定実証と分離）
 - 自動出品
 - SG Brandのproduction API / 実商品受入（DEC-0104のoffline実装採用後に別Owner承認）、SG SLSのproduction / live受入、runtime切替。SG Handoffのlocal設計・開発はDEC-0116の機能統一に含め、実運用出口の採用と区別する。
 - MY／THの実装（共通Token / Catalog基盤を再利用する将来工程）
