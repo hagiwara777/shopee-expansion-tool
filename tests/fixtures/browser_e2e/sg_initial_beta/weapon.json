@@ -1,0 +1,126 @@
+{
+  "B000000001": {
+    "decision": null,
+    "images": {
+      "candidate_asin": "B000000001",
+      "capture_error": false,
+      "image_urls": [
+        "https://m.media-amazon.com/images/I/SYNTHETIC.jpg"
+      ],
+      "provider": "keepa",
+      "root_category_id": 3210981
+    },
+    "inspection": null,
+    "note": "",
+    "policy": [
+      "fcf4219faf6ce47c5478ec6634b666a2cb539a2a3be12bf914ce9eb87bd67a7b",
+      "OTHER_ROOT"
+    ],
+    "text": {
+      "candidate_asin": "B000000001",
+      "capture_status": "CAPTURED",
+      "description": [
+        "Synthetic passive wired audio product"
+      ],
+      "features": [],
+      "fetched_at": "2026-10-12T00:00:00+00:00",
+      "itemHighlights": [],
+      "provider": "keepa",
+      "safetyWarning": [],
+      "shortDescription": []
+    }
+  },
+  "B000000002": {
+    "decision": null,
+    "images": {
+      "candidate_asin": "B000000002",
+      "capture_error": false,
+      "image_urls": [
+        "https://m.media-amazon.com/images/I/SYNTHETIC.jpg"
+      ],
+      "provider": "keepa",
+      "root_category_id": 3210981
+    },
+    "inspection": null,
+    "note": "",
+    "policy": [
+      "fcf4219faf6ce47c5478ec6634b666a2cb539a2a3be12bf914ce9eb87bd67a7b",
+      "OTHER_ROOT"
+    ],
+    "text": {
+      "candidate_asin": "B000000002",
+      "capture_status": "CAPTURED",
+      "description": [
+        "Synthetic passive wired audio product"
+      ],
+      "features": [],
+      "fetched_at": "2026-10-12T00:00:00+00:00",
+      "itemHighlights": [],
+      "provider": "keepa",
+      "safetyWarning": [],
+      "shortDescription": []
+    }
+  },
+  "B000000003": {
+    "decision": null,
+    "images": {
+      "candidate_asin": "B000000003",
+      "capture_error": false,
+      "image_urls": [
+        "https://m.media-amazon.com/images/I/SYNTHETIC.jpg"
+      ],
+      "provider": "keepa",
+      "root_category_id": 3210981
+    },
+    "inspection": null,
+    "note": "",
+    "policy": [
+      "fcf4219faf6ce47c5478ec6634b666a2cb539a2a3be12bf914ce9eb87bd67a7b",
+      "OTHER_ROOT"
+    ],
+    "text": {
+      "candidate_asin": "B000000003",
+      "capture_status": "CAPTURED",
+      "description": [
+        "Synthetic passive wired audio product"
+      ],
+      "features": [],
+      "fetched_at": "2026-10-12T00:00:00+00:00",
+      "itemHighlights": [],
+      "provider": "keepa",
+      "safetyWarning": [],
+      "shortDescription": []
+    }
+  },
+  "B000000004": {
+    "decision": null,
+    "images": {
+      "candidate_asin": "B000000004",
+      "capture_error": false,
+      "image_urls": [
+        "https://m.media-amazon.com/images/I/SYNTHETIC.jpg"
+      ],
+      "provider": "keepa",
+      "root_category_id": 3210981
+    },
+    "inspection": null,
+    "note": "",
+    "policy": [
+      "fcf4219faf6ce47c5478ec6634b666a2cb539a2a3be12bf914ce9eb87bd67a7b",
+      "OTHER_ROOT"
+    ],
+    "text": {
+      "candidate_asin": "B000000004",
+      "capture_status": "CAPTURED",
+      "description": [
+        "Synthetic passive wired audio product"
+      ],
+      "features": [],
+      "fetched_at": "2026-10-12T00:00:00+00:00",
+      "itemHighlights": [],
+      "provider": "keepa",
+      "safetyWarning": [],
+      "shortDescription": []
+    }
+  }
+}

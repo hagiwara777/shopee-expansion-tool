@@ -1631,3 +1631,14 @@
 - 実務受入条件: offlineで4件以上と150候補の全ELIGIBLE受付、A→Bの画面だけの反復、完成分のみCSV／TXT、同一ASIN情報変更と各確認・checkbox失効、API失敗／上限／再起動／並行実行／記録破損・保存失敗の停止、PH／旧Grant／Safety回帰を確認する。別承認後の少量2商品群でExpansion派生とResolver由来、最新既出品照合、Category／完全Brand／必要Safety／完成分出力を人間が確認する。全150商品の完走や全商品のSafety保証は初期受入条件にしない。
 - 残す制約: PH固定Research CSVは任意補助で、SGの通常タイトル入力・候補生成を妨げないためBeta後改善。共通検索アルゴリズムを複製しない。Gateの発行真正性を暗号署名で保証する基盤、ledgerの悪意ある巻戻し防止、Brand応答のCategory echo欠如、Bridge全面書込み障害時の旧token無効化は今回の追加完成条件にしない。機能の限界を利用文書へ明示する。
 - 停止・rollback: Safety／予算／catalog／Brand／資料／記録不成立では未確認で停止する。新Policyや旧Grantを削除・手編集して枠を復活させない。通常利用の停止、承認済み旧限定設定／入口への復帰、または後続変更を保持した通常revertで戻す。全DB・確認記録・Policy／Grant・ledger・claimを保持する。force push・dirty reset・破壊的移行を行わない。
+
+## DEC-0135 — SG初期Betaの限定自動確定と継続作業をoffline専用で実装する
+
+- 日付: 2026-10-13
+- authority／目的: Ownerは初期Beta要件定義Ver1.0案のSG 1ショップ向けMUSTを、独立作業領域でA〜Dの順に実装・offline検証するよう明示依頼した。PDFは承認済み基本設計の入力とし、既存formal main仕様または実運用承認へ読み替えない。
+- 決定: 商品自身のJP取得市場と項目別OWN_PRODUCTを正の根拠として、限定Category ruleと人間確認済みBrand aliasを条件付き再利用する。確認種別はHUMAN／AUTO_RULEで区別し、起点補完・不明出所から確定しない。Category確定前のBrand最終確定、未登録・未取得からのNo Brand fallbackは許さない。既存の人間確認契約は従来入口で維持する。
+- currentness: Categoryは現行ID／path／leafを照合する。Brandは対象Category／shopの完全なcurrent observationを必須とし、旧一覧は比較資料だけとする。24時間TTLを採用しない。具体的有効期間・更新条件とrule／aliasの実運用適用は別Owner判断である。初期入口はOFFLINE限定、模擬Brandを明示し、listing_ready=FALSEを維持する。
+- 保存と操作: API operationの保存先と独立した新規限定の長期SG作業SQLiteへ、Fact・判断根拠・確認待ち・確認取消・出品待ち・5状態・操作履歴を保存する。グループの任意ASINだけを一括採用・出力できる。コピー準備は永続予約、結果不明は再操作停止、人間の明示成功確認だけが出品確認待ちへ進む。最新の全ショップCSV一致だけが出品済みとなり、不在で状態を自動巻戻ししない。全件transactionとrevisionで保存失敗・古い選択・部分更新を停止する。
+- 共通契約: 準備と全出力で現在のFact／rule／catalogを再検証し、既存Gate・Guardrail・SLS・SG本体確認・武器画像validatorを共用する。分類確定・一括採用・確認メモでSafety BLOCK／REVIEW／EXCLUDE、Battery／SLSを解除しない。CSV先頭11列を保ち、各行のverification_statusと項目別authorityを維持する。
+- 保護と境界: PH正式成果、旧SG受入、sg-operation-readinessの未commit資料・実務受入、DB・認証・Policy・Grant・ledger・claim・8503を変更しない。実API・有料API、deploy、DB移行／reset、実出品、main mergeは別承認。GPT-6 Luna移行、Shampoo大量Brand取得、MY／TW／TH、外部ツール自動操作を含めない。
+- 再検討／rollback: 対象商品の証明可能なJP Fact、公式Brand更新契約と限定ruleの実商品受入を整えてから、実運用適用を別判断する。optional入口を使わず従来フローへ戻せる。新作業DB・履歴と旧保存先は削除せず、必要なコード復旧は通常revertで行う。
