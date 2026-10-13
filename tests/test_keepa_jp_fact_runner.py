@@ -2,6 +2,7 @@
 import hashlib
 import json
 from concurrent.futures import ThreadPoolExecutor
+from urllib.parse import parse_qs, urlsplit
 
 import keepa
 import pytest
@@ -23,7 +24,7 @@ def prohibit_live(monkeypatch):
 def product():
     # Entirely synthetic: this is not real product evidence.
     return dict(asin=runner.ASIN, domainId=5, title="Synthetic fixture",
-                brand="Synthetic maker", manufacturer="Synthetic factory",
+                brand="Synthetic maker", model="Synthetic model 001", manufacturer="Synthetic factory",
                 rootCategory=123, categoryTree=[dict(catId=123, name="Root"),
                                                dict(catId=456, name="Leaf")],
                 description="Fixture description", features=["Fixture feature"])
@@ -58,6 +59,7 @@ def test_real_sdk_private_raw_contract_and_durable_pre_send_record(tmp_path, mon
         assert items == [runner.ASIN]
         assert options == runner.REQUEST_OPTIONS
         assert options["raw"] is True and options["wait"] is False
+        assert options["update"] == -1
         result = original(self, items, **options)
         assert result is raw_response  # SDK 1.5.0 returns the HTTP response.
         assert "data" not in result.json()["products"][0]
@@ -72,7 +74,8 @@ def test_real_sdk_private_raw_contract_and_durable_pre_send_record(tmp_path, mon
         assert "synthetic-offline" not in json.dumps(record)
         assert url == runner.ENDPOINT
         assert kwargs == dict(params=dict(asin=runner.ASIN, domain=5, key="synthetic-offline",
-                                         history=0, stock=0, buybox=0, rating=0, videos=0, aplus=0),
+                                         history=0, stock=0, buybox=0, rating=0, videos=0, aplus=0,
+                                         update=-1),
                               timeout=10, allow_redirects=False)
         calls.append(kwargs)
         return raw_response
@@ -80,6 +83,7 @@ def test_real_sdk_private_raw_contract_and_durable_pre_send_record(tmp_path, mon
     manifest = execute(tmp_path, send)
     assert len(calls) == manifest["http_send_attempts"] == manifest["max_http_sends"] == 1
     assert manifest["state"] == "SUCCESS"
+    assert manifest["update"] == -1
     assert (tmp_path / "evidence" / "raw-response.json").read_bytes() == raw_response.content
     digest = hashlib.sha256(raw_response.content).hexdigest()
     assert manifest["raw_sha256"] == digest
@@ -87,6 +91,9 @@ def test_real_sdk_private_raw_contract_and_durable_pre_send_record(tmp_path, mon
     facts = read(tmp_path / "evidence" / "facts.json")["facts"]
     assert facts["categoryTree"]["authority"] == "OWN_PRODUCT"
     assert facts["brand"]["value"] == "Synthetic maker"
+    assert facts["model"]["value"] == "Synthetic model 001"
+    assert facts["model"]["authority"] == "OWN_PRODUCT"
+    assert facts["model"]["evidence_ref"] == "raw-response.json#/products/0/model"
     assert facts["category_path"]["value"] == "Root > Leaf"
     assert facts["leaf_category_id"]["value"] == 456
     for fact in facts.values():
@@ -119,7 +126,66 @@ def test_absent_fields_are_missing_and_empty_fields_unknown(tmp_path):
     execute(tmp_path, lambda *a, **kw: response(dict(products=[p])))
     facts = read(tmp_path / "evidence" / "facts.json")["facts"]
     assert facts["categoryTree"]["status"] == "MISSING"
+    assert facts["model"]["status"] == facts["model"]["authority"] == "MISSING"
+    assert facts["model"]["value"] is None
+    assert facts["model"]["evidence_ref"] == "raw-response.json#/products/0/model"
     assert facts["title"]["status"] == facts["features"]["status"] == "UNKNOWN"
+
+
+@pytest.mark.parametrize("value", [None, "", " "])
+def test_unknown_model_is_preserved_with_raw_reference(tmp_path, value):
+    p = product()
+    p["model"] = value
+    raw_response = response(dict(products=[p]))
+    execute(tmp_path, lambda *a, **kw: raw_response)
+    fact = read(tmp_path / "evidence" / "facts.json")["facts"]["model"]
+    assert fact["value"] == value
+    assert fact["status"] == fact["authority"] == "UNKNOWN"
+    assert fact["evidence_ref"] == "raw-response.json#/products/0/model"
+    assert fact["raw_sha256"] == hashlib.sha256(raw_response.content).hexdigest()
+
+
+@pytest.mark.parametrize("value", [123, True, [], ["model"], {}])
+def test_invalid_model_type_rejects_facts_and_retains_raw(tmp_path, value):
+    p = product()
+    p["model"] = value
+    raw_response = response(dict(products=[p]))
+    with pytest.raises(runner.FactRunStopped, match="RESPONSE_REJECTED"):
+        execute(tmp_path, lambda *a, **kw: raw_response)
+    assert (tmp_path / "evidence" / "raw-response.json").read_bytes() == raw_response.content
+    assert not (tmp_path / "evidence" / "facts.json").exists()
+    manifest = read(tmp_path / "evidence" / "manifest.json")
+    assert manifest["reason_code"] == "INVALID_FACT_FIELD"
+    assert manifest["http_send_attempts"] == 1
+
+
+def test_real_sdk_and_requests_serialize_update_minus_one_into_http_request(tmp_path, monkeypatch):
+    calls = []
+    def send(self, request, **kwargs):
+        # Inspect the final PreparedRequest without sending it to a network.
+        assert request.method == "GET"
+        url = urlsplit(request.url)
+        assert (url.scheme, url.netloc, url.path) == ("https", "api.keepa.com", "/product/")
+        payload = parse_qs(url.query)
+        assert payload == dict(asin=[runner.ASIN], domain=["5"], key=["synthetic-offline"],
+                              history=["0"], stock=["0"], buybox=["0"], rating=["0"],
+                              videos=["0"], aplus=["0"], update=["-1"])
+        assert kwargs["allow_redirects"] is False and kwargs["timeout"] == 10
+        assert self.get_adapter(request.url).max_retries.total == 0
+        calls.append(payload)
+        return response()
+    monkeypatch.setattr(requests.Session, "send", send)
+    manifest = execute(tmp_path, None)
+    assert len(calls) == manifest["http_send_attempts"] == 1
+    assert manifest["update"] == -1
+
+
+@pytest.mark.parametrize("update", [None, 0, 1])
+def test_sdk_omitted_or_changed_update_is_stopped_before_http(tmp_path, monkeypatch, update):
+    monkeypatch.setitem(runner.REQUEST_OPTIONS, "update", update)
+    with pytest.raises(runner.FactRunStopped, match="PRE_SEND_STOP"):
+        execute(tmp_path, lambda *a, **kw: pytest.fail("No HTTP permitted"))
+    assert not (tmp_path / "independent" / "attempt").exists()
 
 
 @pytest.mark.parametrize("changes", [

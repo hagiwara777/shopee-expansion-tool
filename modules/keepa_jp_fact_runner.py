@@ -23,12 +23,12 @@ DOMAIN = "JP"
 DOMAIN_ID = 5
 RUNNER_VERSION = "KEEPA_JP_SINGLE_FACT_V1"
 ENDPOINT = "https://api.keepa.com/product/?"
-TEXT_FIELDS = ("title", "brand", "manufacturer", "description", "features",
+TEXT_FIELDS = ("title", "brand", "model", "manufacturer", "description", "features",
                "shortDescription", "safetyWarning", "itemHighlights", "ingredients",
                "activeIngredients", "specialIngredients", "imagesCSV")
 REQUEST_OPTIONS = dict(domain=DOMAIN, history=False, offers=None, stock=False,
                        buybox=False, rating=False, videos=False, aplus=False,
-                       update=None, only_live_offers=None, days=None, stats=None,
+                       update=-1, only_live_offers=None, days=None, stats=None,
                        wait=False, raw=True)
 
 
@@ -161,7 +161,7 @@ def _validate_product(data):
         if value is None:
             continue
         valid = type(value) is str
-        if field not in {"title", "brand", "manufacturer", "imagesCSV"}:
+        if field not in {"title", "brand", "model", "manufacturer", "imagesCSV"}:
             valid = valid or (type(value) is list and all(type(v) is str for v in value))
         if not valid:
             raise FactRunStopped("INVALID_FACT_FIELD")
@@ -216,7 +216,8 @@ def _execute_once(*, api_key, evidence_dir, attempt_root, authorization_ref, tra
     reason_code = "ACQUISITION_STOPPED"
     api = keepa.Keepa(api_key, check_key=False, timeout=10, logging_level="CRITICAL")
     expected_payload = dict(asin=ASIN, domain=DOMAIN_ID, key=api_key,
-                            history=0, stock=0, buybox=0, rating=0, videos=0, aplus=0)
+                            history=0, stock=0, buybox=0, rating=0, videos=0, aplus=0,
+                            update=-1)
     session = requests.Session()
     session.trust_env = False
     session.mount("https://", requests.adapters.HTTPAdapter(max_retries=0))
@@ -277,7 +278,7 @@ def _execute_once(*, api_key, evidence_dir, attempt_root, authorization_ref, tra
             try:
                 manifest = dict(runner_version=RUNNER_VERSION, sdk_version="1.5.0",
                                 asin=ASIN, domain=DOMAIN, domain_id=DOMAIN_ID,
-                                endpoint="product", history=False, update=None,
+                                endpoint="product", history=False, update=-1,
                                 reserved_http_sends=1, http_send_attempts=sends,
                                 max_http_sends=1, automatic_resend_allowed=False,
                                 state=state, reason_code=reason_code,
