@@ -9,8 +9,12 @@
 SG初期Beta Ver1.0の追加機能は、[offline作業画面・保存契約](SG_INITIAL_BETA_V1.md)を参照する（DEC-0135）。
 限定AUTO_RULE、項目別Fact出所、長期作業DB、確認待ち・5状態・一括出力をoffline専用入口で扱う。
 この入口は模擬catalogを明示し、既存通常SG／PHの確認契約・API枠・DB・稼働releaseを置き換えない。
-次の新機能工程は、SG 100578の対象商品自身のJP取得市場・Fact出所と、公式Brandの有効性／更新条件を
-証明する実務受入資料の整理。具体的rule適用、live API、保存先設置、release反映・実出品は別承認とする。
+SG 100578の対象商品自身のJP取得市場・Fact出所の確認には、
+[B00HVLUR18限定JP Fact runner](KEEPA_JP_FACT_RUNNER.md)を用意する（DEC-0136）。
+既存SDKとbounded transportを使い、独立永続予約・最大HTTP1送信・raw証拠・項目別Factを保持する。
+次の独立工程は、対象と保存先・消費を明示した別承認によるJP Factの1回取得と、
+公式Brandの有効性／更新条件を証明する実務受入資料の整理。
+具体的rule適用、live API、保存先設置、release反映・実出品は別承認とする。
 旧SG通常継続利用の少量実務受入は独立して継続し、このoffline成果で完了扱いにしない。
 
 SG通常継続利用はDEC-0134の有限Policy＋画面商品群受付を使う。
@@ -167,6 +171,8 @@ Source明示ON時のsilent fallbackを許さない。Bridge全面書込み障害
 SG Brand responseにmarketplace / Category echoがないため、server内部の別Category誤応答の独立検出は保証しない。
 
 ## Required Decisions
+
+- DEC-0136 — B00HVLUR18／JP限定Fact取得、独立予約・raw証拠・最大1送信、実API別承認。
 
 - DEC-0135 — SG初期Betaのoffline限定AUTO_RULE・Fact出所・長期保存・5状態、既存実務受入と実運用承認の分離。
 

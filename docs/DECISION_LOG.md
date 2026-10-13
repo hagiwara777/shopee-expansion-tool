@@ -1642,3 +1642,13 @@
 - 共通契約: 準備と全出力で現在のFact／rule／catalogを再検証し、既存Gate・Guardrail・SLS・SG本体確認・武器画像validatorを共用する。分類確定・一括採用・確認メモでSafety BLOCK／REVIEW／EXCLUDE、Battery／SLSを解除しない。CSV先頭11列を保ち、各行のverification_statusと項目別authorityを維持する。
 - 保護と境界: PH正式成果、旧SG受入、sg-operation-readinessの未commit資料・実務受入、DB・認証・Policy・Grant・ledger・claim・8503を変更しない。実API・有料API、deploy、DB移行／reset、実出品、main mergeは別承認。GPT-6 Luna移行、Shampoo大量Brand取得、MY／TW／TH、外部ツール自動操作を含めない。
 - 再検討／rollback: 対象商品の証明可能なJP Fact、公式Brand更新契約と限定ruleの実商品受入を整えてから、実運用適用を別判断する。optional入口を使わず従来フローへ戻せる。新作業DB・履歴と旧保存先は削除せず、必要なコード復旧は通常revertで行う。
+
+## DEC-0136 — B00HVLUR18のJP Fact取得を独立予約付き最大1送信へ限定する
+
+- 日付: 2026-10-13
+- authority／目的: Ownerは取得方法のread-only調査完了を前提に、B00HVLUR18専用Keepa JP Fact取得・証拠保存runnerの実装とoffline検証、検証済みcommit／push／Draft PR／CI／read-only reviewを明示承認した。実Keepa API送信とformal main mergeは別承認とする。
+- 決定: SDK 1.5.0のprivate `_product_query(raw=True)`契約をofflineで固定し、既存bounded transportを再利用する専用CLIだけを追加する。B00HVLUR18／JP・Product endpoint・追加optionなしに限定し、最大HTTP送信試行1回、自動retry・redirect・429待機・暗黙token照会を禁止する。
+- 永続化: 証拠保存先・既存API承認枠から独立した固定user-local予約directoryを排他的に作成し、送信前に予約記録をflush／fsync／読戻し確認する。directoryの存在で重複・並行・再起動・別証拠先からの再送を拒否し、結果不明・保存失敗でも予約を返却・resetしない。既存Policy／Grant／ledger／claimは変更しない。
+- Fact／証拠: 新規Git外専用保存先にSDK加工前のbody bytes、SHA-256、manifestと正常validation後の項目別Factを保存する。ASIN・domainId・categoryTree等をstrict検証し、商品自身のJP出所・取得時刻・raw参照を結合する。欠損・不明をMISSING／UNKNOWNとして保持し、seed fallbackや推測でOWN_PRODUCTへ昇格しない。取得成立をCategory／Brand確定、Safetyや出品可否の証明へ読み替えない。
+- 保護と別承認: PH／SG Safetyと共通Keepa処理を回帰保護する。既存cache変換、DB、認証、Policy／Grant／ledger／claim、SG operation-readiness資産、8503を変更しない。実Shopee／OpenAI・有料API、実DB変更・移行、実出品、rule／Brand実運用適用、release反映、formal mergeを実行しない。実API前には対象・最大1送信・token消費・新規保存先と独立予約先設置を具体化したOwner明示承認を要する。
+- 制約／rollback: 送信上限は金額・token上限保証ではなく、private SDK更新は契約再確認を要する。ローカル記録の悪意ある削除やdisk巻戻しへの耐改竄保証は含めない。利用停止・通常revertで戻し、予約・証拠・既存DB・API枠を削除せず保持する。詳細はKEEPA_JP_FACT_RUNNER.mdを参照する。
