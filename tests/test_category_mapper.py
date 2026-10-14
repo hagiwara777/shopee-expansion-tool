@@ -685,7 +685,9 @@ def test_output_blockers_and_group_exports_keep_all_21_gate_asins_in_order(
         )
         for recommendation in recommendations
     )
-    exports = build_mapper_exports(selected)
+    from preparation_validity_support import bound_preparation
+    session, records = bound_preparation(selected)
+    exports = build_mapper_exports(selected, preparation_session=session, preparation_records=records)
     groups = list(csv.DictReader(StringIO(exports.groups_csv.decode("utf-8-sig"))))
     txt_asins = [
         line
@@ -781,7 +783,9 @@ def test_real_shaped_gate_rows_keep_sets_out_of_shampoo_outputs(store: CategoryM
             selected.append(item)
 
     assert sum(item.listing_ready for item in selected) == 34
-    exports = build_mapper_exports(selected)
+    from preparation_validity_support import bound_preparation
+    session, records = bound_preparation(selected)
+    exports = build_mapper_exports(selected, preparation_session=session, preparation_records=records)
     groups = list(csv.DictReader(StringIO(exports.groups_csv.decode("utf-8-sig"))))
     txt_asins = [
         line
@@ -879,7 +883,9 @@ def test_exports_are_bom_encoded_ordered_and_one_asin_per_group_row(store: Categ
         recommendation,
         brand={"brand_id": 0, "brand_name": "No brand", "is_no_brand": True},
     )
-    exports = build_mapper_exports([ready])
+    from preparation_validity_support import bound_preparation
+    session, records = bound_preparation([ready])
+    exports = build_mapper_exports([ready], preparation_session=session, preparation_records=records)
     assert exports.recommendations_csv.startswith(b"\xef\xbb\xbf")
     assert exports.groups_csv.startswith(b"\xef\xbb\xbf")
     detail = list(csv.DictReader(StringIO(exports.recommendations_csv.decode("utf-8-sig"))))

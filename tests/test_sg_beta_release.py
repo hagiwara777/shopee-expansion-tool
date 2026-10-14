@@ -44,6 +44,8 @@ def ready(tmp_path):
         brand_id=7, expected_brand_name='Maker', human_product_verified=True, human_option_selected=True)
     text, images = evidence(item)
     workflow.product_review.supply(item, text=text, images={**images, 'root_category_id':999999, 'image_urls':[]})
+    from preparation_validity_support import bound_preparation
+    workflow.preparation_session, workflow.preparation_records = bound_preparation((item,), product_review=workflow.product_review)
     return workflow, item
 
 
@@ -150,7 +152,7 @@ import streamlit as st
 from modules.category_mapper_sg_ui import _render_products
 _render_products(tuple(st.session_state.sg_category_mapper_recommendations),
                  st.session_state.workflow.store, brand_workflow=st.session_state.workflow, beta_output=True)
-''')
+''', default_timeout=15)
     app.session_state['sg_category_mapper_recommendations'] = (item,)
     app.session_state['workflow'] = workflow
     app.run()

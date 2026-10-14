@@ -173,6 +173,8 @@ class MapperRecommendation:
     manual_review_required: bool
     manual_review_reason: str
     sls_result: SlsCategoryResult = SlsCategoryResult()
+    preparation_blocked: bool = False
+    preparation_review_reason: str = ""
 
     @property
     def listing_ready(self) -> bool:
@@ -181,6 +183,7 @@ class MapperRecommendation:
             and self.category_is_confirmed
             and (self.brand_is_confirmed or self.no_brand_selected_by_user)
             and not self.manual_review_required
+            and not self.preparation_blocked
             and is_local_allow(self.sls_result, marketplace=self.marketplace,
                                category_id=self.recommended_category_id,
                                category_confirmed=self.category_is_confirmed)
@@ -670,13 +673,27 @@ def refresh_sls_results(
     )) for item in recommendations)
 
 
-def build_mapper_exports(recommendations: Iterable[MapperRecommendation]) -> MapperExportBundle:
+def build_mapper_exports(recommendations: Iterable[MapperRecommendation], *,
+                         preparation_session=None, preparation_records=None) -> MapperExportBundle:
     """Serialize PH audit data and fail closed before any non-PH export."""
 
     materialized = tuple(recommendations)
     if any(item.marketplace != PH_MARKETPLACE for item in materialized):
         raise ValueError("CATEGORY_MAPPER_EXPORT_PH_ONLY")
     ordered = refresh_sls_results(materialized, context=load_ph_context())
+    from modules.preparation_validity import assess_preparation_item, PREPARATION_RECHECK_MESSAGE
+    checked, proof_bindings = [], {}
+    for item in ordered:
+        proof = assess_preparation_item(item, session=preparation_session,
+                                       records=preparation_records, operational=True)
+        if proof['valid']:
+            proof_bindings[item.candidate_asin] = proof['basis']
+            item = replace(item, preparation_blocked=False, preparation_review_reason='')
+        else:
+            reason = PREPARATION_RECHECK_MESSAGE + ' ' + ','.join(proof['reasons'])
+            item = replace(item, preparation_blocked=True, preparation_review_reason=reason)
+        checked.append(item)
+    ordered = tuple(checked)
     recommendation_rows = [_recommendation_row(item) for item in ordered]
     ready = [item for item in ordered if item.listing_ready]
     groups_csv, listing_tool_text = format_preparation_groups({
@@ -687,6 +704,11 @@ def build_mapper_exports(recommendations: Iterable[MapperRecommendation]) -> Map
         "verification_status": USER_CONFIRMED if item.category_verification_status == USER_CONFIRMED else LISTING_TOOL_ACCEPTED,
         "listing_ready": "TRUE", "asin": item.candidate_asin,
     } for item in ready)
+    for item in ready:
+        proof = assess_preparation_item(item, session=preparation_session,
+                                       records=preparation_records, operational=True)
+        if not proof['valid'] or proof['basis'] != proof_bindings[item.candidate_asin]:
+            raise ValueError('PREPARATION_CHANGED_BEFORE_RETURN')
     return MapperExportBundle(
         recommendations_csv=_rows_to_csv(RECOMMENDATION_COLUMNS, recommendation_rows),
         groups_csv=groups_csv,
@@ -708,7 +730,7 @@ def summarize_output_blockers(
             for item in ordered
             if not item.brand_is_confirmed and not item.no_brand_selected_by_user
         ),
-        "manual_review_required": tuple(item for item in ordered if item.manual_review_required),
+        "manual_review_required": tuple(item for item in ordered if item.manual_review_required or item.preparation_blocked),
         "ready": tuple(item for item in ordered if item.listing_ready),
     }
 
@@ -1200,8 +1222,8 @@ def _recommendation_row(item: MapperRecommendation) -> dict[str, Any]:
         "brand_recommendation_source": item.brand_recommendation_source,
         "brand_accuracy_warning": item.brand_accuracy_warning,
         "group_key": item.group_key,
-        "manual_review_required": _bool_text(item.manual_review_required),
-        "manual_review_reason": item.manual_review_reason,
+        "manual_review_required": _bool_text(item.manual_review_required or item.preparation_blocked),
+        "manual_review_reason": " ".join(filter(None, (item.manual_review_reason, item.preparation_review_reason))),
     }
 
 

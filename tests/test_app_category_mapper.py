@@ -27,6 +27,16 @@ def _standard_logger_warning(self, message, *args, **kwargs):
         self._log(logging.WARNING, message, args, **kwargs)
 
 
+def _supply_current_preparation(app):
+    from preparation_validity_support import bound_preparation
+    session, records = bound_preparation(tuple(app.session_state['category_mapper_recommendations']))
+    app.session_state['category_mapper_preparation_context'] = {
+        'session': session, 'records': records,
+        'input_fingerprint': app.session_state['category_mapper_input_fingerprint'],
+    }
+    app.run(timeout=15)
+
+
 def _expansion_csv(title: str = "Shampoo") -> bytes:
     output = StringIO(newline="")
     writer = csv.DictWriter(output, fieldnames=PRELISTING_CANDIDATE_COLUMNS, lineterminator="\n")
@@ -458,6 +468,9 @@ def test_category_mapper_applies_no_brand_to_gate_group_and_enables_outputs(monk
     app.button(key="category_mapper_apply_no_brand_0").click().run()
 
     assert not app.exception
+    assert "出品グループCSVをダウンロード" not in [b.label for b in app.download_button]
+    assert not app.session_state['category_mapper_recommendations'][0].listing_ready
+    _supply_current_preparation(app)
     labels = [button.label for button in app.download_button]
     assert "出品グループCSVをダウンロード" in labels
     assert "出品ツール貼付用TXTをダウンロード" in labels
@@ -529,6 +542,7 @@ def test_sls_asset_error_is_local_and_does_not_change_db(monkeypatch, tmp_path, 
         ("eligible.csv", _gate_csv(), "text/csv")).run()
     app.button(key="category_mapper_build").click().run()
     app.button(key="category_mapper_apply_no_brand_0").click().run()
+    _supply_current_preparation(app)
     assert app.session_state["category_mapper_recommendations"][0].listing_ready
     db = tmp_path / "localappdata" / "ShopeeCategoryMapper" / "category_mapper.sqlite3"
     before = db.read_bytes()

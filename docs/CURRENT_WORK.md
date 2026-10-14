@@ -9,11 +9,13 @@
 PH・SGの共通初版は[実務Beta完成条件・差分監査](PRACTICAL_BETA_COMPLETION.md)で判断する（DEC-0137）。
 共通入口だけでなく、両国の通常操作、限定自動確定、長期保存・準備pool・5状態、反復実商品受入を必要とする。
 既存PH成果・SG Step 8の受入履歴は保護する。SG専用offline機能は両市場の実務完成を意味しない。
-次の単一作業はP1：共通の準備有効性・市場分離の最小実装とPH／SG offline回帰。
-その後P2保存・状態、P3分類確認、P4通常UI統一、P5少量実商品受入の順に進める。
+P1の[共通準備有効性・市場分離](PREPARATION_VALIDITY_P1.md)は、既存validatorを使う共通契約とPH／SGのoffline出力回帰を整備した（DEC-0139）。
+根拠未搬送・旧確認フラグだけの通常出力は停止し、通常producer接続・実商品証明を完成済みとしない。
+次の単一作業はP2：市場別の新規保存先・履歴・準備pool・5状態の最小実装とoffline回帰。
+その後P3分類確認・現在根拠搬送、P4通常UI統一、F1/F2、P5少量実商品受入の順に進める（DEC-0138）。
 [実商品受入・Owner判断資料](PH_SG_BETA_ACCEPTANCE_PLAN.md)は旧SG少量2商品群計画を維持する。
-[Amazon価格帯・平均評価](CANDIDATE_PRICE_RATING_FILTERS.md)はBeta前の開発候補であり、MUSTへ自動追加しない。
-主要作業への遅延、手動選別の負担、必要工数を基に採用／延期を判断する。
+[Amazon価格帯・平均評価](CANDIDATE_PRICE_RATING_FILTERS.md)のF1/F2はOwner判断によりBeta前MUST。
+P1〜P4を優先し、両フィルター完成後にP5へ進む。P1にフィルター実装を混在させない。
 live API、費用、認証・保存先設置、固定release変更、実出品は別承認。MY税務確認・関税計算はここで実装しない。
 
 Home Appliances分類補助は保存済みファイルを入力する独立CLIとして扱う（DEC-0136）。
@@ -27,7 +29,8 @@ SG Betaの下記実務受入・環境反映工程を置き換えない。
 SG初期Beta Ver1.0の追加機能は、[offline作業画面・保存契約](SG_INITIAL_BETA_V1.md)を参照する（DEC-0135）。
 限定AUTO_RULE、項目別Fact出所、長期作業DB、確認待ち・5状態・一括出力をoffline専用入口で扱う。
 この入口は模擬catalogを明示し、既存通常SG／PHの確認契約・API枠・DB・稼働releaseを置き換えない。
-SG 100578の対象商品自身のJP取得市場・Fact出所と公式Brandの有効性／更新条件の未解決事項はP1／P3へ引き継ぐ。
+SG 100578の対象実商品自身のJP証明と公式Brandのlive完全性／更新条件は未受入のままP3／P5へ引き継ぐ。
+P1では未証明の資料を推測で通さず停止する契約を整備した。
 具体的ruleの実運用適用、live API、保存先設置、release反映・実出品は別承認とする。
 旧SG通常継続利用の少量実務受入はP5と整合させ、このoffline成果で完了扱いにしない。
 
@@ -185,6 +188,10 @@ Source明示ON時のsilent fallbackを許さない。Bridge全面書込み障害
 SG Brand responseにmarketplace / Category echoがないため、server内部の別Category誤応答の独立検出は保証しない。
 
 ## Required Decisions
+
+- DEC-0139 — P1共通検証、session失効、公式完全取得と通常根拠未搬送時停止、P2／P3引継ぎ。
+
+- DEC-0138 — F1/F2のBeta前MUST、P1〜P4優先とP5前の完成、今回P1の境界。
 
 - DEC-0137 — PH・SG共通の実務Beta完成条件、差分監査・最小順序、少量受入、価格／評価候補の採否境界。
 - DEC-0136 — Home Appliances候補分類CLIの独立入力・出力、Fact出所、既知回帰と未知精度、後続接続の分離。

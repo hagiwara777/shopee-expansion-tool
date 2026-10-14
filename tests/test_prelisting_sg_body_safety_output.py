@@ -71,6 +71,9 @@ def test_verified_accessory_can_follow_normal_csv_txt_flow_with_current_bound_ev
     workflow.bind_product_evidence_files("synthetic-current-files")
     workflow.install_product_evidence_loader(loader)
     workflow.load_product_evidence(item)
+    from preparation_validity_support import bound_preparation
+    workflow.preparation_session, workflow.preparation_records = bound_preparation(
+        (item,), product_review=workflow.product_review, source_bundle=values)
     for _ in range(2):
         csv_bytes, txt, count = build_sg_beta_preparation_files((item,), workflow=workflow)
         assert count == 1 and item.candidate_asin in txt

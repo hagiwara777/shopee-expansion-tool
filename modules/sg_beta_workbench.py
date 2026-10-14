@@ -36,9 +36,11 @@ class BrandObservation:
     complete: bool
     current: bool
     source: str  # OFFLINE_MOCK, SAVED_COMPARISON, OFFICIAL_SESSION
+    marketplace: str = 'SG'
 
     def __post_init__(self):
-        if (type(self.category_id) is not int or self.category_id <= 0
+        if (self.marketplace not in {'PH', 'SG'}
+                or type(self.category_id) is not int or self.category_id <= 0
                 or not self.shop_id or not self.observation_ref
                 or type(self.complete) is not bool or type(self.current) is not bool
                 or self.source not in {'OFFLINE_MOCK', 'SAVED_COMPARISON', 'OFFICIAL_SESSION'}
@@ -65,9 +67,11 @@ class BrandAlias:
     approval_ref: str
     version: str
     scope: str = 'OFFLINE_ONLY'
+    marketplace: str = 'SG'
 
     def __post_init__(self):
-        if (type(self.category_id) is not int or self.category_id <= 0
+        if (self.marketplace not in {'PH', 'SG'}
+                or type(self.category_id) is not int or self.category_id <= 0
                 or type(self.brand_id) is not int or self.brand_id < 0
                 or not all(isinstance(s, str) for s in
                            (self.source_brand, self.brand_name, self.approval_ref, self.version))):
@@ -117,7 +121,8 @@ def _brand_basis(facts, category, observation, *, authority, alias=None):
 
 
 def auto_category(facts, ctx):
-    matches = [r for r in ctx.rules if r.matches(facts, mode=ctx.mode)]
+    matches = [r for r in ctx.rules if r.marketplace == ctx.catalog.marketplace
+               and r.matches(facts, mode=ctx.mode)]
     if not ctx.catalog_current or len(matches) != 1:
         return None
     rule = matches[0]
@@ -147,6 +152,7 @@ def category_valid(facts, decision, ctx):
 def _current_brand(category, ctx, shop_id):
     observation = ctx.brands.get(category['category_id']) if category else None
     return (observation if observation and observation.current and observation.complete
+            and observation.marketplace == ctx.catalog.marketplace
             and observation.shop_id == shop_id and observation.source != 'SAVED_COMPARISON' else None)
 
 
@@ -156,7 +162,8 @@ def auto_brand(facts, category, ctx, *, shop_id):
     observation = _current_brand(category, ctx, shop_id)
     if observation is None:
         return None
-    aliases = [a for a in ctx.aliases if a.category_id == category['category_id']
+    aliases = [a for a in ctx.aliases if a.marketplace == ctx.catalog.marketplace
+               and a.category_id == category['category_id']
                and normalized(a.source_brand) == normalized(facts.fields['brand'].value)
                and a.approval_ref and a.version and a.scope in {'OFFLINE_ONLY', 'OPERATION_APPROVED'}]
     if len(aliases) != 1:
@@ -200,10 +207,10 @@ def _sources(record):
     return candidates, text, ingredients, body
 
 
-def recommendation(record):
+def recommendation(record, *, marketplace="SG"):
     candidates, _, _, _ = _sources(record)
     c = next(c for c in candidates.rows if c.candidate_asin == record['asin'])
-    return SGMapperRecommendation('SG', c.source_type, c.source_asin, c.candidate_asin,
+    return SGMapperRecommendation(marketplace, c.source_type, c.source_asin, c.candidate_asin,
                                   c.product_title, c.brand, c.category, c.input_title, 'GATE_ELIGIBLE')
 
 
@@ -233,7 +240,7 @@ def _weapon_blocker(record, item, text):
                                                   provider='keepa')
     if fact != text.facts_by_asin[item.candidate_asin]:
         return 'WEAPON_TEXT_CHANGED'
-    session = WeaponImageReviewSession('SG')
+    session = WeaponImageReviewSession(item.marketplace)
     session.supply(item, text=fact, images=saved['images'])
     if saved['policy'] != list(session.policy_binding(item)):
         return 'WEAPON_POLICY_CHANGED'
@@ -260,18 +267,25 @@ def _weapon_blocker(record, item, text):
     return 'WEAPON_REVIEW_REQUIRED' if session.preparation_blocker(item) else None
 
 
-def assess(record, ctx, *, shop_id):
+def assess(record, ctx, *, shop_id, marketplace="SG"):
     """Single contract for queues, confirmation, preparation, SLS and every output."""
+    if marketplace not in {"PH", "SG"} or ctx.catalog.marketplace != marketplace:
+        raise SGWorkError("Preparation marketplace mismatch")
     facts = ProductFacts.from_dict(record['facts'])
     candidates, text, ingredients, body = _sources(record)
     c = next(c for c in candidates.rows if c.candidate_asin == facts.asin)
     missing = []
+    for name in ('title', 'brand', 'category_tree'):
+        if not facts.fields[name].owned_by(facts.asin):
+            missing.append('OWN_JP_FACT_REQUIRED:' + name)
+    if record.get('asin') != facts.asin:
+        missing.append('FACT_ASIN_MISMATCH')
     if (facts.fields['title'].value != c.product_title or facts.fields['brand'].value != c.brand):
         missing.append('FACT_CANDIDATE_MISMATCH')
     if not ctx.inventory_confirmed_current or not ctx.inventory_ref:
         missing.append('CURRENT_ALL_SHOP_INVENTORY_REQUIRED')
     try:
-        gate = evaluate_prelisting_gate(candidates, ctx.inventories, marketplace='SG',
+        gate = evaluate_prelisting_gate(candidates, ctx.inventories, marketplace=marketplace,
             expected_shop_count=ctx.expected_shop_count, product_text_safety=text,
             ingredient_safety=ingredients, sg_body_confirmations=body)
         row = next(r for r in gate.rows if r.candidate.candidate_asin == facts.asin)
@@ -288,7 +302,7 @@ def assess(record, ctx, *, shop_id):
         f = facts.fields[name]
         if f.owned_by(facts.asin):
             own_row[name] = list(f.value)
-    guarded = apply_guardrails((own_row,), marketplace='SG')[0]
+    guarded = apply_guardrails((own_row,), marketplace=marketplace)[0]
     if guarded['guardrail_status'] != 'SAFE':
         safety.extend(('FACT_GUARDRAIL_' + guarded['guardrail_status'], guarded['guardrail_matched_terms']))
     if record.get('manual_exclude'):
@@ -304,15 +318,21 @@ def assess(record, ctx, *, shop_id):
         missing.append('BRAND_CONFIRMATION_REQUIRED')
     if valid_cat:
         node = ctx.catalog.get(cat['category_id'])
-        sls = evaluate_sg_category(marketplace='SG', category_id=node.category_id,
-            category_confirmed=True, category_path=cat['category_path'], current_category_path=node.category_path,
-            current_is_leaf=node.is_leaf, catalog_version=ctx.catalog_binding, context=load_sg_context())
+        if marketplace == 'SG':
+            sls = evaluate_sg_category(marketplace='SG', category_id=node.category_id,
+                category_confirmed=True, category_path=cat['category_path'], current_category_path=node.category_path,
+                current_is_leaf=node.is_leaf, catalog_version=ctx.catalog_binding, context=load_sg_context())
+        else:
+            from modules.sls_category_assets import load_ph_context
+            from modules.sls_category_rules import evaluate_ph_category
+            sls = evaluate_ph_category(marketplace='PH', category_id=node.category_id,
+                category_confirmed=True, context=load_ph_context())
         if sls.check_state != 'EVALUATED' or sls.action != 'CATEGORY_ALLOW':
             safety.extend(('SLS_STOP', *sls.reason_codes))
     else:
         sls = None
     try:
-        weapon = _weapon_blocker(record, recommendation(record), text)
+        weapon = _weapon_blocker(record, recommendation(record, marketplace=marketplace), text)
     except (ValueError, RuntimeError, KeyError, TypeError):
         weapon = 'WEAPON_REVALIDATION_REQUIRED'
     if weapon:

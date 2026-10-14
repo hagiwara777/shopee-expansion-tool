@@ -191,6 +191,12 @@ def test_candidate_entry_from_files_to_group_downloads(tmp_path, monkeypatch):
     assert not any("sg_weapon_review_" in checkbox.key for checkbox in app.checkbox)
     assert not any(button.label == "商品確認結果を保存" for button in app.button)
     assert not app.exception
+    from preparation_validity_support import bound_preparation
+    workflow = app.session_state['sg_candidate_workflow']
+    workflow.preparation_session, workflow.preparation_records = bound_preparation(
+        tuple(app.session_state['sg_category_mapper_recommendations']),
+        product_review=workflow.product_review, source_bundle=material)
+    app.run()
     labels = [button.label for button in app.get("download_button")]
     assert "開発検証：出品準備候補CSV" in labels and "開発検証：出品準備候補TXT" in labels
     workflow = app.session_state["sg_candidate_workflow"]

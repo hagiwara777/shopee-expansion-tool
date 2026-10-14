@@ -77,9 +77,11 @@ def build_sg_confirmation_audit_csv(items, *, store, session) -> bytes:
 
 def build_sg_preparation_candidate_files(items, *, workflow):
     """Offline preparation preview. Never change listing_ready or the real exit."""
+    items = tuple(items)
     rows = _sg_preparation_rows(items, workflow=workflow)
     csv_output, text = format_preparation_groups(rows, extra_columns=("attribute_check_state", "output_scope"),
                                                 unknown_attribute_text="未取得")
+    _require_sg_rows_current(items, rows, workflow=workflow)
     banner = "開発検証用の出品準備候補です。出品用ファイルではありません。listing_ready=FALSE。"
     return csv_output, banner + ("\n\n" + text if text else ""), len(rows)
 
@@ -92,11 +94,21 @@ def build_sg_beta_preparation_files(items, *, workflow):
     """
     from modules.sg_beta_release import require_sg_beta_operation
     require_sg_beta_operation()
+    items = tuple(items)
     rows = _sg_preparation_rows(items, workflow=workflow)
+    from modules.preparation_validity import assess_preparation_item
+    for item in items:
+        proof = assess_preparation_item(item,
+            session=getattr(workflow, 'preparation_session', None),
+            records=getattr(workflow, 'preparation_records', None), operational=True,
+            weapon_session=workflow.product_review)
+        if not proof['valid']:
+            rows = [row for row in rows if row['asin'] != item.candidate_asin]
     rows = [{**row, "listing_ready": "TRUE", "output_scope": "SG_BETA_MANUAL_PREPARATION"}
             for row in rows]
     csv_output, text = format_preparation_groups(rows, extra_columns=("attribute_check_state", "output_scope"),
                                                 unknown_attribute_text="未取得")
+    _require_sg_rows_current(items, rows, workflow=workflow, operational=True)
     require_sg_beta_operation()
     return csv_output, text, len(rows)
 
@@ -109,6 +121,7 @@ def _sg_preparation_rows(items, *, workflow):
     group_sg_confirmation_items(items)
     checked = refresh_sg_sls_results(items, store=workflow.store)
     assessments = assess_sg_preparation(checked, workflow=workflow)
+    bindings = {a["asin"]: a.get("preparation_basis") for a in assessments}
     ready = [assessment["item"] for assessment in assessments if assessment["preparation_complete"]]
     rows = []
     for item in ready:
@@ -121,7 +134,8 @@ def _sg_preparation_rows(items, *, workflow):
                      "brand_id": item.confirmed_brand_id, "brand_name": item.confirmed_brand_name,
                      "mandatory_attribute_count": mandatory_count, "verification_status": "USER_CONFIRMED",
                      "attribute_check_state": "FETCHED" if attributes is not None else "NOT_FETCHED",
-                     "listing_ready": "FALSE", "output_scope": "DEVELOPMENT_PREPARATION_PREVIEW"})
+                     "listing_ready": "FALSE", "output_scope": "DEVELOPMENT_PREPARATION_PREVIEW",
+                     "preparation_basis": bindings[item.candidate_asin]})
     return rows
 
 
@@ -164,9 +178,40 @@ def assess_sg_preparation(items, *, workflow):
         image_blocker = workflow.product_review.preparation_blocker(item)
         if image_blocker:
             missing.append(image_blocker)
+        from modules.preparation_validity import assess_preparation_item, PREPARATION_RECHECK_MESSAGE
+        proof = assess_preparation_item(current,
+            session=getattr(workflow, 'preparation_session', None),
+            records=getattr(workflow, 'preparation_records', None), weapon_session=workflow.product_review)
+        if not proof['valid']:
+            missing.extend((PREPARATION_RECHECK_MESSAGE, *proof['reasons']))
+        elif evidence is None:
+            missing.append('CURRENT_PRODUCT_TEXT_BINDING_MISMATCH')
+        else:
+            from modules.sg_beta_workbench import _sources
+            record = workflow.preparation_records[item.candidate_asin]
+            _, bound_text, _, _ = _sources(record)
+            if bound_text is None or bound_text.facts_by_asin[item.candidate_asin] != evidence.text:
+                missing.append('CURRENT_PRODUCT_TEXT_BINDING_MISMATCH')
         attributes=workflow.current_attributes(item)
         assessments.append({"item":current,"asin":item.candidate_asin,"preparation_complete":not missing,
-            "missing_steps":tuple(missing),"attributes_fetched":attributes is not None,
+            "missing_steps":tuple(missing),"preparation_basis":proof.get("basis"),
+            "attributes_fetched":attributes is not None,
             "mandatory_attribute_count":sum(a["is_mandatory"] for a in attributes.attributes) if attributes is not None else None,
             "listing_ready":False,"formal_output_enabled":False})
     return tuple(assessments)
+
+
+def _require_sg_rows_current(items, rows, *, workflow, operational=False):
+    """Do not deliver formatted bytes if evidence changed while building them."""
+    from modules.preparation_validity import assess_preparation_item
+    current = {a['asin']: a for a in assess_sg_preparation(items, workflow=workflow)}
+    item_by_asin = {item.candidate_asin: item for item in items}
+    for row in rows:
+        assessment = current[row['asin']]
+        proof = assess_preparation_item(item_by_asin[row['asin']],
+            session=getattr(workflow, 'preparation_session', None),
+            records=getattr(workflow, 'preparation_records', None), operational=operational,
+            weapon_session=workflow.product_review)
+        if (not assessment['preparation_complete'] or not proof['valid']
+                or proof['basis'] != row['preparation_basis']):
+            raise SGCategoryMapperError('PREPARATION_CHANGED_BEFORE_RETURN')
