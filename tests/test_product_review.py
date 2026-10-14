@@ -108,6 +108,8 @@ def test_preview_requires_safety_brand_and_current_shipping_allow(tmp_path, monk
     supply(workflow.product_review, confirmed)
     inspect(workflow.product_review, confirmed)
     allow(workflow.product_review, confirmed)
+    from preparation_validity_support import bound_preparation
+    workflow.preparation_session, workflow.preparation_records = bound_preparation((confirmed,), product_review=workflow.product_review)
     csv_data, text, count = build_sg_preparation_candidate_files((confirmed,), workflow=workflow)
     assert count == 1
     row = next(csv.DictReader(StringIO(csv_data.decode("utf-8-sig"))))
@@ -152,6 +154,8 @@ def test_non_target_exports_without_image_fetch_or_human_confirmation(tmp_path, 
     assert workflow.product_review.decision(item) is None
     assert workflow.product_review.current_image_inspection(item) is None
     assert not workflow.can_inspect_images
+    from preparation_validity_support import bound_preparation
+    workflow.preparation_session, workflow.preparation_records = bound_preparation((item,), product_review=workflow.product_review)
     data, _, count = build_sg_preparation_candidate_files((item,), workflow=workflow)
     assert count == 1 and len(calls) == 1
     assert next(csv.DictReader(StringIO(data.decode("utf-8-sig"))))["listing_ready"] == "FALSE"
@@ -171,6 +175,8 @@ def test_weapon_inspection_outcome_controls_preparation_without_general_review(t
     supply(workflow.product_review, item)
     assert build_sg_preparation_candidate_files((item,), workflow=workflow)[2] == 0
     inspect(workflow.product_review, item, semantic)
+    from preparation_validity_support import bound_preparation
+    workflow.preparation_session, workflow.preparation_records = bound_preparation((item,), product_review=workflow.product_review)
     assert build_sg_preparation_candidate_files((item,), workflow=workflow)[2] == expected
     assert workflow.product_review.decision(item) is None
     if semantic != "NO_SIGNAL":

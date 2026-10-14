@@ -178,6 +178,12 @@ def _render_category_mapper_body() -> None:
 def clear_category_mapper_result(state: Mapping[str, object] | dict[str, object]) -> None:
     """Clear only stale Mapper session state."""
 
+    proof = state.pop('category_mapper_preparation_context', None)
+    if isinstance(proof, dict):
+        from modules.preparation_validity import PreparationSession
+        session = proof.get('session')
+        if isinstance(session, PreparationSession):
+            session.begin_catalog_refresh()
     for key in _STATE_KEYS:
         state.pop(key, None)  # type: ignore[attr-defined]
 
@@ -254,6 +260,7 @@ def _render_catalog_status(store: CategoryMapperStore, marketplace: str) -> None
             icon=":material/sync:",
             key="category_mapper_sync_categories",
         ):
+            clear_category_mapper_result(st.session_state)
             try:
                 client = _catalog_client()
                 categories = client.get_categories(marketplace)
@@ -271,13 +278,22 @@ def _render_catalog_status(store: CategoryMapperStore, marketplace: str) -> None
                 st.rerun()
 
 
+def _build_current_exports(items):
+    evidence = st.session_state.get('category_mapper_preparation_context')
+    if (not isinstance(evidence, dict) or not evidence.get('input_fingerprint')
+            or evidence['input_fingerprint'] != st.session_state.get(_FINGERPRINT_KEY)):
+        return build_mapper_exports(items)
+    return build_mapper_exports(items, preparation_session=evidence.get('session'),
+                                preparation_records=evidence.get('records'))
+
+
 def _render_recommendations(
     recommendations: tuple[MapperRecommendation, ...],
     *,
     store: CategoryMapperStore,
     source_type: str,
 ) -> None:
-    exports = build_mapper_exports(recommendations)
+    exports = _build_current_exports(recommendations)
     recommendations = exports.evaluated_recommendations
     st.session_state[_RESULT_KEY] = recommendations
     summaries = group_recommendations(recommendations)
@@ -302,7 +318,7 @@ def _render_recommendations(
         _render_group_controls(index, members, store)
 
     current = tuple(st.session_state.get(_RESULT_KEY) or recommendations)
-    exports = build_mapper_exports(current)
+    exports = _build_current_exports(current)
     current = exports.evaluated_recommendations
     st.session_state[_RESULT_KEY] = current
     blockers = summarize_output_blockers(current)
@@ -344,7 +360,7 @@ def _render_recommendations(
                     "ASIN": item.candidate_asin,
                     "Keepa category": item.keepa_category,
                     "Keepa brand": item.keepa_brand,
-                    "理由": item.manual_review_reason,
+                    "理由": " ".join(filter(None, (item.manual_review_reason, item.preparation_review_reason))),
                 }
                 for item in items
             )

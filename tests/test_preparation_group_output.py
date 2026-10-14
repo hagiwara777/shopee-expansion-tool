@@ -21,7 +21,9 @@ def test_ph_group_csv_and_txt_preserve_existing_order_and_format(store):
     second = replace(first, candidate_asin="B000000002")
     third = apply_manual_brand(replace(item, candidate_asin="B000000003"),
                                brand={"brand_id": 7, "brand_name": "Maker", "is_no_brand": False})
-    result = build_mapper_exports((first, third, second))
+    from preparation_validity_support import bound_preparation
+    session, records = bound_preparation((first, third, second))
+    result = build_mapper_exports((first, third, second), preparation_session=session, preparation_records=records)
     expected = (
         "marketplace,group_key,category_id,category_path,brand_id,brand_name,mandatory_attribute_count,verification_status,listing_ready,asin_count,asin\n"
         "PH,PH|100869|0,100869,Beauty > Hair Care > Shampoo,0,No brand,0,LISTING_TOOL_ACCEPTED,TRUE,2,B000000001\n"
@@ -59,6 +61,9 @@ def prepared_sg(tmp_path, monkeypatch):
         inspect(workflow.product_review, confirmed)
         allow(workflow.product_review, confirmed)
         items.append(confirmed)
+    from preparation_validity_support import bound_preparation
+    workflow.preparation_session, workflow.preparation_records = bound_preparation(
+        items, product_review=workflow.product_review)
     return workflow, tuple(items)
 
 
@@ -92,7 +97,9 @@ def test_ph_formula_escape_is_preserved_in_shared_group_csv(store):
     source = parse_category_mapper_input(_gate_csv(), filename="eligible.csv")
     item = build_recommendations(source, resolver_titles=None, store=store)[0]
     confirmed = apply_manual_brand(item, brand={"brand_id": 7, "brand_name": "=Synthetic", "is_no_brand": False})
-    data = build_mapper_exports((confirmed,)).groups_csv
+    from preparation_validity_support import bound_preparation
+    session, records = bound_preparation((confirmed,))
+    data = build_mapper_exports((confirmed,), preparation_session=session, preparation_records=records).groups_csv
     assert next(csv.DictReader(StringIO(data.decode("utf-8-sig"))))["brand_name"] == "'=Synthetic"
 
 

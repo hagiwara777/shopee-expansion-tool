@@ -51,9 +51,18 @@ class SGBrandWorkflow:
         self._product_evidence_loader = product_evidence_loader
         self._evidence_files_bound = False
         self._evidence_files_fingerprint = None
+        self.preparation_session = None
+        self.preparation_records = {}
+
+    def _clear_preparation(self):
+        if self.preparation_session is not None:
+            self.preparation_session.begin_catalog_refresh()
+        self.preparation_session = None
+        self.preparation_records = {}
 
     def bind_input(self, fingerprint: str | None) -> None:
         if self._input_bound and fingerprint != self._input_fingerprint:
+            self._clear_preparation()
             for category_id in self._acquired_categories:
                 self.session.invalidate(category_id)
             self._acquired_categories.clear()
@@ -77,6 +86,8 @@ class SGBrandWorkflow:
         if self._live_scope is not None:
             self._live_scope.require_product(item)
         category_id = _require_sg_brand_product(item, self.store)
+        if self.preparation_session is not None:
+            self.preparation_session.begin_brand_refresh(category_id)
         if self.continuous:
             self._live_scope.authorize_category(item, self.store)
         self._acquired_categories.add(category_id)
@@ -127,6 +138,7 @@ class SGBrandWorkflow:
         if not self._evidence_files_bound and fingerprint is None:
             return
         if not self._evidence_files_bound or fingerprint != self._evidence_files_fingerprint:
+            self._clear_preparation()
             self.product_review.clear()
             self._product_evidence_loader = None
             if self.continuous:
@@ -149,6 +161,7 @@ class SGBrandWorkflow:
         self._product_evidence_loader = loader
 
     def clear_product_evidence_loader(self):
+        self._clear_preparation()
         self.product_review.clear()
         self._product_evidence_loader = None
         if self.continuous:

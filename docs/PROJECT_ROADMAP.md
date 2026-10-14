@@ -8,16 +8,17 @@
 旧PH BetaとSG Minimum Beta Step 8の完成履歴は維持し、新しい実務Betaとは区別する。
 
 最短順はP1共通の準備有効性・市場分離 → P2長期保存・準備pool・5状態 →
-P3限定自動確定・グループ／個別確認 → P4通常UI統一・整理 → P5両市場の少量反復受入。
+P3限定自動確定・グループ／個別確認 → P4通常UI統一・整理 → F1/F2 → P5両市場の少量反復受入（DEC-0138）。
 SG専用[offline作業機能](SG_INITIAL_BETA_V1.md)を再利用するが、PH対応・通常接続・公式資料の有効性は不足として扱う。
-次の単一作業はP1。実API・費用・設置・release反映・実出品は設計採用とは別承認とする。
+P1の[共通準備有効性契約](PREPARATION_VALIDITY_P1.md)とPH／SG offline回帰を整備した（DEC-0139）。
+次の単一作業はP2。現在根拠の通常producer接続はP3／P4、実API・費用・設置・release反映・実出品は別承認とする。
 固定PH基準（DEC-0116）は[既存機能の回帰基準](PH_BETA_MARKET_PARITY.md)として保持する。
 MY／TW／TH追加は共通実務Beta受入後。MYは販売価格・貨物価格・送料等に基づく税務確認を国別工程で整理する。
 
-Amazon.co.jp本体の価格帯と平均レビュー評価を[Beta前開発候補F1/F2](CANDIDATE_PRICE_RATING_FILTERS.md)へ加える。
+Amazon.co.jp本体の価格帯と平均レビュー評価は[Beta前MUSTのF1/F2](CANDIDATE_PRICE_RATING_FILTERS.md)とする（DEC-0138）。
 共通の取得後選別・既存Candidate CSV互換を最小範囲とし、両機能合計2〜4人日を概算とする。
-未実装なら価格／評価の手動選別が残る。手間の許容性・候補数・鮮度・P1〜P4への遅延を基にOwnerがMUST採否を判断する。
-追加要望だけでC01〜C12を増やさず、現時点はSHOULD。Finder先行選別の最適化はBeta後に分離する。
+P1〜P4を優先し、F1/F2を完成させてからP5へ進む。C01〜C12と併せて完成を必要とする。
+Finder先行選別の最適化はBeta後に分離する。
 仕入れ参考のAmazon価格をMYの課税判定額へ流用せず、関税計算機能は実装しない。
 
 SGは[通常継続利用](SG_CONTINUOUS_OPERATION.md)で新商品群を同じ画面から反復処理する（DEC-0134）。

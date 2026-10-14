@@ -97,6 +97,7 @@ def bundle(count=4, start=1, title='Synthetic storage box', *, root=999999):
 
 def admit(runtime, files):
     w = runtime.workflow
+    runtime._p1_test_files = files
     fingerprint = hashlib.sha256(b''.join(v for v in files.values() if isinstance(v, bytes))).hexdigest()
     w.bind_input(fingerprint)
     w.bind_product_evidence_files(fingerprint)
@@ -114,6 +115,9 @@ def complete(runtime, item):
                             brand_id=7, expected_brand_name='Maker', human_product_verified=True,
                             human_option_selected=True)
     runtime.workflow.load_product_evidence(item)
+    from preparation_validity_support import bound_preparation
+    runtime.workflow.preparation_session, runtime.workflow.preparation_records = bound_preparation(
+        (item,), product_review=runtime.workflow.product_review, source_bundle=runtime._p1_test_files)
     return item
 
 
@@ -128,7 +132,10 @@ def test_two_batches_all_rows_partial_output_and_fresh_confirmation(tmp_path, po
         csv, text, ready = build_sg_beta_preparation_files((first, *a[1:]), workflow=r.workflow)
         assert ready == 1 and first.candidate_asin in text and a[1].candidate_asin not in text
         assert b'TRUE' in csv
+        old_p1, old_record = r.workflow.preparation_session, r.workflow.preparation_records[first.candidate_asin]
         b = admit(r, bundle(count, start=count+1))
+        assert not old_p1.assess(old_record)['valid']
+        assert r.workflow.preparation_session is None and not r.workflow.preparation_records
         assert len(b) == count and not r.workflow.session._current and not r.workflow.session._product_confirmations
         assert r.workflow.product_review.current(first) is None
         assert build_sg_beta_preparation_files(b, workflow=r.workflow)[2] == 0
@@ -272,6 +279,7 @@ render_sg_category_mapper(brand_workflow=st.session_state['test_runtime'].workfl
     app.session_state['test_runtime'] = r
 
     def upload(files):
+        r._p1_test_files = files
         for key, name, content, mime in (
             ('sg_category_mapper_source_csv', files['gate_filename'], files['gate_content'], 'text/csv'),
             ('sg_review_candidate_csv', 'candidate.csv', files['candidate_content'], 'text/csv'),
@@ -296,6 +304,11 @@ render_sg_category_mapper(brand_workflow=st.session_state['test_runtime'].workfl
         app.button(key='sg_category_mapper_apply_brand_0').click().run()
         app.button(key='sg_category_mapper_fetch_product_evidence_0').click().run()
         assert not app.exception
+        from preparation_validity_support import bound_preparation
+        current_items = tuple(app.session_state['sg_category_mapper_recommendations'])
+        r.workflow.preparation_session, r.workflow.preparation_records = bound_preparation(
+            (current_items[0],), product_review=r.workflow.product_review, source_bundle=r._p1_test_files)
+        app.run()
         assert any(c.value == '出品準備対象: 1件' for c in app.caption)
 
     try:

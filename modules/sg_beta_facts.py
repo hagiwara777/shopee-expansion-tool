@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from hashlib import sha256
 import json
 import unicodedata
@@ -42,7 +42,7 @@ class FieldFact:
     def owned_by(self, asin):
         try:
             captured = datetime.fromisoformat(self.fetched_at.replace('Z', '+00:00'))
-            dated = captured.tzinfo is not None
+            dated = captured.tzinfo is not None and captured <= datetime.now(timezone.utc)
         except ValueError:
             dated = False
         return (self.origin == 'OWN_PRODUCT' and self.source_asin == asin
@@ -132,9 +132,11 @@ class CategoryRule:
     excluded_text: tuple[str, ...]
     approval_ref: str
     scope: str = 'OFFLINE_ONLY'
+    marketplace: str = 'SG'
 
     def __post_init__(self):
-        if (type(self.category_id) is not int or self.category_id <= 0
+        if (self.marketplace not in {'PH', 'SG'}
+                or type(self.category_id) is not int or self.category_id <= 0
                 or not all(isinstance(s, str) and s.strip() for s in
                            (self.rule_id, self.version, self.category_path))
                 or any(not isinstance(s, str) or not s.strip() for values in

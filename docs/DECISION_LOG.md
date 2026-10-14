@@ -1664,3 +1664,25 @@
 - 受入と人間作業: [PH・SG受入計画](PH_SG_BETA_ACCEPTANCE_PLAN.md)はSGのExpansion由来A・Resolver由来Bの少量2商品群を維持し、PHの同等操作と既存機能保護を加える。offline、実画面、実API、実商品、Owner実務受入を分離する。Seller Centerの必須属性・発送条件、判断不能商品、外部ツール手動投入と結果照合は人間に残す。全面自動出品、全商品安全保証、未知商品完全自動分類を追加しない。
 - 保護／非対象: Safety／Battery／SLS／Gateの停止・判定条件、PH/SG protected capability、既存認証・DB・ledger・稼働releaseを変更しない。実API・費用・保存先設置・credential・固定release変更・実出品は別承認。Home Appliances CLIは独立維持し再監査・再実装しない。MY／TW／THは共通実務Beta後の国追加工程とし、MYは想定販売価格・貨物価格・送料等の税務確認を別工程で整理する。Amazon仕入れ参考価格を課税額へ転用せず、今回関税計算を実装しない。
 - 再検討／rollback: 工数・実務影響・実証された仕様が変われば完成線を黙って拡張せず、Ownerの事業判断と新Decisionで扱う。設計変更は通常revert／追記で戻せる。過去受入履歴・保存データを削除しない。
+
+## DEC-0138 — F1/F2を実務Beta前MUSTとしP1〜P4の後に実装する
+
+- 日付: 2026-10-15
+- authority／目的: PR #128正式採用後、OwnerはP1〜P4を優先し、Amazon本体価格帯F1とAmazon平均レビュー評価F2をBeta前MUSTとすることを確定した。
+- 決定: P1 → P2 → P3 → P4 → F1/F2 → P5の順で進める。C01〜C12に加えF1/F2の完成を実務Betaの必須条件とし、P1〜P4とF1/F2完成後に両市場の少量実商品受入P5を行う。Beta完成後は原則として国追加と軽微な修正とする。
+- 置換範囲: DEC-0137のF1/F2をSHOULD候補とし採否を保留する部分だけを置き換える。既存DEC-0137とPH／SGの過去完成・受入履歴は書き換えない。価格・評価の意味、欠損停止、候補生成とSafetyの分離、Finder最適化のBeta後境界を維持する。
+- 今回のscope: P1の共通準備有効性・市場分離とPH／SG offline回帰、関連文書整合に限る。F1/F2の実装、P2の保存・5状態全面実装、P3の運用自動分類、P4の通常UI全面改修は混在させない。
+- 承認境界: offline実装・tests・read-only review・local commit・push・Draft PR・CI確認は同じタスクで行う。formal main mergeは現在対象への別最終承認を必要とし、承認待ちはWAITING_APPROVALであって完了ではない。実API・有料処理・実商品・DB移行・credential・固定release・deploy・実出品は開始しない。
+- 保護／rollback: Safety／Battery／SLS停止とPH／SG protected capabilityを維持する。通常revertと新Decisionによる訂正を使い、既存DB・履歴・過去Decisionを削除しない。
+
+## DEC-0139 — P1の共通準備有効性と市場・shop・取得session結合を採用する
+
+- 日付: 2026-10-15
+- authority／目的: OwnerのPH・SG共通実務Beta P1実装依頼に従い、古い・欠損・他市場／他shopの資料や失効確認から準備完了・出力可能にしない共通契約を整える。
+- 決定: 既存ProductFacts、Category／Brand validator、Gate、Guardrail、PH／SG別SLS、SG本体確認、武器画像validatorと共通formatterを再利用する。準備scopeは市場・shop・新規sessionへ固定し、対象自身のJP取得・項目別出所、Candidate・商品文章・画像root、catalog／rule／alias版、対象shopを含む全ショップ既出品資料を照合する。HUMAN確認は不明出所を証明済みに変換しない。
+- 有効性: 開始・再起動・市場／shop切替では新しいsessionを要求する。更新開始で対象根拠を先に失効させ、失敗・部分取得から旧成功へ戻さない。固定24時間TTLは設けず、session内の内容bindingと明示更新で管理する。長時間作業での再取得頻度・実費・実務上の鮮度は実商品受入前に別途確認する。日付や保存済みSUCCESSだけでcurrentへ昇格しない。
+- 公式Brand: 市場・shop・leafをbindした共通Clientのstrict raw検査と終端までの取得を必要とする。P1の新しい共通取得は最大10ページ、自動retryなし、DB書込みなし。既存SGの別承認50ページ枠を拡張・リセットしない。公式current receiptはこのsessionの取得結果だけで発行し、保存JSONのOFFICIAL_SESSION申告では代用しない。fake transportは模擬receiptとして保持し、通常出力のTRUEへ昇格しない。Brand未発見からNo Brandへfallbackせず、実ID／名前／区分の明示採用を必要とする。
+- 出力: PH既存出力とSG準備判定／CSV／TXTは共通契約を検査する。今回の根拠が未搬送なら理由付きで停止し、旧確認フラグだけの出力へfallbackしない。formatter後・戻り値直前にも再検証し、途中失効ならbytesを返さない。正常な完全根拠のPH／SG fixtureで従来の列・group・手動準備出力を回帰保護する。
+- 実運用との境界: 通常UIへJP Factや全ショップ根拠の新producerを自動追加せず、証明不足の資料は停止する。対象実商品自身のJP証明、公式一覧のlive完全性・更新条件・長時間利用はoffline成功だけで受入済みにしない。通常接続と分類の運用適用はP3／P4、実商品受入はP5へ引き継ぎ、既存固定releaseへ反映しない。コードの採用を即時の実務利用開放と読み替えない。
+- 保護／非対象: BLOCK／REVIEW／EXCLUDE、Battery／SLS／SG本体・実同梱／画像疑義は既存validatorで停止を維持する。P2保存・5状態全面実装、P3 rule追加・運用自動分類、P4通常UI全面改修、F1/F2実装、MY／TW／TH runtime、Home Appliances接続、実API・有料処理・実商品・DB移行・credential・deploy・実出品を実施しない。
+- rollback: 対象code／tests／docsを通常revertできる。既存DB・確認履歴・API消費記録・過去Decisionは保持する。formal main mergeはmandatory technical gatesと現在対象へのOwner別最終承認を必要とする。
