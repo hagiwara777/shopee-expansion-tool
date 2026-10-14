@@ -6,6 +6,16 @@
 
 ## 現在の正式状態と次の独立工程
 
+PH・SGの共通初版は[実務Beta完成条件・差分監査](PRACTICAL_BETA_COMPLETION.md)で判断する（DEC-0137）。
+共通入口だけでなく、両国の通常操作、限定自動確定、長期保存・準備pool・5状態、反復実商品受入を必要とする。
+既存PH成果・SG Step 8の受入履歴は保護する。SG専用offline機能は両市場の実務完成を意味しない。
+次の単一作業はP1：共通の準備有効性・市場分離の最小実装とPH／SG offline回帰。
+その後P2保存・状態、P3分類確認、P4通常UI統一、P5少量実商品受入の順に進める。
+[実商品受入・Owner判断資料](PH_SG_BETA_ACCEPTANCE_PLAN.md)は旧SG少量2商品群計画を維持する。
+[Amazon価格帯・平均評価](CANDIDATE_PRICE_RATING_FILTERS.md)はBeta前の開発候補であり、MUSTへ自動追加しない。
+主要作業への遅延、手動選別の負担、必要工数を基に採用／延期を判断する。
+live API、費用、認証・保存先設置、固定release変更、実出品は別承認。MY税務確認・関税計算はここで実装しない。
+
 Home Appliances分類補助は保存済みファイルを入力する独立CLIとして扱う（DEC-0136）。
 候補A／B／C・理由・根拠・不足情報・出所を専用BOM付きCSVへ出し、既存Safety Shadow V3と分離する。
 [入力・使い方・限界](HOME_APPLIANCES_CLASSIFIER.md)を参照する。
@@ -17,9 +27,9 @@ SG Betaの下記実務受入・環境反映工程を置き換えない。
 SG初期Beta Ver1.0の追加機能は、[offline作業画面・保存契約](SG_INITIAL_BETA_V1.md)を参照する（DEC-0135）。
 限定AUTO_RULE、項目別Fact出所、長期作業DB、確認待ち・5状態・一括出力をoffline専用入口で扱う。
 この入口は模擬catalogを明示し、既存通常SG／PHの確認契約・API枠・DB・稼働releaseを置き換えない。
-次の新機能工程は、SG 100578の対象商品自身のJP取得市場・Fact出所と、公式Brandの有効性／更新条件を
-証明する実務受入資料の整理。具体的rule適用、live API、保存先設置、release反映・実出品は別承認とする。
-旧SG通常継続利用の少量実務受入は独立して継続し、このoffline成果で完了扱いにしない。
+SG 100578の対象商品自身のJP取得市場・Fact出所と公式Brandの有効性／更新条件の未解決事項はP1／P3へ引き継ぐ。
+具体的ruleの実運用適用、live API、保存先設置、release反映・実出品は別承認とする。
+旧SG通常継続利用の少量実務受入はP5と整合させ、このoffline成果で完了扱いにしない。
 
 SG通常継続利用はDEC-0134の有限Policy＋画面商品群受付を使う。
 同じ統一アプリで全SG ELIGIBLEを読み、今回のCategory／Brand／必要Safety確認を満たした商品だけCSV／TXTへ出す。
@@ -27,7 +37,7 @@ SG通常継続利用はDEC-0134の有限Policy＋画面商品群受付を使う�
 商品群ごとのCodex設定・新Grant・新DBは不要。旧限定方式と旧DB／ledger／claimは保持する。
 通常継続API枠は送信前に永続計上し、Keepaも自動retryなしの有限送信枠で保護する。
 [操作・設定・制約](SG_CONTINUOUS_OPERATION.md)を参照する。
-次の単一作業は、固定release反映・新しい有限API枠／保存先・少量2商品群の実務受入計画を具体化して別承認を得ること。
+固定release反映・新しい有限API枠／保存先・少量2商品群の実務受入は、共通P1〜P4を整えてP5で別承認を得る。
 コード採用を8503反映・実API・実商品受入へ読み替えず、MY／THへ自動拡張しない。
 以下の旧少量・offline成果は適用modeと受入履歴を区別して参照する。
 
@@ -46,7 +56,7 @@ Shared Battery v0.2はv0.1の11語に限定5表現を加えた16語でPH／SGの
 Batteryの既知の後続確認は、少量実利用で増えたREVIEWの妥当性・手間の評価。
 追加APIやBattery自動確定、無条件の人間解除へ自動拡張しない。
 
-SG機能統一の固定基準は現状PH Betaである（DEC-0116 / DEC-0134）。
+DEC-0116の固定PH基準は既存機能の回帰基準として保持し、新しい実務完成判断はDEC-0137を適用する。
 共通moduleを改善し、市場別の判断材料とadapterを分離する。
 旧限定modeのSG実運用（Roadmap Step 9）は専用の少量ベータ環境を対象とする（DEC-0127）。
 SG ACTIVE化とPH形式の手動準備出力を採用し、固定release・専用保存先・承認枠で起動する。
@@ -73,8 +83,8 @@ Shadowの既知の後続確認は比較表示の実用性と比較不能事例�
 入力簡素化の既知の後続確認は、少量実商品で搬送省力化の利用価値を評価すること。
 稼働環境更新・実商品・API利用は別の明示承認を要し、Resolver／Mapper内部接続へ自動拡張しない。
 未採用のShadow／Keepa／分類接続成果を、この方針の採用によって正式成果へ昇格しない。
-MY / THの市場runtime開始はSGの利用確認後に別scopeで判断する。
-完成基準と順序は[PH Beta市場展開](PH_BETA_MARKET_PARITY.md)を参照する。
+MY／TW／THの市場runtime開始はPH・SG共通実務Beta受入後に別scopeで判断する。
+過去の固定基準は[PH Beta市場展開](PH_BETA_MARKET_PARITY.md)、新しい完成基準・順序はDEC-0137の完成条件を参照する。
 
 ## 成立済み成果と保護境界
 
@@ -176,6 +186,7 @@ SG Brand responseにmarketplace / Category echoがないため、server内部の
 
 ## Required Decisions
 
+- DEC-0137 — PH・SG共通の実務Beta完成条件、差分監査・最小順序、少量受入、価格／評価候補の採否境界。
 - DEC-0136 — Home Appliances候補分類CLIの独立入力・出力、Fact出所、既知回帰と未知精度、後続接続の分離。
 
 - DEC-0135 — SG初期Betaのoffline限定AUTO_RULE・Fact出所・長期保存・5状態、既存実務受入と実運用承認の分離。

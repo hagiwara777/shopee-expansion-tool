@@ -1,5 +1,9 @@
 # PH / SG統一ベータ
 
+本書は現在の共通入口の仕様。[実務Beta完成条件](PRACTICAL_BETA_COMPLETION.md)（DEC-0137）は、
+同じ見出しだけでなく通常操作・保存・5状態の一致と両国の実商品受入まで要求する。
+SG専用offline入口は完成済みの共通通常UIではない。価格・評価は[追加開発候補](CANDIDATE_PRICE_RATING_FILTERS.md)として別に採否を判断する。
+
 普段の入口は `Shopee Beta` とし、1つのアプリ内で画面上部の「対象国」をPH / SGへ切り替える。
 入口は `app_beta.py`。候補生成、出品前保安ゲート、Category Mapperの既存処理を再利用する。
 MY / THは選択肢に含めず、市場runtimeの開始後に別scopeで追加する。

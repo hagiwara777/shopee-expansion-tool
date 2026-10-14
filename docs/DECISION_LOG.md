@@ -1652,3 +1652,15 @@
 - ルールと検証: 研究用V3／V2から限定ルールを移し、交換カートリッジ／本体セット、改行包装内容、曖昧な部品の電源を限定補正する。研究72商品・73スナップショットは既知回帰であり、未知商品精度、Safety保証、正式運用精度の確認へ読み替えない。商品本文・研究CSV・DB・cache・出力をGitへ追加しない。
 - 保護／非対象: 既存Safety Shadow V3とは別成果。Safety／Battery／SLS、Gate BLOCK／REVIEW／EXCLUDE、Candidate／Gate CSV、Expansion・Mapper、通常DB／schema、API枠、認証、SG／PH稼働環境を変更しない。自動出品許可、BのSafety BLOCK変換、自動組込み、他カテゴリ、GUI、有料AI、追加Keepaを行わない。SG Beta工程を置き換えず、保存搬送改修・大幅Gate変更・保護緩和・工数上限超過が必要なら拡張せずOwnerへ報告して止める。
 - 次工程／rollback: 技術的完成と業務精度の受入を分け、未知商品での限定評価、業務フロー接続、他カテゴリ展開は別scopeで判断する。CLIの利用停止と追加code／tests／docsの通常revertで戻せる。既存DB・cache・Safety・過去Evidenceの復旧や削除を伴わない。
+
+## DEC-0137 — PH・SG共通実務Betaの完成線と最小順序を固定する
+
+- 日付: 2026-10-14
+- authority／目的: OwnerはPH・SGの事業へ投入する共通システム初版として完成条件の正式化、最新mainとの差分監査、UI整理対象、最小実装順序と少量受入計画の作成を指示した。同じタスク内でAmazon本体価格帯・平均レビュー評価の設計とロードマップ候補追加も指示した。今回の実行範囲は文書設計・監査・commit／push／Draft PR／CI／read-only reviewまでで、formal main mergeは別の最終承認とする。
+- 決定: [実務Beta完成条件](PRACTICAL_BETA_COMPLETION.md)C01〜C12を新しい完成線とする。統一入口、Expansion／Resolver、Safety・重複・確認待ち、Category／Brandの検索・候補・限定自動確定・人間確認・保存／再確認、グループ／個別操作、耐久準備poolと一括出力、5状態、再起動・追加・失効、通常UI統一／整理、市場別資料・保存・認証分離、両市場の実商品反復受入を必要とする。主要共通機能をBeta後へ先送りして完成と宣言しない。
+- 履歴との関係: DEC-0116の固定PH基準は回帰保護として保持するが、新しい実務完成の上限にはしない。DEC-0111/0112/0113のSG Step 8受入は当時の半自動完成履歴として維持し、新しい完成条件の成立と同一視しない。DEC-0134の通常反復とDEC-0135のSG offline追加機能は適用範囲のまま保護し、PH未実装・通常未接続・実商品未検証を完成へ昇格しない。旧Decisionは改訂しない。
+- 順序: P1共通の準備有効性・市場分離、P2長期保存・準備pool・5状態、P3限定分類確認、P4通常UI統一・整理、P5両国少量反復受入とする。新規汎用Workflow／Fact基盤を先行させず、既存validator・store・formatterを最小再利用する。SGの公式Brand更新条件・対象自身のJP Factの証明はP1/P3で解消する。人間確認だけで限定自動確定の完成を代替しない。
+- 追加候補: [価格帯・平均評価設計](CANDIDATE_PRICE_RATING_FILTERS.md)のF1/F2をBeta前SHOULD候補へ追加する。Keepa AMAZONの円価格と平均RATINGを分離保存し、取得後に共通選別、条件一致だけ固定15列Candidateへ渡す最小案とする。未取得・Amazon販売なし・条件外を区別し、Sales Rank・Marketplace／Buy Box・他商品値へ代替しない。条件なしは既存動作を保護。公式仕様読取と実応答検証を区別し、最大追加tokenと旧cache補完を見積もる。両機能2〜4人日を概算とし、候補数・手動負担・鮮度・主要作業への遅延でOwnerがMUST採否を判断する。候補追加だけで完成条件を増やさず、Finder先行選別の最適化はBeta後推奨。
+- 受入と人間作業: [PH・SG受入計画](PH_SG_BETA_ACCEPTANCE_PLAN.md)はSGのExpansion由来A・Resolver由来Bの少量2商品群を維持し、PHの同等操作と既存機能保護を加える。offline、実画面、実API、実商品、Owner実務受入を分離する。Seller Centerの必須属性・発送条件、判断不能商品、外部ツール手動投入と結果照合は人間に残す。全面自動出品、全商品安全保証、未知商品完全自動分類を追加しない。
+- 保護／非対象: Safety／Battery／SLS／Gateの停止・判定条件、PH/SG protected capability、既存認証・DB・ledger・稼働releaseを変更しない。実API・費用・保存先設置・credential・固定release変更・実出品は別承認。Home Appliances CLIは独立維持し再監査・再実装しない。MY／TW／THは共通実務Beta後の国追加工程とし、MYは想定販売価格・貨物価格・送料等の税務確認を別工程で整理する。Amazon仕入れ参考価格を課税額へ転用せず、今回関税計算を実装しない。
+- 再検討／rollback: 工数・実務影響・実証された仕様が変われば完成線を黙って拡張せず、Ownerの事業判断と新Decisionで扱う。設計変更は通常revert／追記で戻せる。過去受入履歴・保存データを削除しない。
