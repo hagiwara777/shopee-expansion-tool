@@ -1,5 +1,9 @@
 # Shopee Expansion Tool Ver1
 
+保存済みファイルを独立したCLIでA／B／C候補へ仕分ける
+[Home Appliances分類補助ツール](docs/HOME_APPLIANCES_CLASSIFIER.md)を利用できます。
+専用CSVは出品許可やSafety判定ではなく、既存業務フローへ自動接続しません。
+
 SG初期Beta Ver1.0の追加offline機能と再生手順は[継続作業・限定自動確定](docs/SG_INITIAL_BETA_V1.md)を参照してください。
 通常PH／SGとは別の新規作業DBを明示し、模擬Brandを使って保存・確認待ち・5状態・出力を検証します。
 このoptional入口は実API・実出品・稼働release更新を開始しません。
