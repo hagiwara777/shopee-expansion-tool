@@ -6,6 +6,14 @@
 
 ## 現在の正式状態と次の独立工程
 
+Home Appliances分類補助は保存済みファイルを入力する独立CLIとして扱う（DEC-0136）。
+候補A／B／C・理由・根拠・不足情報・出所を専用BOM付きCSVへ出し、既存Safety Shadow V3と分離する。
+[入力・使い方・限界](HOME_APPLIANCES_CLASSIFIER.md)を参照する。
+既知研究商品の再評価は未知商品の分類精度を保証しない。
+この補助ツールの次の独立工程は、未知商品による限定実務評価の必要性と対象を別scopeで判断すること。
+Expansion／Gate／Mapper接続、正式な出品判断、他カテゴリ・GUI・DB・API拡張、稼働反映は含めない。
+SG Betaの下記実務受入・環境反映工程を置き換えない。
+
 SG初期Beta Ver1.0の追加機能は、[offline作業画面・保存契約](SG_INITIAL_BETA_V1.md)を参照する（DEC-0135）。
 限定AUTO_RULE、項目別Fact出所、長期作業DB、確認待ち・5状態・一括出力をoffline専用入口で扱う。
 この入口は模擬catalogを明示し、既存通常SG／PHの確認契約・API枠・DB・稼働releaseを置き換えない。
@@ -167,6 +175,8 @@ Source明示ON時のsilent fallbackを許さない。Bridge全面書込み障害
 SG Brand responseにmarketplace / Category echoがないため、server内部の別Category誤応答の独立検出は保証しない。
 
 ## Required Decisions
+
+- DEC-0136 — Home Appliances候補分類CLIの独立入力・出力、Fact出所、既知回帰と未知精度、後続接続の分離。
 
 - DEC-0135 — SG初期Betaのoffline限定AUTO_RULE・Fact出所・長期保存・5状態、既存実務受入と実運用承認の分離。
 

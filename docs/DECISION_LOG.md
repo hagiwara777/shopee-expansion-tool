@@ -1642,3 +1642,13 @@
 - 共通契約: 準備と全出力で現在のFact／rule／catalogを再検証し、既存Gate・Guardrail・SLS・SG本体確認・武器画像validatorを共用する。分類確定・一括採用・確認メモでSafety BLOCK／REVIEW／EXCLUDE、Battery／SLSを解除しない。CSV先頭11列を保ち、各行のverification_statusと項目別authorityを維持する。
 - 保護と境界: PH正式成果、旧SG受入、sg-operation-readinessの未commit資料・実務受入、DB・認証・Policy・Grant・ledger・claim・8503を変更しない。実API・有料API、deploy、DB移行／reset、実出品、main mergeは別承認。GPT-6 Luna移行、Shampoo大量Brand取得、MY／TW／TH、外部ツール自動操作を含めない。
 - 再検討／rollback: 対象商品の証明可能なJP Fact、公式Brand更新契約と限定ruleの実商品受入を整えてから、実運用適用を別判断する。optional入口を使わず従来フローへ戻せる。新作業DB・履歴と旧保存先は削除せず、必要なコード復旧は通常revertで行う。
+
+## DEC-0136 — Home Appliances V3を独立したファイル分類補助へ限定する
+
+- 日付: 2026-10-14
+- authority／目的: Ownerは完了済みHome Appliances研究V3を再利用し、保存商品ファイルから候補分類・根拠をCSVへ出す最小独立ツールの実装・検証・commit／push／Draft PR／CI／read-only reviewを指示した。最大3人日相当の範囲で、formal main mergeと稼働反映は最終明示承認まで行わない。
+- 決定: A=NON_ELECTRIC_ACCESSORY、B=EXCLUDE_POLICY_CANDIDATE、C=UNKNOWNの候補仕分けとする。Aは出品許可、Bは法律上の販売禁止や正式Safety BLOCKではない。Cを推測でAへ通さず、理由・根拠・不足情報・ルール版・商品出所／確認できる取得時刻をBOM付き専用CSVへ残す。
+- 入力境界: 保存Keepa Product応答JSON／JSONLと既存項目別ProductFactsを利用し、対象商品自身のJP取得・ASIN・使用field出所を検証する。旧cache・seed・市場不明・他商品Factを確認済み根拠に昇格しない。構造不正と重複／矛盾ASINは入力エラー、証拠不足はC。新しい汎用Fact・DB・cache・API取得基盤を作らない。入力者の出所申告と内容hashはAPI送信元の真正性証明ではない。
+- ルールと検証: 研究用V3／V2から限定ルールを移し、交換カートリッジ／本体セット、改行包装内容、曖昧な部品の電源を限定補正する。研究72商品・73スナップショットは既知回帰であり、未知商品精度、Safety保証、正式運用精度の確認へ読み替えない。商品本文・研究CSV・DB・cache・出力をGitへ追加しない。
+- 保護／非対象: 既存Safety Shadow V3とは別成果。Safety／Battery／SLS、Gate BLOCK／REVIEW／EXCLUDE、Candidate／Gate CSV、Expansion・Mapper、通常DB／schema、API枠、認証、SG／PH稼働環境を変更しない。自動出品許可、BのSafety BLOCK変換、自動組込み、他カテゴリ、GUI、有料AI、追加Keepaを行わない。SG Beta工程を置き換えず、保存搬送改修・大幅Gate変更・保護緩和・工数上限超過が必要なら拡張せずOwnerへ報告して止める。
+- 次工程／rollback: 技術的完成と業務精度の受入を分け、未知商品での限定評価、業務フロー接続、他カテゴリ展開は別scopeで判断する。CLIの利用停止と追加code／tests／docsの通常revertで戻せる。既存DB・cache・Safety・過去Evidenceの復旧や削除を伴わない。
