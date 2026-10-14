@@ -1,5 +1,9 @@
 # SG初期Beta Ver1.0 — offline機能と受入境界
 
+新しいPH・SG実務Betaの完成判断は[共通完成条件・差分監査](PRACTICAL_BETA_COMPLETION.md)（DEC-0137）による。
+本書のSG専用offline実装だけでは、PH対応・通常UI・実商品受入の完成を意味しない。
+既存部品はP1〜P4で再利用し、過去の成果と未実施事項を区別する。
+
 ## 目的と適用範囲
 
 Ownerの2026-10-13実装依頼と、初期Beta要件定義書Ver1.0案のSG初回MUSTを対象とする。

@@ -1,5 +1,9 @@
 # Shopee Expansion Tool Ver1
 
+[PH・SG共通実務Betaの完成条件・差分・最小実装順](docs/PRACTICAL_BETA_COMPLETION.md)を設計正本とする（DEC-0137）。
+既存の共通入口やSG専用offline機能だけで完成とはせず、両国の通常操作・長期保存・出品状態・実商品受入を確認する。
+[価格帯・平均レビュー評価](docs/CANDIDATE_PRICE_RATING_FILTERS.md)はBeta前の開発候補で、実装済み機能ではない。
+
 保存済みファイルを独立したCLIでA／B／C候補へ仕分ける
 [Home Appliances分類補助ツール](docs/HOME_APPLIANCES_CLASSIFIER.md)を利用できます。
 専用CSVは出品許可やSafety判定ではなく、既存業務フローへ自動接続しません。
@@ -18,8 +22,9 @@ Expansionの生成結果は「この候補を保安ゲートで使う」で内�
 外部CSVの手動経路は残します。[操作・失効条件](docs/EXPANSION_GATE_HANDOFF.md)を参照してください。
 下記の`app.py`単独起動・旧SG offline画面の説明は従来入口の仕様です。
 
-市場展開の開発目標は、[固定PH Beta基準のSG / MY / TH機能統一](docs/PH_BETA_MARKET_PARITY.md)を参照してください。
-SG Brandの確認画面部品は隔離offline検証用です。通常SG画面と実運用DBには接続していません。
+過去の固定目標と回帰基準は、[PH Beta基準の市場展開](docs/PH_BETA_MARKET_PARITY.md)を参照してください。
+以下は旧SG隔離offline検証の説明です。通常継続入口の接続条件は上記DEC-0134の文書を参照してください。
+旧隔離modeのBrand確認部品は、実運用DBへ接続しません。
 隔離検証では明示注入したoffline client / engineでBrand候補取得・保存とAI Category候補・人間採用を確認します。
 グループCategory確認、SG必須属性表示、開発用確認状況CSVも隔離検証の対象です。
 確認状況CSVは出品用ではなく、全件listing_ready=FALSEの記録です。

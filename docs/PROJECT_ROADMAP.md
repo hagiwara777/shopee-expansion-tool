@@ -2,18 +2,27 @@
 
 ## 当面の全体目標
 
-SG初期Beta Ver1.0の追加機能は、限定自動確定のoffline実証 → 長期作業保存 →
-確認待ち・5状態・一括出力 → PH／SG回帰の順で扱う（DEC-0135）。
-[追加契約](SG_INITIAL_BETA_V1.md)は既存の少量実務受入と分離し、実商品Factの出所、
-公式Brand有効性・ruleの実運用適用を確認してから稼働反映を別承認する。
-今回の実装対象はSG 1ショップのみ。PHの既存正式成果と後続市場のruntime停止を維持する。
+当面の目標はPH・SGの事業に投入する共通システム初版である（DEC-0137）。
+[完成条件C01〜C12・差分・最小順序](PRACTICAL_BETA_COMPLETION.md)を正本とし、
+主要機能・共通操作をBeta後に追加する前提を置かない。完成後は原則として国追加と軽微な不具合修正へ移る。
+旧PH BetaとSG Minimum Beta Step 8の完成履歴は維持し、新しい実務Betaとは区別する。
 
-現状PH BetaをSG / MY / THの初期完成基準に固定する（DEC-0116）。
-SGをPH相当へ揃える過程で共通moduleを整え、その後MY / THへ国別情報を追加して展開する。
-詳細は[PH Beta市場展開](PH_BETA_MARKET_PARITY.md)を参照する。
+最短順はP1共通の準備有効性・市場分離 → P2長期保存・準備pool・5状態 →
+P3限定自動確定・グループ／個別確認 → P4通常UI統一・整理 → P5両市場の少量反復受入。
+SG専用[offline作業機能](SG_INITIAL_BETA_V1.md)を再利用するが、PH対応・通常接続・公式資料の有効性は不足として扱う。
+次の単一作業はP1。実API・費用・設置・release反映・実出品は設計採用とは別承認とする。
+固定PH基準（DEC-0116）は[既存機能の回帰基準](PH_BETA_MARKET_PARITY.md)として保持する。
+MY／TW／TH追加は共通実務Beta受入後。MYは販売価格・貨物価格・送料等に基づく税務確認を国別工程で整理する。
+
+Amazon.co.jp本体の価格帯と平均レビュー評価を[Beta前開発候補F1/F2](CANDIDATE_PRICE_RATING_FILTERS.md)へ加える。
+共通の取得後選別・既存Candidate CSV互換を最小範囲とし、両機能合計2〜4人日を概算とする。
+未実装なら価格／評価の手動選別が残る。手間の許容性・候補数・鮮度・P1〜P4への遅延を基にOwnerがMUST採否を判断する。
+追加要望だけでC01〜C12を増やさず、現時点はSHOULD。Finder先行選別の最適化はBeta後に分離する。
+仕入れ参考のAmazon価格をMYの課税判定額へ流用せず、関税計算機能は実装しない。
+
 SGは[通常継続利用](SG_CONTINUOUS_OPERATION.md)で新商品群を同じ画面から反復処理する（DEC-0134）。
 有限Policyと商品群受付を分離し、全ELIGIBLEから完成商品だけ出力する。旧少量Grant受入は履歴として保持する。
-次は固定release反映・有限API枠／保存先と少量2商品群の実務受入を別承認で計画する。
+旧SG少量2商品群は[PH・SG共通受入計画](PH_SG_BETA_ACCEPTANCE_PLAN.md)へ整合し、P5で固定release・有限枠／保存先を別承認する。
 共通Keepaの送信上限は費用／token上限を意味せず、Research CSVの市場対応はBeta後改善へ残す。
 旧限定SGの手動出品準備出力・ベータ入口は専用の少量利用環境へ接続する（DEC-0126 / DEC-0127）。
 コード採用と端末設置・実API確認を区別し、[利用環境](SG_BETA_ENVIRONMENT.md)に従う。
@@ -24,12 +33,11 @@ MY / THの市場runtime・Safety・出品接続はSG機能統一後の後続工�
 
 出品支援ツールの目的は、安全に出品準備できるASIN数を少ない人手で増やすことである。
 
-SGの直近の順序は、DEC-0129の販売除外方針の正本化 → 新規CodexタスクでSG KNIFE／CONTACT_LENSの
-最小事故防止実装 → Shadow V3の比較接続の独立技術検証とする。
+DEC-0129/0130のSG KNIFE／CONTACT_LENS事故防止とDEC-0131のShadow比較接続は既存成果として保護する。
 本体確認後の除外までを事故防止の受入対象とし、REVIEW語句追加だけで完成としない。
 この順序は既存Step 8の受入履歴、PH／SG保護、MY／TH未着手、未採用成果の境界を変更しない。
 
-**開発原則：完成度最大化ではなく、実務上使えるMinimum Betaを早く成立させ、実利用→ボトルネック発見→次Version改善を反復する。**
+**開発原則：固定した共通実務Betaの必須条件を最小範囲で完成させ、主要機能を後回しにしない。網羅的な精度改善で完成線を拡張しない。**
 
 出品支援ツールは、出品先市場に依存しない候補生成と、対象市場ごとの出品判断・準備を分ける。候補生成は、既知Amazon ASINから関連Amazon ASIN候補を広げるASIN Expansionと、Shopeeに出品されている商品の英字タイトルから対応するAmazon ASINへ到達するASIN Resolverの二つの入口とする。PHは現在の最初の受入確認市場であり、候補生成機能をPH専用とする意味ではない。対象市場ごとのGuardrail、既出品照合、Shopee Category ID、Shopee Brand IDを確認し、作業者が既存出品ツールへ手作業で入力できる状態を段階別に検証する。Resolverの成功は、英字タイトルから正しいASINへの到達性能で判断する。外部出品ツール契約、自動Workflow、自動出品は別設計・別承認とする。
 
@@ -197,7 +205,7 @@ canonical taxonomyとPH assetだけをruntimeで読む。CURRENTなCATEGORY_ALLO
 SLS停止状態はCategory / Brand確認済みでも完了表示にならない。MY / TH / TW / VNを含む非PH runtimeは開始していない。
 PR #78の製品merge commitは`5079795fd1eb7a4ae1940852b76e2bd2315e0006`であり、source更新やnon-PH runtimeは別タスク・別承認とする。current formal mainはGitで観測する。
 
-### AGENTS軽量化・共通認証・Catalog基盤（現在からの優先工程）
+### AGENTS軽量化・共通認証・Catalog基盤（Step 8までの履歴と後続市場案）
 
 PHのShopeeCatalogClientは既存のread-only Category / Brand / Attribute取得経路として維持する。現状のPH固定実装をSG用に複製せず、marketplace-neutralな共通Catalog Clientへ段階的に整える。認証はmarketplaceごとの代表となる認証済みshop単位、Category / Brand / Attribute catalogはmarketplace単位で扱う。
 
@@ -216,7 +224,8 @@ DEC-0088により、現在からの順序は **AGENTS軽量化 完了 → DECISI
 AGENTS軽量化はPR #90でformal mainへ統合済み。DECISION_LOG読込軽量化では見出し一覧とRequired Decisionsから関連DECを選択し、不足時の検索拡大・全文読込を維持する。詳細はRUNBOOK「Decision読込」を参照する。両工程とも安全規則、承認境界、Governance gate、protected capability、製品挙動を変更しない。
 DECISION_LOG読込軽量化はPR #91、ShopeeCatalogClient marketplace-neutral化はPR #92でformal mainへ統合済み。DEC-0090の受入範囲はoffline PH/SG Catalog Client contractまでである。SG production Category source identity（DEC-0093）、catalog import offline成果（DEC-0098）、実catalog・6実商品のCategory acceptance（DEC-0103）は正式完了済み。SG Brand設計はDEC-0104、offline最小実装はPR #103 / DEC-0105で正式採用済み。production Brand取得と実商品受入は別Owner承認を要する。
 
-次の長期工程を現在からの優先順とする。各工程の実装、Bridge・credential作成、live API実行、runtime切替、運用開始には、その工程に必要な別scope・Owner承認を要する。
+以下は旧長期工程の成果・受入履歴と国追加案。現在の優先順は冒頭のDEC-0137 P1〜P5を適用する。
+各工程の実装、Bridge・credential作成、live API実行、runtime切替、運用開始には、その工程に必要な別scope・Owner承認を要する。
 
 1. **DECISION_LOG読込軽量化（完了）** — append-only正本を維持した関連DEC選択手順をPR #91で正式採用した。
 2. **ShopeeCatalogClientのmarketplace-neutral化（offline契約まで完了）** — marketplaceを明示bindする共通Category / Brand / Attribute clientと未承認marketplaceのfail closedをPR #92で正式採用した。
@@ -232,12 +241,15 @@ DECISION_LOG読込軽量化はPR #91、ShopeeCatalogClient marketplace-neutral�
 
 MY / THの具体的な着手順は将来のEvidenceと事業優先順位で変更できるものとし、今回固定しすぎない。
 
-DEC-0116以降の製品開発優先順は、固定PH Beta基準のSG機能統一・共通module整備 →
-必要な実環境確認とSG実運用判断 → MY / TH展開とする。上記Step 8の受入履歴は維持する。
+DEC-0116時点では固定PH Beta基準のSG機能統一・共通module整備 →
+必要な実環境確認とSG実運用判断 → MY / TH展開の順としていた。現在はDEC-0137へ更新し、上記Step 8の受入履歴は維持する。
 SG Brand UI、AI候補、必須属性表示、出品準備CSV / TXT等のPH相当機能は、従来のBETA_AFTER指定から
 新しい機能統一目標へ移す。実API実行・production migration・出口の正式採用は別境界を維持する。
 
 ### BETA_AFTER_CANDIDATE
+
+以下は旧Beta後候補を含む。DEC-0137 C01〜C12に必要な公式Brand取得・再確認、保存、確認待ち、
+グループ操作、通常UIの省力化・実務受入はP1〜P5へ移す。残りの網羅的精度改善・高度自動化をBeta後とする。
 
 - 画像Safetyのtitle trigger、subcategory細分化、全rootの網羅的画像リスク調査（DEC-0053）
 - `gpt-5.6-luna`へのコスト最適化比較、provider複数対応、AI結果cache、その他root拡張（DEC-0054）
