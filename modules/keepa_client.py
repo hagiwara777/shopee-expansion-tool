@@ -416,7 +416,7 @@ class KeepaExpansionClient:
             rows=rows,
             fetched_at=fetched_at,
             cache_hit=False,
-            token_status=self._token_status(),
+            token_status=self._token_status(wait=not criteria.active),
             note=note,
             diagnostics=diagnostics,
         )
@@ -916,8 +916,11 @@ class KeepaExpansionClient:
             "candidate_observation": product.get("candidate_observation"),
         }
 
-    def _token_status(self) -> str:
+    def _token_status(self, *, wait: bool = True) -> str:
         tokens_left = getattr(self.api, "tokens_left", None)
+        if not wait:
+            balance = "取得できませんでした" if tokens_left is None else str(tokens_left)
+            return f"処理後のKeepa推定残トークン: {balance}。指定した有限計画内で取得し、不足時は停止します。"
         if tokens_left is None:
             return "トークン残数は取得できませんでした。トークン不足時は自動で回復待ちします。"
         return f"処理後のKeepa推定残トークン: {tokens_left}。不足時は自動で回復待ちします。"

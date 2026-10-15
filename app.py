@@ -1039,7 +1039,10 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
                     st.info(result.total_results_note)
                 if result.strict_low_count_suggestion:
                     st.warning(result.strict_low_count_suggestion)
-                st.info(result.token_status)
+                st.info(
+                    "F1/F2の再判定に追加tokenは不要です。不足情報は表示した有限枠で別途取得し、不足時は停止します。"
+                    if expansion_criteria.active else result.token_status
+                )
 
                 if result.note:
                     st.warning(result.note)
