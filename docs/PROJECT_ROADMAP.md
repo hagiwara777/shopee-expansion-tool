@@ -15,14 +15,16 @@ P2の[長期保存・5状態・永続投入予約](PERSISTENCE_P2.md)を両市�
 P3の[分類確認・現在根拠搬送](CLASSIFICATION_P3.md)を両市場の共通操作とoffline通常接続として整備した（DEC-0141）。
 P4の[共通日常操作](PRACTICAL_UI_P4.md)は、新規保存先を明示するPH／SG共通のoffline画面で、
 管理／診断分離、準備pool・CSV／TXT、5状態・永続予約・結果不明の復旧を扱う（DEC-0142）。
-次の単一作業はF1/F2。P4だけで実API・実商品反復受入や実務Beta全体の完成としない。
+F1/F2の[共通取得後判定](CANDIDATE_PRICE_RATING_FILTERS.md)と両入口・両市場の操作をoffline実装として整備した（DEC-0143）。
+次の単一作業は、別Owner承認後に新規Codexタスクで行うP5少量実商品反復受入。
+F1/F2の実AMAZON円・評価・消費token照合もP5へ残し、offline成果を実務Beta全体の完成としない。
 個別AUTO_RULEの実運用適用、実API・費用・設置・release反映・実出品は別承認とする。
 固定PH基準（DEC-0116）は[既存機能の回帰基準](PH_BETA_MARKET_PARITY.md)として保持する。
 MY／TW／TH追加は共通実務Beta受入後。MYは販売価格・貨物価格・送料等に基づく税務確認を国別工程で整理する。
 
 Amazon.co.jp本体の価格帯と平均レビュー評価は[Beta前MUSTのF1/F2](CANDIDATE_PRICE_RATING_FILTERS.md)とする（DEC-0138）。
-共通の取得後選別・既存Candidate CSV互換を最小範囲とし、両機能合計2〜4人日を概算とする。
-P1〜P4を優先し、F1/F2を完成させてからP5へ進む。C01〜C12と併せて完成を必要とする。
+共通の取得後選別・既存Candidate CSV互換を最小範囲とする。実装はDEC-0143を参照する。
+P1〜P4とF1/F2のoffline成果の後にP5を実施し、C01〜C12の実務受入とF08のlive照合を併せて完成を判断する。
 Finder先行選別の最適化はBeta後に分離する。
 仕入れ参考のAmazon価格をMYの課税判定額へ流用せず、関税計算機能は実装しない。
 

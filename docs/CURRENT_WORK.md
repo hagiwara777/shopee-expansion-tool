@@ -20,10 +20,14 @@ revision付き任意部分集合をP1／P2へ接続した（DEC-0141）。通常
 P4の[共通日常操作](PRACTICAL_UI_P4.md)は、新規P2保存先を明示した同じ統一アプリで、
 確認待ち・分類・準備pool・offline CSV／TXT・5状態・永続予約と復旧・履歴を操作する（DEC-0142）。
 既存PH／SG稼働経路を置き換えず、模擬資料の実運用昇格と未承認AUTO_RULE出力を拒否する。
-次の単一作業はF1/F2の実装。その後P5少量実商品受入へ進める（DEC-0138）。
+[Amazon価格帯・平均評価](CANDIDATE_PRICE_RATING_FILTERS.md)のF1/F2は、両入口・両市場で同じ取得後判定と通常操作を使うoffline実装を整備した（DEC-0143）。
+固定15列CandidateとSafety結合を保ち、旧cache・販売なし・不正値・期限切れを未確認として区別する。
+条件変更だけではAPIを呼ばず、不足情報の補完は件数と追加token概算を示す別操作とする。
+次の単一作業は、新規CodexタスクでOwnerの別承認を得るP5少量実商品反復受入。
+F08の実AMAZON円・評価・tokensConsumed照合を含め、offline成功を実務Beta全体の完成としない。
 [実商品受入・Owner判断資料](PH_SG_BETA_ACCEPTANCE_PLAN.md)は旧SG少量2商品群計画を維持する。
 [Amazon価格帯・平均評価](CANDIDATE_PRICE_RATING_FILTERS.md)のF1/F2はOwner判断によりBeta前MUST。
-P1〜P4を優先し、両フィルター完成後にP5へ進む。P1にフィルター実装を混在させない。
+P1〜P4とF1/F2のoffline成果を保護し、両市場の実商品・実画面・費用・公式Brand・再取得条件をP5で受け入れる。
 live API、費用、認証・保存先設置、固定release変更、実出品は別承認。MY税務確認・関税計算はここで実装しない。
 
 Home Appliances分類補助は保存済みファイルを入力する独立CLIとして扱う（DEC-0136）。
@@ -196,6 +200,8 @@ Source明示ON時のsilent fallbackを許さない。Bridge全面書込み障害
 SG Brand responseにmarketplace / Category echoがないため、server内部の別Category誤応答の独立検出は保証しない。
 
 ## Required Decisions
+
+- DEC-0143 — F1/F2共通取得後判定・旧cacheの未確認・明示補完予算・15列／Safety結合・F08のoffline／live分離。
 
 - DEC-0142 — P4共通画面・offline出力・5状態と予約復旧、取得世代・既存経路の保護。
 

@@ -12,7 +12,11 @@ HUMANとAUTO_RULEを項目ごとに区別し、模擬資料・未承認ruleを�
 [P4の共通日常操作](docs/PRACTICAL_UI_P4.md)では、新規P2保存先を明示した同じアプリで、確認待ち・分類・
 準備pool・共通CSV／TXT・5状態・投入予約と結果不明時の復旧をoffline操作できます。
 実APIボタンは停止し、出力はFALSE／PH_SG_P1_OFFLINEです。既存のPH／SG稼働経路は維持します。
-[価格帯・平均レビュー評価](docs/CANDIDATE_PRICE_RATING_FILTERS.md)はDEC-0138によるBeta前MUSTで、実装済み機能ではない。
+[価格帯・平均レビュー評価](docs/CANDIDATE_PRICE_RATING_FILTERS.md)は、Expansion／Resolverの「候補の絞り込み」で共通操作できます（DEC-0143）。
+価格下限・上限と最低平均評価を指定し、取得済みのAmazon JP参考値へ適用します。初期値はすべて指定なしです。
+一致・条件外・未確認を分け、一致候補だけ従来の15列CandidateとSafety資料へ渡します。
+条件変更はAPIを呼ばず、不足情報の取得は件数・追加token概算を確認する別操作です。P4 offline入口では実APIを停止します。
+offline実装と実値・費用の確認は別で、少量live照合とPH／SGの反復実務受入は別承認のP5へ残します。
 
 保存済みファイルを独立したCLIでA／B／C候補へ仕分ける
 [Home Appliances分類補助ツール](docs/HOME_APPLIANCES_CLASSIFIER.md)を利用できます。

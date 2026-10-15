@@ -102,7 +102,11 @@ P1の共通契約・PH／SG offline出力回帰は[実装契約](PREPARATION_VAL
 P2の両市場offline backendは[長期保存・作業状態契約](PERSISTENCE_P2.md)を参照する（DEC-0140）。
 P3の[共通分類操作・現在根拠搬送](CLASSIFICATION_P3.md)は両市場の最小通常接続をoffline検証する（DEC-0141）。
 P4の[共通日常操作](PRACTICAL_UI_P4.md)は、明示した新規保存先で通常操作・管理／診断分離・
-共通CSV／TXT・pool・5状態・予約復旧をoffline接続する（DEC-0142）。次の単一作業はF1/F2。
+共通CSV／TXT・pool・5状態・予約復旧をoffline接続する（DEC-0142）。
+F1/F2の[共通候補絞り込み](CANDIDATE_PRICE_RATING_FILTERS.md)は、両入口とPH／SGで同じ取得後判定・
+表示・明示補完・15列Candidate／Safety搬送を使うoffline実装とする（DEC-0143）。
+次の単一作業は、別Owner承認後に新規Codexタスクで行うP5少量実商品反復受入。
+F08の実価格・平均評価・消費tokenの少量live照合は未実施で、F1/F2のoffline成立をC12や実務Beta完成へ昇格しない。
 上の差分表は監査時点の状態を保持し、P4のoffline成功を実API・実商品受入へ繰り上げない。
 P1の公式Brand有効性は「開始時の公式完全取得＋明示更新／変更・取得失敗時の失効」を最小案とする。
 固定24時間TTLや永続的な最新保証を導入せず、長時間作業・再起動時の再取得条件と費用を実務受入前に確定する。
