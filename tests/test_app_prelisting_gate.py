@@ -106,7 +106,13 @@ def test_third_top_level_tab_preserves_the_existing_two_tabs():
     )
 
     assert isinstance(tab_call, ast.Call)
-    assert ast.literal_eval(tab_call.args[0]) == [
+    labels = tab_call.args[0]
+    assert isinstance(labels, ast.IfExp)
+    assert ast.unparse(labels.test) == 'practical_workspace is not None'
+    assert ast.literal_eval(labels.body) == [
+        '候補取得：Expansion', '候補受付：Resolver', 'Safety・重複確認', '分類・準備・出品管理',
+    ]
+    assert ast.literal_eval(labels.orelse) == [
         "ASIN Expansion",
         "ASIN Resolver",
         "出品前保安ゲート",

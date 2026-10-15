@@ -1709,3 +1709,15 @@
 - 準備・保護: P1の現在判定成立分だけP2準備poolへ含める。Safety／Battery／SLS／Gate／SG本体・実同梱／画像の停止を分類操作やメモで解除しない。P2の5状態・永続予約・結果不明lockとPH／SG protected capabilityを維持する。
 - 境界・後続: P3単独で実務Beta完成としない。P4に通常UI全体、管理／診断整理、画像確認の通常搬送整理、共通CSV／TXT・pool・5状態の画面完成を残す。P4→F1/F2→P5の順序を保持する。実API・費用・実商品・実運用DB移行・credential・固定release・deploy・実出品・MY／TW／TH・rule大量追加は本工程の実行対象外。個別rule精度・公式Brandのlive完全性・更新頻度と費用はoffline成功で受入済みにしない。
 - rollback: 明示P3設定の利用停止と対象code／tests／docsの通常revertで戻せる。旧DB・P2保存履歴・予約・API消費・過去Decision／Evidenceを削除・移行・resetしない。
+
+
+## DEC-0142 — P4共通日常画面を明示した新規保存先へoffline接続する
+
+- 日付: 2026-10-15
+- authority／目的: OwnerのP4実装依頼と追加条件に従い、P1準備有効性・P2保存・P3分類をPH／SG共通の通常操作へ接続する。実装・offline検証・review・commit／push／Draft PR／CIは同じタスクで行い、formal main採用は別の最終承認を要する。
+- 決定: 同じapp_betaへ市場／shop別の新規P2保存先を明示し、既存候補受付・Gate・分類・formatter・予約engineを再利用する。確認待ち、HUMAN／AUTO_RULEの項目別採用・取消、任意ASIN、商品群横断pool、CSV／TXT、5状態・結果不明lock・明示復旧・履歴を共通表示する。管理・診断は通常操作から分け、停止理由・保存先・国別条件・復旧入口は残す。詳細はPRACTICAL_UI_P4.mdとする。
+- 取得世代・出力: 根拠の更新開始・失敗・削除後に同じ資料を再読込しても旧確認を復活させない。再起動／市場・shop切替は新sessionで現在根拠と必要な人間確認を要求し、履歴を保持する。無関係なB追加で有効なAを失効しない。P4は実APIボタンを停止し、模擬catalog・Brand・画像検査を公式receiptへ昇格せず、P1のFALSE／PH_SG_P1_OFFLINEを維持する。未承認AUTO_RULEの運用許可をUI・JSON・環境変数から作らない。
+- 予約・復旧: downloadと投入予約を別操作とし、P2のcommit前にbytesを返さない。投入成功の本人確認だけが出品確認待ち、今回の全ショップCSV一致だけが出品済みとなる。UNKNOWNは再起動後もlockを保持し、予約全件への明示的な結果確認・取消で解決する。現在資料が未読込でも履歴・予約の復旧操作へ到達でき、古いsession・revisionのSUCCESSは拒否する。
+- 保護: Safety／Battery／SLS／Gate／SG本体・実同梱／対象画像疑義を分類・メモ・一括操作で解除しない。画像対象外・疑義なしに全商品の人間確認を再導入しない。市場別ID・catalog・Safety・shop・保存・認証・API枠を混用しない。P4設定未指定の既存PH／SG経路と旧SG offline入口、旧DB・Policy／Grant・ledger／claim・credential・固定releaseを移行・初期化・上書きしない。
+- 検証・後続: 合成資料で両市場のA01〜A06をAppTestと既存回帰で検証し、実Chromeの確認範囲・未実施部分を分けて記録する。P4を実務Beta完成とせず、次はF1/F2、その後に別承認のP5少量実商品反復受入とする。分類精度・公式Brandのlive完全性・更新頻度と費用・SG本体／画像の実商品証明をoffline成功から受入済みにしない。新しいBeta MUSTを自動追加しない。
+- rollback: 明示したP4設定の利用を停止し、対象code／tests／docsを通常revertできる。P2の履歴・予約と旧保存先・API消費・過去Decision／Evidenceを削除しない。実API・有料API・実商品・credential・実運用DB移行・固定release更新・deploy・実出品・MY／TW／TH・F1/F2実装は本工程へ含めない。

@@ -49,7 +49,7 @@ A05の実際の出品済み照合には既存の正当な出品済み商品・�
 | 判断対象 | 提示する具体案 | 実行前に固定する項目 |
 |---|---|---|
 | 実務利用の開始 | P1コードの採用を実API・稼働反映・実商品受入の承認にしない | 対象release・事業scope・technical gates・別の実務受入承認 |
-| 次実装 | P2を次の単一作業とする。Owner確定のF1/F2 MUSTはP1〜P4の後に実装 | 市場別保存先・履歴・準備pool・5状態、既存DB保護 |
+| 次実装 | P1〜P4のoffline成果を踏まえ、Owner確定のBeta前MUST F1/F2を次の単一作業とする | 取得後の共通選別・Candidate互換、既存保存とSafetyの保護 |
 | 実商品 | PH／SG各2群、各1〜3商品を準備受入。Finderの取得候補は別計上 | seed／Resolver ASIN、対象shop、対象Category、画像AI対象、操作者 |
 | Keepa | 各国通常検索1ページ、候補詳細最大50＋seed1＋Resolver3。既存診断fallback最大3検索を別途予約し、追加ページを自動拡大しない | 通常成功時は各国約65 tokens、合計約130。診断fallbackを含め各国約98、合計約196。価格／評価採用時は評価追加と旧cache補完を含め合計350 tokensを暫定上限案とし、呼出計画で足りなければ開始前に再見積・別承認 |
 | API送信枠 | 最大20 requests／国を提案。SGの有限policy・ledgerと整合。cache hitと失敗／再試行を記録 | requestsとtokensは別制約。PH側も上限を確実に守る実行手段が成立してから開始 |

@@ -334,7 +334,7 @@ def _render_prelisting_gate_result(result, exports, *, source_type: str) -> None
     )
 
 
-def _render_prelisting_gate_input_tab(marketplace=None, *, enable_expansion_handoff=False) -> None:
+def _render_prelisting_gate_input_tab(marketplace=None, *, enable_expansion_handoff=False, offline_only=False) -> None:
     """Render input parsing, gate execution, and current result presentation."""
 
     st.subheader("出品前保安ゲート")
@@ -794,7 +794,10 @@ def _render_prelisting_gate_input_tab(marketplace=None, *, enable_expansion_hand
                 base_result = st.session_state["prelisting_gate_base_result"]
                 image_sidecar = st.session_state["prelisting_gate_image_sidecar"]
                 image_sidecar = prepare_image_safety(base_result, image_sidecar, candidate_bytes)
-                image_sidecar = render_image_review(base_result, image_sidecar, candidate_bytes)
+                if offline_only:
+                    st.caption('offline画像確認：現在の合成資料だけを評価します。実APIは実行しません。')
+                else:
+                    image_sidecar = render_image_review(base_result, image_sidecar, candidate_bytes)
                 saved_result = apply_image_safety(base_result, image_sidecar, candidate_bytes)
                 saved_exports = build_prelisting_gate_exports(saved_result)
                 st.session_state["prelisting_gate_image_sidecar"] = image_sidecar
@@ -824,6 +827,8 @@ def _render_prelisting_gate_input_tab(marketplace=None, *, enable_expansion_hand
                 expansion = st.session_state.get('result')
                 producer_rows = (getattr(expansion, 'rows', ()) if candidate_result.source_type == 'EXPANSION'
                                  else st.session_state.get('asin_resolver_rows', ()))
+                if 'p4_producer_rows' in st.session_state:
+                    producer_rows = st.session_state['p4_producer_rows']
                 # SG receives raw image facts, never PH verdicts.
                 p3_images = image_safety_bytes
                 if marketplace == 'SG':
@@ -843,7 +848,8 @@ def _render_prelisting_gate_input_tab(marketplace=None, *, enable_expansion_hand
                 st.info('分類への今回根拠を搬送できません。分類・準備は再確認が必要です。')
 
         # Comparison failures must never clear a valid Safety decision/export.
-        if st.session_state.get("prelisting_gate_result") is not None:
+        if (st.session_state.get("prelisting_gate_result") is not None
+                and st.session_state.get('p4_diagnostics', True)):
             try:
                 from modules.safety_shadow_comparison_ui import render_shadow_comparison
                 render_shadow_comparison(candidate_result, candidate_bytes, product_text_safety_result, saved_result)
@@ -875,7 +881,7 @@ def _continuous_amazon_budget(marketplace, config_path):
 
 
 def render_application(marketplace=None, *, sg_config_path=None, enable_expansion_handoff=False,
-                       classification_workspace=None):
+                       classification_workspace=None, practical_workspace=None):
     """Render the existing work tabs, optionally bound to one beta market."""
     beta_marketplace = marketplace
     if beta_marketplace is None:
@@ -906,7 +912,9 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
         st.warning("Amazon data provider: Canopy TEST")
 
     expansion_tab, resolver_tab, prelisting_gate_tab, category_mapper_tab = st.tabs(
-        ["ASIN Expansion", "ASIN Resolver", "出品前保安ゲート", "Category Mapper"]
+        (["候補取得：Expansion", "候補受付：Resolver", "Safety・重複確認", "分類・準備・出品管理"]
+         if practical_workspace is not None else
+         ["ASIN Expansion", "ASIN Resolver", "出品前保安ゲート", "Category Mapper"])
     )
 
     with expansion_tab:
@@ -941,9 +949,10 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
                 "検索開始",
                 type="primary",
                 width="stretch",
+                disabled=practical_workspace is not None,
             )
 
-        if search_clicked:
+        if search_clicked and practical_workspace is None:
             if enable_expansion_handoff:
                 remember_body_confirmations(st.session_state, st.session_state.get("prelisting_gate_sg_body_confirmations"))
                 st.session_state.pop(PACKET_KEY, None)
@@ -1027,7 +1036,7 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
                 if result.note:
                     st.warning(result.note)
 
-                if result.diagnostics:
+                if result.diagnostics and st.session_state.get('p4_diagnostics', True):
                     with st.expander("Product Finder診断結果"):
                         for diagnostic in result.diagnostics:
                             st.write(diagnostic)
@@ -1135,7 +1144,8 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
 
     with resolver_tab:
         st.subheader("ASIN Resolver Tool Ver0.4.3")
-        if os.environ.get("ASIN_RESOLVER_EVIDENCE_UI_ENABLED") == "1":
+        if (os.environ.get("ASIN_RESOLVER_EVIDENCE_UI_ENABLED") == "1"
+                and st.session_state.get('p4_diagnostics', True)):
             with st.expander("Evidence Batch（PH固定30件基準実行用）", expanded=True):
                 active_manifest_path = _active_evidence_manifest_path()
                 if active_manifest_path is None:
@@ -1529,10 +1539,11 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
                     disabled=(
                         preview_summary["selected_unique_asins"] == 0
                         or not evidence_export_action_allowed
+                        or practical_workspace is not None
                     ),
                 )
 
-                if verify_clicked:
+                if verify_clicked and practical_workspace is None:
                     st.session_state["asin_resolver_rows"] = []
                     try:
                         client = create_amazon_data_client(amazon_settings, **_continuous_amazon_budget(beta_marketplace, sg_config_path))
@@ -1843,10 +1854,16 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
 
 
     with prelisting_gate_tab:
-        _render_prelisting_gate_input_tab(beta_marketplace, enable_expansion_handoff=enable_expansion_handoff)
+        _render_prelisting_gate_input_tab(beta_marketplace, enable_expansion_handoff=enable_expansion_handoff,
+                                          offline_only=practical_workspace is not None)
 
     with category_mapper_tab:
-        if classification_workspace is not None:
+        if practical_workspace is not None:
+            from modules.classification_workflow_ui import render_classification_workspace
+            from modules.practical_beta_ui import render_practical_controls
+            render_classification_workspace(beta_marketplace, **practical_workspace,
+                                            controls_renderer=render_practical_controls)
+        elif classification_workspace is not None:
             from modules.classification_workflow_ui import render_classification_workspace
             render_classification_workspace(beta_marketplace, **classification_workspace)
         elif beta_marketplace == "SG":

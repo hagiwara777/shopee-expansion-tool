@@ -9,7 +9,9 @@ offline backendで提供します。再起動後は現在根拠を再確認し�
 [P3の共通分類確認](docs/CLASSIFICATION_P3.md)は、通常アプリのMapperタブへ明示した新規保存先で、
 現在根拠の搬送・Category／Brandの独立採用・取消・任意ASIN部分集合の保存をoffline検証します。
 HUMANとAUTO_RULEを項目ごとに区別し、模擬資料・未承認ruleを実運用出力へ昇格しません。
-通常画面全体・管理整理・共通CSV／TXTと5状態の画面完成はP4です。
+[P4の共通日常操作](docs/PRACTICAL_UI_P4.md)では、新規P2保存先を明示した同じアプリで、確認待ち・分類・
+準備pool・共通CSV／TXT・5状態・投入予約と結果不明時の復旧をoffline操作できます。
+実APIボタンは停止し、出力はFALSE／PH_SG_P1_OFFLINEです。既存のPH／SG稼働経路は維持します。
 [価格帯・平均レビュー評価](docs/CANDIDATE_PRICE_RATING_FILTERS.md)はDEC-0138によるBeta前MUSTで、実装済み機能ではない。
 
 保存済みファイルを独立したCLIでA／B／C候補へ仕分ける

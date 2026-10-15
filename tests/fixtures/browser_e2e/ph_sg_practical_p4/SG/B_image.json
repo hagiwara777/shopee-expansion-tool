@@ -1,0 +1,29 @@
+{
+  "candidate_schema_version": "PRELISTING_CANDIDATE_V1",
+  "candidate_sha256": "ff6a748482c28e533ddf9033d3892f9caf019bd5a045538d91b4d2dd06fe94aa",
+  "rows": [
+    {
+      "evaluation": null,
+      "fact": {
+        "candidate_asin": "B000000011",
+        "capture_error": false,
+        "image_urls": [],
+        "provider": "keepa",
+        "root_category_id": 3210981
+      },
+      "human": null
+    },
+    {
+      "evaluation": null,
+      "fact": {
+        "candidate_asin": "B000000012",
+        "capture_error": false,
+        "image_urls": [],
+        "provider": "keepa",
+        "root_category_id": 3210981
+      },
+      "human": null
+    }
+  ],
+  "schema_version": "PH_IMAGE_SAFETY_V1"
+}

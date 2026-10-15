@@ -13,7 +13,9 @@ SG専用[offline作業機能](SG_INITIAL_BETA_V1.md)を再利用するが、PH�
 P1の[共通準備有効性契約](PREPARATION_VALIDITY_P1.md)とPH／SG offline回帰を整備した（DEC-0139）。
 P2の[長期保存・5状態・永続投入予約](PERSISTENCE_P2.md)を両市場のoffline backendとして整備した（DEC-0140）。
 P3の[分類確認・現在根拠搬送](CLASSIFICATION_P3.md)を両市場の共通操作とoffline通常接続として整備した（DEC-0141）。
-次の単一作業はP4。通常画面全体・管理／診断・出力／5状態の画面完成を残す。
+P4の[共通日常操作](PRACTICAL_UI_P4.md)は、新規保存先を明示するPH／SG共通のoffline画面で、
+管理／診断分離、準備pool・CSV／TXT、5状態・永続予約・結果不明の復旧を扱う（DEC-0142）。
+次の単一作業はF1/F2。P4だけで実API・実商品反復受入や実務Beta全体の完成としない。
 個別AUTO_RULEの実運用適用、実API・費用・設置・release反映・実出品は別承認とする。
 固定PH基準（DEC-0116）は[既存機能の回帰基準](PH_BETA_MARKET_PARITY.md)として保持する。
 MY／TW／TH追加は共通実務Beta受入後。MYは販売価格・貨物価格・送料等に基づく税務確認を国別工程で整理する。

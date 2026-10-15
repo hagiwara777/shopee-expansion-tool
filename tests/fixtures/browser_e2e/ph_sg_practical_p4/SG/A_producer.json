@@ -1,0 +1,1186 @@
+{
+  "schema": "PH_SG_P4_SYNTHETIC_V1",
+  "marketplace": "SG",
+  "rows": [
+    {
+      "candidate_asin": "B000000001",
+      "classification_facts": {
+        "asin": "B000000001",
+        "fields": {
+          "title": {
+            "value": "Synthetic wired headphone 1",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000001",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "brand": {
+            "value": "Synthetic Maker",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000001",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "model": {
+            "value": "Synthetic model",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000001",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "category_tree": {
+            "value": [
+              {
+                "catId": 3210981,
+                "name": "Headphones"
+              }
+            ],
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000001",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "description": {
+            "value": [
+              "Synthetic passive wired audio product"
+            ],
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000001",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "features": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "shortDescription": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "safetyWarning": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "itemHighlights": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "ingredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "activeIngredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "specialIngredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          }
+        }
+      },
+      "ph_image_safety_fact": {
+        "candidate_asin": "B000000001",
+        "provider": "keepa",
+        "capture_error": false,
+        "image_urls": [],
+        "root_category_id": 3210981
+      }
+    },
+    {
+      "candidate_asin": "B000000002",
+      "classification_facts": {
+        "asin": "B000000002",
+        "fields": {
+          "title": {
+            "value": "Synthetic wired headphone 2",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000002",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "brand": {
+            "value": "Synthetic Maker",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000002",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "model": {
+            "value": "Synthetic model",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000002",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "category_tree": {
+            "value": [
+              {
+                "catId": 3210981,
+                "name": "Headphones"
+              }
+            ],
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000002",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "description": {
+            "value": [
+              "Synthetic passive wired audio product"
+            ],
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000002",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "features": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "shortDescription": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "safetyWarning": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "itemHighlights": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "ingredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "activeIngredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "specialIngredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          }
+        }
+      },
+      "ph_image_safety_fact": {
+        "candidate_asin": "B000000002",
+        "provider": "keepa",
+        "capture_error": false,
+        "image_urls": [],
+        "root_category_id": 3210981
+      }
+    },
+    {
+      "candidate_asin": "B000000003",
+      "classification_facts": {
+        "asin": "B000000003",
+        "fields": {
+          "title": {
+            "value": "Synthetic wired headphone 3",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000003",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "brand": {
+            "value": "Synthetic Maker",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000003",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "model": {
+            "value": "Synthetic model",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000003",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "category_tree": {
+            "value": [
+              {
+                "catId": 3210981,
+                "name": "Headphones"
+              }
+            ],
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000003",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "description": {
+            "value": [
+              "Synthetic passive wired audio product"
+            ],
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000003",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "features": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "shortDescription": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "safetyWarning": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "itemHighlights": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "ingredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "activeIngredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "specialIngredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          }
+        }
+      },
+      "ph_image_safety_fact": {
+        "candidate_asin": "B000000003",
+        "provider": "keepa",
+        "capture_error": false,
+        "image_urls": [],
+        "root_category_id": 3210981
+      }
+    },
+    {
+      "candidate_asin": "B000000004",
+      "classification_facts": {
+        "asin": "B000000004",
+        "fields": {
+          "title": {
+            "value": "Synthetic wired headphone 4",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000004",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "brand": {
+            "value": "Synthetic Maker",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000004",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "model": {
+            "value": "Synthetic model",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000004",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "category_tree": {
+            "value": [
+              {
+                "catId": 3210981,
+                "name": "Headphones"
+              }
+            ],
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000004",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "description": {
+            "value": [
+              "Synthetic passive wired audio product"
+            ],
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000004",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "features": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "shortDescription": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "safetyWarning": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "itemHighlights": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "ingredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "activeIngredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "specialIngredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          }
+        }
+      },
+      "ph_image_safety_fact": {
+        "candidate_asin": "B000000004",
+        "provider": "keepa",
+        "capture_error": false,
+        "image_urls": [],
+        "root_category_id": 3210981
+      }
+    },
+    {
+      "candidate_asin": "B000000005",
+      "classification_facts": {
+        "asin": "B000000005",
+        "fields": {
+          "title": {
+            "value": "Synthetic wired headphone 5",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000005",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "brand": {
+            "value": "Synthetic Maker",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000005",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "model": {
+            "value": "Synthetic model",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000005",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "category_tree": {
+            "value": [
+              {
+                "catId": 3210981,
+                "name": "Headphones"
+              }
+            ],
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000005",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "description": {
+            "value": [
+              "Synthetic passive wired audio product"
+            ],
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000005",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "features": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "shortDescription": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "safetyWarning": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "itemHighlights": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "ingredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "activeIngredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "specialIngredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          }
+        }
+      },
+      "ph_image_safety_fact": {
+        "candidate_asin": "B000000005",
+        "provider": "keepa",
+        "capture_error": false,
+        "image_urls": [],
+        "root_category_id": 3210981
+      }
+    },
+    {
+      "candidate_asin": "B000000006",
+      "classification_facts": {
+        "asin": "B000000006",
+        "fields": {
+          "title": {
+            "value": "Synthetic wired headphone 6",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000006",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "brand": {
+            "value": "Synthetic Maker",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000006",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "model": {
+            "value": "Synthetic model",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000006",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "category_tree": {
+            "value": [
+              {
+                "catId": 3210981,
+                "name": "Headphones"
+              }
+            ],
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000006",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "description": {
+            "value": [
+              "Synthetic passive wired audio product"
+            ],
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000006",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "features": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "shortDescription": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "safetyWarning": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "itemHighlights": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "ingredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "activeIngredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "specialIngredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          }
+        }
+      },
+      "ph_image_safety_fact": {
+        "candidate_asin": "B000000006",
+        "provider": "keepa",
+        "capture_error": false,
+        "image_urls": [],
+        "root_category_id": 3210981
+      }
+    },
+    {
+      "candidate_asin": "B000000007",
+      "classification_facts": {
+        "asin": "B000000007",
+        "fields": {
+          "title": {
+            "value": "Synthetic wired headphone 7",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000007",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "brand": {
+            "value": "Synthetic Maker",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000007",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "model": {
+            "value": "Synthetic model",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000007",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "category_tree": {
+            "value": [
+              {
+                "catId": 3210981,
+                "name": "Headphones"
+              }
+            ],
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000007",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "description": {
+            "value": [
+              "Synthetic passive wired audio product"
+            ],
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000007",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "features": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "shortDescription": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "safetyWarning": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "itemHighlights": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "ingredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "activeIngredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "specialIngredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          }
+        }
+      },
+      "ph_image_safety_fact": {
+        "candidate_asin": "B000000007",
+        "provider": "keepa",
+        "capture_error": false,
+        "image_urls": [],
+        "root_category_id": 3210981
+      }
+    },
+    {
+      "candidate_asin": "B000000008",
+      "classification_facts": {
+        "asin": "B000000008",
+        "fields": {
+          "title": {
+            "value": "Synthetic wired headphone 8",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000008",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "brand": {
+            "value": "Synthetic Maker",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000008",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "model": {
+            "value": "Synthetic model",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000008",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "category_tree": {
+            "value": [
+              {
+                "catId": 3210981,
+                "name": "Headphones"
+              }
+            ],
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000008",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "description": {
+            "value": [
+              "Synthetic passive wired audio product"
+            ],
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000008",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "features": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "shortDescription": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "safetyWarning": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "itemHighlights": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "ingredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "activeIngredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "specialIngredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          }
+        }
+      },
+      "ph_image_safety_fact": {
+        "candidate_asin": "B000000008",
+        "provider": "keepa",
+        "capture_error": false,
+        "image_urls": [],
+        "root_category_id": 3210981
+      }
+    },
+    {
+      "candidate_asin": "B000000009",
+      "classification_facts": {
+        "asin": "B000000009",
+        "fields": {
+          "title": {
+            "value": "Synthetic wired headphone 9",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000009",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "brand": {
+            "value": "Synthetic Maker",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000009",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "model": {
+            "value": "Synthetic model",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000009",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "category_tree": {
+            "value": [
+              {
+                "catId": 3210981,
+                "name": "Headphones"
+              }
+            ],
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000009",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "description": {
+            "value": [
+              "Synthetic passive wired audio product"
+            ],
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000009",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "features": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "shortDescription": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "safetyWarning": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "itemHighlights": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "ingredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "activeIngredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "specialIngredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          }
+        }
+      },
+      "ph_image_safety_fact": {
+        "candidate_asin": "B000000009",
+        "provider": "keepa",
+        "capture_error": false,
+        "image_urls": [],
+        "root_category_id": 3210981
+      }
+    },
+    {
+      "candidate_asin": "B000000010",
+      "classification_facts": {
+        "asin": "B000000010",
+        "fields": {
+          "title": {
+            "value": "Synthetic wired headphone 10",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000010",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "brand": {
+            "value": "Synthetic Maker",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000010",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "model": {
+            "value": "Synthetic model",
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000010",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "category_tree": {
+            "value": [
+              {
+                "catId": 3210981,
+                "name": "Headphones"
+              }
+            ],
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000010",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "description": {
+            "value": [
+              "Synthetic passive wired audio product"
+            ],
+            "origin": "OWN_PRODUCT",
+            "source_asin": "B000000010",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "features": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "shortDescription": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "safetyWarning": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "itemHighlights": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "ingredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "activeIngredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          },
+          "specialIngredients": {
+            "value": [],
+            "origin": "MISSING",
+            "source_asin": "",
+            "acquired_market": "JP",
+            "evidence_ref": "SYNTHETIC_RAW",
+            "fetched_at": "2026-10-12T00:00:00+00:00"
+          }
+        }
+      },
+      "ph_image_safety_fact": {
+        "candidate_asin": "B000000010",
+        "provider": "keepa",
+        "capture_error": false,
+        "image_urls": [],
+        "root_category_id": 3210981
+      }
+    }
+  ]
+}
