@@ -814,6 +814,34 @@ def _render_prelisting_gate_input_tab(marketplace=None, *, enable_expansion_hand
             clear_prelisting_gate_result(st.session_state)
             st.error(safe_prelisting_gate_error_summary("unexpected"))
 
+        # P1 repeats Safety/product checks; Gate flags grant no persisted readiness.
+        if st.session_state.get('prelisting_gate_result') is not None:
+            try:
+                from dataclasses import asdict
+                from copy import deepcopy
+                from modules.sg_beta_facts import digest
+                from modules.prelisting_sg_body_safety import body_confirmation_bytes
+                expansion = st.session_state.get('result')
+                producer_rows = (getattr(expansion, 'rows', ()) if candidate_result.source_type == 'EXPANSION'
+                                 else st.session_state.get('asin_resolver_rows', ()))
+                # SG receives raw image facts, never PH verdicts.
+                p3_images = image_safety_bytes
+                if marketplace == 'SG':
+                    p3_images = create_image_sidecar(candidate_bytes, candidate_result.rows, producer_rows)
+                st.session_state['classification_current_batch'] = deepcopy({
+                    'marketplace': marketplace, 'fingerprint': current_fingerprint,
+                    'product_binding': digest([current_fingerprint, producer_rows]),
+                    'inventories': tuple(inventory_results),
+                    'inventory_binding': digest([asdict(i) for i in inventory_results]),
+                    'product_arguments': {'candidate_content': candidate_bytes, 'filename': candidate_file.name,
+                        'producer_rows': tuple(producer_rows), 'text_content': product_text_safety_bytes,
+                        'ingredient_content': ingredient_safety_bytes, 'image_content': p3_images,
+                        'body_content': body_confirmation_bytes(st.session_state['prelisting_gate_sg_body_confirmations'])
+                            if marketplace == 'SG' and st.session_state.get('prelisting_gate_sg_body_confirmations') else None}})
+            except (ValueError, RuntimeError, KeyError, TypeError, AttributeError):
+                st.session_state.pop('classification_current_batch', None)
+                st.info('分類への今回根拠を搬送できません。分類・準備は再確認が必要です。')
+
         # Comparison failures must never clear a valid Safety decision/export.
         if st.session_state.get("prelisting_gate_result") is not None:
             try:
@@ -821,6 +849,8 @@ def _render_prelisting_gate_input_tab(marketplace=None, *, enable_expansion_hand
                 render_shadow_comparison(candidate_result, candidate_bytes, product_text_safety_result, saved_result)
             except Exception:
                 st.info("Shadow比較不能：保存資料と現在の入力を確認してください。既存Gate結果は保持します。")
+    else:
+        st.session_state.pop('classification_current_batch', None)
 
 
 def _continuous_amazon_budget(marketplace, config_path):
@@ -844,7 +874,8 @@ def _continuous_amazon_budget(marketplace, config_path):
         raise AmazonDataProviderConfigurationError('SG通常利用の作業を開始し、永続取得枠を確認してください。') from None
 
 
-def render_application(marketplace=None, *, sg_config_path=None, enable_expansion_handoff=False):
+def render_application(marketplace=None, *, sg_config_path=None, enable_expansion_handoff=False,
+                       classification_workspace=None):
     """Render the existing work tabs, optionally bound to one beta market."""
     beta_marketplace = marketplace
     if beta_marketplace is None:
@@ -1815,7 +1846,10 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
         _render_prelisting_gate_input_tab(beta_marketplace, enable_expansion_handoff=enable_expansion_handoff)
 
     with category_mapper_tab:
-        if beta_marketplace == "SG":
+        if classification_workspace is not None:
+            from modules.classification_workflow_ui import render_classification_workspace
+            render_classification_workspace(beta_marketplace, **classification_workspace)
+        elif beta_marketplace == "SG":
             from app_sg_beta import render_sg_beta
             from modules.sg_beta_environment import preflight, SGBetaEnvironmentError
             if sg_config_path is None:

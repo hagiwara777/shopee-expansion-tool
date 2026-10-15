@@ -10,12 +10,15 @@ PH・SGの共通初版は[実務Beta完成条件・差分監査](PRACTICAL_BETA_
 共通入口だけでなく、両国の通常操作、限定自動確定、長期保存・準備pool・5状態、反復実商品受入を必要とする。
 既存PH成果・SG Step 8の受入履歴は保護する。SG専用offline機能は両市場の実務完成を意味しない。
 P1の[共通準備有効性・市場分離](PREPARATION_VALIDITY_P1.md)は、既存validatorを使う共通契約とPH／SGのoffline出力回帰を整備した（DEC-0139）。
-根拠未搬送・旧確認フラグだけの通常出力は停止し、通常producer接続・実商品証明を完成済みとしない。
+根拠未搬送・旧確認フラグだけの通常出力は停止し、実商品証明を完成済みとしない。
 P2の[共通長期保存・作業状態](PERSISTENCE_P2.md)は、市場／shop別の新規DB・履歴・準備pool・5状態・
 永続投入予約をoffline backendとして整備した（DEC-0140）。再開時は過去判断を履歴として保持し、
-新しいP1 sessionの現在根拠と明示確認なしに準備許可を復元しない。通常画面・実運用DBには接続しない。
-次の単一作業はP3：分類確認・限定AUTO_RULE・任意部分集合の通常接続と現在根拠搬送。
-その後P4通常UI統一、F1/F2、P5少量実商品受入の順に進める（DEC-0138）。
+新しいP1 sessionの現在根拠と明示確認なしに準備許可を復元しない。実運用DBを移行しない。
+P3の[分類操作・現在根拠搬送](CLASSIFICATION_P3.md)は、共通HUMAN確認・限定offline AUTO_RULE・
+revision付き任意部分集合をP1／P2へ接続した（DEC-0141）。通常アプリのMapperタブに新規保存先を明示し、
+両市場のoffline接続を検証する。個別ruleの実運用許可は注入せず、模擬一覧を公式receiptへ昇格しない。
+次の単一作業はP4：通常UI全体・管理／診断整理・共通CSV／TXTと5状態操作の画面完成。
+その後F1/F2、P5少量実商品受入の順に進める（DEC-0138）。
 [実商品受入・Owner判断資料](PH_SG_BETA_ACCEPTANCE_PLAN.md)は旧SG少量2商品群計画を維持する。
 [Amazon価格帯・平均評価](CANDIDATE_PRICE_RATING_FILTERS.md)のF1/F2はOwner判断によりBeta前MUST。
 P1〜P4を優先し、両フィルター完成後にP5へ進む。P1にフィルター実装を混在させない。
@@ -32,7 +35,7 @@ SG Betaの下記実務受入・環境反映工程を置き換えない。
 SG初期Beta Ver1.0の追加機能は、[offline作業画面・保存契約](SG_INITIAL_BETA_V1.md)を参照する（DEC-0135）。
 限定AUTO_RULE、項目別Fact出所、長期作業DB、確認待ち・5状態・一括出力をoffline専用入口で扱う。
 この入口は模擬catalogを明示し、既存通常SG／PHの確認契約・API枠・DB・稼働releaseを置き換えない。
-SG 100578の対象実商品自身のJP証明と公式Brandのlive完全性／更新条件は未受入のままP3／P5へ引き継ぐ。
+SG 100578の対象実商品自身のJP証明と公式Brandのlive完全性／更新条件は未受入のままP5へ引き継ぐ。
 P1では未証明の資料を推測で通さず停止する契約を整備した。
 具体的ruleの実運用適用、live API、保存先設置、release反映・実出品は別承認とする。
 旧SG通常継続利用の少量実務受入はP5と整合させ、このoffline成果で完了扱いにしない。
@@ -191,6 +194,8 @@ Source明示ON時のsilent fallbackを許さない。Bridge全面書込み障害
 SG Brand responseにmarketplace / Category echoがないため、server内部の別Category誤応答の独立検出は保証しない。
 
 ## Required Decisions
+
+- DEC-0141 — P3共通分類操作・通常根拠搬送・部分集合保存、限定AUTO_RULEの個別承認照合とP4境界。
 
 - DEC-0140 — P2共通保存・市場／shop／schema分離、現在準備と投入進行の分離、永続予約とP3引継ぎ。
 

@@ -36,12 +36,14 @@ Client側の認証・有限API枠の責務を維持し、この部品はcredenti
 
 PHの`build_mapper_exports`は`preparation_session`とASIN別`preparation_records`を検査する。
 SGの既存workflowは同じ2項目を準備判定と両出力へ渡す。未搬送なら再確認理由を表示し、旧確認フラグへfallbackしない。
-通常UIのproducer全面接続はP3／P4へ引き継ぐため、この版で根拠未搬送の商品は準備出力が停止する。
+P3の[通常経路の最小接続](CLASSIFICATION_P3.md)で現在根拠と分類操作を搬送する。
+根拠未搬送の商品は準備出力が停止する。通常UI全面接続はP4へ引き継ぐ。
 既存固定release・実運用DBは更新しない。
 
 正常な現在根拠を注入したPH／SGの合成回帰は、従来のgroup・列・手動準備CSV／TXTを維持する。
 `PreparationSession.output()`の既定はoffline用（FALSE／PH_SG_P1_OFFLINE）。
-通常手動準備用のTRUEは、今回のstrict公式取得receiptとHUMAN確認が成立する場合だけ扱う。
+通常手動準備用のTRUEは、今回のstrict公式取得receiptとHUMAN確認を既定とする。
+P3のAUTO_RULEは項目別の完全一致承認を別途要求するが、通常adapterへ許可を注入しない。
 OFFLINE_ONLYのAUTO_RULEを運用へ昇格せず、SGの有効化gateも出力前後に維持する。
 FALSEのoffline出力や模擬Brandを実商品受入へ昇格しない。
 型付きClientや資料のhashは、外部サーバー内部の誤応答や入力者の虚偽を暗号学的に保証しない。
@@ -51,7 +53,8 @@ Brand APIの市場／Category echo欠如、全ショップCSVの真正性は既�
 
 P2の[共通保存backend](PERSISTENCE_P2.md)はこの検証結果を現在状態の根拠として用い、保存履歴と現在有効性を分離する。
 保存した過去のvalidフラグ・receiptを出力権限へ復元しない。市場／shop別の新規保存先・5状態・永続予約をofflineで扱う。
-P3／P4は対象自身のJP証明・市場別catalog／全ショップ根拠を通常入口から搬送し、具体的ruleの運用適用を別途判断する。
+P3は対象自身のJP証明・市場別catalog／全ショップ根拠の最小通常搬送をoffline検証する。
+P4は通常画面の全面統一を担い、具体的ruleの運用適用を別途判断する。
 P1〜P4とF1/F2完成後のP5で、別承認を得て両国の少量実商品反復受入を行う。
 
 主な回帰は`test_preparation_validity.py`、`test_preparation_exit_contract.py`と既存PH／SG・Safety・protected tests。

@@ -717,12 +717,13 @@ class KeepaExpansionClient:
             "product_title": str(product.get("title") or ""),
             "source": source_label,
             "token_estimate": str(token_estimate),
-            "fetched_at": fetched_at,
+            "fetched_at": str(product.get("fetched_at") or fetched_at),
             "duplicate_flag": "false",
             "note": row_note,
             "ingredient_safety_fact": ingredient_safety_fact_to_payload(ingredient_fact),
             "product_text_safety_fact": product_text_safety_fact_to_payload(product_text_fact),
             "ph_image_safety_fact": image_fact_from_product(product, candidate_asin=candidate_asin),
+            "classification_facts": product.get("classification_facts"),
         }
 
     def _token_status(self) -> str:
@@ -911,6 +912,20 @@ def _product_to_cache_data(product: Any, fallback_asin: str = "") -> dict[str, A
     except ProductTextSafetyError as exc:
         raise KeepaDataError("Keepa Product Text Safety Factの構造が不正です。") from exc
     product_text_payload = product_text_safety_fact_to_payload(product_text_fact)
+    # Preserve only the returned product's provenance, never the seed or an
+    # implicit JP default. Legacy cache rows without this payload stay unknown.
+    from modules.sg_beta_facts import facts_from_saved_keepa, digest, FIELDS
+    own = {name: _get_value(product, name) for name in FIELDS}
+    own.update(asin=_get_text(product, 'asin'), domainId=_get_value(product, 'domainId'),
+               title=_get_text(product, 'title'), brand=_get_text(product, 'brand'),
+               categoryTree=category_tree, fetched_at=fetched_at,
+               **{k: product_text_payload[k] for k in FIELDS[4:9]},
+               **{k: ingredient_payload[k] for k in FIELDS[9:]})
+    try:
+        classification_facts = facts_from_saved_keepa(own, source_format='keepa_response',
+            evidence_ref='KEEPA_PRODUCT:' + digest(own)).to_dict()
+    except (ValueError, TypeError):
+        classification_facts = None
     return {
         "asin": asin,
         "title": _get_text(product, "title"),
@@ -923,6 +938,7 @@ def _product_to_cache_data(product: Any, fallback_asin: str = "") -> dict[str, A
         "ph_image_safety_fact": image_fact,
         "category_path": category_path,
         "category_tree": category_tree,
+        "classification_facts": classification_facts,
         "fetched_at": fetched_at,
         "ingredient_safety_payload_version": INGREDIENT_SAFETY_PAYLOAD_VERSION,
         "ingredient_safety_capture_status": ingredient_fact.capture_status,

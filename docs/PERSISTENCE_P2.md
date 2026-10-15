@@ -74,5 +74,6 @@ checksumは破損・取り違え検出であり、悪意ある全DB巻戻しへ�
 既存P1、SG初期Beta、Guardrail／Gate／SLS、PH／SG protected回帰も維持する。
 実API・実商品・保存先設置・固定release変更・deploy・実出品の受入証拠にはしない。
 
-次工程P3では現在根拠の通常producer搬送、分類候補・確認・限定AUTO_RULE・任意部分集合の接続を行う。
+P3の[分類操作・現在根拠搬送](CLASSIFICATION_P3.md)は、新規保存先を明示した通常Mapperタブから、
+共通確認・限定offline AUTO_RULE・任意部分集合をこのbackendへ接続する。旧DBは接続・移行しない。
 通常画面全体の操作統一と管理／診断整理はP4。F1/F2完成後にP5の両市場実商品受入へ進む。

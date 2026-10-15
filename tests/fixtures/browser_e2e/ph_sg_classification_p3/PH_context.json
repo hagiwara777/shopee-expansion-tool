@@ -1,0 +1,47 @@
+{
+  "schema": "PH_SG_P3_OFFLINE_V1",
+  "marketplace": "PH",
+  "version": "SG_CATEGORY_CATALOG_OFFLINE_V1:e4a56cc30b14ecbbcbcf480e462ae9450a676f84f3a6ac12b2b946bc43d651fb",
+  "revision": "SYNTHETIC_RULE_ALIAS_1",
+  "nodes": [
+    {
+      "category_id": 100578,
+      "parent_category_id": 9000000,
+      "category_name": "Earphones, Headphones & Headsets",
+      "category_path": "Audio > Earphones, Headphones & Headsets",
+      "is_leaf": true
+    },
+    {
+      "category_id": 9000000,
+      "parent_category_id": null,
+      "category_name": "Audio",
+      "category_path": "Audio",
+      "is_leaf": false
+    }
+  ],
+  "rules": [],
+  "aliases": [],
+  "brands": [
+    {
+      "category_id": 100578,
+      "shop_id": "synthetic-shop",
+      "brands": [
+        [
+          7,
+          "Synthetic Maker",
+          false
+        ],
+        [
+          0,
+          "No brand",
+          true
+        ]
+      ],
+      "observation_ref": "SYNTHETIC_P3",
+      "complete": true,
+      "current": true,
+      "source": "OFFLINE_MOCK",
+      "marketplace": "PH"
+    }
+  ]
+}

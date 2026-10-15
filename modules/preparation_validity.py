@@ -16,7 +16,7 @@ from modules.category_ai_core import CategoryCatalog
 from modules.sg_beta_facts import ProductFacts, digest
 from modules.sg_beta_workbench import (
     BrandAlias, BrandObservation, _category_basis, _brand_basis,
-    category_valid, _sources, assess as assess_existing,
+    auto_category, auto_brand, category_valid, _sources, assess as assess_existing,
 )
 from modules.preparation_group_output import format_preparation_groups
 
@@ -90,6 +90,26 @@ class InventoryEvidence:
 
 
 @dataclass(frozen=True)
+class AutoRuleApproval:
+    """Explicit adapter injection, never inferred from rule JSON or UI flags.
+
+    Bind one reviewed rule/alias to this exact acquisition session and catalog.
+    No normal adapter installs approvals in P3; existing examples stay offline.
+    """
+    scope: PreparationScope
+    kind: str
+    definition_binding: str
+    catalog_binding: str
+    approval_ref: str
+
+    def __post_init__(self):
+        if (self.kind not in {'CATEGORY', 'BRAND'} or not self.approval_ref.strip()
+                or any(len(s) != 64 or any(c not in '0123456789abcdef' for c in s)
+                       for s in (self.definition_binding, self.catalog_binding))):
+            raise PreparationError('EXACT_AUTO_RULE_APPROVAL_REQUIRED')
+
+
+@dataclass(frozen=True)
 class _Context:
     """Adapter for the existing pure classification and Safety validators."""
     classification: ClassificationEvidence
@@ -153,6 +173,36 @@ class PreparationSession:
         self._official_receipts = {}
         self._official_clients = {}
         self._revision = 0
+        self._auto_approvals = ()
+
+    def accept_auto_approvals(self, approvals):
+        """Trusted integration boundary; no file, DB, environment or UI loader.
+
+        An approved deployment adapter must supply Owner-approved exact bindings.
+        Merely marking a rule OPERATION_APPROVED cannot install this permission.
+        """
+        self._auto_approvals = ()
+        self._revision += 1
+        approvals = tuple(approvals)
+        for approval in approvals:
+            if not isinstance(approval, AutoRuleApproval):
+                raise PreparationError('EXACT_AUTO_RULE_APPROVAL_REQUIRED')
+            self._require_scope(approval.scope)
+        self._auto_approvals = copy.deepcopy(approvals)
+
+    def classification_context(self):
+        """Detached current material for shared candidate presentation."""
+        return copy.deepcopy(self._context())
+
+    def auto_decision(self, record, *, kind):
+        """Reuse the limited deterministic rules; never infer HUMAN authority."""
+        self._require_record(record)
+        facts, ctx = ProductFacts.from_dict(record['facts']), self._context()
+        if kind == 'CATEGORY':
+            return auto_category(facts, ctx)
+        if kind == 'BRAND':
+            return auto_brand(facts, record.get('category'), ctx, shop_id=self.scope.shop_id)
+        raise PreparationError('CATEGORY_OR_BRAND_REQUIRED')
 
     def _require_scope(self, scope):
         if scope != self.scope:
@@ -173,6 +223,7 @@ class PreparationSession:
 
     def begin_catalog_refresh(self):
         self._classification = None
+        self._auto_approvals = ()
         self._brands.clear()
         self._official_receipts.clear()
         self._official_clients.clear()
@@ -261,8 +312,21 @@ class PreparationSession:
         raise PreparationError('BRAND_PARTIAL_PAGE_LIMIT')
 
     def require_operational(self, record):
-        if any((record.get(kind) or {}).get('authority') != 'HUMAN' for kind in ('category', 'brand')):
-            raise PreparationError('AUTO_RULE_OPERATION_NOT_APPROVED')
+        self._require_record(record)
+        ctx = self._context()
+        for kind in ('CATEGORY', 'BRAND'):
+            decision = record.get(kind.lower()) or {}
+            if decision.get('authority') == 'HUMAN':
+                continue
+            definition = decision.get('rule' if kind == 'CATEGORY' else 'alias') or {}
+            if (decision.get('authority') != 'AUTO_RULE'
+                    or self.auto_decision(record, kind=kind) != decision
+                    or definition.get('scope') != 'OPERATION_APPROVED'
+                    or not any(a.scope == self.scope and a.kind == kind
+                        and a.definition_binding == digest(definition)
+                        and a.catalog_binding == ctx.catalog_binding
+                        for a in self._auto_approvals)):
+                raise PreparationError('AUTO_RULE_OPERATION_NOT_APPROVED')
         self.require_official_brand(record['category']['category_id'])
 
     def require_official_brand(self, category_id):

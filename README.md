@@ -6,7 +6,10 @@
 正常な完全根拠のoffline回帰と、通常producer接続・実商品受入を区別し、後者はP3／P4／P5で扱う。
 [P2の共通長期保存・作業状態](docs/PERSISTENCE_P2.md)は市場／shop別の新規DB、履歴、準備pool、5状態と永続投入予約を
 offline backendで提供します。再起動後は現在根拠を再確認し、過去の保存済み判断から準備許可を自動復元しません。
-通常画面への接続はP3／P4で行います。
+[P3の共通分類確認](docs/CLASSIFICATION_P3.md)は、通常アプリのMapperタブへ明示した新規保存先で、
+現在根拠の搬送・Category／Brandの独立採用・取消・任意ASIN部分集合の保存をoffline検証します。
+HUMANとAUTO_RULEを項目ごとに区別し、模擬資料・未承認ruleを実運用出力へ昇格しません。
+通常画面全体・管理整理・共通CSV／TXTと5状態の画面完成はP4です。
 [価格帯・平均レビュー評価](docs/CANDIDATE_PRICE_RATING_FILTERS.md)はDEC-0138によるBeta前MUSTで、実装済み機能ではない。
 
 保存済みファイルを独立したCLIでA／B／C候補へ仕分ける
