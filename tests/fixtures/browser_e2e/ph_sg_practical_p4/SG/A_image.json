@@ -1,0 +1,117 @@
+{
+  "candidate_schema_version": "PRELISTING_CANDIDATE_V1",
+  "candidate_sha256": "e884c3175ae968faa07985d61a4dd90ce83102a43416791257921c8393bc9f46",
+  "rows": [
+    {
+      "evaluation": null,
+      "fact": {
+        "candidate_asin": "B000000001",
+        "capture_error": false,
+        "image_urls": [],
+        "provider": "keepa",
+        "root_category_id": 3210981
+      },
+      "human": null
+    },
+    {
+      "evaluation": null,
+      "fact": {
+        "candidate_asin": "B000000002",
+        "capture_error": false,
+        "image_urls": [],
+        "provider": "keepa",
+        "root_category_id": 3210981
+      },
+      "human": null
+    },
+    {
+      "evaluation": null,
+      "fact": {
+        "candidate_asin": "B000000003",
+        "capture_error": false,
+        "image_urls": [],
+        "provider": "keepa",
+        "root_category_id": 3210981
+      },
+      "human": null
+    },
+    {
+      "evaluation": null,
+      "fact": {
+        "candidate_asin": "B000000004",
+        "capture_error": false,
+        "image_urls": [],
+        "provider": "keepa",
+        "root_category_id": 3210981
+      },
+      "human": null
+    },
+    {
+      "evaluation": null,
+      "fact": {
+        "candidate_asin": "B000000005",
+        "capture_error": false,
+        "image_urls": [],
+        "provider": "keepa",
+        "root_category_id": 3210981
+      },
+      "human": null
+    },
+    {
+      "evaluation": null,
+      "fact": {
+        "candidate_asin": "B000000006",
+        "capture_error": false,
+        "image_urls": [],
+        "provider": "keepa",
+        "root_category_id": 3210981
+      },
+      "human": null
+    },
+    {
+      "evaluation": null,
+      "fact": {
+        "candidate_asin": "B000000007",
+        "capture_error": false,
+        "image_urls": [],
+        "provider": "keepa",
+        "root_category_id": 3210981
+      },
+      "human": null
+    },
+    {
+      "evaluation": null,
+      "fact": {
+        "candidate_asin": "B000000008",
+        "capture_error": false,
+        "image_urls": [],
+        "provider": "keepa",
+        "root_category_id": 3210981
+      },
+      "human": null
+    },
+    {
+      "evaluation": null,
+      "fact": {
+        "candidate_asin": "B000000009",
+        "capture_error": false,
+        "image_urls": [],
+        "provider": "keepa",
+        "root_category_id": 3210981
+      },
+      "human": null
+    },
+    {
+      "evaluation": null,
+      "fact": {
+        "candidate_asin": "B000000010",
+        "capture_error": false,
+        "image_urls": [],
+        "provider": "keepa",
+        "root_category_id": 3210981
+      },
+      "human": null
+    }
+  ],
+  "schema_version": "PH_IMAGE_SAFETY_V1"
+}

@@ -17,8 +17,10 @@ P2の[共通長期保存・作業状態](PERSISTENCE_P2.md)は、市場／shop�
 P3の[分類操作・現在根拠搬送](CLASSIFICATION_P3.md)は、共通HUMAN確認・限定offline AUTO_RULE・
 revision付き任意部分集合をP1／P2へ接続した（DEC-0141）。通常アプリのMapperタブに新規保存先を明示し、
 両市場のoffline接続を検証する。個別ruleの実運用許可は注入せず、模擬一覧を公式receiptへ昇格しない。
-次の単一作業はP4：通常UI全体・管理／診断整理・共通CSV／TXTと5状態操作の画面完成。
-その後F1/F2、P5少量実商品受入の順に進める（DEC-0138）。
+P4の[共通日常操作](PRACTICAL_UI_P4.md)は、新規P2保存先を明示した同じ統一アプリで、
+確認待ち・分類・準備pool・offline CSV／TXT・5状態・永続予約と復旧・履歴を操作する（DEC-0142）。
+既存PH／SG稼働経路を置き換えず、模擬資料の実運用昇格と未承認AUTO_RULE出力を拒否する。
+次の単一作業はF1/F2の実装。その後P5少量実商品受入へ進める（DEC-0138）。
 [実商品受入・Owner判断資料](PH_SG_BETA_ACCEPTANCE_PLAN.md)は旧SG少量2商品群計画を維持する。
 [Amazon価格帯・平均評価](CANDIDATE_PRICE_RATING_FILTERS.md)のF1/F2はOwner判断によりBeta前MUST。
 P1〜P4を優先し、両フィルター完成後にP5へ進む。P1にフィルター実装を混在させない。
@@ -194,6 +196,8 @@ Source明示ON時のsilent fallbackを許さない。Bridge全面書込み障害
 SG Brand responseにmarketplace / Category echoがないため、server内部の別Category誤応答の独立検出は保証しない。
 
 ## Required Decisions
+
+- DEC-0142 — P4共通画面・offline出力・5状態と予約復旧、取得世代・既存経路の保護。
 
 - DEC-0141 — P3共通分類操作・通常根拠搬送・部分集合保存、限定AUTO_RULEの個別承認照合とP4境界。
 

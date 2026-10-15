@@ -19,7 +19,8 @@ def clear_country_session():
 
 
 def render_beta(*, sg_config_path=None, ph_runtime_root=None, ph_api_env_path=None,
-                sg_work_db=None, sg_work_shop=None, classification_workspaces=None):
+                sg_work_db=None, sg_work_shop=None, classification_workspaces=None,
+                practical_workspaces=None):
     st.set_page_config(page_title='Shopee 出品支援ツール', layout='wide')
     st.title('Shopee 出品支援ツール')
     if st.session_state.get('beta_marketplace', 'PH') not in {'PH', 'SG'}:
@@ -47,11 +48,23 @@ def render_beta(*, sg_config_path=None, ph_runtime_root=None, ph_api_env_path=No
             from modules.sg_beta_workbench_ui import render_sg_workbench
             render_sg_workbench(db_path=sg_work_db, shop_id=sg_work_shop)
         return
+    practical = (practical_workspaces or {}).get(marketplace)
+    if practical_workspaces is not None:
+        if practical is None:
+            st.info('この国の共通作業保存先とショップを起動設定で指定してください。')
+            return
+        binding = (str(Path(practical['db_path']).resolve()), marketplace, practical['shop_id'])
+        if st.session_state.get('p4_active_workspace') not in (None, binding):
+            clear_country_session()
+            st.session_state['beta_active_marketplace'] = marketplace
+        st.session_state['p4_active_workspace'] = binding
+        from modules.practical_beta_ui import render_source_settings
+        render_source_settings(marketplace, **practical)
     try:
         with beta_runtime_paths(ph_runtime_root, ph_api_env_path):
             workspace = (classification_workspaces or {}).get(marketplace)
             render_application(marketplace, sg_config_path=sg_config_path, enable_expansion_handoff=True,
-                               classification_workspace=workspace)
+                               classification_workspace=workspace, practical_workspace=practical)
     except BetaRuntimePathError:
         # Path validation occurs before rendering any work area.
         st.error('PHの保存先・既存API設定を確認してください。')
@@ -68,10 +81,17 @@ if __name__ == '__main__':
     parser.add_argument('--ph-classification-shop')
     parser.add_argument('--sg-classification-db', type=Path)
     parser.add_argument('--sg-classification-shop')
+    parser.add_argument('--ph-practical-db', type=Path)
+    parser.add_argument('--ph-practical-shop')
+    parser.add_argument('--sg-practical-db', type=Path)
+    parser.add_argument('--sg-practical-shop')
     args, _ = parser.parse_known_args()
     workspaces = {market: {'db_path': path, 'shop_id': shop} for market, path, shop in (
         ('PH', args.ph_classification_db, args.ph_classification_shop),
         ('SG', args.sg_classification_db, args.sg_classification_shop)) if path is not None}
+    practical = {market: {'db_path': path, 'shop_id': shop} for market, path, shop in (
+        ('PH', args.ph_practical_db, args.ph_practical_shop),
+        ('SG', args.sg_practical_db, args.sg_practical_shop)) if path is not None}
     render_beta(sg_config_path=args.sg_config, ph_runtime_root=args.ph_runtime_root,
                 ph_api_env_path=args.ph_api_env, sg_work_db=args.sg_work_db, sg_work_shop=args.sg_work_shop,
-                classification_workspaces=workspaces)
+                classification_workspaces=workspaces, practical_workspaces=practical or None)

@@ -1,0 +1,3 @@
+﻿schema_version,source_type,source_id,source_asin,candidate_asin,input_title,product_title,brand,category,amazon_url,source_status,source_verification,source,fetched_at,source_note
+PRELISTING_CANDIDATE_V1,RESOLVER,R0001,,B000000011,,Synthetic wired headphone 11,Synthetic Maker,Headphones,,FOUND,KEEPA_VERIFIED,asin_resolver_keepa_verified,2026-10-12T00:00:00+00:00,
+PRELISTING_CANDIDATE_V1,RESOLVER,R0001,,B000000012,,Synthetic wired headphone 12,Synthetic Maker,Headphones,,FOUND,KEEPA_VERIFIED,asin_resolver_keepa_verified,2026-10-12T00:00:00+00:00,

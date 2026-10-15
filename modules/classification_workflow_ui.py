@@ -50,15 +50,18 @@ def _action(call):
     st.rerun()
 
 
-def render_classification_workspace(marketplace, *, db_path, shop_id, workflow=None):
+def render_classification_workspace(marketplace, *, db_path, shop_id, workflow=None,
+                                    controls_renderer=None):
     if (marketplace not in {'PH', 'SG'} or not isinstance(shop_id, str) or not shop_id.strip()
             or (workflow is not None and (workflow.session.scope.marketplace != marketplace
                                          or workflow.session.scope.shop_id != shop_id))):
         st.error('作業対象の市場・ショップを確認してください。')
         return
-    st.subheader('Category / Brand確認')
+    practical = controls_renderer is not None
+    st.subheader('分類・準備・出品管理' if practical else 'Category / Brand確認')
     st.caption(f'{marketplace} / ショップ {shop_id}：選択した商品だけを確認・保存します。')
-    st.info('P3 offline確認用。模擬Brand・限定AUTO_RULEは実運用の出力許可になりません。')
+    st.info('offline操作用。模擬catalog・Brand・限定AUTO_RULEは公式取得済みではありません。実出品には使えません。'
+            if practical else 'P3 offline確認用。模擬Brand・限定AUTO_RULEは実運用の出力許可になりません。')
     key = 'p3_' + marketplace + '_'
     if workflow is None:
         path = Path(db_path)
@@ -78,9 +81,12 @@ def render_classification_workspace(marketplace, *, db_path, shop_id, workflow=N
             st.session_state[key+'workflow'] = saved
             st.session_state[key+'workspace'] = binding
         workflow = saved
-        catalog_file = st.file_uploader('今回の分類資料（offline JSON）', type=['json'], key=key+'catalog')
+        with st.expander('管理・分類資料設定', expanded=False):
+            st.caption('模擬資料を使用します。再取得・読込失敗後は同じ内容でもCategory / Brandを再確認してください。')
+            catalog_file = st.file_uploader('今回の分類資料（offline JSON）', type=['json'], key=key+'catalog')
+            reload_catalog = st.button('分類資料を再読込（旧確認を失効）', key=key+'reload', disabled=catalog_file is None)
         catalog_hash = digest(catalog_file.getvalue().hex()) if catalog_file else None
-        if st.session_state.get(key+'catalog_hash') != catalog_hash:
+        if st.session_state.get(key+'catalog_hash') != catalog_hash or reload_catalog:
             workflow.session.begin_catalog_refresh()
             st.session_state[key+'catalog_hash'] = catalog_hash
             if catalog_file:
@@ -91,9 +97,12 @@ def render_classification_workspace(marketplace, *, db_path, shop_id, workflow=N
                     st.error('分類資料を確認できません。未確認のまま停止します。')
         batch = st.session_state.get('classification_current_batch')
         if batch is None or batch['marketplace'] != marketplace:
-            workflow.session.begin_inventory_refresh()
+            if not st.session_state.get(key+'inventory_missing'):
+                workflow.session.begin_inventory_refresh()
+            st.session_state[key+'inventory_missing'] = True
             st.info('保安ゲートで今回の候補・全ショップCSVを確認してください。保存済み履歴は保持します。')
         else:
+            st.session_state[key+'inventory_missing'] = False
             if st.session_state.get(key+'batch_binding') != batch['product_binding']:
                 # New/changed normal material expires affected existing products
                 # before any new intake action. Adding B does not invalidate A.
@@ -119,8 +128,9 @@ def render_classification_workspace(marketplace, *, db_path, shop_id, workflow=N
                 st.session_state[key+'current'] = False
                 st.session_state[key+'inventory_binding'] = inventory_binding
             current = st.checkbox('全ショップ分の今回の最新出品CSVと対応を確認しました', key=key+'current')
-            if not current:
+            if not current and st.session_state.get(key+'inventory_was_current'):
                 workflow.session.begin_inventory_refresh()
+            st.session_state[key+'inventory_was_current'] = current
             if st.button('今回の商品根拠を確認待ちへ保存', key=key+'ingest', disabled=not current):
                 def ingest():
                     workflow.supply_inventory(tuple(replace(i, shop_label=label) for i, label in
@@ -130,10 +140,13 @@ def render_classification_workspace(marketplace, *, db_path, shop_id, workflow=N
                         **batch['product_arguments'])
                     workflow.ingest(records, scope=workflow.session.scope, batch_ref=batch['product_binding'])
                 _action(ingest)
-    render_classification_controls(workflow, key=key)
+    if controls_renderer is None:
+        render_classification_controls(workflow, key=key)
+    else:
+        controls_renderer(workflow, key=key)
 
 
-def render_classification_controls(workflow, *, key='p3_'):
+def render_classification_controls(workflow, *, key='p3_', practical=False):
     try:
         display_revision = workflow.session.evidence_revision
         records = workflow.bench.refresh()
@@ -143,13 +156,21 @@ def render_classification_controls(workflow, *, key='p3_'):
     except (ValueError, RuntimeError, OSError):
         st.info('現在の分類資料・全ショップ資料を確認すると分類操作へ進めます。')
         return
-    st.metric('現在の準備pool', len(workflow.bench.prepared_pool()))
+    if practical:
+        from modules.practical_beta_ui import filter_queue, decision_label, state_label, recovery_text
+        records = filter_queue(records, key=key)
+    else:
+        st.metric('現在の準備pool', len(workflow.bench.prepared_pool()))
     st.dataframe([{'ASIN': r['asin'], '商品名': r['facts']['fields']['title']['value'],
         'Category': (r.get('category') or {}).get('category_id'),
-        'Category確認': (r.get('category') or {}).get('authority', '未確認'),
+        'Category確認': (decision_label(r, 'category') if practical else
+                        (r.get('category') or {}).get('authority', '未確認')),
         'Brand': (r.get('brand') or {}).get('brand_name', '未確認'),
-        'Brand確認': (r.get('brand') or {}).get('authority', '未確認'),
-        '状態': r['state'], '確認事項': ' / '.join(r['assessment']['reasons'])} for r in records])
+        'Brand確認': (decision_label(r, 'brand') if practical else
+                     (r.get('brand') or {}).get('authority', '未確認')),
+        '状態': state_label(r) if practical else r['state'],
+        '確認事項': ' / '.join(r['assessment']['reasons']),
+        **({'必要な操作': recovery_text(r)} if practical else {})} for r in records])
     groups = sorted({r['facts']['fields']['brand']['value'] + ' | ' +
         ' > '.join(n['name'] for n in r['facts']['fields']['category_tree']['value']) for r in records})
     group = st.selectbox('商品グループ', ['全商品', *groups], key=key+'group')

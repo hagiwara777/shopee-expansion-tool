@@ -2,7 +2,10 @@
 
 本書は現在の共通入口の仕様。[実務Beta完成条件](PRACTICAL_BETA_COMPLETION.md)（DEC-0137）は、
 同じ見出しだけでなく通常操作・保存・5状態の一致と両国の実商品受入まで要求する。
-SG専用offline入口は完成済みの共通通常UIではない。価格・評価は[追加開発候補](CANDIDATE_PRICE_RATING_FILTERS.md)として別に採否を判断する。
+SG専用offline入口だけでは共通操作の完成としない。[P4共通日常操作](PRACTICAL_UI_P4.md)は、
+新規P2保存先を明示する同じアプリの追加設定で両市場の準備pool・出力・5状態をoffline操作する。
+未指定時の既存PH／SG経路を維持し、稼働環境へ無条件に切り替えない。
+価格・評価は[Beta前MUSTのF1/F2](CANDIDATE_PRICE_RATING_FILTERS.md)としてP4の次に実装する（DEC-0138）。
 
 普段の入口は `Shopee Beta` とし、1つのアプリ内で画面上部の「対象国」をPH / SGへ切り替える。
 入口は `app_beta.py`。候補生成、出品前保安ゲート、Category Mapperの既存処理を再利用する。
