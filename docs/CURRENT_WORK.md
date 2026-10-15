@@ -11,8 +11,11 @@ PH・SGの共通初版は[実務Beta完成条件・差分監査](PRACTICAL_BETA_
 既存PH成果・SG Step 8の受入履歴は保護する。SG専用offline機能は両市場の実務完成を意味しない。
 P1の[共通準備有効性・市場分離](PREPARATION_VALIDITY_P1.md)は、既存validatorを使う共通契約とPH／SGのoffline出力回帰を整備した（DEC-0139）。
 根拠未搬送・旧確認フラグだけの通常出力は停止し、通常producer接続・実商品証明を完成済みとしない。
-次の単一作業はP2：市場別の新規保存先・履歴・準備pool・5状態の最小実装とoffline回帰。
-その後P3分類確認・現在根拠搬送、P4通常UI統一、F1/F2、P5少量実商品受入の順に進める（DEC-0138）。
+P2の[共通長期保存・作業状態](PERSISTENCE_P2.md)は、市場／shop別の新規DB・履歴・準備pool・5状態・
+永続投入予約をoffline backendとして整備した（DEC-0140）。再開時は過去判断を履歴として保持し、
+新しいP1 sessionの現在根拠と明示確認なしに準備許可を復元しない。通常画面・実運用DBには接続しない。
+次の単一作業はP3：分類確認・限定AUTO_RULE・任意部分集合の通常接続と現在根拠搬送。
+その後P4通常UI統一、F1/F2、P5少量実商品受入の順に進める（DEC-0138）。
 [実商品受入・Owner判断資料](PH_SG_BETA_ACCEPTANCE_PLAN.md)は旧SG少量2商品群計画を維持する。
 [Amazon価格帯・平均評価](CANDIDATE_PRICE_RATING_FILTERS.md)のF1/F2はOwner判断によりBeta前MUST。
 P1〜P4を優先し、両フィルター完成後にP5へ進む。P1にフィルター実装を混在させない。
@@ -189,9 +192,11 @@ SG Brand responseにmarketplace / Category echoがないため、server内部の
 
 ## Required Decisions
 
+- DEC-0140 — P2共通保存・市場／shop／schema分離、現在準備と投入進行の分離、永続予約とP3引継ぎ。
+
 - DEC-0139 — P1共通検証、session失効、公式完全取得と通常根拠未搬送時停止、P2／P3引継ぎ。
 
-- DEC-0138 — F1/F2のBeta前MUST、P1〜P4優先とP5前の完成、今回P1の境界。
+- DEC-0138 — F1/F2のBeta前MUST、P1〜P4優先とP5前の完成、P1の境界。
 
 - DEC-0137 — PH・SG共通の実務Beta完成条件、差分監査・最小順序、少量受入、価格／評価候補の採否境界。
 - DEC-0136 — Home Appliances候補分類CLIの独立入力・出力、Fact出所、既知回帰と未知精度、後続接続の分離。

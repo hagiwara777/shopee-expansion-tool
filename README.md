@@ -4,6 +4,9 @@
 既存の共通入口やSG専用offline機能だけで完成とはせず、両国の通常操作・長期保存・出品状態・実商品受入を確認する。
 [P1の準備有効性契約](docs/PREPARATION_VALIDITY_P1.md)により、現在根拠が未搬送の商品は通常の準備出力を停止する。
 正常な完全根拠のoffline回帰と、通常producer接続・実商品受入を区別し、後者はP3／P4／P5で扱う。
+[P2の共通長期保存・作業状態](docs/PERSISTENCE_P2.md)は市場／shop別の新規DB、履歴、準備pool、5状態と永続投入予約を
+offline backendで提供します。再起動後は現在根拠を再確認し、過去の保存済み判断から準備許可を自動復元しません。
+通常画面への接続はP3／P4で行います。
 [価格帯・平均レビュー評価](docs/CANDIDATE_PRICE_RATING_FILTERS.md)はDEC-0138によるBeta前MUSTで、実装済み機能ではない。
 
 保存済みファイルを独立したCLIでA／B／C候補へ仕分ける
