@@ -61,7 +61,7 @@ UNKNOWNはロックを保持し、再起動・再分類でも二重投入を拒�
 
 ## 障害時と検証
 
-BEGIN IMMEDIATE、全件transaction、revision、商品・履歴・予約checksum、履歴とロックの整合照合を使う。
+BEGIN IMMEDIATE、全件transaction、revision、商品・履歴・予約checksum、履歴総件数とロックの整合照合を使う。
 途中更新・commit失敗では全件rollbackし、出力成功を返さない。選択変更、DB欠落・破損、
 履歴・予約・ロック欠落では停止し、DBを再作成しない。未解決予約を削除して復旧しない。
 保存中や出力生成中のP1更新開始も検出し、古い準備出力を返さない。

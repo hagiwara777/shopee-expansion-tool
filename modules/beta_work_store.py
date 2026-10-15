@@ -66,6 +66,7 @@ class BetaWorkStore:
                 identity = [('schema', cls.SCHEMA), ('marketplace', marketplace), ('shop_id', shop_id)]
                 if cls.AUDIT_EVENTS:
                     identity.append(('store_id', uuid4().hex))
+                    identity.append(('event_count', '0'))
                 conn.executemany('INSERT INTO meta VALUES (?,?)', identity)
         except Exception:
             # A failed creation stays visible for explicit recovery; never repair.
@@ -123,6 +124,10 @@ class BetaWorkStore:
             if not isinstance(store_id, str) or not re.fullmatch(r'[0-9a-f]{32}', store_id):
                 raise WorkStoreError('Dedicated work database identity missing')
             expected['store_id'] = self.store_id or store_id
+            count = meta.get('event_count')
+            if not isinstance(count, str) or not re.fullmatch(r'0|[1-9][0-9]*', count):
+                raise WorkStoreError('Work history count metadata invalid')
+            expected['event_count'] = count
         if meta != expected:
             raise WorkStoreError('Work database identity changed')
         if self.AUDIT_EVENTS:
@@ -166,6 +171,7 @@ class BetaWorkStore:
         if self.AUDIT_EVENTS:
             conn.execute('INSERT INTO events(asin,revision,action,created_at,payload,checksum) VALUES (?,?,?,?,?,?)',
                          (*event, digest(event)))
+            conn.execute("UPDATE meta SET value=CAST(value AS INTEGER)+1 WHERE key='event_count'")
         else:
             conn.execute('INSERT INTO events(asin,revision,action,created_at,payload) VALUES (?,?,?,?,?)', event)
 
@@ -233,9 +239,11 @@ class BetaWorkStore:
     def _validate_history(self, conn, values):
         revisions, latest = {}, {}
         operations = {}
+        event_count = 0
         for row in conn.execute('SELECT * FROM events ORDER BY event_id'):
+            event_count += 1
             event = tuple(row[k] for k in ('asin', 'revision', 'action', 'created_at', 'payload'))
-            if (row['checksum'] != digest(event) or row['asin'] not in values
+            if (row['event_id'] != event_count or row['checksum'] != digest(event) or row['asin'] not in values
                     or row['revision'] != revisions.get(row['asin'], 0) + 1):
                 raise WorkStoreError('Work history damaged or missing')
             revisions[row['asin']] = row['revision']
@@ -247,6 +255,9 @@ class BetaWorkStore:
                 if note['kind'] != 'SUBMISSION' or note['result'] != outcome:
                     raise WorkStoreError('Submission history/result mismatch')
                 operations.setdefault(operation_id, {})[row['asin']] = outcome
+        recorded_count = conn.execute("SELECT value FROM meta WHERE key='event_count'").fetchone()[0]
+        if str(event_count) != recorded_count:
+            raise WorkStoreError('Work product/history rows missing')
         for asin, value in values.items():
             if (revisions.get(asin) != value['revision']
                     or latest.get(asin) != {k: v for k, v in value.items() if k != 'revision'}):

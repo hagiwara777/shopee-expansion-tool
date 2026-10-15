@@ -313,7 +313,7 @@ def test_cross_market_shop_schema_and_legacy_open_never_mutate(tmp_path):
     with pytest.raises(WorkStoreError): BetaWorkBench(store,session_for('SG',shop='ph-shop'))
 
 
-@pytest.mark.parametrize('damage',['missing','bytes','schema','product','event','delete_event','locks','operation','both_operation_and_locks'])
+@pytest.mark.parametrize('damage',['missing','bytes','schema','product','event','delete_event','locks','operation','both_operation_and_locks','all_rows'])
 def test_database_missing_corruption_and_lost_reservation_stop_without_repair(bench,damage):
     intake(bench)
     bench.output(selected(bench),reserve_copy=True)
@@ -326,8 +326,12 @@ def test_database_missing_corruption_and_lost_reservation_stop_without_repair(be
                 'product':"UPDATE products SET checksum='bad'", 'event':"UPDATE events SET payload='{}'",
                 'delete_event':'DELETE FROM events WHERE revision=1', 'locks':'DELETE FROM copy_locks',
                 'operation':'DELETE FROM copy_operations', 'both_operation_and_locks':'DELETE FROM copy_operations'}
-            conn.execute(statements[damage])
-            if damage=='both_operation_and_locks': conn.execute('DELETE FROM copy_locks')
+            if damage=='all_rows':
+                for table in ('copy_locks','copy_operations','events','products'):
+                    conn.execute('DELETE FROM '+table)
+            else:
+                conn.execute(statements[damage])
+                if damage=='both_operation_and_locks': conn.execute('DELETE FROM copy_locks')
     before=path.read_bytes() if path.exists() else None
     with pytest.raises(WorkStoreError): bench.output(selected(bench),reserve_copy=True)
     with pytest.raises(WorkStoreError): BetaWorkStore(path,marketplace=bench.scope.marketplace,shop_id=bench.scope.shop_id)
