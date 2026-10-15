@@ -11,7 +11,8 @@
 P3限定自動確定・グループ／個別確認 → P4通常UI統一・整理 → F1/F2 → P5両市場の少量反復受入（DEC-0138）。
 SG専用[offline作業機能](SG_INITIAL_BETA_V1.md)を再利用するが、PH対応・通常接続・公式資料の有効性は不足として扱う。
 P1の[共通準備有効性契約](PREPARATION_VALIDITY_P1.md)とPH／SG offline回帰を整備した（DEC-0139）。
-次の単一作業はP2。現在根拠の通常producer接続はP3／P4、実API・費用・設置・release反映・実出品は別承認とする。
+P2の[長期保存・5状態・永続投入予約](PERSISTENCE_P2.md)を両市場のoffline backendとして整備した（DEC-0140）。
+次の単一作業はP3。現在根拠の通常producer接続はP3／P4、実API・費用・設置・release反映・実出品は別承認とする。
 固定PH基準（DEC-0116）は[既存機能の回帰基準](PH_BETA_MARKET_PARITY.md)として保持する。
 MY／TW／TH追加は共通実務Beta受入後。MYは販売価格・貨物価格・送料等に基づく税務確認を国別工程で整理する。
 

@@ -158,6 +158,19 @@ class PreparationSession:
         if scope != self.scope:
             raise PreparationError('MARKET_SHOP_SESSION_MISMATCH')
 
+    @property
+    def evidence_revision(self):
+        """In-memory invalidation counter, never a persisted readiness receipt."""
+        return self._revision
+
+    def current_inventory(self):
+        """Read current all-shop evidence independently of product classification."""
+        evidence = self._inventory
+        if evidence is None or not evidence.confirmed_current or not evidence.reference:
+            raise PreparationError('CURRENT_ALL_SHOP_INVENTORY_REQUIRED')
+        self._require_scope(evidence.scope)
+        return copy.deepcopy(evidence)
+
     def begin_catalog_refresh(self):
         self._classification = None
         self._brands.clear()

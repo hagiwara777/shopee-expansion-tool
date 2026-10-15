@@ -4,6 +4,9 @@
 本書のSG専用offline実装だけでは、PH対応・通常UI・実商品受入の完成を意味しない。
 既存部品はP1〜P4で再利用し、過去の成果と未実施事項を区別する。
 
+P2の[PH／SG共通保存backend](PERSISTENCE_P2.md)はSG storeの保存engineを共用するが、
+新規専用schemaだけを扱う。下記の旧SG optional入口・旧DBを自動移行せず、通常画面接続はP3／P4へ残す。
+
 
 P1の[共通有効性契約](PREPARATION_VALIDITY_P1.md)（DEC-0139）を準備判定・出力で使用する。
 JP Fact・市場／shop・全ショップ資料等の現在根拠が未搬送なら停止し、過去確認へfallbackしない。

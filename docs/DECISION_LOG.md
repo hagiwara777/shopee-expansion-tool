@@ -1686,3 +1686,14 @@
 - 実運用との境界: 通常UIへJP Factや全ショップ根拠の新producerを自動追加せず、証明不足の資料は停止する。対象実商品自身のJP証明、公式一覧のlive完全性・更新条件・長時間利用はoffline成功だけで受入済みにしない。通常接続と分類の運用適用はP3／P4、実商品受入はP5へ引き継ぎ、既存固定releaseへ反映しない。コードの採用を即時の実務利用開放と読み替えない。
 - 保護／非対象: BLOCK／REVIEW／EXCLUDE、Battery／SLS／SG本体・実同梱／画像疑義は既存validatorで停止を維持する。P2保存・5状態全面実装、P3 rule追加・運用自動分類、P4通常UI全面改修、F1/F2実装、MY／TW／TH runtime、Home Appliances接続、実API・有料処理・実商品・DB移行・credential・deploy・実出品を実施しない。
 - rollback: 対象code／tests／docsを通常revertできる。既存DB・確認履歴・API消費記録・過去Decisionは保持する。formal main mergeはmandatory technical gatesと現在対象へのOwner別最終承認を必要とする。
+
+## DEC-0140 — P2の市場別長期保存と現在準備・投入進行の分離を採用する
+
+- 日付: 2026-10-15
+- authority／目的: OwnerのPH・SG共通実務Beta P2依頼に従い、商品群の追加・再起動でも履歴を維持し、誤った準備復元と二重投入を止める最小offline backendを整える。
+- 決定: 既存SG storeのSQLite・BEGIN IMMEDIATE・全件transaction・revision・コピー予約を共通engineへ分離する。PH／SGは一市場・一shop・専用P2 schema・固有store IDの新規DBだけを明示作成する。旧SG API／schemaを互換wrapperで保ち、PH既存保存・SG旧DB／Policy／ledger／claimを移行・上書き・初期化・resetしない。新しい汎用WorkflowやAPI／Fact基盤は作らない。
+- 保存・有効性: ASIN・商品群／Candidate出所・項目別Fact・取得根拠・Safety資料・Category／Brand判断・取消・人間メモ・確認待ちと理由・準備状態・作業状態・操作履歴を保存する。過去valid／SUCCESS／receiptは履歴だけとし、新しいP1 sessionへ自動復元しない。現在catalog／完全Brand／全ショップ資料／対象自身のFactを明示搬送し、人間がCategory→Brandを再確認する。変更のない同session記録も毎回P1で再検証する。
+- 5状態: 現在準備と投入進行を別に保持する。CSV／TXT取得だけでは状態を進めず、人間が予約対象の外部投入成功を確認したときだけ出品確認待ち、今回の全ショップCSVのParent SKU／SKU一致だけで出品済みとする。不在で出品済みを解除しない。再確認・再分類だけで投入成功履歴を失わず、再投入には現在準備と明示復旧を必要とする。
+- 予約と障害: PENDING／UNKNOWNを永続ロックし、再起動でも二重投入を停止する。古いsession／準備根拠／revisionのSUCCESSを拒否し、人間が結果を確認して予約全件を明示解決する。保存成功より前にbytesを返さず、部分更新・commit失敗はrollback、履歴・予約・ロック欠落やDB破損は停止する。checksumは破損検出であり悪意ある全DB巻戻しへの署名保証ではない。
+- 保護・非対象: P1と既存Guardrail／Gate／Battery／SLS／SG本体・画像疑義の停止、PH／SG protected capabilityを維持する。分類採用・一括操作・メモでSafety処分を解除しない。通常UI全面接続、P3／P4、F1/F2、P5、MY／TW／TH、実API・有料API・実商品・実運用DB移行・固定release変更・deploy・実出品は本P2で実行しない。P2成立を実務Beta完成へ昇格しない。
+- 後続／rollback: P3で通常の現在根拠搬送・分類確認・既存限定AUTO_RULE・任意部分集合を接続し、P4で通常UIを統一する。実運用保存先設置・再取得費用・実商品反復受入は別承認とする。追加backendの利用停止と通常revertで戻し、P2新規DB・旧DB・履歴・消費記録・過去Decisionを削除しない。formal main採用は既存mandatory technical gatesと現在対象へのOwner別最終承認を要する。
