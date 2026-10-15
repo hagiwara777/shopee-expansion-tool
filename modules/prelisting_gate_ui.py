@@ -24,6 +24,7 @@ PRELISTING_GATE_RESULT_STATE_KEYS = (
     "prelisting_gate_base_result",
     "prelisting_gate_image_sidecar",
     "prelisting_gate_sg_body_confirmations",
+    "classification_current_batch",
 )
 PRELISTING_GATE_PREVIEW_COLUMNS = (
     "candidate_asin",

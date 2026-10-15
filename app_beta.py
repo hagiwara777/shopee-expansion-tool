@@ -19,7 +19,7 @@ def clear_country_session():
 
 
 def render_beta(*, sg_config_path=None, ph_runtime_root=None, ph_api_env_path=None,
-                sg_work_db=None, sg_work_shop=None):
+                sg_work_db=None, sg_work_shop=None, classification_workspaces=None):
     st.set_page_config(page_title='Shopee 出品支援ツール', layout='wide')
     st.title('Shopee 出品支援ツール')
     if st.session_state.get('beta_marketplace', 'PH') not in {'PH', 'SG'}:
@@ -49,7 +49,9 @@ def render_beta(*, sg_config_path=None, ph_runtime_root=None, ph_api_env_path=No
         return
     try:
         with beta_runtime_paths(ph_runtime_root, ph_api_env_path):
-            render_application(marketplace, sg_config_path=sg_config_path, enable_expansion_handoff=True)
+            workspace = (classification_workspaces or {}).get(marketplace)
+            render_application(marketplace, sg_config_path=sg_config_path, enable_expansion_handoff=True,
+                               classification_workspace=workspace)
     except BetaRuntimePathError:
         # Path validation occurs before rendering any work area.
         st.error('PHの保存先・既存API設定を確認してください。')
@@ -62,6 +64,14 @@ if __name__ == '__main__':
     parser.add_argument('--ph-api-env', type=Path)
     parser.add_argument('--sg-work-db', type=Path)
     parser.add_argument('--sg-work-shop')
+    parser.add_argument('--ph-classification-db', type=Path)
+    parser.add_argument('--ph-classification-shop')
+    parser.add_argument('--sg-classification-db', type=Path)
+    parser.add_argument('--sg-classification-shop')
     args, _ = parser.parse_known_args()
+    workspaces = {market: {'db_path': path, 'shop_id': shop} for market, path, shop in (
+        ('PH', args.ph_classification_db, args.ph_classification_shop),
+        ('SG', args.sg_classification_db, args.sg_classification_shop)) if path is not None}
     render_beta(sg_config_path=args.sg_config, ph_runtime_root=args.ph_runtime_root,
-                ph_api_env_path=args.ph_api_env, sg_work_db=args.sg_work_db, sg_work_shop=args.sg_work_shop)
+                ph_api_env_path=args.ph_api_env, sg_work_db=args.sg_work_db, sg_work_shop=args.sg_work_shop,
+                classification_workspaces=workspaces)

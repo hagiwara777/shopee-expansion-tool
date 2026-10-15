@@ -1697,3 +1697,15 @@
 - 予約と障害: PENDING／UNKNOWNを永続ロックし、再起動でも二重投入を停止する。古いsession／準備根拠／revisionのSUCCESSを拒否し、人間が結果を確認して予約全件を明示解決する。保存成功より前にbytesを返さず、部分更新・commit失敗はrollback、履歴総件数も照合して商品・履歴・予約・ロック欠落やDB破損で停止する。checksumは破損検出であり悪意ある全DB巻戻しへの署名保証ではない。
 - 保護・非対象: P1と既存Guardrail／Gate／Battery／SLS／SG本体・画像疑義の停止、PH／SG protected capabilityを維持する。分類採用・一括操作・メモでSafety処分を解除しない。通常UI全面接続、P3／P4、F1/F2、P5、MY／TW／TH、実API・有料API・実商品・実運用DB移行・固定release変更・deploy・実出品は本P2で実行しない。P2成立を実務Beta完成へ昇格しない。
 - 後続／rollback: P3で通常の現在根拠搬送・分類確認・既存限定AUTO_RULE・任意部分集合を接続し、P4で通常UIを統一する。実運用保存先設置・再取得費用・実商品反復受入は別承認とする。追加backendの利用停止と通常revertで戻し、P2新規DB・旧DB・履歴・消費記録・過去Decisionを削除しない。formal main採用は既存mandatory technical gatesと現在対象へのOwner別最終承認を要する。
+
+## DEC-0141 — P3共通分類操作と現在根拠搬送を個別承認境界付きで接続する
+
+- 日付: 2026-10-15
+- authority／目的: OwnerはP2採用後のP3として、PH／SG共通の分類確認・限定AUTO_RULE・任意部分集合をP1準備有効性とP2長期保存へ接続し、offline tests・保護回帰・read-only review・commit／push／Draft PR／CIまで同じタスクで進めるよう指示した。formal main採用には現在対象への別最終承認を要する。
+- 決定: `ClassificationWorkflow`で既存PreparationSession・BetaWorkBench・Category／Brand validatorと有限rule／aliasを再利用する。Category候補→選択商品の採用→独立したBrand候補・採用→P1再検証→P2保存とし、確認者・判断根拠・項目別authorityを履歴に残す。市場固有ID・catalog・shop・保存先・Safety・認証を分離し、新しい汎用分類／Workflow／Fact基盤を作らない。
+- 根拠搬送: 既存Keepa応答の明示ASIN・domainId・項目別Factを保持し、Expansion／ResolverのCandidateと取得時刻・Safety資料へ結合する。追加APIとcache schema移行はない。旧cache・seed・取得市場不明・保存済みSUCCESSから対象自身のJP証明や準備許可を生成しない。全ショップCSVは今回の資料と実shopの明示対応を要求する。通常アプリのGate→共通Mapperタブを明示した新規P2保存先でoffline検証し、模擬catalog／Brandを公式receiptへ変換しない。
+- 限定AUTO_RULE: 既存の一意rule・aliasだけを使い、根拠不足・競合・未取得・部分取得・不一致は保留する。No Brandの自動fallbackはない。HUMANとAUTO_RULEを項目別に保持する。運用出力は既定拒否を維持し、OPERATION_APPROVED記載だけで許可しない。将来の承認済みadapter向けに、市場・shop・session・項目種別・定義全体hash・catalog binding・承認参照を完全一致で照合する最小契約を設ける。catalog更新で許可を破棄し、公式Brandの今回strict取得と出力前後再検証も必須とする。これは承認そのものを証明する機構ではない。UI／JSON／環境変数／DBから許可を作らず、通常adapterは個別許可を注入しない。既存OFFLINE_ONLY例の実運用適用は別承認とする。
+- 部分集合・失効: 選択時の市場・shop・session・資料revisionとASIN別保存revisionを操作直前に照合する。未選択商品を採用せず、途中保存失敗・古い選択は全件rollbackする。資料変更・削除・取得失敗では影響する根拠を先に失効する。Category変更／取消でBrandも失効し、取消を新群追加で自動再採用しない。A群の履歴と有効な判断は無関係なB追加で維持する。新sessionへ過去判断を自動復元しない。
+- 準備・保護: P1の現在判定成立分だけP2準備poolへ含める。Safety／Battery／SLS／Gate／SG本体・実同梱／画像の停止を分類操作やメモで解除しない。P2の5状態・永続予約・結果不明lockとPH／SG protected capabilityを維持する。
+- 境界・後続: P3単独で実務Beta完成としない。P4に通常UI全体、管理／診断整理、画像確認の通常搬送整理、共通CSV／TXT・pool・5状態の画面完成を残す。P4→F1/F2→P5の順序を保持する。実API・費用・実商品・実運用DB移行・credential・固定release・deploy・実出品・MY／TW／TH・rule大量追加は本工程の実行対象外。個別rule精度・公式Brandのlive完全性・更新頻度と費用はoffline成功で受入済みにしない。
+- rollback: 明示P3設定の利用停止と対象code／tests／docsの通常revertで戻せる。旧DB・P2保存履歴・予約・API消費・過去Decision／Evidenceを削除・移行・resetしない。

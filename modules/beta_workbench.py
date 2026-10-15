@@ -42,9 +42,11 @@ class BetaWorkBench:
             raise WorkStoreError('Work store/preparation marketplace/shop/session mismatch')
 
     @contextmanager
-    def _transaction(self):
+    def _transaction(self, *, evidence_revision=None):
         self._require_scope()
         revision = self.session.evidence_revision
+        if evidence_revision is not None and evidence_revision != revision:
+            raise WorkStoreError('Preparation evidence changed after selection')
         with self.store.transaction() as conn:
             yield conn
             self._require_scope()
@@ -107,7 +109,7 @@ class BetaWorkBench:
             selected.append(value)
         return selected
 
-    def ingest(self, records, *, batch_ref):
+    def ingest(self, records, *, batch_ref, require_review_asins=()):
         """Append a group, preserving other groups and same-product history.
 
         Input decisions/valid flags are never adopted. An unchanged record in
@@ -115,10 +117,13 @@ class BetaWorkBench:
         A changed/new/reopened product needs explicit Category and Brand review.
         """
         records = copy.deepcopy(tuple(records))
+        require_review_asins = frozenset(require_review_asins)
         if (not isinstance(batch_ref, str) or not batch_ref.strip() or not records
                 or any(not isinstance(r, dict) for r in records)
                 or len({r.get('asin') for r in records}) != len(records)):
             raise WorkStoreError('Explicit batch reference and unique nonempty products required')
+        if not require_review_asins <= {r.get('asin') for r in records}:
+            raise WorkStoreError('Recheck must be limited to incoming products')
         with self._transaction() as conn:
             old = self.store.read_all(conn)
             for record in records:
@@ -154,8 +159,11 @@ class BetaWorkBench:
                     value['body_excluded'] |= any(r.get('candidate_asin') == facts.asin
                         and r.get('outcome') == 'BODY_PRESENT' for r in body.get('records', []))
                 unchanged = previous and all(previous.get(k) == value.get(k) for k in ('facts', 'source', 'weapon'))
-                if unchanged and previous.get('preparation_scope') == asdict(self.scope):
+                if (unchanged and previous.get('preparation_scope') == asdict(self.scope)
+                        and facts.asin not in require_review_asins):
                     value['category'], value['brand'] = previous['category'], previous['brand']
+                elif previous and facts.asin in require_review_asins:
+                    self._note(value, 'CLASSIFICATION', 'INVALIDATED', 'Current target Fact must be reviewed again')
                 value['batches'].append({'reference': batch_ref.strip(), 'at': timestamp(),
                     'source_type': rows[0].source_type, 'source_id': rows[0].source_id,
                     'source_asin': rows[0].source_asin, 'source_binding': digest(value['source'])})
@@ -187,11 +195,14 @@ class BetaWorkBench:
             return tuple(v for v in current.values() if v['state'] == 'WAITING'
                          and v['asin'] not in locks and self._assess(v)['valid'])
 
-    def confirm(self, expected, *, kind, option_id, human_verified, note):
+    def confirm(self, expected, *, kind, option_id, human_verified, note, reviewer='operator',
+                evidence_revision=None):
         self._human(human_verified, note)
+        if not isinstance(reviewer, str) or not reviewer.strip():
+            raise WorkStoreError('Reviewer required')
         if kind not in {'CATEGORY', 'BRAND'}:
             raise WorkStoreError('Category or Brand confirmation required')
-        with self._transaction() as conn:
+        with self._transaction(evidence_revision=evidence_revision) as conn:
             for value in self._selection(conn, expected):
                 if value.get('preparation_scope') != asdict(self.scope):
                     # Preserve old decisions in history, never rebind them as current.
@@ -200,15 +211,18 @@ class BetaWorkBench:
                     value = self.session.confirm_category(value, option_id, human_verified=True)
                 else:
                     value = self.session.confirm_brand(value, option_id, human_verified=True)
-                self._note(value, kind, 'CONFIRMED', note)
+                ctx = self.session.classification_context()
+                self._note(value, kind, 'CONFIRMED', note, reviewer=reviewer.strip(), authority='HUMAN',
+                    catalog_version=ctx.catalog.catalog_version,
+                    rule_alias_revision=ctx.classification.revision, catalog_binding=ctx.catalog_binding)
                 self._update_assessment(value, self._assess(value))
                 self.store.write(conn, value, action='HUMAN_' + kind, expected_revision=value['revision'])
 
-    def revoke(self, expected, *, kind, note):
+    def revoke(self, expected, *, kind, note, evidence_revision=None):
         self._human(True, note)
         if kind not in {'CATEGORY', 'BRAND'}:
             raise WorkStoreError('Category or Brand cancellation required')
-        with self._transaction() as conn:
+        with self._transaction(evidence_revision=evidence_revision) as conn:
             for value in self._selection(conn, expected):
                 value['revoked'].append({'kind': kind, 'decision': copy.deepcopy(value.get(kind.lower())),
                                          'at': timestamp(), 'note': note.strip()})
