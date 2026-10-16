@@ -991,7 +991,7 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
                 if amazon_settings.amazon_data_provider == KEEPA_PROVIDER:
                     with st.spinner(
                         ("Keepa APIから候補ASINを有限計画内で取得しています。残token不足時は停止します。"
-                         if expansion_criteria.active else
+                         if expansion_criteria.active or p5_runtime is not None else
                          "Keepa APIから候補ASINを取得しています。トークン不足時は自動で回復待ちします...")
                     ):
                         result = client.find_related_products(

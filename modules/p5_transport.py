@@ -304,6 +304,12 @@ def make_keepa_client(runtime, secrets, *, transport=None):
             if source_asin not in runtime.scope.asins or search_pages != 1 or search_mode != 'strict':
                 raise P5Stopped('P5_EXPANSION_PLAN_REFUSED')
             return super().find_related_products(source_asin, search_pages, search_mode, filter_criteria)
+
+        def _diagnose_and_fallback(self, source, original_error):
+            # The legacy diagnostic includes a resend of the original query.
+            # Exact-parameter checks alone cannot distinguish that automatic
+            # resend from the one planned Finder request.
+            return [], 'P5では自動診断・fallbackを実行しません。取得条件と残枠を確認してください。', []
     return ScopedKeepaClient(domain='JP', api=api, cache=KeepaCache(cache_path))
 
 

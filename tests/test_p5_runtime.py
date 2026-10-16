@@ -442,3 +442,26 @@ def test_mock_object_cannot_borrow_default_transport_provenance(runtime):
     with pytest.raises(P5Stopped, match='APPROVED_CATALOG_ROUTE'):
         runtime.acquire_catalog(counterfeit)
     assert not calls and runtime.category_receipt is None and not runtime.ledger.data['reservations']
+
+
+@pytest.mark.parametrize('finder_status', [200, 503])
+def test_empty_finder_never_runs_legacy_diagnostics_or_resends_query(runtime, keepa_raw_product, finder_status):
+    calls = []
+    def send(url, **kwargs):
+        calls.append(url)
+        body = {'tokensLeft': 500, 'tokensConsumed': 0, 'refillRate': 5, 'refillIn': 60000}
+        if '/product/' in url:
+            body.update(tokensConsumed=1, products=[dict(keepa_raw_product, asin='B000000000')])
+        elif '/query/' in url:
+            body.update(tokensConsumed=1, asinList=[], totalResults=0)
+        return SimpleNamespace(status_code=finder_status if '/query/' in url else 200, json=lambda: body)
+    client = make_keepa_client(runtime, secrets(runtime), transport=send)
+    if finder_status == 200:
+        result = client.find_related_products('B000000000', 1)
+        assert not result.rows
+    else:
+        from modules.keepa_client import KeepaClientError
+        with pytest.raises(KeepaClientError, match='P5'):
+            client.find_related_products('B000000000', 1)
+    assert sum('/query/' in url for url in calls) == 1
+    assert len(calls) == 3  # token, seed, one approved Finder page only.
