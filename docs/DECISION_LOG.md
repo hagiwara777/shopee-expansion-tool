@@ -1721,3 +1721,16 @@
 - 保護: Safety／Battery／SLS／Gate／SG本体・実同梱／対象画像疑義を分類・メモ・一括操作で解除しない。画像対象外・疑義なしに全商品の人間確認を再導入しない。市場別ID・catalog・Safety・shop・保存・認証・API枠を混用しない。P4設定未指定の既存PH／SG経路と旧SG offline入口、旧DB・Policy／Grant・ledger／claim・credential・固定releaseを移行・初期化・上書きしない。
 - 検証・後続: 合成資料で両市場のA01〜A06をAppTestと既存回帰で検証し、実Chromeの確認範囲・未実施部分を分けて記録する。P4を実務Beta完成とせず、次はF1/F2、その後に別承認のP5少量実商品反復受入とする。分類精度・公式Brandのlive完全性・更新頻度と費用・SG本体／画像の実商品証明をoffline成功から受入済みにしない。新しいBeta MUSTを自動追加しない。
 - rollback: 明示したP4設定の利用を停止し、対象code／tests／docsを通常revertできる。P2の履歴・予約と旧保存先・API消費・過去Decision／Evidenceを削除しない。実API・有料API・実商品・credential・実運用DB移行・固定release更新・deploy・実出品・MY／TW／TH・F1/F2実装は本工程へ含めない。
+
+
+## DEC-0143 — F1/F2を両入口・両市場の共通取得後選別としてoffline実装する
+
+- 日付: 2026-10-15
+- authority／目的: OwnerはP4完了後のF1/F2として、Amazon.co.jp本体の価格帯と平均レビュー評価をExpansion／Resolver・PH／SG共通で実装し、F01〜F08のoffline部分、保護回帰、read-only review、commit／push／Draft PR／CIまで同じタスクで進めるよう指示した。formal main採用は現在対象への別最終承認、実API・実商品・実費確認は別承認のP5とする。
+- 決定: 最小のpure判定と共通UIを用い、AMAZONの日本円下限／上限は片側・両側・無指定、両端を含める。RATINGは4.0以上／4.5以上／無指定、両条件はANDとする。初期条件は無指定。各指定項目をMATCH／OUT_OF_RANGE／UNKNOWNへ分け、全体は不一致ありなら条件外、それ以外の指定項目不明なら未確認とし、両理由を保持する。無指定項目の欠損で他方の一致を妨げず、双方無指定は既存候補集合・取得挙動を維持する。
+- 取得・cache: 共通Keepa clientの既存Product経路へ条件指定時だけstats、評価指定時だけratingを追加する。raw AMAZON index 0はJPの1円単位、raw RATING index 16は10分の1へ変換し、NEW／Buy Box／他出品者・過去価格／Sales Rank／レビュー件数／他商品値で補完しない。ASIN・provider・JP domain・取得時刻と項目別取得状態を既存cache JSONへ保持し、7日cache契約を変えない。旧cache・未取得・販売なし・不正・期限切れを0円／星0／一致へ変換しない。取得済み欠損を自動再取得せず、条件変更はローカル再判定だけとする。
+- 補完・費用: 不足／期限切れ情報の補完は対象ASIN数と最大追加token概算を示す別の明示操作とする。計画を条件・観測へ結合し、件数／token計画不足・対象変更は送信前に停止する。新規Productの評価指定は基本取得へ最大+1 token／商品、旧cache補完は基本1＋評価指定時最大1を計画値とし、実消費・請求額保証と区別する。SGの有限Policy・送信前永続ledgerとPHの有限件数を維持する。Canopy TESTは指定条件に未対応として明示停止し、無指定動作を保つ。Finder先行条件・ページ増加・offers・強制評価更新・cache全件更新は追加しない。
+- Candidate・Safety: 一致候補だけ固定15列PRELISTING_CANDIDATE_V1へ渡す。Resolverのsource_id・重複行・出所を保持し、Gate境界の既存一意化はDEC-0069に従う。Safety sidecarは最終Candidate bytes／SHAとASIN集合へ再結合する。数値・条件・理由・取得状態・時刻は独立したUTF-8 BOM確認CSVに出し、Gate入力にしない。条件変更・一致0件・補完開始／失敗で旧一致出力とGate引継ぎを失効する。価格・評価一致をSafety PASSや実出品許可へ昇格しない。
+- 保護: P1の現在根拠と出力直前検証、P2の保存・5状態・永続予約、P3の項目別確認・取得世代・未承認AUTO_RULE拒否、P4の共通offline通常画面を維持する。P4のlisting_ready=FALSE／PH_SG_P1_OFFLINE、既存Guardrail／Battery／SLS／Gate、SG本体・実同梱・画像疑義とPH／SG protected capabilityを緩和しない。既存DB・Policy／Grant・ledger／claim・credential・固定releaseを移行・初期化・resetしない。
+- 検証・後続: 詳細要件とF01〜F08はCANDIDATE_PRICE_RATING_FILTERS.mdを正本とする。SDK返却・単位とcache、両入口・両市場の操作、15列・Safety結合・失効はfixture／mock／AppTestで確認する。F08をofflineの時刻・概算・確認CSVと、後日の実AMAZON円・評価・tokensConsumed照合へ分ける。offline成立を実値取得、C12、実務Beta完成やP5実施許可に読み替えない。次の独立工程P5は新規Codexタスクで、少量実商品・実画面・API費用・公式Brand・再取得条件・反復実務をOwner別承認後に受け入れる。
+- 非対象・rollback: 実API・有料API・実商品・Finder最適化・Safety／分類rule追加・MY税務／関税計算・DB移行・credential変更・固定release／deploy・実出品・MY／TW／TH runtimeを実施しない。フィルター解除または対象code／tests／docsの通常revertで戻せる。既存保存・確認履歴・API消費・過去Decision／Evidenceは削除しない。

@@ -116,6 +116,10 @@ from modules.prelisting_gate_ui import (
     validate_shop_labels,
 )
 from modules.research_csv_adapter_ui import render_research_csv_adapter_tab
+from modules.candidate_filter_ui import (
+    render_filter_controls, render_filter_results, render_filter_confirmation,
+    invalidate_filter_outputs,
+)
 
 
 PAGE_OPTIONS = [1, 3, 5]
@@ -918,6 +922,8 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
     )
 
     with expansion_tab:
+        expansion_criteria, expansion_filter_blocked = render_filter_controls(
+            'f12_expansion_', provider=amazon_settings.amazon_data_provider)
         with st.form("search_form", clear_on_submit=False):
             asin_input = st.text_input("ASIN", placeholder="B07TSC47PH")
             if amazon_settings.amazon_data_provider == KEEPA_PROVIDER:
@@ -936,7 +942,7 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
                 )
                 st.caption(
                     f"取得予定候補数: {planned_candidate_count(search_pages)}件 / "
-                    f"推定消費トークン: 約{estimate_token_usage(search_pages)} tokens"
+                    f"推定消費トークン: 最大約{estimate_token_usage(search_pages, expansion_criteria) if expansion_criteria.active else estimate_token_usage(search_pages)} tokens"
                 )
             else:
                 search_mode = "canopy_test"
@@ -949,10 +955,10 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
                 "検索開始",
                 type="primary",
                 width="stretch",
-                disabled=practical_workspace is not None,
+                disabled=practical_workspace is not None or expansion_filter_blocked,
             )
 
-        if search_clicked and practical_workspace is None:
+        if search_clicked and practical_workspace is None and not expansion_filter_blocked:
             if enable_expansion_handoff:
                 remember_body_confirmations(st.session_state, st.session_state.get("prelisting_gate_sg_body_confirmations"))
                 st.session_state.pop(PACKET_KEY, None)
@@ -966,13 +972,15 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
 
                 if amazon_settings.amazon_data_provider == KEEPA_PROVIDER:
                     with st.spinner(
-                        "Keepa APIから候補ASINを取得しています。"
-                        "トークン不足時は自動で回復待ちします..."
+                        ("Keepa APIから候補ASINを有限計画内で取得しています。残token不足時は停止します。"
+                         if expansion_criteria.active else
+                         "Keepa APIから候補ASINを取得しています。トークン不足時は自動で回復待ちします...")
                     ):
                         result = client.find_related_products(
                             source_asin=source_asin,
                             search_pages=search_pages,
                             search_mode=search_mode,
+                            **({"filter_criteria": expansion_criteria} if expansion_criteria.active else {}),
                         )
                 else:
                     with st.spinner("Canopy TESTで候補ASINを確認しています（retryなし）..."):
@@ -1031,7 +1039,10 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
                     st.info(result.total_results_note)
                 if result.strict_low_count_suggestion:
                     st.warning(result.strict_low_count_suggestion)
-                st.info(result.token_status)
+                st.info(
+                    "F1/F2の再判定に追加tokenは不要です。不足情報は表示した有限枠で別途取得し、不足時は停止します。"
+                    if expansion_criteria.active else result.token_status
+                )
 
                 if result.note:
                     st.warning(result.note)
@@ -1051,90 +1062,101 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
                 st.write(f"request数: {result.request_count} / 7")
                 st.caption("Canopy結果はKeepa SQLite cacheへ保存しません。")
 
-            try:
-                expansion_prelisting_rows = expansion_rows_to_prelisting_candidates(result.rows)
-                expansion_prelisting_csv = rows_to_prelisting_candidate_csv(expansion_prelisting_rows)
-                expansion_safety_facts = facts_for_candidate_rows(
-                    expansion_prelisting_rows,
-                    result.rows,
-                )
-                expansion_safety_sidecar = rows_to_ingredient_safety_sidecar(
-                    expansion_prelisting_csv,
-                    expansion_prelisting_rows,
-                    expansion_safety_facts,
-                )
-                expansion_product_text_facts = product_text_facts_for_candidate_rows(
-                    expansion_prelisting_rows,
-                    result.rows,
-                )
-                expansion_product_text_sidecar = rows_to_product_text_safety_sidecar(
-                    expansion_prelisting_csv,
-                    expansion_prelisting_rows,
-                    expansion_product_text_facts,
-                )
-                expansion_image_sidecar = create_image_sidecar(
-                    expansion_prelisting_csv, expansion_prelisting_rows, result.rows,
-                )
-            except PrelistingCandidateCsvError:
-                st.error(
-                    "出品前保安ゲート用CSVを生成できませんでした。候補データを確認してください。"
-                )
-            except IngredientSafetyError:
-                st.error(
-                    "出品前保安ゲート用CSVを生成できませんでした。候補データを確認してください。"
-                )
-            except (ProductTextSafetyError, ImageSafetyError):
-                st.error(
-                    "出品前保安ゲート用CSVを生成できませんでした。候補データを確認してください。"
-                )
-            else:
-                st.caption(
-                    "このCSVは外部出品ツールへ直接渡さず、対象市場（SG／PH）を選んだ出品前保安ゲートの候補CSVとして使用してください。"
-                )
-                st.download_button(
-                    label="出品前保安ゲート用CSVダウンロード",
-                    data=expansion_prelisting_csv,
-                    file_name=f"prelisting_candidates_expansion_{result.source_asin}.csv",
-                    mime="text/csv",
-                    key="prelisting-expansion-download",
-                    width="stretch",
-                )
-                st.download_button(
-                    label="Ingredient Safety Fact sidecarダウンロード",
-                    data=expansion_safety_sidecar,
-                    file_name=f"ingredient_safety_facts_expansion_{result.source_asin}.csv",
-                    mime="text/csv",
-                    key="ingredient-safety-expansion-download",
-                    width="stretch",
-                )
-                st.download_button(
-                    label="Product Text Safety Fact sidecarダウンロード",
-                    data=expansion_product_text_sidecar,
-                    file_name=f"product_text_safety_facts_expansion_{result.source_asin}.csv",
-                    mime="text/csv",
-                    key="product-text-safety-expansion-download",
-                    width="stretch",
-                )
-                st.download_button(
-                    label="PH画像確認ファイルをダウンロード", data=expansion_image_sidecar,
-                    file_name=f"ph_image_safety_expansion_{result.source_asin}.json",
-                    mime="application/json", key="ph-image-safety-expansion-download", width="stretch",
-                )
-                if enable_expansion_handoff and expansion_prelisting_rows:
-                    offered_packet = ExpansionPacket(
-                        beta_marketplace, st.session_state.setdefault(GENERATION_KEY, uuid4().hex), result.source_asin,
-                        Artifact(f"prelisting_candidates_expansion_{result.source_asin}.csv", expansion_prelisting_csv),
-                        Artifact(f"ingredient_safety_facts_expansion_{result.source_asin}.csv", expansion_safety_sidecar),
-                        Artifact(f"product_text_safety_facts_expansion_{result.source_asin}.csv", expansion_product_text_sidecar),
-                        Artifact(f"ph_image_safety_expansion_{result.source_asin}.json", expansion_image_sidecar))
-                    try:
-                        validate_packet(offered_packet, marketplace=beta_marketplace,
-                                        generation=st.session_state.get(GENERATION_KEY))
-                    except (HandoffError, PrelistingCandidateCsvError, IngredientSafetyError, ProductTextSafetyError, ImageSafetyError):
-                        offered_packet = None
-                    if offered_packet is not None and st.button("この候補を保安ゲートで使う", key="expansion_gate_use"):
-                        st.session_state[PACKET_KEY] = offered_packet
-                        st.session_state[SOURCE_KEY] = INTERNAL
+            expansion_filter_rows = render_filter_results(result.rows, expansion_criteria,
+                key='f12_expansion_', blocked=expansion_filter_blocked,
+                offline_only=practical_workspace is not None,
+                client_factory=lambda: create_amazon_data_client(amazon_settings,
+                    **_continuous_amazon_budget(beta_marketplace, sg_config_path)))
+            if expansion_criteria.active and not expansion_filter_blocked and not expansion_filter_rows:
+                render_filter_confirmation(result.rows, expansion_criteria, b'',
+                    key='f12_expansion_', marketplace=beta_marketplace)
+            if expansion_filter_rows or (not expansion_criteria.active and not expansion_filter_blocked):
+                try:
+                    expansion_prelisting_rows = expansion_rows_to_prelisting_candidates(expansion_filter_rows)
+                    expansion_prelisting_csv = rows_to_prelisting_candidate_csv(expansion_prelisting_rows)
+                    expansion_safety_facts = facts_for_candidate_rows(
+                        expansion_prelisting_rows,
+                        expansion_filter_rows,
+                    )
+                    expansion_safety_sidecar = rows_to_ingredient_safety_sidecar(
+                        expansion_prelisting_csv,
+                        expansion_prelisting_rows,
+                        expansion_safety_facts,
+                    )
+                    expansion_product_text_facts = product_text_facts_for_candidate_rows(
+                        expansion_prelisting_rows,
+                        expansion_filter_rows,
+                    )
+                    expansion_product_text_sidecar = rows_to_product_text_safety_sidecar(
+                        expansion_prelisting_csv,
+                        expansion_prelisting_rows,
+                        expansion_product_text_facts,
+                    )
+                    expansion_image_sidecar = create_image_sidecar(
+                        expansion_prelisting_csv, expansion_prelisting_rows, expansion_filter_rows,
+                    )
+                except PrelistingCandidateCsvError:
+                    st.error(
+                        "出品前保安ゲート用CSVを生成できませんでした。候補データを確認してください。"
+                    )
+                except IngredientSafetyError:
+                    st.error(
+                        "出品前保安ゲート用CSVを生成できませんでした。候補データを確認してください。"
+                    )
+                except (ProductTextSafetyError, ImageSafetyError):
+                    st.error(
+                        "出品前保安ゲート用CSVを生成できませんでした。候補データを確認してください。"
+                    )
+                else:
+                    render_filter_confirmation(result.rows, expansion_criteria, expansion_prelisting_csv,
+                        key='f12_expansion_', marketplace=beta_marketplace)
+                    st.caption(
+                        "このCSVは外部出品ツールへ直接渡さず、対象市場（SG／PH）を選んだ出品前保安ゲートの候補CSVとして使用してください。"
+                    )
+                    st.download_button(
+                        label="出品前保安ゲート用CSVダウンロード",
+                        data=expansion_prelisting_csv,
+                        file_name=f"prelisting_candidates_expansion_{result.source_asin}.csv",
+                        mime="text/csv",
+                        key="prelisting-expansion-download",
+                        width="stretch",
+                    )
+                    st.download_button(
+                        label="Ingredient Safety Fact sidecarダウンロード",
+                        data=expansion_safety_sidecar,
+                        file_name=f"ingredient_safety_facts_expansion_{result.source_asin}.csv",
+                        mime="text/csv",
+                        key="ingredient-safety-expansion-download",
+                        width="stretch",
+                    )
+                    st.download_button(
+                        label="Product Text Safety Fact sidecarダウンロード",
+                        data=expansion_product_text_sidecar,
+                        file_name=f"product_text_safety_facts_expansion_{result.source_asin}.csv",
+                        mime="text/csv",
+                        key="product-text-safety-expansion-download",
+                        width="stretch",
+                    )
+                    st.download_button(
+                        label="PH画像確認ファイルをダウンロード", data=expansion_image_sidecar,
+                        file_name=f"ph_image_safety_expansion_{result.source_asin}.json",
+                        mime="application/json", key="ph-image-safety-expansion-download", width="stretch",
+                    )
+                    if enable_expansion_handoff and expansion_prelisting_rows:
+                        offered_packet = ExpansionPacket(
+                            beta_marketplace, st.session_state.setdefault(GENERATION_KEY, uuid4().hex), result.source_asin,
+                            Artifact(f"prelisting_candidates_expansion_{result.source_asin}.csv", expansion_prelisting_csv),
+                            Artifact(f"ingredient_safety_facts_expansion_{result.source_asin}.csv", expansion_safety_sidecar),
+                            Artifact(f"product_text_safety_facts_expansion_{result.source_asin}.csv", expansion_product_text_sidecar),
+                            Artifact(f"ph_image_safety_expansion_{result.source_asin}.json", expansion_image_sidecar))
+                        try:
+                            validate_packet(offered_packet, marketplace=beta_marketplace,
+                                            generation=st.session_state.get(GENERATION_KEY))
+                        except (HandoffError, PrelistingCandidateCsvError, IngredientSafetyError, ProductTextSafetyError, ImageSafetyError):
+                            offered_packet = None
+                        if offered_packet is not None and st.button("この候補を保安ゲートで使う", key="expansion_gate_use"):
+                            st.session_state[PACKET_KEY] = offered_packet
+                            st.session_state[SOURCE_KEY] = INTERNAL
             if (enable_expansion_handoff and st.session_state.get(PACKET_KEY) is not None
                     and st.session_state[PACKET_KEY] != offered_packet):
                 remember_body_confirmations(st.session_state, st.session_state.get("prelisting_gate_sg_body_confirmations"))
@@ -1143,6 +1165,8 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
             st.dataframe(pd.DataFrame(result.rows), width="stretch", hide_index=True)
 
     with resolver_tab:
+        resolver_criteria, resolver_filter_blocked = render_filter_controls(
+            'f12_resolver_', provider=amazon_settings.amazon_data_provider)
         st.subheader("ASIN Resolver Tool Ver0.4.3")
         if (os.environ.get("ASIN_RESOLVER_EVIDENCE_UI_ENABLED") == "1"
                 and st.session_state.get('p4_diagnostics', True)):
@@ -1532,6 +1556,10 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
                 preview_detail_cols[0].metric("選択解除件数", preview_summary["deselected_rows"])
                 preview_detail_cols[1].metric("Amazon商品確認済み件数", verified_count)
 
+                if resolver_criteria.active:
+                    count = preview_summary['selected_unique_asins']
+                    maximum = count * (2 if resolver_criteria.rating_active else 1)
+                    st.caption(f'価格・評価付き確認：対象最大 {count} ASIN / 最大 {maximum} tokens（概算、cache利用分は送信しません）。')
                 verify_clicked = st.button(
                     "選択したASINをAmazon商品として確認",
                     type="primary",
@@ -1540,10 +1568,12 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
                         preview_summary["selected_unique_asins"] == 0
                         or not evidence_export_action_allowed
                         or practical_workspace is not None
+                        or resolver_filter_blocked
                     ),
                 )
 
-                if verify_clicked and practical_workspace is None:
+                if verify_clicked and practical_workspace is None and not resolver_filter_blocked:
+                    invalidate_filter_outputs()
                     st.session_state["asin_resolver_rows"] = []
                     try:
                         client = create_amazon_data_client(amazon_settings, **_continuous_amazon_budget(beta_marketplace, sg_config_path))
@@ -1551,6 +1581,7 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
                             verified_rows = verify_selected_rows(
                                 selected_preview_rows,
                                 client,
+                                **({"filter_criteria": resolver_criteria} if resolver_criteria.active else {}),
                             )
                             active_manifest_path = _active_evidence_manifest_path()
                             if active_manifest_path is not None:
@@ -1582,15 +1613,21 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
                 st.write(f"FOUND: {summary['FOUND']}件")
                 st.write(f"UNKNOWN: {summary['UNKNOWN']}件")
                 st.write(f"ERROR: {summary['ERROR']}件")
+                resolver_filter_rows = render_filter_results(resolver_rows, resolver_criteria,
+                    key='f12_resolver_', blocked=resolver_filter_blocked,
+                    offline_only=practical_workspace is not None,
+                    client_factory=lambda: create_amazon_data_client(amazon_settings,
+                        **_continuous_amazon_budget(beta_marketplace, sg_config_path)))
                 st.download_button(
                     label="起点ASIN候補CSVダウンロード",
-                    data=rows_to_resolver_csv(resolver_rows),
+                    data=rows_to_resolver_csv(resolver_filter_rows),
                     file_name="asin_resolver_candidates.csv",
                     mime="text/csv",
                     width="stretch",
                 )
+                resolver_prelisting_csv = b''
                 try:
-                    resolver_prelisting = resolver_rows_to_prelisting_candidates(resolver_rows)
+                    resolver_prelisting = resolver_rows_to_prelisting_candidates(resolver_filter_rows)
                     st.write(
                         "Amazon実在確認済み候補行: "
                         f"{resolver_prelisting.eligible_row_count}件"
@@ -1601,7 +1638,7 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
                     )
                     if resolver_prelisting.eligible_row_count > 0:
                         resolver_gate_handoff = normalize_resolver_gate_handoff(
-                            resolver_prelisting.output_rows, resolver_rows
+                            resolver_prelisting.output_rows, resolver_filter_rows
                         )
                         st.write(
                             "保安ゲート対象商品: "
@@ -1706,6 +1743,9 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
                             file_name="ph_image_safety_resolver.json", mime="application/json",
                             key="ph-image-safety-resolver-download", width="stretch",
                         )
+                if not resolver_filter_blocked:
+                    render_filter_confirmation(resolver_rows, resolver_criteria, resolver_prelisting_csv,
+                        key='f12_resolver_', marketplace=beta_marketplace)
                 comparison_columns = [
                     "source_id",
                     "input_title",

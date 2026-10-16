@@ -103,6 +103,8 @@ Chrome用コピーは `Documents/ShopeeE2E` の専用ディレクトリへ生成
 P1/P2/P3とPH／SG protected testsを併用する。正確な実行結果はGit外Evidenceと対象headのCIを参照する。
 AppTest、実Chromeの表示・読込確認、実API、実商品、Owner実務受入を別々に記録する。
 
-次の独立工程はF1/F2（Beta前MUST）。その後のP5で両市場の少量実商品反復受入を別承認する。
+[F1/F2の候補絞り込み](CANDIDATE_PRICE_RATING_FILTERS.md)は両入口・両市場の共通部品として追加する（DEC-0143）。
+P4 offline入口の実API停止とFALSE／PH_SG_P1_OFFLINEは維持する。
+次の独立工程は、別Owner承認後に新規Codexタスクで行うP5両市場の少量実商品反復受入。
 分類精度、公式Brandのlive完全性・更新頻度と費用、SG本体・画像の実商品証明、長時間運用をoffline成功で受入済みにしない。
 新しいBeta MUSTを自動追加しない。

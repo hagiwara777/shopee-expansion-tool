@@ -66,15 +66,20 @@ def test_app_imports_only_the_public_candidate_and_resolver_gate_functions():
     assert "PRELISTING_CANDIDATE_COLUMNS" not in APP_SOURCE
 
 
-def test_expansion_adapter_uses_result_rows_and_exposes_only_gate_handoff():
+def test_expansion_adapter_uses_filtered_result_rows_and_exposes_only_gate_handoff():
     expansion_calls = _function_calls("expansion_rows_to_prelisting_candidates")
 
     assert len(expansion_calls) == 1
     argument = expansion_calls[0].args[0]
-    assert isinstance(argument, ast.Attribute)
-    assert isinstance(argument.value, ast.Name)
-    assert argument.value.id == "result"
-    assert argument.attr == "rows"
+    assert isinstance(argument, ast.Name)
+    assignment = next(node for node in ast.walk(APP_TREE) if isinstance(node, ast.Assign)
+        and any(isinstance(target, ast.Name) and target.id == argument.id for target in node.targets))
+    assert isinstance(assignment.value, ast.Call)
+    assert assignment.value.func.id == "render_filter_results"
+    source = assignment.value.args[0]
+    assert isinstance(source, ast.Attribute)
+    assert isinstance(source.value, ast.Name) and source.value.id == "result"
+    assert source.attr == "rows"
     assert "apply_guardrails(result.rows)" not in APP_SOURCE
     assert "出品候補CSVダウンロード（SAFEのみ）" not in APP_SOURCE
     assert "SG一次判定候補CSVダウンロード" not in APP_SOURCE
@@ -93,7 +98,12 @@ def test_resolver_adapter_uses_conversion_result_for_counts_and_conditional_down
 
     assert len(resolver_calls) == 1
     assert isinstance(resolver_calls[0].args[0], ast.Name)
-    assert resolver_calls[0].args[0].id == "resolver_rows"
+    assignment = next(node for node in ast.walk(APP_TREE) if isinstance(node, ast.Assign)
+        and any(isinstance(target, ast.Name) and target.id == resolver_calls[0].args[0].id for target in node.targets))
+    assert isinstance(assignment.value, ast.Call)
+    assert assignment.value.func.id == "render_filter_results"
+    assert isinstance(assignment.value.args[0], ast.Name)
+    assert assignment.value.args[0].id == "resolver_rows"
     assert "resolver_prelisting.eligible_row_count" in APP_SOURCE
     assert "resolver_prelisting.excluded_row_count" in APP_SOURCE
     assert "if resolver_prelisting.eligible_row_count > 0:" in APP_SOURCE

@@ -394,6 +394,7 @@ def summarize_preview(rows: Iterable[dict[str, Any]]) -> dict[str, int]:
 def verify_preview_rows(
     rows: Iterable[dict[str, Any]],
     client: Any,
+    *, filter_criteria=None,
 ) -> list[dict[str, str]]:
     materialized = [dict(row) for row in rows]
     asins_to_check = _unique_asins_from_rows(materialized)
@@ -405,7 +406,8 @@ def verify_preview_rows(
     verified_asins: set[str] = set()
     if asins_to_check:
         try:
-            products_by_asin = client.verify_products_by_asin(asins_to_check)
+            products_by_asin = client.verify_products_by_asin(asins_to_check,
+                **({"filter_criteria": filter_criteria} if filter_criteria is not None and filter_criteria.active else {}))
         except AmazonDataProviderError as exc:
             return [
                 _verified_row(
@@ -456,8 +458,10 @@ def verify_preview_rows(
 def verify_selected_rows(
     rows: Iterable[dict[str, Any]],
     client: Any,
+    *, filter_criteria=None,
 ) -> list[dict[str, Any]]:
-    return verify_preview_rows((row for row in rows if row.get("selected")), client)
+    return verify_preview_rows((row for row in rows if row.get("selected")), client,
+        filter_criteria=filter_criteria)
 
 
 def resolve_candidates(
@@ -1013,6 +1017,9 @@ def _verified_row(
             "ingredient_safety_fact": ingredient_payload,
             "product_text_safety_fact": product_text_payload,
             "ph_image_safety_fact": image_payload,
+            "candidate_observation": (keepa_product.get('candidate_observation')
+                if status == FOUND and product_field_prefix == 'keepa' and isinstance(keepa_product, dict)
+                else None),
             "classification_facts": (keepa_product.get('classification_facts')
                 if status == FOUND and product_field_prefix == 'keepa' and isinstance(keepa_product, dict)
                 else None),

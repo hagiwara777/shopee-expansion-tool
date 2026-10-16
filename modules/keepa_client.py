@@ -9,6 +9,11 @@ from typing import Any, Iterable
 from modules.ph_image_safety import capture_keepa_image_fact, image_fact_from_product
 from modules.cache import KeepaCache, utc_now_iso
 from modules.amazon_data_provider import AmazonDataProviderError, KEEPA_PROVIDER
+from modules.candidate_filters import (
+    FilterCriteria,
+    extract_keepa_observation,
+    observation_needs_capture,
+)
 from modules.ingredient_safety import (
     INGREDIENT_SAFETY_PAYLOAD_VERSION,
     IngredientSafetyError,
@@ -106,6 +111,21 @@ class ProductFinderPage:
 
 
 @dataclass(frozen=True)
+class CandidateObservationFetchPlan:
+    """A read-only proposal; fetching requires its separately declared limits."""
+
+    requested_asins: tuple[str, ...]
+    asins: tuple[str, ...]
+    token_estimate: int
+    filter_fingerprint: str
+    observation_fingerprint: str
+
+    @property
+    def count(self) -> int:
+        return len(self.asins)
+
+
+@dataclass(frozen=True)
 class ExpansionResult:
     source_asin: str
     brand: str
@@ -197,11 +217,11 @@ def planned_candidate_count(search_pages: int) -> int:
     return search_pages * CANDIDATES_PER_PAGE
 
 
-def estimate_token_usage(search_pages: int) -> int:
+def estimate_token_usage(search_pages: int, filter_criteria: FilterCriteria | None = None) -> int:
     planned = planned_candidate_count(search_pages)
     search_tokens = search_pages * 11
     source_product_tokens = 1
-    candidate_detail_tokens = planned
+    candidate_detail_tokens = planned * (2 if filter_criteria and filter_criteria.rating_active else 1)
     return source_product_tokens + search_tokens + candidate_detail_tokens
 
 
@@ -232,14 +252,20 @@ class KeepaExpansionClient:
         source_asin: str,
         search_pages: int,
         search_mode: str = "strict",
+        filter_criteria: FilterCriteria | None = None,
     ) -> ExpansionResult:
         source_asin = normalize_asin(source_asin)
         _validate_search_pages(search_pages)
         _validate_search_mode(search_mode)
         planned = planned_candidate_count(search_pages)
-        token_estimate = estimate_token_usage(search_pages)
+        criteria = filter_criteria or FilterCriteria()
+        self._require_filter_domain(criteria)
+        token_estimate = estimate_token_usage(search_pages, criteria)
 
-        source = self._get_source_product(source_asin)
+        source_product_cached = self.cache.get_product(source_asin) is not None
+        if criteria.active and not source_product_cached:
+            self._require_available_tokens(token_estimate)
+        source = self._get_source_product(source_asin, wait=not criteria.active)
         first_query = self._build_product_finder_query(source, search_mode, page_index=0)
         cache_key_data = _build_search_cache_key_data(
             source=source,
@@ -250,7 +276,24 @@ class KeepaExpansionClient:
         )
         cached_search = self.cache.get_search(cache_key_data)
         if cached_search is not None:
+            if criteria.active:
+                # Search identity describes candidate discovery, not a local
+                # filter. Reuse its ASINs and hydrate only fresh observations.
+                # A legacy cache never triggers an implicit detail refill.
+                cached_search = dict(cached_search)
+                hydrated_rows = []
+                for saved_row in cached_search.get("rows", []):
+                    row = dict(saved_row)
+                    cached_product = self.cache.get_product(str(row.get("candidate_asin") or ""))
+                    row["candidate_observation"] = (
+                        cached_product.get("candidate_observation") if cached_product else None
+                    )
+                    hydrated_rows.append(row)
+                cached_search["rows"] = hydrated_rows
             return ExpansionResult.from_cache(cached_search)
+
+        if criteria.active:
+            self._require_available_tokens(token_estimate - (0 if source_product_cached else 1))
 
         fetched_at = utc_now_iso()
         candidate_asins: list[str] = []
@@ -263,8 +306,13 @@ class KeepaExpansionClient:
                 finder_page = self._product_finder_page(
                     action=f"候補ASIN検索 {page_index + 1}ページ目",
                     params=query.params,
+                    wait=not criteria.active,
                 )
             except KeepaClientError as exc:
+                if criteria.active:
+                    # Do not silently widen a filtered, declared acquisition
+                    # plan with diagnostic fallback requests after a failure.
+                    raise
                 if not candidate_asins:
                     fallback_asins, fallback_note, diagnostics = self._diagnose_and_fallback(
                         source=source,
@@ -281,6 +329,8 @@ class KeepaExpansionClient:
                 )
                 break
             page_asins = finder_page.asin_list
+            if criteria.active and len(page_asins) > CANDIDATES_PER_PAGE:
+                raise KeepaDataError("候補応答が指定したページ上限を超えたため停止しました。")
             total_results = finder_page.total_results if finder_page.total_results is not None else total_results
             candidate_asins.extend(page_asins)
             if len(page_asins) < CANDIDATES_PER_PAGE:
@@ -293,8 +343,10 @@ class KeepaExpansionClient:
 
         products_by_asin: dict[str, dict[str, Any]] = {}
         try:
-            products_by_asin = self._fetch_products_by_asin(unique_candidates)
+            products_by_asin = self._fetch_products_by_asin(unique_candidates, filter_criteria=criteria)
         except KeepaClientError as exc:
+            if criteria.active:
+                raise
             detail_note = (
                 f"候補ASINは取得済みですが、商品基本情報の一部取得で停止しました。"
                 f"時間をおいて再実行してください。理由: {exc}"
@@ -364,14 +416,16 @@ class KeepaExpansionClient:
             rows=rows,
             fetched_at=fetched_at,
             cache_hit=False,
-            token_status=self._token_status(),
+            token_status=self._token_status(wait=not criteria.active),
             note=note,
             diagnostics=diagnostics,
         )
         self.cache.save_search(asdict(result))
         return result
 
-    def verify_products_by_asin(self, asins: list[str]) -> dict[str, dict[str, Any]]:
+    def verify_products_by_asin(
+        self, asins: list[str], filter_criteria: FilterCriteria | None = None,
+    ) -> dict[str, dict[str, Any]]:
         normalized_asins: list[str] = []
         seen: set[str] = set()
         for asin in asins:
@@ -380,7 +434,7 @@ class KeepaExpansionClient:
                 continue
             seen.add(normalized)
             normalized_asins.append(normalized)
-        return self._fetch_products_by_asin(normalized_asins)
+        return self._fetch_products_by_asin(normalized_asins, filter_criteria=filter_criteria)
 
     def _create_api(self, api_key: str | None) -> Any:
         if not api_key:
@@ -408,7 +462,7 @@ class KeepaExpansionClient:
                 f"keepaライブラリの仕様が想定と異なります。不足フィールド: {missing}"
             )
 
-    def _get_source_product(self, source_asin: str) -> SourceProduct:
+    def _get_source_product(self, source_asin: str, *, wait: bool = True) -> SourceProduct:
         cached_product = self.cache.get_product(source_asin)
         if cached_product is not None:
             return self._source_from_product_data(cached_product, source_asin)
@@ -424,7 +478,7 @@ class KeepaExpansionClient:
             buybox=False,
             rating=False,
             progress_bar=False,
-            wait=True,
+            wait=wait,
         )
         if not products:
             raise KeepaDataError(
@@ -519,14 +573,18 @@ class KeepaExpansionClient:
             category_filter_note=category_filter_note,
         )
 
-    def _product_finder_page(self, action: str, params: dict[str, Any]) -> ProductFinderPage:
+    def _product_finder_page(
+        self, action: str, params: dict[str, Any], *, wait: bool = True,
+    ) -> ProductFinderPage:
+        if not wait:
+            self._require_available_tokens(11)
         if hasattr(self.api, "_request") and hasattr(self.api, "accesskey"):
             payload = {
                 "key": self.api.accesskey,
                 "domain": _domain_to_keepa_code(self.domain),
                 "selection": json.dumps(params, ensure_ascii=False),
             }
-            response = self._call_keepa(action, self.api._request, "query", payload, wait=True)
+            response = self._call_keepa(action, self.api._request, "query", payload, wait=wait)
             return ProductFinderPage(
                 asin_list=list(response.get("asinList") or []),
                 total_results=response.get("totalResults"),
@@ -537,7 +595,7 @@ class KeepaExpansionClient:
             self.api.product_finder,
             params,
             domain=self.domain,
-            wait=True,
+            wait=wait,
             n_products=params.get("perPage", CANDIDATES_PER_PAGE),
         )
         return ProductFinderPage(asin_list=list(asin_list or []), total_results=None)
@@ -641,7 +699,11 @@ class KeepaExpansionClient:
 
         return unique_candidates, duplicate_removed_count, self_excluded_count, invalid_candidate_count
 
-    def _fetch_products_by_asin(self, asins: list[str]) -> dict[str, dict[str, Any]]:
+    def _fetch_products_by_asin(
+        self, asins: list[str], filter_criteria: FilterCriteria | None = None,
+    ) -> dict[str, dict[str, Any]]:
+        criteria = filter_criteria or FilterCriteria()
+        self._require_filter_domain(criteria)
         products_by_asin: dict[str, dict[str, Any]] = {}
         missing_asins: list[str] = []
 
@@ -652,7 +714,12 @@ class KeepaExpansionClient:
             else:
                 products_by_asin[asin] = cached_product
 
+        if criteria.active:
+            self._require_available_tokens(len(missing_asins) * (2 if criteria.rating_active else 1))
         for batch in _chunked(missing_asins, QUERY_BATCH_SIZE):
+            if criteria.active:
+                self._require_available_tokens(len(batch) * (2 if criteria.rating_active else 1))
+            extra = {"stats": 1} if criteria.active else {}
             products = self._call_keepa(
                 "候補ASINの商品基本情報取得",
                 self.api.query,
@@ -662,19 +729,141 @@ class KeepaExpansionClient:
                 offers=None,
                 stock=False,
                 buybox=False,
-                rating=False,
+                rating=criteria.rating_active,
                 progress_bar=False,
-                wait=True,
+                wait=not criteria.active,
+                **extra,
             )
             for product in products:
-                product_data = _product_to_cache_data(product)
+                product_data = _product_to_cache_data(product, filter_criteria=criteria)
                 asin = self._safe_normalize_asin(product_data.get("asin"))
-                if asin:
+                if asin and (not criteria.active or asin in batch):
                     product_data["asin"] = asin
                     self.cache.save_product(product_data)
                     products_by_asin[asin] = product_data
 
         return products_by_asin
+
+    def plan_candidate_observation_fetch(
+        self, asins: list[str], filter_criteria: FilterCriteria,
+    ) -> CandidateObservationFetchPlan:
+        """Inspect cache only. Missing observations are never fetched by this call."""
+        criteria = filter_criteria
+        self._require_filter_domain(criteria)
+        normalized = tuple(dict.fromkeys(normalize_asin(asin) for asin in asins))
+        products = {asin: self.cache.get_product(asin) for asin in normalized}
+        missing = tuple(
+            asin for asin in normalized
+            if criteria.active and observation_needs_capture(products[asin] or {"asin": asin}, criteria)
+        )
+        fingerprint = _hash_query_json({
+            asin: (products[asin] or {}).get("candidate_observation") for asin in normalized
+        })
+        return CandidateObservationFetchPlan(
+            requested_asins=normalized,
+            asins=missing,
+            token_estimate=len(missing) * (2 if criteria.rating_active else 1),
+            filter_fingerprint=criteria.fingerprint,
+            observation_fingerprint=fingerprint,
+        )
+
+    def fetch_candidate_observations(
+        self,
+        plan: CandidateObservationFetchPlan,
+        filter_criteria: FilterCriteria,
+        *,
+        token_budget: int,
+        max_products: int,
+    ) -> dict[str, dict[str, Any]]:
+        """Explicit, bounded cache supplementation; no retry or offer escalation.
+
+        The caller must invalidate its previous filtered packet before calling.
+        A changed proposal or insufficient declared budget fails before a send.
+        Only the observation is supplemented on an existing cached product;
+        its Safety/classification facts and original seven-day age are retained.
+        """
+        if not isinstance(plan, CandidateObservationFetchPlan):
+            raise ValueError("不足情報の取得計画が不正です。")
+        for value in (token_budget, max_products):
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                raise ValueError("取得上限は0以上の整数で指定してください。")
+        current = self.plan_candidate_observation_fetch(list(plan.requested_asins), filter_criteria)
+        if current != plan:
+            raise KeepaDataError("取得対象または条件が変わりました。件数とtoken見積を再確認してください。")
+        if plan.count > max_products or plan.token_estimate > token_budget:
+            raise KeepaTokenError("不足情報の取得件数またはtoken見積が指定予算を超えるため停止しました。")
+        self._require_available_tokens(plan.token_estimate)
+        fetched: dict[str, dict[str, Any]] = {}
+        for batch in _chunked(list(plan.asins), QUERY_BATCH_SIZE):
+            self._require_available_tokens(len(batch) * (2 if filter_criteria.rating_active else 1))
+            products = self._call_keepa(
+                "候補の価格・平均評価の不足情報取得",
+                self.api.query,
+                batch,
+                domain=self.domain,
+                stats=1,
+                history=False,
+                offers=None,
+                stock=False,
+                buybox=False,
+                rating=filter_criteria.rating_active,
+                progress_bar=False,
+                wait=False,
+            )
+            returned = {}
+            for product in products:
+                data = _product_to_cache_data(product, filter_criteria=filter_criteria)
+                asin = self._safe_normalize_asin(data.get("asin"))
+                if asin not in batch or asin in returned:
+                    raise KeepaDataError("不足情報の応答ASINが取得対象と一致しません。")
+                old = self.cache.get_product(asin)
+                if old is not None:
+                    observation = data["candidate_observation"]
+                    previous = old.get("candidate_observation")
+                    # A price-only request has no authority to discard a
+                    # previously captured rating (or its original timestamp).
+                    if isinstance(previous, dict) and not filter_criteria.rating_active:
+                        for field in (
+                            "rating", "rating_status", "rating_reason", "rating_captured_at", "rating_requested",
+                            "rating_updated_at",
+                        ):
+                            if field in previous:
+                                observation[field] = previous[field]
+                    data = {**old, "candidate_observation": observation}
+                returned[asin] = data
+            if set(returned) != set(batch):
+                raise KeepaDataError("不足情報の商品応答が一部欠けています。旧一致結果は再利用できません。")
+            for asin, data in returned.items():
+                self.cache.save_product(data)
+                fetched[asin] = data
+        # A fresh cache hit may eliminate every proposed send. Return all
+        # originally requested products so the UI can hydrate observations.
+        return {
+            asin: product for asin in plan.requested_asins
+            if (product := fetched.get(asin) or self.cache.get_product(asin)) is not None
+        }
+
+    def _require_filter_domain(self, criteria: FilterCriteria) -> None:
+        if criteria.active and str(self.domain).upper() != "JP":
+            raise KeepaConfigurationError("候補の価格・平均評価はKeepa取得元JPだけに対応しています。")
+
+    def _require_available_tokens(self, token_estimate: int) -> None:
+        if not token_estimate:
+            return
+        status = getattr(self.api, "status", None)
+        if (status is not None and hasattr(self.api, "_request") and hasattr(self.api, "accesskey")
+                and (getattr(status, "refillRate", None) is None or getattr(status, "refillIn", None) is None)):
+            # Keepa 1.5 initializes tokens_left=0 before its first token query.
+            # Resolve that placeholder once, only inside an explicit fetch,
+            # with no wait/retry. SG's installed transport reserves this send.
+            self._call_keepa("今回の取得前のKeepa残token確認", self.api._request,
+                             "token", {"key": self.api.accesskey}, wait=False)
+            if getattr(status, "refillRate", None) is None or getattr(status, "refillIn", None) is None:
+                raise KeepaDataError("Keepa残tokenを確認できないため商品取得を停止しました。")
+        available = getattr(self.api, "tokens_left", None)
+        if (token_estimate and isinstance(available, (int, float))
+                and not isinstance(available, bool) and available < token_estimate):
+            raise KeepaTokenError("Keepa推定残tokenが今回の最大見積に不足するため、追加送信せず停止しました。")
 
     def _build_candidate_row(
         self,
@@ -724,10 +913,14 @@ class KeepaExpansionClient:
             "product_text_safety_fact": product_text_safety_fact_to_payload(product_text_fact),
             "ph_image_safety_fact": image_fact_from_product(product, candidate_asin=candidate_asin),
             "classification_facts": product.get("classification_facts"),
+            "candidate_observation": product.get("candidate_observation"),
         }
 
-    def _token_status(self) -> str:
+    def _token_status(self, *, wait: bool = True) -> str:
         tokens_left = getattr(self.api, "tokens_left", None)
+        if not wait:
+            balance = "取得できませんでした" if tokens_left is None else str(tokens_left)
+            return f"処理後のKeepa推定残トークン: {balance}。指定した有限計画内で取得し、不足時は停止します。"
         if tokens_left is None:
             return "トークン残数は取得できませんでした。トークン不足時は自動で回復待ちします。"
         return f"処理後のKeepa推定残トークン: {tokens_left}。不足時は自動で回復待ちします。"
@@ -879,7 +1072,9 @@ def _chunked(items: list[str], size: int) -> Iterable[list[str]]:
         yield items[index : index + size]
 
 
-def _product_to_cache_data(product: Any, fallback_asin: str = "") -> dict[str, Any]:
+def _product_to_cache_data(
+    product: Any, fallback_asin: str = "", filter_criteria: FilterCriteria | None = None,
+) -> dict[str, Any]:
     asin = _get_text(product, "asin") or fallback_asin
     category_tree = _extract_category_tree(product)
     leaf_category_id = _category_tree_id(category_tree, -1)
@@ -894,6 +1089,17 @@ def _product_to_cache_data(product: Any, fallback_asin: str = "") -> dict[str, A
     category = _extract_category_name(product)
     category_path = _category_path(category_tree)
     fetched_at = utc_now_iso()
+    observation = {}
+    if filter_criteria and filter_criteria.active:
+        # Read raw stats.current: SDK stats_parsed/history arrays apply
+        # currency transformations and must not be used for JP yen values.
+        raw = {key: _get_value(product, key) for key in (
+            "asin", "domainId", "stats", "availabilityAmazon", "lastUpdate", "lastRatingUpdate",
+        )}
+        observation["candidate_observation"] = extract_keepa_observation(
+            raw, captured_at=fetched_at,
+            price_requested=True, rating_requested=filter_criteria.rating_active,
+        )
     try:
         ingredient_fact = extract_keepa_ingredient_safety_fact(
             product,
@@ -927,6 +1133,7 @@ def _product_to_cache_data(product: Any, fallback_asin: str = "") -> dict[str, A
     except (ValueError, TypeError):
         classification_facts = None
     return {
+        **observation,
         "asin": asin,
         "title": _get_text(product, "title"),
         "brand": _get_text(product, "brand"),
