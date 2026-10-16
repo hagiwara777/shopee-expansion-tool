@@ -372,7 +372,7 @@ class P5Runtime:
                 guardrail_status='SAFE') in {'TARGET_ROOT', 'ROOT_UNKNOWN'}:
             observed = self.weapon_receipts.get(record['asin'])
             expected = (digest([record['facts'], record['source'], record['weapon']['images']]),
-                        (record['weapon'].get('inspection') or {}).get('evaluation_id'))
+                        digest(record['weapon'].get('inspection')))
             if observed != expected:
                 raise PreparationError('P5_CURRENT_IMAGE_ACQUISITION_REQUIRED')
 

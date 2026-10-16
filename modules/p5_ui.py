@@ -1,4 +1,5 @@
 """P5-specific connection controls around the existing common daily screen."""
+from dataclasses import asdict
 import streamlit as st
 
 from modules.sg_beta_facts import digest
@@ -98,7 +99,7 @@ def render_p5_weapon(runtime, *, key):
                 result = make_image_inspector(runtime, runtime.secrets()).inspect(evidence)
                 review.finish_image_inspection(item, evidence_binding=evidence.binding, inspection=result)
                 _save(workflow, record, capture_weapon_review(item, review, images=record['weapon']['images']), 'P5画像検査', result='P5_INSPECTION')
-                runtime.weapon_receipts[asin] = (digest([record['facts'], record['source'], record['weapon']['images']]), result.evaluation_id)
+                runtime.weapon_receipts[asin] = (digest([record['facts'], record['source'], record['weapon']['images']]), digest(asdict(result)))
             except (ValueError, RuntimeError, OSError, KeyError, TypeError):
                 workflow.session.begin_fact_refresh(asin)
                 st.error('画像検査を完了できません。旧結果では準備を続行しません。')

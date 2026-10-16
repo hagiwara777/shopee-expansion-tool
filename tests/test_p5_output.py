@@ -94,6 +94,15 @@ def test_initial_p5_never_accepts_auto_rule_or_replayed_weapon(contract_runtime)
     from modules.image_inspection_policy import load_image_inspection_policy
     record['weapon']['images']['root_category_id'] = min(load_image_inspection_policy(runtime.scope.marketplace).target_roots)
     with pytest.raises(ValueError, match='IMAGE_ACQUISITION'): runtime.require_output_proof(record)
+    from modules.sg_beta_facts import digest
+    # Acquisition-proof contract only: P1's separate Safety validation still
+    # owns whether REVIEW may prepare. An ID cannot authorize altered content.
+    record['weapon']['inspection'] = {'evaluation_id': 'SYNTHETIC_ONLY', 'ai_status': 'REVIEW'}
+    runtime.weapon_receipts[record['asin']] = (
+        digest([record['facts'], record['source'], record['weapon']['images']]), digest(record['weapon']['inspection']))
+    runtime.require_output_proof(record)
+    record['weapon']['inspection']['ai_status'] = 'NO_SIGNAL'
+    with pytest.raises(ValueError, match='IMAGE_ACQUISITION'): runtime.require_output_proof(record)
 
 
 def test_sg_formal_gate_still_rechecks_after_output_commit(contract_runtime, monkeypatch):
