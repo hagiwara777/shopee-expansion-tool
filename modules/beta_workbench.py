@@ -258,25 +258,30 @@ class BetaWorkBench:
             bindings[value['asin']] = current['basis']
         return values, bindings
 
-    def _check_bindings(self, values, bindings):
+    def _check_bindings(self, values, bindings, *, operational=False):
         self._require_scope()
         for value in values:
             current = self._assess(value)
             if not current['valid'] or current['basis'] != bindings[value['asin']]:
                 raise WorkStoreError('Preparation changed before delivering output')
+            if operational:
+                self.session.require_operational(value)
+        if operational and self.scope.marketplace == 'SG':
+            from modules.sg_beta_release import require_sg_beta_operation
+            require_sg_beta_operation()
 
-    def output(self, expected, *, reserve_copy=False):
-        """Commit output history/reservation before returning offline CSV/TXT.
+    def output(self, expected, *, reserve_copy=False, operational=False):
+        """Commit history/reservation before returning P1-validated CSV/TXT.
 
         A download alone does not confirm submission. reserve_copy must be used
         before a human attempts external submission; UNKNOWN retains the lock.
         """
-        if type(reserve_copy) is not bool:
+        if type(reserve_copy) is not bool or type(operational) is not bool:
             raise WorkStoreError('Explicit reservation choice required')
         with self._transaction() as conn:
             values, bindings = self._ready(conn, expected)
-            csv_bytes, txt_bytes = self.session.output(values)
-            self._check_bindings(values, bindings)
+            csv_bytes, txt_bytes = self.session.output(values, operational=operational)
+            self._check_bindings(values, bindings, operational=operational)
             operation_id = uuid4().hex if reserve_copy else None
             if reserve_copy:
                 payload = {'asins': list(expected), 'basis': bindings,
@@ -291,8 +296,8 @@ class BetaWorkBench:
                     self._note(value, 'SUBMISSION', 'PENDING', 'Submission reserved', operation_id=operation_id)
                 self.store.write(conn, value, action='COPY_INTENT' if reserve_copy else 'EXPORT',
                                  expected_revision=value['revision'])
-            self._check_bindings(values, bindings)
-        self._check_bindings(values, bindings)
+            self._check_bindings(values, bindings, operational=operational)
+        self._check_bindings(values, bindings, operational=operational)
         return csv_bytes, txt_bytes, operation_id
 
     def finish_copy(self, operation_id, expected, *, outcome, note, human_confirmed):

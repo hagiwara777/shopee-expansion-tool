@@ -18,6 +18,10 @@ HUMANとAUTO_RULEを項目ごとに区別し、模擬資料・未承認ruleを�
 条件変更はAPIを呼ばず、不足情報の取得は件数・追加token概算を確認する別操作です。P4 offline入口では実APIを停止します。
 offline実装と実値・費用の確認は別で、少量live照合とPH／SGの反復実務受入は別承認のP5へ残します。
 
+[P5最小接続](docs/P5_CONNECTION.md)は専用scope・送信前予約・現在の公式資料・P1/P2出力を接続します。
+設定ファイルだけではAPIを実行できず、実行許可・一次資料・設置・稼働反映は別承認です。
+P4のoffline起動と出力契約は維持します。
+
 保存済みファイルを独立したCLIでA／B／C候補へ仕分ける
 [Home Appliances分類補助ツール](docs/HOME_APPLIANCES_CLASSIFIER.md)を利用できます。
 専用CSVは出品許可やSafety判定ではなく、既存業務フローへ自動接続しません。

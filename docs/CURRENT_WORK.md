@@ -23,9 +23,15 @@ P4の[共通日常操作](PRACTICAL_UI_P4.md)は、新規P2保存先を明示し
 [Amazon価格帯・平均評価](CANDIDATE_PRICE_RATING_FILTERS.md)のF1/F2は、両入口・両市場で同じ取得後判定と通常操作を使うoffline実装を整備した（DEC-0143）。
 固定15列CandidateとSafety結合を保ち、旧cache・販売なし・不正値・期限切れを未確認として区別する。
 条件変更だけではAPIを呼ばず、不足情報の補完は件数と追加token概算を示す別操作とする。
-次の単一作業は、新規CodexタスクでOwnerの別承認を得るP5少量実商品反復受入。
+[P5最小接続](P5_CONNECTION.md)は、既存部品を使う専用runtime・送信前永続予約・
+今回の公式資料搬送・P1/P2実運用出力契約をoffline接続として整備した（DEC-0144）。
+設定から実行許可を生成せず、P4の模擬経路を実運用へ昇格しない。
+次の単一作業は、既存P5タスクで対象・一次資料・保存先・release・有限枠を固定し、
+Ownerの別承認後に行うP5少量実商品反復受入。
 F08の実AMAZON円・評価・tokensConsumed照合を含め、offline成功を実務Beta全体の完成としない。
 [実商品受入・Owner判断資料](PH_SG_BETA_ACCEPTANCE_PLAN.md)は旧SG少量2商品群計画を維持する。
+[P5実施設計・承認票](P5_ACCEPTANCE_EXECUTION_PLAN.md)でshop・商品・再取得予算・保存先・release・接続差分を固定する。
+未指定の実対象や未成立のlive接続を推測で補わず、実行承認と実務Beta完成判断を分離する。
 [Amazon価格帯・平均評価](CANDIDATE_PRICE_RATING_FILTERS.md)のF1/F2はOwner判断によりBeta前MUST。
 P1〜P4とF1/F2のoffline成果を保護し、両市場の実商品・実画面・費用・公式Brand・再取得条件をP5で受け入れる。
 live API、費用、認証・保存先設置、固定release変更、実出品は別承認。MY税務確認・関税計算はここで実装しない。
@@ -200,6 +206,8 @@ Source明示ON時のsilent fallbackを許さない。Bridge全面書込み障害
 SG Brand responseにmarketplace / Category echoがないため、server内部の別Category誤応答の独立検出は保証しない。
 
 ## Required Decisions
+
+- DEC-0144 — P5専用接続・有限予約・公式Category取得境界・P1/P2出力・HUMAN初回とlive別承認。
 
 - DEC-0143 — F1/F2共通取得後判定・旧cacheの未確認・明示補完予算・15列／Safety結合・F08のoffline／live分離。
 

@@ -194,6 +194,16 @@ class PreparationSession:
         """Detached current material for shared candidate presentation."""
         return copy.deepcopy(self._context())
 
+    def current_classification_binding(self):
+        """Catalog acquisition identity, available before inventory intake.
+
+        This is not a preparation/operational permission. Those still require
+        the complete context including current all-shop inventory.
+        """
+        if self._classification is None:
+            raise PreparationError('CURRENT_CATEGORY_CATALOG_REQUIRED')
+        return _Context(self._classification, {}, self._inventory).catalog_binding
+
     def auto_decision(self, record, *, kind):
         """Reuse the limited deterministic rules; never infer HUMAN authority."""
         self._require_record(record)

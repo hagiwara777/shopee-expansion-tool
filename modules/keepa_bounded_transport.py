@@ -16,13 +16,26 @@ def install_bounded_keepa_transport(api, budget, *, transport=None):
             raise RuntimeError('Keepa action stopped; explicit new action required')
         if request_type not in {'product', 'query', 'token'}:
             raise ValueError('Unsupported bounded Keepa endpoint')
+        reservation = None
         try:
-            budget.reserve_keepa_request()
+            if hasattr(budget, 'reserve_keepa_call'):
+                reservation = budget.reserve_keepa_call(request_type, payload)
+            else:
+                budget.reserve_keepa_request()
             response = send(f'https://api.keepa.com/{request_type}/?', params=payload,
                             timeout=api._timeout, allow_redirects=False)
         except Exception:
             failed = True
+            if reservation is not None:
+                budget.fail_keepa_call(reservation)
             raise RuntimeError('Bounded Keepa send stopped') from None
+        if reservation is not None:
+            try:
+                budget.complete_keepa_call(reservation, response.json(), response.status_code)
+            except Exception:
+                failed = True
+                budget.fail_keepa_call(reservation)
+                raise RuntimeError('Keepa consumption unverified; reservation retained') from None
         if response.status_code != 200:
             failed = True
             raise RuntimeError('Bounded Keepa acquisition failed; explicit retry required')
