@@ -338,8 +338,11 @@ def _render_prelisting_gate_result(result, exports, *, source_type: str) -> None
     )
 
 
-def _render_prelisting_gate_input_tab(marketplace=None, *, enable_expansion_handoff=False, offline_only=False) -> None:
+def _render_prelisting_gate_input_tab(marketplace=None, *, enable_expansion_handoff=False, offline_only=False, p5_runtime=None) -> None:
     """Render input parsing, gate execution, and current result presentation."""
+
+    # This lower boundary must remain safe even when called without app_beta.
+    offline_only = offline_only or p5_runtime is not None
 
     st.subheader("出品前保安ゲート")
     if marketplace is None:
@@ -799,7 +802,9 @@ def _render_prelisting_gate_input_tab(marketplace=None, *, enable_expansion_hand
                 image_sidecar = st.session_state["prelisting_gate_image_sidecar"]
                 image_sidecar = prepare_image_safety(base_result, image_sidecar, candidate_bytes)
                 if offline_only:
-                    st.caption('offline画像確認：現在の合成資料だけを評価します。実APIは実行しません。')
+                    st.caption('対象画像の検査は分類・準備画面の承認済みP5経路で行ってください。'
+                               if p5_runtime is not None else
+                               'offline画像確認：現在の合成資料だけを評価します。実APIは実行しません。')
                 else:
                     image_sidecar = render_image_review(base_result, image_sidecar, candidate_bytes)
                 saved_result = apply_image_safety(base_result, image_sidecar, candidate_bytes)
@@ -831,7 +836,9 @@ def _render_prelisting_gate_input_tab(marketplace=None, *, enable_expansion_hand
                 expansion = st.session_state.get('result')
                 producer_rows = (getattr(expansion, 'rows', ()) if candidate_result.source_type == 'EXPANSION'
                                  else st.session_state.get('asin_resolver_rows', ()))
-                if 'p4_producer_rows' in st.session_state:
+                if p5_runtime is not None and 'p4_producer_rows' in st.session_state:
+                    raise ValueError('P5 cannot accept P4 replay material')
+                if p5_runtime is None and 'p4_producer_rows' in st.session_state:
                     producer_rows = st.session_state['p4_producer_rows']
                 # SG receives raw image facts, never PH verdicts.
                 p3_images = image_safety_bytes
@@ -885,7 +892,7 @@ def _continuous_amazon_budget(marketplace, config_path):
 
 
 def render_application(marketplace=None, *, sg_config_path=None, enable_expansion_handoff=False,
-                       classification_workspace=None, practical_workspace=None):
+                       classification_workspace=None, practical_workspace=None, p5_runtime=None):
     """Render the existing work tabs, optionally bound to one beta market."""
     beta_marketplace = marketplace
     if beta_marketplace is None:
@@ -897,11 +904,22 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
     enable_expansion_handoff = enable_expansion_handoff and beta_marketplace in {"PH", "SG"}
 
     try:
-        amazon_settings = load_settings()
+        if p5_runtime is not None:
+            p5_runtime.require_current()
+            from modules.config import Settings
+            amazon_settings = Settings(keepa_api_key='')
+        else:
+            amazon_settings = load_settings()
     except AmazonDataProviderConfigurationError as exc:
         st.error(str(exc))
         st.stop()
 
+    def amazon_client():
+        if p5_runtime is not None:
+            return p5_runtime.amazon_client()
+        return create_amazon_data_client(amazon_settings, **_continuous_amazon_budget(beta_marketplace, sg_config_path))
+
+    acquisition_offline = practical_workspace is not None and p5_runtime is None
     previous_provider = st.session_state.get("active_amazon_data_provider")
     if previous_provider and previous_provider != amazon_settings.amazon_data_provider:
         st.session_state.pop("result", None)
@@ -955,10 +973,10 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
                 "検索開始",
                 type="primary",
                 width="stretch",
-                disabled=practical_workspace is not None or expansion_filter_blocked,
+                disabled=acquisition_offline or expansion_filter_blocked,
             )
 
-        if search_clicked and practical_workspace is None and not expansion_filter_blocked:
+        if search_clicked and not acquisition_offline and not expansion_filter_blocked:
             if enable_expansion_handoff:
                 remember_body_confirmations(st.session_state, st.session_state.get("prelisting_gate_sg_body_confirmations"))
                 st.session_state.pop(PACKET_KEY, None)
@@ -968,7 +986,7 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
 
             try:
                 source_asin = normalize_asin(asin_input)
-                client = create_amazon_data_client(amazon_settings, **_continuous_amazon_budget(beta_marketplace, sg_config_path))
+                client = amazon_client()
 
                 if amazon_settings.amazon_data_provider == KEEPA_PROVIDER:
                     with st.spinner(
@@ -1064,9 +1082,7 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
 
             expansion_filter_rows = render_filter_results(result.rows, expansion_criteria,
                 key='f12_expansion_', blocked=expansion_filter_blocked,
-                offline_only=practical_workspace is not None,
-                client_factory=lambda: create_amazon_data_client(amazon_settings,
-                    **_continuous_amazon_budget(beta_marketplace, sg_config_path)))
+                offline_only=acquisition_offline, client_factory=amazon_client)
             if expansion_criteria.active and not expansion_filter_blocked and not expansion_filter_rows:
                 render_filter_confirmation(result.rows, expansion_criteria, b'',
                     key='f12_expansion_', marketplace=beta_marketplace)
@@ -1567,16 +1583,16 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
                     disabled=(
                         preview_summary["selected_unique_asins"] == 0
                         or not evidence_export_action_allowed
-                        or practical_workspace is not None
+                        or acquisition_offline
                         or resolver_filter_blocked
                     ),
                 )
 
-                if verify_clicked and practical_workspace is None and not resolver_filter_blocked:
+                if verify_clicked and not acquisition_offline and not resolver_filter_blocked:
                     invalidate_filter_outputs()
                     st.session_state["asin_resolver_rows"] = []
                     try:
-                        client = create_amazon_data_client(amazon_settings, **_continuous_amazon_budget(beta_marketplace, sg_config_path))
+                        client = amazon_client()
                         with st.spinner("Amazon data providerでASINの実在確認をしています..."):
                             verified_rows = verify_selected_rows(
                                 selected_preview_rows,
@@ -1615,9 +1631,7 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
                 st.write(f"ERROR: {summary['ERROR']}件")
                 resolver_filter_rows = render_filter_results(resolver_rows, resolver_criteria,
                     key='f12_resolver_', blocked=resolver_filter_blocked,
-                    offline_only=practical_workspace is not None,
-                    client_factory=lambda: create_amazon_data_client(amazon_settings,
-                        **_continuous_amazon_budget(beta_marketplace, sg_config_path)))
+                    offline_only=acquisition_offline, client_factory=amazon_client)
                 st.download_button(
                     label="起点ASIN候補CSVダウンロード",
                     data=rows_to_resolver_csv(resolver_filter_rows),
@@ -1895,10 +1909,13 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
 
     with prelisting_gate_tab:
         _render_prelisting_gate_input_tab(beta_marketplace, enable_expansion_handoff=enable_expansion_handoff,
-                                          offline_only=practical_workspace is not None)
+                                          offline_only=practical_workspace is not None, p5_runtime=p5_runtime)
 
     with category_mapper_tab:
-        if practical_workspace is not None:
+        if p5_runtime is not None:
+            from modules.p5_ui import render_p5_workspace
+            render_p5_workspace(p5_runtime)
+        elif practical_workspace is not None:
             from modules.classification_workflow_ui import render_classification_workspace
             from modules.practical_beta_ui import render_practical_controls
             render_classification_workspace(beta_marketplace, **practical_workspace,

@@ -4,6 +4,10 @@ DEC-0137、[完成条件C01〜C12](PRACTICAL_BETA_COMPLETION.md)の実務受入�
 既存[SG通常継続利用](SG_CONTINUOUS_OPERATION.md)の「Expansion由来A→Resolver由来B」少量2商品群を維持する。
 新しい共通保存・状態操作の受入を追加し、過去Step 8やofflineの成功を新しい実務成功へ読み替えない。
 
+P5の対象票、再起動分を含むAPI予算、接続不足、A01〜A07・F08 liveの具体手順は
+[実施設計・承認票](P5_ACCEPTANCE_EXECUTION_PLAN.md)で具体化する。
+下記の初期概算は参考案として保持し、実行時は具体票へ再見積した値とOwner承認を使用する。
+
 ## 実施順と対象
 
 1. P1〜P4とF1/F2（DEC-0138）の実装・offline回帰・mock画面操作・移行しない保存試験を完了する。
@@ -49,7 +53,7 @@ A05の実際の出品済み照合には既存の正当な出品済み商品・�
 | 判断対象 | 提示する具体案 | 実行前に固定する項目 |
 |---|---|---|
 | 実務利用の開始 | P1コードの採用を実API・稼働反映・実商品受入の承認にしない | 対象release・事業scope・technical gates・別の実務受入承認 |
-| 次実装 | P1〜P4のoffline成果を踏まえ、Owner確定のBeta前MUST F1/F2を次の単一作業とする | 取得後の共通選別・Candidate互換、既存保存とSafetyの保護 |
+| P5前提 | P1〜P4・F1/F2のoffline成果を保護し、実務受入に必要な接続差分だけを確認する | P4 offline停止の単純解除禁止。実対象・予算・release・保存先を固定して別承認 |
 | 実商品 | PH／SG各2群、各1〜3商品を準備受入。Finderの取得候補は別計上 | seed／Resolver ASIN、対象shop、対象Category、画像AI対象、操作者 |
 | Keepa | 各国通常検索1ページ、候補詳細最大50＋seed1＋Resolver3。既存診断fallback最大3検索を別途予約し、追加ページを自動拡大しない | 通常成功時は各国約65 tokens、合計約130。診断fallbackを含め各国約98、合計約196。価格／評価採用時は評価追加と旧cache補完を含め合計350 tokensを暫定上限案とし、呼出計画で足りなければ開始前に再見積・別承認 |
 | API送信枠 | 最大20 requests／国を提案。SGの有限policy・ledgerと整合。cache hitと失敗／再試行を記録 | requestsとtokensは別制約。PH側も上限を確実に守る実行手段が成立してから開始 |

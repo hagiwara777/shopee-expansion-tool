@@ -16,7 +16,8 @@ P3の[分類確認・現在根拠搬送](CLASSIFICATION_P3.md)を両市場の共
 P4の[共通日常操作](PRACTICAL_UI_P4.md)は、新規保存先を明示するPH／SG共通のoffline画面で、
 管理／診断分離、準備pool・CSV／TXT、5状態・永続予約・結果不明の復旧を扱う（DEC-0142）。
 F1/F2の[共通取得後判定](CANDIDATE_PRICE_RATING_FILTERS.md)と両入口・両市場の操作をoffline実装として整備した（DEC-0143）。
-次の単一作業は、別Owner承認後に新規Codexタスクで行うP5少量実商品反復受入。
+[P5最小接続のoffline開発](P5_CONNECTION.md)は既存P1〜P4と有限API部品を再利用する（DEC-0144）。
+次の単一作業は、対象・一次資料・保存先・有限枠を固定し、別Owner承認後に同じP5タスクで行う少量実商品反復受入。
 F1/F2の実AMAZON円・評価・消費token照合もP5へ残し、offline成果を実務Beta全体の完成としない。
 個別AUTO_RULEの実運用適用、実API・費用・設置・release反映・実出品は別承認とする。
 固定PH基準（DEC-0116）は[既存機能の回帰基準](PH_BETA_MARKET_PARITY.md)として保持する。

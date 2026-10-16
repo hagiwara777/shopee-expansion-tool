@@ -74,12 +74,17 @@ class ShopeeCatalogClient:
         marketplace: str,
         base_url: str = SHOPEE_PARTNER_BASE_URL,
         request_json: Callable[[str, Mapping[str, str], int], Mapping[str, Any]] | None = None,
+        request_policy=None,
     ) -> None:
         self.marketplace = _enabled_marketplace(marketplace)
         self.credentials = credentials
         self.base_url = base_url.rstrip("/")
         self._request_json = request_json or _urlopen_json
         self.uses_default_transport = request_json is None
+        self.request_policy = request_policy
+        if request_policy is not None and request_json is None:
+            from functools import partial
+            self._request_json = partial(_urlopen_json, allow_redirects=False)
 
     @classmethod
     def from_local_audit_env(
@@ -119,7 +124,7 @@ class ShopeeCatalogClient:
             credentials = replace(credentials, access_token=token.value)
         return cls(credentials, marketplace=bound_marketplace)
 
-    def get_categories(self, marketplace: str, *, language: str = "en") -> tuple[dict[str, Any], ...]:
+    def get_categories(self, marketplace: str, *, language: str = "en", strict: bool = False) -> tuple[dict[str, Any], ...]:
         self._require_marketplace(marketplace)
         payload = self._get(_CATEGORY_PATH, {"language": language})
         response = _response_dict(payload, endpoint_path=_CATEGORY_PATH)
@@ -131,6 +136,8 @@ class ShopeeCatalogClient:
             endpoint_path=_CATEGORY_PATH,
         )
         categories = []
+        if strict:
+            _validate_category_raw(raw_categories)
         for raw in raw_categories:
             if not isinstance(raw, Mapping):
                 continue
@@ -285,6 +292,8 @@ class ShopeeCatalogClient:
         return BrandPage(tuple(brands), next_offset, is_complete)
 
     def _get(self, path: str, parameters: Mapping[str, str]) -> Mapping[str, Any]:
+        reservation = (self.request_policy.before(self, path, parameters)
+                       if self.request_policy is not None else None)
         timestamp = int(time.time())
         signature_base = (
             f"{self.credentials.partner_id}{path}{timestamp}"
@@ -310,9 +319,15 @@ class ShopeeCatalogClient:
                 _MAX_TIMEOUT_SECONDS,
             )
         except ShopeeCatalogError:
+            if reservation is not None:
+                self.request_policy.finish(reservation, success=False)
             raise
         except Exception:
+            if reservation is not None:
+                self.request_policy.finish(reservation, success=False)
             raise ShopeeCatalogError(f"Catalog API request failed at {path}.") from None
+        if reservation is not None:
+            self.request_policy.finish(reservation, success=isinstance(payload, Mapping) and not payload.get('error'))
         if not isinstance(payload, Mapping):
             raise _response_error(path, "response was invalid")
         error = payload.get("error")
@@ -323,6 +338,38 @@ class ShopeeCatalogClient:
     def _require_marketplace(self, marketplace: str) -> None:
         if _enabled_marketplace(marketplace) != self.marketplace:
             raise ValueError("Catalog Client marketplace does not match its binding.")
+
+
+def _validate_category_raw(rows):
+    """P5 opt-in: never silently normalize away a malformed official row."""
+    seen = {}
+    if not rows:
+        raise _response_error(_CATEGORY_PATH, 'empty category catalog')
+    for row in rows:
+        if not isinstance(row, Mapping):
+            raise _response_error(_CATEGORY_PATH, 'invalid category row')
+        cid, parent = row.get('category_id'), row.get('parent_category_id')
+        leaf = row.get('is_leaf', row.get('is_leaf_category'))
+        children = row.get('has_children')
+        if (type(cid) is not int or cid <= 0 or type(parent) is not int or parent < 0
+                or cid == parent or cid in seen
+                or not _first_text(row, 'display_category_name', 'original_category_name', 'category_name', 'name')
+                or (leaf is None and type(children) is not bool)
+                or (leaf is not None and type(leaf) is not bool)
+                or (children is not None and type(children) is not bool)
+                or (leaf is not None and children is not None and leaf == children)):
+            raise _response_error(_CATEGORY_PATH, 'invalid or contradictory category fields')
+        seen[cid] = (parent, leaf if leaf is not None else not children)
+    parents = {parent for parent, _ in seen.values() if parent}
+    if any(parent and parent not in seen for parent, _ in seen.values()) or any(seen[cid][1] for cid in parents):
+        raise _response_error(_CATEGORY_PATH, 'incomplete category hierarchy')
+    for cid in seen:
+        visited = set()
+        while cid:
+            if cid in visited:
+                raise _response_error(_CATEGORY_PATH, 'category cycle')
+            visited.add(cid)
+            cid = seen[cid][0]
 
 
 def _strict_brand_page(
@@ -424,11 +471,21 @@ def _enabled_marketplace(marketplace: str) -> str:
     return normalized
 
 
-def _urlopen_json(url: str, parameters: Mapping[str, str], timeout: int) -> Mapping[str, Any]:
+def _urlopen_json(url: str, parameters: Mapping[str, str], timeout: int, *, allow_redirects=True) -> Mapping[str, Any]:
     request_url = f"{url}?{urlencode(parameters)}"
     endpoint_path = urlsplit(url).path
     try:
-        with urlopen(request_url, timeout=timeout) as response:
+        if allow_redirects:
+            opener = urlopen
+        else:
+            from urllib.request import build_opener, HTTPRedirectHandler
+            class NoRedirect(HTTPRedirectHandler):
+                def redirect_request(self, *args, **kwargs):
+                    return None
+            opener = build_opener(NoRedirect()).open
+        with opener(request_url, timeout=timeout) as response:
+            if not allow_redirects and response.status != 200:
+                raise ShopeeCatalogError(f"Catalog API did not return a complete response at {endpoint_path}.")
             raw = response.read()
     except HTTPError as exc:
         payload = _decode_mapping_or_none(exc.read())

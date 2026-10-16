@@ -14,13 +14,13 @@ def weapon_source_binding(record, market):
     return digest([market, record['asin'], record['facts'], record['source'], record['weapon']['images']])
 
 
-def _save(workflow, record, weapon, note):
+def _save(workflow, record, weapon, note, *, result='OFFLINE_REVIEW'):
     bench = workflow.bench
     with bench._transaction() as conn:
         value = bench._selection(conn, {record['asin']: record['revision']})[0]
         value['weapon'] = copy.deepcopy(weapon)
         value['category'] = value['brand'] = None
-        bench._note(value, 'WEAPON', 'OFFLINE_REVIEW', note)
+        bench._note(value, 'WEAPON', result, note)
         bench._update_assessment(value, bench._assess(value))
         bench.store.write(conn, value, action='WEAPON_REVIEW', expected_revision=value['revision'])
 
@@ -92,26 +92,32 @@ def render_weapon_controls(workflow, *, key):
             else:
                 st.session_state[key+'loaded'] = asin
                 st.rerun()
-        inspection = review.current_image_inspection(item)
-        if inspection is None:
-            st.info('対象の画像検査は未実施です。現在根拠に一致する模擬検査を読み込んでください。')
-            return
-        st.caption('模擬検査：' + inspection.system_status + ' / ' + str(inspection.ai_status))
-        if inspection.system_status == 'COMPLETED' and inspection.ai_status == 'NO_SIGNAL':
-            st.caption('模擬画像で疑義なし。追加の人間確認は不要です。')
-            return
-        note = st.text_area('武器疑義の判断根拠', key=key+'note')
-        binding = digest([record['revision'], workflow.session.evidence_revision, inspection.evaluation_id, note])
-        if st.session_state.get(key+'human_binding') != binding:
-            st.session_state[key+'human_binding'] = binding
-            st.session_state[key+'human'] = False
-        checked = st.checkbox('この商品の武器疑義について十分な画像を確認しました', key=key+'human')
-        for decision, label in [('ALLOW_PREPARATION','画像疑義だけの準備継続を記録'), ('EXCLUDE','武器画像の確認で除外')]:
-            if st.button(label, key=key+decision, disabled=not checked or not note.strip()):
-                try:
-                    review.record_weapon_decision(item, decision=decision, reviewed_images=checked, note=note)
-                    _save(workflow, record, capture_weapon_review(item, review, images=record['weapon']['images']), note)
-                except (ValueError, RuntimeError, OSError):
-                    st.error('画像判断を保存できません。現在資料と既存Safety停止を確認してください。')
-                else:
-                    st.rerun()
+        render_weapon_decision(workflow, record, item, review, key=key)
+
+
+def render_weapon_decision(workflow, record, item, review, *, key, offline=True):
+    inspection = review.current_image_inspection(item)
+    if inspection is None:
+        st.info('対象の画像検査は未実施です。現在根拠に一致する模擬検査を読み込んでください。'
+                if offline else '対象の画像検査は未実施です。承認済みの取得経路で検査してください。')
+        return
+    st.caption(('模擬検査：' if offline else '今回の画像検査：') + inspection.system_status + ' / ' + str(inspection.ai_status))
+    if inspection.system_status == 'COMPLETED' and inspection.ai_status == 'NO_SIGNAL':
+        st.caption('模擬画像で疑義なし。追加の人間確認は不要です。' if offline else '画像疑義なし。追加の人間確認は不要です。')
+        return
+    note = st.text_area('武器疑義の判断根拠', key=key+'note')
+    binding = digest([record['revision'], workflow.session.evidence_revision, inspection.evaluation_id, note])
+    if st.session_state.get(key+'human_binding') != binding:
+        st.session_state[key+'human_binding'] = binding
+        st.session_state[key+'human'] = False
+    checked = st.checkbox('この商品の武器疑義について十分な画像を確認しました', key=key+'human')
+    for decision, label in [('ALLOW_PREPARATION','画像疑義だけの準備継続を記録'), ('EXCLUDE','武器画像の確認で除外')]:
+        if st.button(label, key=key+decision, disabled=not checked or not note.strip()):
+            try:
+                review.record_weapon_decision(item, decision=decision, reviewed_images=checked, note=note)
+                _save(workflow, record, capture_weapon_review(item, review, images=record['weapon']['images']), note,
+                      result='OFFLINE_REVIEW' if offline else 'P5_HUMAN_REVIEW')
+            except (ValueError, RuntimeError, OSError):
+                st.error('画像判断を保存できません。現在資料と既存Safety停止を確認してください。')
+            else:
+                st.rerun()

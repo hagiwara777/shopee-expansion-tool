@@ -95,55 +95,59 @@ def render_classification_workspace(marketplace, *, db_path, shop_id, workflow=N
                 except (ValueError, RuntimeError, KeyError, TypeError):
                     workflow.session.begin_catalog_refresh()
                     st.error('分類資料を確認できません。未確認のまま停止します。')
-        batch = st.session_state.get('classification_current_batch')
-        if batch is None or batch['marketplace'] != marketplace:
-            if not st.session_state.get(key+'inventory_missing'):
-                workflow.session.begin_inventory_refresh()
-            st.session_state[key+'inventory_missing'] = True
-            st.info('保安ゲートで今回の候補・全ショップCSVを確認してください。保存済み履歴は保持します。')
-        else:
-            st.session_state[key+'inventory_missing'] = False
-            if st.session_state.get(key+'batch_binding') != batch['product_binding']:
-                # New/changed normal material expires affected existing products
-                # before any new intake action. Adding B does not invalidate A.
-                try:
-                    incoming = records_from_producer(marketplace=marketplace, **batch['product_arguments'])
-                    existing = {r['asin']: r for r in workflow.bench.store.products()}
-                    for record in incoming:
-                        previous = existing.get(record['asin'])
-                        if previous and any(previous.get(k) != record.get(k) for k in ('facts', 'source', 'weapon')):
-                            workflow.session.begin_fact_refresh(record['asin'])
-                    st.session_state[key+'batch_binding'] = batch['product_binding']
-                except (ValueError, RuntimeError, KeyError, TypeError):
-                    workflow.session.begin_inventory_refresh()
-                    st.error('今回の商品根拠を照合できません。確認・保存を停止します。')
-                    return
-            # Gate labels are internal evidence labels, not authenticated shop IDs.
-            # Explicitly bind each uploaded file to the actual shop before P1 use.
-            labels = [st.text_input(f'{i.source_file} のショップID', key=key+'shop_'+str(n))
-                      for n, i in enumerate(batch['inventories'])]
-            inventory_binding = digest([batch['inventory_binding'], labels])
-            if st.session_state.get(key+'inventory_binding') != inventory_binding:
-                workflow.session.begin_inventory_refresh()
-                st.session_state[key+'current'] = False
-                st.session_state[key+'inventory_binding'] = inventory_binding
-            current = st.checkbox('全ショップ分の今回の最新出品CSVと対応を確認しました', key=key+'current')
-            if not current and st.session_state.get(key+'inventory_was_current'):
-                workflow.session.begin_inventory_refresh()
-            st.session_state[key+'inventory_was_current'] = current
-            if st.button('今回の商品根拠を確認待ちへ保存', key=key+'ingest', disabled=not current):
-                def ingest():
-                    workflow.supply_inventory(tuple(replace(i, shop_label=label) for i, label in
-                        zip(batch['inventories'], labels, strict=True)), expected_shops=labels,
-                        reference=inventory_binding, confirmed_current=current)
-                    records = records_from_producer(marketplace=marketplace,
-                        **batch['product_arguments'])
-                    workflow.ingest(records, scope=workflow.session.scope, batch_ref=batch['product_binding'])
-                _action(ingest)
+        render_current_batch(workflow, marketplace, key=key)
     if controls_renderer is None:
         render_classification_controls(workflow, key=key)
     else:
         controls_renderer(workflow, key=key)
+
+
+def render_current_batch(workflow, marketplace, *, key):
+    batch = st.session_state.get('classification_current_batch')
+    if batch is None or batch['marketplace'] != marketplace:
+        if not st.session_state.get(key+'inventory_missing'):
+            workflow.session.begin_inventory_refresh()
+        st.session_state[key+'inventory_missing'] = True
+        st.info('保安ゲートで今回の候補・全ショップCSVを確認してください。保存済み履歴は保持します。')
+    else:
+        st.session_state[key+'inventory_missing'] = False
+        if st.session_state.get(key+'batch_binding') != batch['product_binding']:
+            # New/changed normal material expires affected existing products
+            # before any new intake action. Adding B does not invalidate A.
+            try:
+                incoming = records_from_producer(marketplace=marketplace, **batch['product_arguments'])
+                existing = {r['asin']: r for r in workflow.bench.store.products()}
+                for record in incoming:
+                    previous = existing.get(record['asin'])
+                    if previous and any(previous.get(k) != record.get(k) for k in ('facts', 'source', 'weapon')):
+                        workflow.session.begin_fact_refresh(record['asin'])
+                st.session_state[key+'batch_binding'] = batch['product_binding']
+            except (ValueError, RuntimeError, KeyError, TypeError):
+                workflow.session.begin_inventory_refresh()
+                st.error('今回の商品根拠を照合できません。確認・保存を停止します。')
+                return
+        # Gate labels are internal evidence labels, not authenticated shop IDs.
+        # Explicitly bind each uploaded file to the actual shop before P1 use.
+        labels = [st.text_input(f'{i.source_file} のショップID', key=key+'shop_'+str(n))
+                  for n, i in enumerate(batch['inventories'])]
+        inventory_binding = digest([batch['inventory_binding'], labels])
+        if st.session_state.get(key+'inventory_binding') != inventory_binding:
+            workflow.session.begin_inventory_refresh()
+            st.session_state[key+'current'] = False
+            st.session_state[key+'inventory_binding'] = inventory_binding
+        current = st.checkbox('全ショップ分の今回の最新出品CSVと対応を確認しました', key=key+'current')
+        if not current and st.session_state.get(key+'inventory_was_current'):
+            workflow.session.begin_inventory_refresh()
+        st.session_state[key+'inventory_was_current'] = current
+        if st.button('今回の商品根拠を確認待ちへ保存', key=key+'ingest', disabled=not current):
+            def ingest():
+                workflow.supply_inventory(tuple(replace(i, shop_label=label) for i, label in
+                    zip(batch['inventories'], labels, strict=True)), expected_shops=labels,
+                    reference=inventory_binding, confirmed_current=current)
+                records = records_from_producer(marketplace=marketplace,
+                    **batch['product_arguments'])
+                workflow.ingest(records, scope=workflow.session.scope, batch_ref=batch['product_binding'])
+            _action(ingest)
 
 
 def render_classification_controls(workflow, *, key='p3_', practical=False):

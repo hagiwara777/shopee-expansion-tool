@@ -1734,3 +1734,14 @@
 - 保護: P1の現在根拠と出力直前検証、P2の保存・5状態・永続予約、P3の項目別確認・取得世代・未承認AUTO_RULE拒否、P4の共通offline通常画面を維持する。P4のlisting_ready=FALSE／PH_SG_P1_OFFLINE、既存Guardrail／Battery／SLS／Gate、SG本体・実同梱・画像疑義とPH／SG protected capabilityを緩和しない。既存DB・Policy／Grant・ledger／claim・credential・固定releaseを移行・初期化・resetしない。
 - 検証・後続: 詳細要件とF01〜F08はCANDIDATE_PRICE_RATING_FILTERS.mdを正本とする。SDK返却・単位とcache、両入口・両市場の操作、15列・Safety結合・失効はfixture／mock／AppTestで確認する。F08をofflineの時刻・概算・確認CSVと、後日の実AMAZON円・評価・tokensConsumed照合へ分ける。offline成立を実値取得、C12、実務Beta完成やP5実施許可に読み替えない。次の独立工程P5は新規Codexタスクで、少量実商品・実画面・API費用・公式Brand・再取得条件・反復実務をOwner別承認後に受け入れる。
 - 非対象・rollback: 実API・有料API・実商品・Finder最適化・Safety／分類rule追加・MY税務／関税計算・DB移行・credential変更・固定release／deploy・実出品・MY／TW／TH runtimeを実施しない。フィルター解除または対象code／tests／docsの通常revertで戻せる。既存保存・確認履歴・API消費・過去Decision／Evidenceは削除しない。
+
+## DEC-0144 — P5専用接続を既存部品の再利用と実行許可の分離でoffline開発する
+
+- 日付: 2026-10-16
+- authority／目的: Ownerは独立交差レビュー後の案Bを承認し、同じP5タスクでscope内実装・synthetic tests・保護回帰・文書・commit/push・Draft PR・CI・read-only reviewまで進めるよう指示した。formal main採用とlive実行は別の明示承認を必要とする。
+- 決定: P5専用runtimeへrun/市場/shop/credential参照/P2 store ID/cache/ledger/claim/有限枠/商品/leaf/release/実行対象を結合する。設定だけでpermitを作るloaderは設けず、P4の模擬経路や旧API入口をP5の運用出力へ接続しない。起動・再描画・F1/F2条件変更では送信せず、既存通常起動・稼働経路を維持する。詳細はP5_CONNECTION.mdとする。
+- 再利用と予算: P1/P2/P3/P4、SGのprocess lease・永続化、Keepa bounded transport、共通Catalog Client、strict Brand、既存OpenAI費用計算、画像Safetyを使用する。P5に到達する物理送信だけを有限予約し、Google認証/Bridge・画像件数とKeepa token/OpenAI費用を混同しない。失敗・不明消費・保存失敗・再起動で予約を返さず、旧DB/ledger/claimを初期化・移行しない。汎用認証/監査基盤や全HTTP再設計は追加しない。
+- 公式根拠と出力: P5 Categoryはraw不正を読み飛ばさず、P5取得経路と今回session/catalog bindingを検証する。reference文字列やsupply_catalogだけでは公式取得を証明しない。Brandの今回strict完全取得は最大10ページを維持し、Attributeの未取得/失敗/取得済み空treeと取得世代を区別する。空treeから必須属性0件を推定しない。P1実運用判定とP2 transaction/履歴/予約を通し、commit前とbytes返却前に現在根拠・許可・SG正式gateを再検証する。P4はFALSE/PH_SG_P1_OFFLINEを維持する。
+- 限定範囲: 初回P5はHUMAN中心とし、未承認AUTO_RULEの運用permitを注入しない。HUMANの成立をC04限定自動確定の実務成立へ昇格せず、C04はBeta前MUSTのまま未達部分を別記する。新規出品システム・DB移行・Finder最適化・rule精度改善・他市場追加を含めない。
+- 検証・停止: synthetic/default HTTP mockは契約検証であり、実API・実商品・F08 live・C12・Owner実務受入の証拠ではない。Shopee一次仕様はPRIMARY_SOURCE_UNVERIFIEDの間liveを停止する。対象/認証/保存先設置/backup/復旧/観測release/現在価格/有限枠/具体API操作を別承認し、実行許可のtrusted注入はその後に行う。実API・費用・credential操作・稼働反映・実出品をoffline開発承認から推定しない。
+- rollback: P5入口・対象processを停止し、必要なら通常revertで戻す。既存releaseを自動変更せず、P2履歴・UNKNOWN lock・消費予約・claim・過去Evidenceを保持する。Task Contextをmerge承認前にCLOSEDへしない。

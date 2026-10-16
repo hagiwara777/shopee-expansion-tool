@@ -107,22 +107,26 @@ def _action(call):
         st.rerun()
 
 
-def render_practical_controls(workflow, *, key):
+def render_practical_controls(workflow, *, key, runtime=None):
     from modules.classification_workflow_ui import render_classification_controls
     classification, preparation, listing = st.tabs(('分類・確認待ち', '準備pool・CSV / TXT', '出品作業・履歴'))
     with classification:
         from modules.practical_weapon_ui import render_weapon_controls
         try:
-            render_weapon_controls(workflow, key=key+'weapon_')
+            if runtime is None:
+                render_weapon_controls(workflow, key=key+'weapon_')
+            else:
+                from modules.p5_ui import render_p5_weapon
+                render_p5_weapon(runtime, key=key+'weapon_')
         except (ValueError, RuntimeError, OSError):
             st.error('画像資料・保存先を確認できません。現在根拠を再確認してください。')
         # File widgets must render before classification actions request an
         # immediate rerun, otherwise Streamlit can remove their widget state.
         render_classification_controls(workflow, key=key, practical=True)
     with preparation:
-        render_preparation_pool(workflow, key=key+'pool_')
+        render_preparation_pool(workflow, key=key+'pool_', runtime=runtime)
     with listing:
-        render_listing_controls(workflow, key=key+'listing_')
+        render_listing_controls(workflow, key=key+'listing_', runtime=runtime)
 
 
 def _records(workflow):
@@ -155,54 +159,62 @@ def _human(workflow, binding, *, key, label='選択商品と今回の操作を�
     return note, confirmed and bool(note.strip())
 
 
-def render_preparation_pool(workflow, *, key):
+def render_preparation_pool(workflow, *, key, runtime=None):
     records, operations = _records(workflow)
     if records is None:
         return
     locked = {a for o in operations if o['state'] in {'PENDING', 'UNKNOWN'} for a in o['asins']}
     pool = [r for r in records if r['assessment']['valid'] and r['state'] == 'WAITING'
             and r['listing_progress'] == 'WAITING' and r['asin'] not in locked]
-    st.metric('現在有効な準備pool（offline）', len(pool))
-    st.caption('商品群をまたいだ現在有効分です。実運用の公式Brand receipt・承認は未接続。実出品不可。')
+    st.metric('現在有効な準備pool' if runtime else '現在有効な準備pool（offline）', len(pool))
+    st.caption('商品群をまたいだ現在有効分です。出力時に承認scopeと公式資料を再確認します。'
+               if runtime else '商品群をまたいだ現在有効分です。実運用の公式Brand receipt・承認は未接続。実出品不可。')
     group_of = lambda r: f"{workflow.session.scope.marketplace}|{r['category']['category_id']}|{r['brand']['brand_id']}"
     groups = sorted({group_of(r) for r in pool})
     group = st.selectbox('市場 / leaf Category ID / Brand ID', ['全グループ', *groups], key=key+'group')
     pool = [r for r in pool if group == '全グループ' or group_of(r) == group]
     st.dataframe([{'ASIN': r['asin'], 'グループ': group_of(r), 'Category確認': decision_label(r, 'category'),
         'Brand確認': decision_label(r, 'brand'), '出所': ', '.join(sorted({b['source_type'] for b in r['batches']})),
-        '商品群': ', '.join(b['reference'] for b in r['batches']), '実出品可能': False} for r in pool])
+        '商品群': ', '.join(b['reference'] for b in r['batches']), '実出品可能': '出力時に別判定' if runtime else False} for r in pool])
     expected = _selection(workflow, pool, key=key, label='出力するASIN（完成分から任意選択）')
     note, confirmed = _human(workflow, [expected, group], key=key)
-    for reserve, label in ((False, 'offline CSV / TXTを作成'), (True, '模擬投入前の永続予約を作成')):
+    choices = ((False, 'CSV / TXTを作成'), (True, '投入前の永続予約を作成')) if runtime else (
+        (False, 'offline CSV / TXTを作成'), (True, '模擬投入前の永続予約を作成'))
+    for reserve, label in choices:
         if st.button(label, key=key+'output_'+str(reserve), disabled=not expected or (reserve and not confirmed)):
             try:
-                csv_bytes, txt_bytes, operation_id = workflow.bench.output(expected, reserve_copy=reserve)
+                output = runtime.output if runtime else workflow.bench.output
+                csv_bytes, txt_bytes, operation_id = output(expected, reserve_copy=reserve)
             except (ValueError, RuntimeError, OSError):
                 st.error('出力を停止しました。最新の資料・準備状態・未解決予約・保存先を確認してください。')
             else:
                 # No session download cache: P1/P2 checked immediately before return.
                 market = workflow.session.scope.marketplace.lower()
-                st.download_button('offline CSVを取得', csv_bytes, file_name=market+'_offline_preparation.csv',
+                st.download_button('CSVを取得' if runtime else 'offline CSVを取得', csv_bytes,
+                                   file_name=market+('_preparation.csv' if runtime else '_offline_preparation.csv'),
                                    mime='text/csv', key=key+'csv', on_click='ignore')
-                st.download_button('offline TXTを取得', txt_bytes, file_name=market+'_offline_preparation.txt',
+                st.download_button('TXTを取得' if runtime else 'offline TXTを取得', txt_bytes,
+                                   file_name=market+('_preparation.txt' if runtime else '_offline_preparation.txt'),
                                    mime='text/plain', key=key+'txt', on_click='ignore')
                 st.code(txt_bytes.decode('utf-8-sig'), language=None)
                 st.caption('ダウンロードでは出品状態は進みません。予約後の不明結果は再起動後も二重投入を停止します。')
                 if operation_id:
-                    st.info('模擬投入予約を保存しました。出品作業・履歴で結果を明示確認してください。')
+                    st.info(('投入予約を保存しました。' if runtime else '模擬投入予約を保存しました。')
+                            + '出品作業・履歴で結果を明示確認してください。')
 
 
-def render_listing_controls(workflow, *, key):
+def render_listing_controls(workflow, *, key, runtime=None):
     records, operations = _records(workflow)
     if records is None:
         return
-    st.caption('5状態はoffline再生の作業記録です。外部ツールは操作しません。出品済みは今回の全ショップCSV一致だけで判定します。')
+    st.caption('外部ツールは操作しません。実施した投入結果だけを記録し、未実施の商品へSUCCESSを記録しないでください。'
+               if runtime else '5状態はoffline再生の作業記録です。外部ツールは操作しません。出品済みは今回の全ショップCSV一致だけで判定します。')
     for code, label in STATE_LABELS.items():
         st.caption(f'{label}：{sum(r["state"] == code for r in records)}件')
     locked = {a for o in operations if o['state'] in {'PENDING', 'UNKNOWN'} for a in o['asins']}
     st.dataframe([{'ASIN': r['asin'], '状態': state_label(r),
         '投入履歴': STATE_LABELS[r['listing_progress']], '結果不明・予約ロック': r['asin'] in locked,
-        '現在根拠': 'offline有効' if r['assessment']['valid'] else '再確認必要',
+        '現在根拠': ('現在有効・出力時再判定' if runtime else 'offline有効') if r['assessment']['valid'] else '再確認必要',
         '照合資料': r.get('listing_match', {}).get('reference', ''), '必要な操作': recovery_text(r)} for r in records])
     expected = _selection(workflow, records, key=key, label='状態・確認メモを操作するASIN')
     action = st.selectbox('作業操作', ('UNRESOLVED', 'EVIDENCE_REVIEWED', 'EXCLUDE', 'ERROR', 'RETURN'),
