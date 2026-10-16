@@ -30,7 +30,7 @@ Category AIの予算付きproviderは接続部品として分離し、初回の�
 | Shopee Category/Brand/Attribute | `ShopeeCatalogClient`のP5 policy hook。市場/shop/production host/endpoint/leaf/パラメータを照合。redirect・自動retryなし。strict Brandの今回取得最大10ページを維持 |
 | OpenAI Category/画像 | Responses endpointだけ。既存`OpenAIValidationBudget.ceiling`を再利用しmodel・入力上限・出力・画像数・requests・最大費用を送信前予約。初回上限は最大USD 1の既存計算契約内 |
 | Google Bridge | 専用sheetとA:Cだけ。既存Access Token Sourceの市場/shop/行検証を再利用。Sheets host、timeout、物理requestsを制限 |
-| Google認証更新 | 明示されたcredential file参照のみ。ADC/metadata fallbackなし。注入したRequestからoauth2 token endpointだけへ送信。retry先も同じ有限枠を通し、失敗後の再送を拒否 |
+| Google認証更新 | 明示したservice account/authorized user file参照のみ。external account/外部コマンド/impersonationを読込前に拒否。ADC/metadata fallbackなし。注入したRequestからoauth2 token endpointだけへ送信。retry先も同じ有限枠を通し、失敗後の再送を拒否 |
 | 画像GET | 既存Amazon画像host allowlist、redirectなし、有限件数、timeout、streamのサイズ/時間制限。既存画像validator・pixel上限も維持。途中失敗は予約を保持 |
 
 Google/画像の通信件数をKeepa tokenやOpenAI費用と合算しない。PH/SGの承認上限は別scopeへ分配し、

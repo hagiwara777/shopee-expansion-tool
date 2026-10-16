@@ -381,8 +381,10 @@ def test_bridge_and_google_auth_use_separate_finite_transports(tmp_path, monkeyp
         def before_request(self, request, method, url, headers):
             request('https://oauth2.googleapis.com/token', method='POST', body=b'SYNTHETIC_ONLY')
     monkeypatch.setattr('requests.Session', Session)
-    monkeypatch.setattr('google.auth.load_credentials_from_file', lambda *a, **k: (Credentials(), None))
-    bridge = P5BridgeTransport(runtime, credential_file='SYNTHETIC_NOT_READ', spreadsheet_id='synthetic-sheet')
+    monkeypatch.setattr('google.auth.load_credentials_from_dict', lambda *a, **k: (Credentials(), None))
+    credential_file = tmp_path / 'synthetic-google.json'
+    credential_file.write_text('{"type":"authorized_user"}')
+    bridge = P5BridgeTransport(runtime, credential_file=credential_file, spreadsheet_id='synthetic-sheet')
     source = GoogleSheetAccessTokenSource('synthetic-sheet', transport=bridge)
     assert source.get_access_token('PH', 22).value == 'SYNTHETIC_ONLY'
     assert len(calls) == 2
@@ -465,3 +467,19 @@ def test_empty_finder_never_runs_legacy_diagnostics_or_resends_query(runtime, ke
             client.find_related_products('B000000000', 1)
     assert sum('/query/' in url for url in calls) == 1
     assert len(calls) == 3  # token, seed, one approved Finder page only.
+
+
+@pytest.mark.parametrize('kind', ['external_account', 'impersonated_service_account', 'other'])
+def test_google_external_credential_adapters_are_refused_before_loading(tmp_path, monkeypatch, kind):
+    from modules.p5_transport import P5BridgeTransport
+    runtime = runtime_for(tmp_path, bridge_spreadsheet_id='synthetic-sheet')
+    path = tmp_path / 'synthetic-google.json'
+    path.write_text(json.dumps({'type': kind}))
+    monkeypatch.setattr('google.auth.load_credentials_from_dict', lambda *a, **k: pytest.fail('unapproved credential adapter loaded'))
+    try:
+        bridge = P5BridgeTransport(runtime, credential_file=path, spreadsheet_id='synthetic-sheet')
+        with pytest.raises(P5Stopped, match='CREDENTIAL_TYPE_REFUSED'):
+            bridge.read_values('synthetic-sheet', 'A:C')
+        assert not runtime.ledger.data['reservations']
+    finally:
+        runtime.close()

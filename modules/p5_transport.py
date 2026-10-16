@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 import json
 import time
+from pathlib import Path
 from urllib.parse import urlsplit, quote
 
 import requests
@@ -362,8 +363,13 @@ class P5BridgeTransport:
             raise P5Stopped('P5_BRIDGE_BINDING_MISMATCH')
         import google.auth
         from google.auth.transport.requests import Request
+        # Do not hand arbitrary external-account/executable configurations to
+        # google-auth. Only these two local credential formats are supported.
+        data = json.loads(Path(self.credential_file).read_text(encoding='utf-8'))
+        if not isinstance(data, dict) or data.get('type') not in {'authorized_user', 'service_account'}:
+            raise P5Stopped('P5_GOOGLE_CREDENTIAL_TYPE_REFUSED')
         request = Request(session=P5HTTP(self.runtime, 'auth'))
-        credentials, _ = google.auth.load_credentials_from_file(self.credential_file,
+        credentials, _ = google.auth.load_credentials_from_dict(data,
             scopes=['https://www.googleapis.com/auth/spreadsheets.readonly'], request=request)
         headers = {}
         url = f'https://sheets.googleapis.com/v4/spreadsheets/{quote(spreadsheet_id, safe="")}/values/A%3AC'
