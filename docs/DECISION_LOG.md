@@ -1745,3 +1745,14 @@
 - 限定範囲: 初回P5はHUMAN中心とし、未承認AUTO_RULEの運用permitを注入しない。HUMANの成立をC04限定自動確定の実務成立へ昇格せず、C04はBeta前MUSTのまま未達部分を別記する。新規出品システム・DB移行・Finder最適化・rule精度改善・他市場追加を含めない。
 - 検証・停止: synthetic/default HTTP mockは契約検証であり、実API・実商品・F08 live・C12・Owner実務受入の証拠ではない。Shopee一次仕様はPRIMARY_SOURCE_UNVERIFIEDの間liveを停止する。対象/認証/保存先設置/backup/復旧/観測release/現在価格/有限枠/具体API操作を別承認し、実行許可のtrusted注入はその後に行う。実API・費用・credential操作・稼働反映・実出品をoffline開発承認から推定しない。
 - rollback: P5入口・対象processを停止し、必要なら通常revertで戻す。既存releaseを自動変更せず、P2履歴・UNKNOWN lock・消費予約・claim・過去Evidenceを保持する。Task Contextをmerge承認前にCLOSEDへしない。
+
+
+## DEC-0145 — P5候補探索と準備対象の明示固定を同じ承認範囲・累積ledgerへ結合する
+
+- 日付: 2026-10-17
+- authority／目的: OwnerはPH・SGのExpansion／Resolver候補をSafety・分類・保存へ接続する最小offline改修、合成tests、Governance、commit／push／Draft PR／CI確認を依頼した。実API・有料通信・実商品・実credential・実保存先・出品・formal main mergeは許可しない。
+- 決定: immutableなP5Scopeと既存ledgerを維持する。新方式は探索前にstrict Finder query・1ページ最大件数・最大準備数・Resolverのsource_id／入力title／商品出所を固定し、探索結果と人間の対象選択を同じledgerへ追記する。scope.asinsの書換え、新scope／ledgerによる枠復活、既存方式の自動移行はしない。詳細はP5_CONNECTIONを正本とする。
+- 選択境界: Finder成功結果だけを探索候補として保存する。Resolverの詳細取得対象確認と、取得後の商品同一性確認を分離し、実在確認だけでUNKNOWN／仕様不一致を自動採用しない。対象選択は確認者・根拠付きで固定する。同じ探索／source_idを別batch化しても未選択商品を後から追加・差替えできない。CandidateとSafety資料を選択集合へ一式再結合し、P5保存・分類・出力でも現在の選択・商品資料・市場／shopを再照合する。
+- 保護: Safety BLOCK／REVIEW／EXCLUDE、Battery／SLS／SG本体・画像、全ショップ重複の既存validatorを維持する。Safety停止や現在根拠不足ではCategory／Brand人間確定を停止する。予算は送信前予約のまま再起動・別clientでも累積し、Finderの再検索を許可しない。選択・出所・同一性とP2履歴は保持し、新sessionへ過去ready／公式receiptを自動復元しない。
+- 停止・未完成: 選択後の商品Fact／Candidate変更は停止する。固定資料の再搬送をofflineで扱い、実再取得による資料更新とtrusted live adapterは後続の別承認へ残す。その接続も固定ASIN集合・旧selection・累積消費を維持する必要がある。mockを公式証拠・運用CSVへ昇格せず、offline成功をF08 live・C12・実務Beta完成としない。
+- 範囲・rollback: P5接続と関連tests・契約文書だけを変更し、既存P1〜P4、Guardrail資産、認証・実DB・旧ledger／claim、稼働release、PH／SG protected capabilityと他市場を変更しない。P5利用停止と通常revertで戻し、既存記録・予算・履歴を削除しない。main採用はtechnical gatesと現在対象へのOwner別最終承認を要する。

@@ -343,6 +343,9 @@ def _render_prelisting_gate_input_tab(marketplace=None, *, enable_expansion_hand
 
     # This lower boundary must remain safe even when called without app_beta.
     offline_only = offline_only or p5_runtime is not None
+    p5_selection = p5_runtime is not None and p5_runtime.scope.preparation_limit > 0
+    if p5_selection:
+        enable_expansion_handoff = False
 
     st.subheader("出品前保安ゲート")
     if marketplace is None:
@@ -443,6 +446,27 @@ def _render_prelisting_gate_input_tab(marketplace=None, *, enable_expansion_hand
         except (HandoffError, PrelistingCandidateCsvError, IngredientSafetyError, ProductTextSafetyError, ImageSafetyError):
             handoff_error = True
             st.error("現在のExpansion候補・関連Safety資料を引き継げません。対象国と最新の検索結果を確認し、引継ぎボタンを押してください。")
+
+    p5_producer_rows = None
+    if p5_selection:
+        try:
+            from modules.prelisting_gate_handoff import Artifact
+            handoff = p5_runtime.candidates.handoff(st.session_state.get('p5_active_batch'))
+            candidate_file = Artifact(handoff['filename'], handoff['candidate_content'])
+            candidate_bytes = handoff['candidate_content']
+            ingredient_safety_bytes = handoff['ingredient_content']
+            product_text_safety_bytes = handoff['text_content']
+            image_safety_bytes = handoff['image_content'] if marketplace == 'PH' else None
+            ingredient_safety_file = Artifact('p5_ingredient.csv', ingredient_safety_bytes)
+            product_text_safety_file = Artifact('p5_text.csv', product_text_safety_bytes)
+            image_safety_file = Artifact('p5_image.json', image_safety_bytes) if marketplace == 'PH' else None
+            p5_producer_rows = handoff['producer_rows']
+            st.info('P5で明示固定した対象と関連Safety資料を使用します。全ショップCSVの確認後、Safetyを別操作で実行してください。')
+        except (ValueError, RuntimeError, OSError, KeyError, TypeError):
+            clear_prelisting_gate_result(st.session_state)
+            st.session_state.pop('classification_current_batch', None)
+            st.info('候補画面で準備対象を明示固定するか、分類画面から保存済み対象を再搬送してください。')
+            return
 
     sg_body_file = None
     sg_body_bytes = None
@@ -836,6 +860,8 @@ def _render_prelisting_gate_input_tab(marketplace=None, *, enable_expansion_hand
                 expansion = st.session_state.get('result')
                 producer_rows = (getattr(expansion, 'rows', ()) if candidate_result.source_type == 'EXPANSION'
                                  else st.session_state.get('asin_resolver_rows', ()))
+                if p5_selection:
+                    producer_rows = p5_producer_rows
                 if p5_runtime is not None and 'p4_producer_rows' in st.session_state:
                     raise ValueError('P5 cannot accept P4 replay material')
                 if p5_runtime is None and 'p4_producer_rows' in st.session_state:
@@ -947,14 +973,14 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
             if amazon_settings.amazon_data_provider == KEEPA_PROVIDER:
                 search_mode = st.selectbox(
                     "検索モード",
-                    SEARCH_MODE_OPTIONS,
+                    ('strict',) if p5_runtime is not None else SEARCH_MODE_OPTIONS,
                     index=0,
                     format_func=lambda value: SEARCH_MODE_LABELS[value],
                 )
                 st.caption(SEARCH_MODE_NOTES[search_mode])
                 search_pages = st.selectbox(
                     "検索ページ数",
-                    PAGE_OPTIONS,
+                    (1,) if p5_runtime is not None else PAGE_OPTIONS,
                     index=0,
                     format_func=lambda value: f"{value}ページ",
                 )
@@ -1083,10 +1109,14 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
             expansion_filter_rows = render_filter_results(result.rows, expansion_criteria,
                 key='f12_expansion_', blocked=expansion_filter_blocked,
                 offline_only=acquisition_offline, client_factory=amazon_client)
+            if p5_runtime is not None and p5_runtime.scope.preparation_limit:
+                from modules.p5_ui import render_p5_selection
+                expansion_filter_rows = render_p5_selection(p5_runtime, 'EXPANSION', expansion_filter_rows) if expansion_filter_rows else []
             if expansion_criteria.active and not expansion_filter_blocked and not expansion_filter_rows:
                 render_filter_confirmation(result.rows, expansion_criteria, b'',
                     key='f12_expansion_', marketplace=beta_marketplace)
-            if expansion_filter_rows or (not expansion_criteria.active and not expansion_filter_blocked):
+            if expansion_filter_rows or (not expansion_criteria.active and not expansion_filter_blocked
+                                        and not (p5_runtime is not None and p5_runtime.scope.preparation_limit)):
                 try:
                     expansion_prelisting_rows = expansion_rows_to_prelisting_candidates(expansion_filter_rows)
                     expansion_prelisting_csv = rows_to_prelisting_candidate_csv(expansion_prelisting_rows)
@@ -1158,7 +1188,7 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
                         file_name=f"ph_image_safety_expansion_{result.source_asin}.json",
                         mime="application/json", key="ph-image-safety-expansion-download", width="stretch",
                     )
-                    if enable_expansion_handoff and expansion_prelisting_rows:
+                    if enable_expansion_handoff and expansion_prelisting_rows and not (p5_runtime is not None and p5_runtime.scope.preparation_limit):
                         offered_packet = ExpansionPacket(
                             beta_marketplace, st.session_state.setdefault(GENERATION_KEY, uuid4().hex), result.source_asin,
                             Artifact(f"prelisting_candidates_expansion_{result.source_asin}.csv", expansion_prelisting_csv),
@@ -1576,6 +1606,16 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
                     count = preview_summary['selected_unique_asins']
                     maximum = count * (2 if resolver_criteria.rating_active else 1)
                     st.caption(f'価格・評価付き確認：対象最大 {count} ASIN / 最大 {maximum} tokens（概算、cache利用分は送信しません）。')
+                p5_proposal_human = False
+                if p5_runtime is not None and p5_runtime.scope.preparation_limit:
+                    p5_proposal_binding = str([(r.get('source_id'), r.get('input_title'), r.get('asin'))
+                                              for r in selected_preview_rows if r.get('selected')])
+                    if st.session_state.get('p5_proposal_binding') != p5_proposal_binding:
+                        st.session_state['p5_proposal_binding'] = p5_proposal_binding
+                        st.session_state['p5_proposal_human'] = False
+                    p5_proposal_reviewer = st.text_input('Resolver詳細取得の確認者', key='p5_proposal_reviewer')
+                    p5_proposal_note = st.text_input('承認された商品出所と取得対象の確認根拠', key='p5_proposal_note')
+                    p5_proposal_human = st.checkbox('承認済みsource_id・元商品と詳細取得対象を確認しました', key='p5_proposal_human')
                 verify_clicked = st.button(
                     "選択したASINをAmazon商品として確認",
                     type="primary",
@@ -1585,6 +1625,8 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
                         or not evidence_export_action_allowed
                         or acquisition_offline
                         or resolver_filter_blocked
+                        or (p5_runtime is not None and p5_runtime.scope.preparation_limit
+                            and not (p5_proposal_human and p5_proposal_reviewer.strip() and p5_proposal_note.strip()))
                     ),
                 )
 
@@ -1592,6 +1634,9 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
                     invalidate_filter_outputs()
                     st.session_state["asin_resolver_rows"] = []
                     try:
+                        if p5_runtime is not None and p5_runtime.scope.preparation_limit:
+                            p5_runtime.candidates.propose_resolver([r for r in selected_preview_rows if r.get('selected')],
+                                human_confirmed=p5_proposal_human, reviewer=p5_proposal_reviewer, note=p5_proposal_note)
                         client = amazon_client()
                         with st.spinner("Amazon data providerでASINの実在確認をしています..."):
                             verified_rows = verify_selected_rows(
@@ -1632,6 +1677,10 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
                 resolver_filter_rows = render_filter_results(resolver_rows, resolver_criteria,
                     key='f12_resolver_', blocked=resolver_filter_blocked,
                     offline_only=acquisition_offline, client_factory=amazon_client)
+                if p5_runtime is not None and p5_runtime.scope.preparation_limit:
+                    from modules.p5_ui import render_p5_selection
+                    eligible = [r for r in resolver_filter_rows if r.get('status') == 'FOUND' and r.get('verification') == 'KEEPA_VERIFIED']
+                    resolver_filter_rows = render_p5_selection(p5_runtime, 'RESOLVER', eligible) if eligible else []
                 st.download_button(
                     label="起点ASIN候補CSVダウンロード",
                     data=rows_to_resolver_csv(resolver_filter_rows),

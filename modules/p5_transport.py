@@ -27,8 +27,14 @@ class P5KeepaBudget:
 
     def reserve_keepa_call(self, endpoint, payload):
         self.runtime.require_current()
+        with self.runtime.ledger._lock:
+            return self._reserve_keepa_call(endpoint, payload)
+
+    def _reserve_keepa_call(self, endpoint, payload):
+        self.runtime.require_current()
         scope = self.runtime.scope
         units = tokens = 0
+        candidate_request = None
         if endpoint == 'token':
             if set(payload) - {'key'}:
                 raise P5Stopped('P5_KEEPA_PARAMETERS_REFUSED')
@@ -40,23 +46,30 @@ class P5KeepaBudget:
                     or payload.get('history', 0) not in (0, 1)):
                 raise P5Stopped('P5_KEEPA_PARAMETERS_REFUSED')
             asins = payload.get('asin', '').split(',')
-            if (not asins or len(set(asins)) != len(asins)
-                    or not set(asins) <= (set(scope.asins) | self.discovered)):
+            allowed = (self.runtime.candidates.allowed_products() if scope.preparation_limit
+                       else set(scope.asins) | self.discovered)
+            if (not asins or len(set(asins)) != len(asins) or not set(asins) <= allowed):
                 raise P5Stopped('P5_KEEPA_PRODUCTS_OUTSIDE_SCOPE')
             units = len(asins)
             tokens = units * (1 + int(payload.get('rating', 0)))
+            candidate_request = {'endpoint': 'product', 'asins': asins}
         elif endpoint == 'query':
             if set(payload) != {'key', 'domain', 'selection'} or payload.get('domain') != 5:
                 raise P5Stopped('P5_KEEPA_PARAMETERS_REFUSED')
             selection = json.loads(payload['selection'])
             if selection not in [json.loads(q) for q in scope.finder_queries]:
                 raise P5Stopped('P5_FINDER_QUERY_NOT_APPROVED')
+            if scope.preparation_limit and any(r.get('selection') == selection for r in
+                    self.runtime.candidates.data['requests'].values()):
+                raise P5Stopped('P5_FINDER_ALREADY_EXECUTED')
+            candidate_request = {'endpoint': 'query', 'selection': selection}
             tokens = 1 + (selection['perPage'] + 4) // 5
         else:
             raise P5Stopped('P5_KEEPA_ENDPOINT_REFUSED')
         if tokens and (type(self.balance) is not int or self.balance < tokens):
             raise P5Stopped('P5_KEEPA_TOKEN_BALANCE_INSUFFICIENT')
-        return self.runtime.ledger.reserve('keepa', units=units, tokens=tokens)
+        return self.runtime.ledger.reserve('keepa', units=units, tokens=tokens,
+            candidate_request=candidate_request if scope.preparation_limit else None)
 
     def complete_keepa_call(self, reservation, data, status):
         ledger = self.runtime.ledger
@@ -67,13 +80,20 @@ class P5KeepaBudget:
                 or type(balance) is not int):
             raise P5Stopped('P5_KEEPA_CONSUMPTION_UNKNOWN')
         success = status == 200 and not data.get('error') and actual <= row['tokens']
-        if success and 'asinList' in data:
+        request = ledger.data.get('candidates', {}).get('requests', {}).get(reservation, {})
+        finder_asins = None
+        if success and (request.get('endpoint') == 'query' or 'asinList' in data):
             found = data['asinList']
-            if (not isinstance(found, list) or len(found) > 50
+            maximum = request.get('selection', {}).get('perPage', 50)
+            if (not isinstance(found, list) or len(found) > maximum or len(found) != len(set(found))
                     or any(not isinstance(a, str) or len(a) != 10 or not a.isalnum() or a != a.upper() for a in found)):
                 raise P5Stopped('P5_FINDER_RESPONSE_INVALID')
             self.discovered.update(found)
-        ledger.finish(reservation, success=success, actual_tokens=actual)
+            if self.runtime.scope.preparation_limit:
+                if request.get('endpoint') != 'query':
+                    raise P5Stopped('P5_UNEXPECTED_FINDER_RESPONSE')
+                finder_asins = found
+        ledger.finish(reservation, success=success, actual_tokens=actual, finder_asins=finder_asins)
         self.balance = balance
         if not success:
             raise P5Stopped('P5_KEEPA_RESPONSE_FAILED')
@@ -300,6 +320,12 @@ def make_keepa_client(runtime, secrets, *, transport=None):
     api = keepa.Keepa(secrets.keepa_key, check_key=False, logging_level='CRITICAL')
     install_bounded_keepa_transport(api, P5KeepaBudget(runtime), transport=transport)
     class ScopedKeepaClient(KeepaExpansionClient):
+        def verify_products_by_asin(self, asins, **kwargs):
+            runtime.require_current()
+            if runtime.scope.preparation_limit and not set(asins) <= runtime.candidates.allowed_products():
+                raise P5Stopped('P5_KEEPA_PRODUCTS_OUTSIDE_SCOPE')
+            return super().verify_products_by_asin(asins, **kwargs)
+
         def find_related_products(self, source_asin, search_pages, search_mode='strict', filter_criteria=None):
             runtime.require_current()
             if source_asin not in runtime.scope.asins or search_pages != 1 or search_mode != 'strict':
@@ -323,7 +349,9 @@ def make_image_inspector(runtime, secrets, *, api_session=None, image_session=No
     class ScopedInspector(BudgetedLiveWeaponImageInspector):
         def inspect(self, evidence):
             runtime.require_current()
-            if evidence.text.candidate_asin not in runtime.scope.asins:
+            allowed = ({a for s in runtime.candidates.data['selections'].values() for a in s['asins']}
+                       if runtime.scope.preparation_limit else runtime.scope.asins)
+            if evidence.text.candidate_asin not in allowed:
                 raise P5Stopped('P5_IMAGE_PRODUCT_OUTSIDE_SCOPE')
             return super().inspect(evidence)
     return ScopedInspector(api_key=secrets.openai_key, budget=P5OpenAIBudget(runtime),
@@ -340,7 +368,9 @@ def make_category_provider(runtime, secrets, *, session=None):
     class ScopedProvider(OpenAIResponsesCategoryProvider):
         def select(self, request, profile):
             runtime.require_current()
-            if request.product.marketplace != runtime.scope.marketplace or request.product.asin not in runtime.scope.asins:
+            allowed = ({a for s in runtime.candidates.data['selections'].values() for a in s['asins']}
+                       if runtime.scope.preparation_limit else runtime.scope.asins)
+            if request.product.marketplace != runtime.scope.marketplace or request.product.asin not in allowed:
                 raise P5Stopped('P5_AI_PRODUCT_OUTSIDE_SCOPE')
             return super().select(request, profile)
     return ScopedProvider(secrets.openai_key, session=P5HTTP(runtime, 'openai', session=session))

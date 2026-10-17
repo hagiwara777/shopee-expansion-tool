@@ -122,6 +122,7 @@ if __name__ == '__main__':
         for value in json.loads(args.p5_config.read_text('utf-8')):
             for name in ('asins', 'category_ids', 'finder_queries', 'openai_models'):
                 value[name] = tuple(value[name])
+            value['resolver_inputs'] = tuple(value.get('resolver_inputs', ()))
             scope = P5Scope(**value)
             if scope.marketplace in p5_runtimes:
                 raise ValueError('Duplicate P5 marketplace')

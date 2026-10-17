@@ -26,6 +26,10 @@ P4の[共通日常操作](PRACTICAL_UI_P4.md)は、新規P2保存先を明示し
 [P5最小接続](P5_CONNECTION.md)は、既存部品を使う専用runtime・送信前永続予約・
 今回の公式資料搬送・P1/P2実運用出力契約をoffline接続として整備した（DEC-0144）。
 設定から実行許可を生成せず、P4の模擬経路を実運用へ昇格しない。
+P5の[二段階の探索・対象固定](P5_CONNECTION.md)は、承認済みFinder strict 1ページとResolver入力から
+人間が明示した準備対象を同じscope・ledgerのままSafety／分類／P2保存へ渡すoffline接続とする（DEC-0145）。
+選択・出所・同一性・累積予算を保存し、未選択・資料変更・Safety停止から分類確定／準備へ進めない。
+再開は固定資料の再搬送と現在根拠の再確認に限る。実商品再取得に伴う資料更新adapterとlive許可注入は未提供。
 次の単一作業は、既存P5タスクで対象・一次資料・保存先・release・有限枠を固定し、
 Ownerの別承認後に行うP5少量実商品反復受入。
 F08の実AMAZON円・評価・tokensConsumed照合を含め、offline成功を実務Beta全体の完成としない。
@@ -206,6 +210,8 @@ Source明示ON時のsilent fallbackを許さない。Bridge全面書込み障害
 SG Brand responseにmarketplace / Category echoがないため、server内部の別Category誤応答の独立検出は保証しない。
 
 ## Required Decisions
+
+- DEC-0145 — P5探索前の有限条件と探索後の明示対象固定、Resolver同一性、同じledgerでの再開と資料変更停止。
 
 - DEC-0144 — P5専用接続・有限予約・公式Category取得境界・P1/P2出力・HUMAN初回とlive別承認。
 
