@@ -5,6 +5,58 @@ import streamlit as st
 from modules.sg_beta_facts import digest
 
 
+def render_p5_selection(runtime, source_type, rows):
+    """The checkbox records selection/identity, never an execution permit."""
+    if not runtime.scope.preparation_limit:
+        return rows
+    try:
+        bid = runtime.candidates.offer(source_type, rows)
+    except (ValueError, RuntimeError, KeyError, TypeError):
+        st.warning('承認済み探索結果との対応を確認できません。未確認・仕様不一致の商品は引き継げません。')
+        return []
+    key = 'p5_select_' + source_type + '_'
+    fixed = runtime.candidates.data['selections'].get(bid)
+    if fixed:
+        st.caption('固定した準備対象：' + ' / '.join(fixed['asins']))
+        if st.button('固定した対象をSafetyへ引き継ぐ', key=key+'handoff'):
+            _activate_batch(runtime, bid)
+        return [r for r in rows if (r.get('candidate_asin') or r.get('asin')) in fixed['asins']]
+    if st.session_state.get(key+'batch') != bid:
+        st.session_state[key+'batch'] = bid
+        for suffix, value in [('asins', []), ('human', False), ('identity', 'UNKNOWN')]:
+            st.session_state[key+suffix] = value
+    st.dataframe(rows, hide_index=True)
+    asins = st.multiselect('準備するASINを明示選択', [r.get('candidate_asin') or r.get('asin') for r in rows], key=key+'asins')
+    identity = 'NOT_APPLICABLE'
+    if source_type == 'RESOLVER':
+        identity = st.selectbox('元の商品との同一性（型番・仕様・同梱を確認）',
+            ('UNKNOWN', 'CONFIRMED', 'MISMATCH'), key=key+'identity')
+    reviewer = st.text_input('対象選択の確認者', key=key+'reviewer')
+    note = st.text_input('対象選択・同一性の確認根拠', key=key+'note')
+    binding = digest([bid, asins, identity, reviewer, note])
+    if st.session_state.get(key+'binding') != binding:
+        st.session_state[key+'binding'] = binding
+        st.session_state[key+'human'] = False
+    human = st.checkbox('この対象を固定します（追加・差替えはできません）', key=key+'human')
+    if st.button('準備対象を固定してSafetyへ引き継ぐ', key=key+'fix',
+                 disabled=not (asins and human and reviewer.strip() and note.strip()) or identity in {'UNKNOWN', 'MISMATCH'}):
+        try:
+            runtime.candidates.select(bid, asins, human_confirmed=human, reviewer=reviewer, note=note, identity=identity)
+            _activate_batch(runtime, bid)
+        except (ValueError, RuntimeError, OSError):
+            st.error('対象を固定できません。承認範囲・最大件数・保存状態を確認してください。')
+    return []
+
+
+def _activate_batch(runtime, bid):
+    from modules.prelisting_gate_ui import clear_prelisting_gate_result
+    # Material binding is revalidated again in the Gate and P1/P2.
+    runtime.candidates.handoff(bid)
+    clear_prelisting_gate_result(st.session_state)
+    st.session_state['p5_active_batch'] = bid
+    st.rerun()
+
+
 def render_p5_start(runtime):
     scope = runtime.scope
     st.caption(f'P5 / {scope.marketplace} / shop {scope.shop_id} / run {scope.run_id}')
@@ -44,6 +96,15 @@ def render_p5_workspace(runtime):
     st.caption('Category / Brandは今回の公式取得経路から確認します。初回はHUMAN経路を使用します。')
     if runtime.permit.offline_test:
         st.warning('synthetic接続検証です。模擬応答を実運用の根拠には使えません。')
+    if runtime.scope.preparation_limit:
+        saved = runtime.candidates.data['selections']
+        with st.expander('固定した対象の再開（追加APIなし）', expanded=False):
+            if saved:
+                bid = st.selectbox('再開する商品群', list(saved), key='p5_resume_batch',
+                    format_func=lambda b: runtime.candidates.data['batches'][b]['source_type'] + ' / ' + ' / '.join(saved[b]['asins']))
+                if st.button('保存済み対象をSafetyへ再搬送', key='p5_resume'):
+                    _activate_batch(runtime, bid)
+            st.caption('対象固定と累積予算・履歴を維持します。現在のSafety・全ショップ資料・分類確認は再検証します。')
     with st.expander('管理・公式資料取得', expanded=False):
         st.caption('取得開始・失敗は旧確認を失効します。再描画では取得しません。')
         if st.button('承認済みBridgeからAccess Tokenを取得', key='p5_bridge',
@@ -87,8 +148,7 @@ def render_p5_weapon(runtime, *, key):
         if st.button('対象商品の画像を検査', key=key+'inspect'):
             try:
                 runtime.require_current()
-                if asin not in runtime.scope.asins:
-                    raise ValueError('P5 product outside scope')
+                runtime.require_preparation_target(record)
                 runtime.weapon_receipts.pop(asin, None)
                 invalid = {**record['weapon'], 'inspection': None, 'decision': None, 'note': ''}
                 _save(workflow, record, invalid, 'P5画像更新開始・旧確認失効', result='P5_REFRESH')

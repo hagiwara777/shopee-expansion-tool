@@ -18,6 +18,37 @@ Keepaの商品取得枠は再取得を含む要求商品数であり、準備商
 今回、そのlive許可注入・実credential参照の解決・保存先設置・release反映は行わない。
 Python object/referenceは人間承認の暗号学的証明ではなく、trusted adapterの責務境界である。
 
+## 探索と対象固定の二段階（offline接続）
+
+DEC-0145。`preparation_limit > 0`の明示scopeでは、`asins`は探索前の承認商品（Expansion seed等）のまま変更しない。
+strict Finder query全体・1ページの最大返却件数（最大50）と、両入口を合わせた最大準備商品数を先に固定する。
+Resolverは`resolver_inputs`のJSON文字列へ`source_id`・元の`input_title`・商品出所`origin`を固定する。
+これらも元のscope digest・permit・claim・累積予算へ結合する。複数Finder計画・自動fallbackは許可しない。
+既存の固定ASIN scope（limit=0）のdigestとledger形式を維持し、新方式へ自動移行しない。
+
+Finder送信予約にqueryを結合し、成功応答のASIN集合を同じledgerのchecksum・atomic replace内へ保存する。
+上限超過・重複・欠損応答は停止し予約を維持する。別client・再起動でも同じqueryを再送できない。
+詳細取得は承認seed・そのFinder返却候補・人間が明示した承認Resolver入力の候補だけに制限する。
+Resolverの詳細取得対象確認と、取得後の型番・仕様・同梱を比較する同一性確認は別操作。
+`FOUND / KEEPA_VERIFIED`だけでは同一性を認定せず、UNKNOWN・MISMATCHから準備対象を作らない。
+
+両入口で作業者・根拠付きの明示選択を一度固定し、その商品だけから固定15列CandidateとSafety sidecarを一式再生成する。
+選択、元のproducer資料、Resolver出所と同一性状態は同じledgerに保存する。フィルター変更や別batch化で
+同じ探索／source_idの対象を追加・差替えできない。未選択・資料不一致はP5の保存・分類・出力境界でも拒否する。
+Safety／全ショップ照合の現在結果が停止ならCategory／Brand人間確定も停止する。既存validator・辞書を変更しない。
+
+統一アプリの「準備対象を固定してSafetyへ引き継ぐ」の後、全ショップCSVを確認してSafetyを別操作で実行し、
+「今回の商品根拠を確認待ちへ保存」から既存P3/P2へ渡す。保存済み商品群は分類画面から追加APIなしで再搬送できる。
+市場切替・再起動では選択と予算・P2履歴を保持するが、現在の全ショップ資料・分類資料と人間確認を再要求する。
+模擬receiptとoffline CSVのFALSE／PH_SG_P1_OFFLINEを維持し、運用CSVへ昇格しない。
+
+設計上の停止条件：既存scopeのASINや上限の書換え、claim／ledger欠落、固定対象の差替えは自動修復しない。
+選択後の商品Fact・Candidateが変わった場合も停止する。現在の最小接続は固定した資料の再搬送までとする。
+P5選択への同一ASIN複数行入力も停止する。通常Resolverの元行保持・既存Gate境界の一意化は変更しない。
+実商品再取得で変わる資料を同じ固定対象へ再確認するadapterは別途整備・承認を要する。
+その場合も旧selection・予算・履歴を消さず、固定ASIN集合を維持する。新scope／新ledgerによる枠復活は禁止。
+本方式はtrusted live adapterの完成、F08 live、実商品受入、実務Beta完成を意味しない。
+
 起動・初期表示・再描画・F1/F2条件変更では通信しない。P5は既存Amazon factoryへfallbackせず、
 専用clientを明示取得操作へ注入する。P4合成商品・mock catalog loader・画像replayと旧診断入口を使わない。
 Category AIの予算付きproviderは接続部品として分離し、初回の日常操作はHUMAN中心とする。

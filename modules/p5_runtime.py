@@ -56,8 +56,13 @@ class P5Scope:
     openai_output_tokens: int
     openai_images: int
     bridge_spreadsheet_id: str = ''
+    # Opt-in two-stage discovery contract. Zero preserves fixed-ASIN grants.
+    preparation_limit: int = 0
+    resolver_inputs: tuple[str, ...] = ()
 
     def validate(self):
+        from modules.p5_candidates import validate_discovery_scope
+        validate_discovery_scope(self)
         identifiers = (self.run_id, self.credential_ref, self.execution_target, self.store_id)
         if (any(not isinstance(v, str) or not re.fullmatch(r'[A-Za-z0-9_.:-]{1,160}', v) for v in identifiers)
                 or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,79}', self.run_id)
@@ -93,7 +98,12 @@ class P5Scope:
 
     @property
     def digest(self):
-        return _digest(asdict(self))
+        value = asdict(self)
+        if self.preparation_limit == 0 and not self.resolver_inputs:
+            # Existing installed fixed-ASIN scopes retain their exact binding.
+            value.pop('preparation_limit')
+            value.pop('resolver_inputs')
+        return _digest(value)
 
     @property
     def directory(self):
@@ -137,11 +147,17 @@ class P5Ledger(SGContinuousLedger):
     evidence, not an automatic refund. Missing/failed receipts stop the run.
     """
     def _initial_data(self):
-        return {'grant_digest': self.grant.digest, 'reservations': [], 'stopped': False}
+        value = {'grant_digest': self.grant.digest, 'reservations': [], 'stopped': False}
+        if self.grant.preparation_limit:
+            value['candidates'] = {'requests': {}, 'finder': {}, 'proposals': [], 'batches': {}, 'selections': {}}
+        return value
 
     def _validate(self):
         d = self.data
-        if (set(d) != {'grant_digest', 'reservations', 'stopped', 'checksum'}
+        expected = {'grant_digest', 'reservations', 'stopped', 'checksum'}
+        if self.grant.preparation_limit:
+            expected.add('candidates')
+        if (set(d) != expected
                 or d['grant_digest'] != self.grant.digest
                 or d['checksum'] != _digest({k: v for k, v in d.items() if k != 'checksum'})
                 or type(d['stopped']) is not bool or not isinstance(d['reservations'], list)):
@@ -160,6 +176,9 @@ class P5Ledger(SGContinuousLedger):
                 raise P5Stopped('P5_LEDGER_RECORD_INVALID')
             ids.add(r['id'])
         self._check_limits()
+        if self.grant.preparation_limit:
+            from modules.p5_candidates import validate_saved_candidates
+            validate_saved_candidates(self)
 
     @property
     def limits(self):
@@ -180,11 +199,12 @@ class P5Ledger(SGContinuousLedger):
             raise P5Stopped('P5_UNRESOLVED_CONSUMPTION')
 
     def require_current(self):
-        if self._lease.closed:
-            raise P5Stopped('P5_PROCESS_LEASE_CLOSED')
-        super().require_current()
+        with self._lock:
+            if self._lease.closed:
+                raise P5Stopped('P5_PROCESS_LEASE_CLOSED')
+            super().require_current()
 
-    def reserve(self, kind, *, units=0, tokens=0, usd=Decimal(0)):
+    def reserve(self, kind, *, units=0, tokens=0, usd=Decimal(0), candidate_request=None):
         with self._lock:
             self.require_current()
             if self.data['stopped']:
@@ -200,10 +220,12 @@ class P5Ledger(SGContinuousLedger):
             except Exception:
                 self.data['reservations'].pop()
                 raise
+            if candidate_request is not None:
+                self.data['candidates']['requests'][record['id']] = candidate_request
             self.persist()  # Must succeed before every physical send.
             return record['id']
 
-    def finish(self, reservation, *, success, actual_tokens=None):
+    def finish(self, reservation, *, success, actual_tokens=None, finder_asins=None):
         with self._lock:
             self.require_current()
             row = next((r for r in self.data['reservations'] if r['id'] == reservation), None)
@@ -212,6 +234,8 @@ class P5Ledger(SGContinuousLedger):
             row['state'] = 'COMPLETE' if success else 'UNKNOWN'
             row['actual_tokens'] = actual_tokens
             self.data['stopped'] |= not success
+            if finder_asins is not None:
+                self.data['candidates']['finder'][reservation] = list(finder_asins)
             self.persist()
 
 
@@ -236,6 +260,22 @@ def initialize_p5_ledger(scope):
     ledger.close()
 
 
+class P5WorkBench(BetaWorkBench):
+    def ingest(self, records, **kwargs):
+        import copy
+        records = copy.deepcopy(tuple(records))
+        for record in records:
+            self.session.runtime.require_preparation_target(record)
+            if self.session.runtime.scope.preparation_limit:
+                record['source']['p5_selection'] = self.session.runtime.candidates.require_record(record)
+        return super().ingest(records, **kwargs)
+
+    def _require_scope(self):
+        if self.session.runtime.scope.preparation_limit:
+            self.session.runtime.require_current()
+        return super()._require_scope()
+
+
 class P5PreparationSession(PreparationSession):
     def __init__(self, runtime):
         self.runtime = runtime
@@ -246,14 +286,32 @@ class P5PreparationSession(PreparationSession):
         super().require_operational(record)
 
     def bind_product(self, record):
-        if record.get('asin') not in self.runtime.scope.asins:
-            raise PreparationError('P5_PRODUCT_OUTSIDE_SCOPE')
+        self.runtime.require_preparation_target(record)
         return super().bind_product(record)
+
+    def _require_record(self, record):
+        self.runtime.require_preparation_target(record)
+        return super()._require_record(record)
+
+    def _require_safe_classification(self, record):
+        self.runtime.require_preparation_target(record)
+        result = self.assess(record)
+        if (result.get('safety_reasons') or record.get('manual_exclude') or record.get('body_excluded')
+                or record.get('review_pending') or 'safety_reasons' not in result
+                or set(result['reasons']) - {'CATEGORY_CONFIRMATION_REQUIRED', 'BRAND_CONFIRMATION_REQUIRED'}):
+            raise PreparationError('P5_SAFETY_OR_CURRENT_EVIDENCE_REQUIRED')
 
     def confirm_category(self, record, category_id, *, human_verified):
         if category_id not in self.runtime.scope.category_ids:
             raise PreparationError('P5_LEAF_OUTSIDE_SCOPE')
+        if self.runtime.scope.preparation_limit:
+            self._require_safe_classification(record)
         return super().confirm_category(record, category_id, human_verified=human_verified)
+
+    def confirm_brand(self, record, brand_id, *, human_verified):
+        if self.runtime.scope.preparation_limit:
+            self._require_safe_classification(record)
+        return super().confirm_brand(record, brand_id, human_verified=human_verified)
 
 
 class P5Runtime:
@@ -264,9 +322,21 @@ class P5Runtime:
         self._credentials = credentials
         self._execution_identity = execution_identity
         self.ledger = self.workflow = None
+        self._store = None
         self.category_receipt = None
         self.attributes = {}
         self.weapon_receipts = {}
+
+    @property
+    def candidates(self):
+        from modules.p5_candidates import P5Candidates
+        return P5Candidates(self)
+
+    def require_preparation_target(self, record):
+        if self.scope.preparation_limit:
+            self.candidates.require_record(record)
+        elif record.get('asin') not in self.scope.asins:
+            raise PreparationError('P5_PRODUCT_OUTSIDE_SCOPE')
 
     def require_permit(self, *, operational=False):
         if not isinstance(self.permit, P5ExecutionPermit):
@@ -292,20 +362,22 @@ class P5Runtime:
         try:
             ledger.require_active()
             self.ledger = ledger
-            self.workflow = ClassificationWorkflow(BetaWorkBench(store, P5PreparationSession(self)))
+            self._store = store
+            self.workflow = ClassificationWorkflow(P5WorkBench(store, P5PreparationSession(self)))
         except Exception:
             ledger.close()
             self.ledger = None
+            self._store = None
             raise
 
     def require_current(self):
         self.require_permit()
-        if self.ledger is None or self.workflow is None:
+        if self.ledger is None or self._store is None:
             raise P5Stopped('P5_EXPLICIT_START_REQUIRED')
         self.ledger.require_current()
         if self.ledger.data['stopped']:
             raise P5Stopped('P5_UNRESOLVED_CONSUMPTION')
-        store = self.workflow.bench.store
+        store = self.workflow.bench.store if self.workflow is not None else self._store
         # A read-only identity check works inside P2's write transaction too.
         with sqlite3.connect(store.path.as_uri() + '?mode=ro', uri=True) as conn:
             meta = dict(conn.execute('SELECT key,value FROM meta'))
@@ -352,11 +424,12 @@ class P5Runtime:
     def require_output_proof(self, record):
         self.require_permit(operational=True)
         self.require_current()
+        self.require_preparation_target(record)
         session = self.workflow.session
         receipt = self.category_receipt
         if (receipt is None or receipt['session'] != session.scope
                 or receipt['binding'] != session.current_classification_binding()
-                or not receipt['official'] or record['asin'] not in self.scope.asins
+                or not receipt['official']
                 or record['category']['category_id'] not in self.scope.category_ids):
             raise PreparationError('P5_CURRENT_OFFICIAL_CATEGORY_REQUIRED')
         self._require_catalog_client(receipt['client'], record['category']['category_id'])
@@ -459,5 +532,6 @@ class P5Runtime:
         if self.ledger is not None:
             self.ledger.close()
         self.ledger = self.workflow = self.category_receipt = None
+        self._store = None
         self.attributes.clear()
         self.weapon_receipts.clear()
