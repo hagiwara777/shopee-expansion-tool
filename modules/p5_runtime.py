@@ -8,10 +8,12 @@ never acquire official provenance. Existing PH/SG runtimes do not use this modul
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, replace
+from contextlib import contextmanager
 from decimal import Decimal
 import json
 import os
 from pathlib import Path
+from threading import get_ident
 import re
 import sqlite3
 from uuid import uuid4
@@ -155,6 +157,8 @@ class P5Ledger(SGContinuousLedger):
     def _validate(self):
         d = self.data
         expected = {'grant_digest', 'reservations', 'stopped', 'checksum'}
+        if 'material_updates' in d:
+            expected.add('material_updates')
         if self.grant.preparation_limit:
             expected.add('candidates')
         if (set(d) != expected
@@ -179,6 +183,9 @@ class P5Ledger(SGContinuousLedger):
         if self.grant.preparation_limit:
             from modules.p5_candidates import validate_saved_candidates
             validate_saved_candidates(self)
+        if 'material_updates' in d:
+            from modules.p5_material_updates import validate_journal
+            validate_journal(self)
 
     @property
     def limits(self):
@@ -239,16 +246,20 @@ class P5Ledger(SGContinuousLedger):
             self.persist()
 
 
-def initialize_p5_ledger(scope):
+def initialize_p5_ledger(scope, *, material_updates=False):
     """Separate installation operation. Tests use temporary synthetic roots only.
 
     No UI/constructor calls this. Existing claim, ledger, cache or DB is never
     reset. A partial installation stays visible and requires explicit recovery.
     """
     scope.validate()
+    if type(material_updates) is not bool or (material_updates and not scope.preparation_limit):
+        raise P5Stopped('P5_TWO_STAGE_SCOPE_REQUIRED')
     store = BetaWorkStore(scope.db_path, marketplace=scope.marketplace, shop_id=scope.shop_id)
     if store.store_id != scope.store_id:
         raise P5Stopped('P5_STORE_ID_MISMATCH')
+    if material_updates and (store.products() or store.history() or store.operations()):
+        raise P5Stopped('P5_NEW_INSTALLATION_REQUIRED')
     claim = scope.directory / 'claim.json'
     with claim.open('x', encoding='utf-8') as file:
         json.dump({'scope_digest': scope.digest}, file)
@@ -257,14 +268,44 @@ def initialize_p5_ledger(scope):
     if (scope.directory / 'ledger.json').exists():
         raise P5Stopped('P5_EXISTING_LEDGER_MUST_NOT_RESET')
     ledger = P5Ledger(scope.directory / 'ledger.json', scope, initialize=True)
-    ledger.close()
+    try:
+        if material_updates:
+            ledger.data['material_updates'] = {'version': 1, 'intents': []}
+            ledger.persist()
+    finally:
+        ledger.close()
 
 
 class P5WorkBench(BetaWorkBench):
+    @contextmanager
+    def _transaction(self, **kwargs):
+        # Checkpoints share this existing ledger lock with P2 writers.
+        self.session.runtime.require_operation('p2.save')
+        with self.session.runtime.ledger._lock:
+            with super()._transaction(**kwargs) as conn:
+                yield conn
+
+    def output(self, expected, **kwargs):
+        self.session.runtime.require_operation('output')
+        self.session.runtime.checkpoint('output')
+        return super().output(expected, **kwargs)
+
+    def prepared_pool(self):
+        try:
+            self.session.runtime.require_operation('p2.save')
+        except (ValueError, RuntimeError):
+            return ()  # revoked/stopped scopes have no current preparation pool
+        return super().prepared_pool()
+
     def ingest(self, records, **kwargs):
         import copy
+        self.session.runtime.require_operation('p2.save')
         records = copy.deepcopy(tuple(records))
         for record in records:
+            from modules.p5_material_updates import _latest, marker
+            item = _latest(self.session.runtime, record['asin'])
+            if item is not None and item['state'] == 'COMMITTED':
+                record['source']['p5_material'] = marker(item, record['asin'])
             self.session.runtime.require_preparation_target(record)
             if self.session.runtime.scope.preparation_limit:
                 record['source']['p5_selection'] = self.session.runtime.candidates.require_record(record)
@@ -284,6 +325,18 @@ class P5PreparationSession(PreparationSession):
     def require_operational(self, record):
         self.runtime.require_output_proof(record)
         super().require_operational(record)
+
+    def assess(self, record):
+        result = super().assess(record)
+        category_id = (record.get('category') or {}).get('category_id')
+        attribute = self.runtime.attributes.get(category_id)
+        if attribute is not None:
+            result['basis'] = _digest([result.get('basis'), attribute.get('generation'),
+                                       attribute.get('state'), attribute.get('tree')])
+            if attribute.get('state') != 'FETCHED':
+                result['valid'] = False
+                result['reasons'] = list(result['reasons']) + ['P5_CURRENT_ATTRIBUTE_REQUIRED']
+        return result
 
     def bind_product(self, record):
         self.runtime.require_preparation_target(record)
@@ -326,6 +379,10 @@ class P5Runtime:
         self.category_receipt = None
         self.attributes = {}
         self.weapon_receipts = {}
+        self.authorization_guard = None
+        self.credential_resolver = None
+        self._material_action = None
+        self.checkpoint_hook = None
 
     @property
     def candidates(self):
@@ -342,6 +399,8 @@ class P5Runtime:
         if not isinstance(self.permit, P5ExecutionPermit):
             raise P5Stopped('P5_EXECUTION_NOT_APPROVED')
         self.permit.require(self.scope, operational=operational)
+        if self.authorization_guard is not None:
+            self.authorization_guard('output' if operational else None)
         if not self.permit.offline_test and (self._execution_identity is None or
                 self._execution_identity() != (self.scope.release, self.scope.execution_target)):
             raise P5Stopped('P5_RELEASE_EXECUTION_TARGET_UNVERIFIED')
@@ -374,9 +433,13 @@ class P5Runtime:
         self.require_permit()
         if self.ledger is None or self._store is None:
             raise P5Stopped('P5_EXPLICIT_START_REQUIRED')
+        if self._material_action is not None and self._material_action['thread'] != get_ident():
+            raise P5Stopped('P5_MATERIAL_UPDATE_IN_PROGRESS')
         self.ledger.require_current()
-        if self.ledger.data['stopped']:
+        if self.ledger.data['stopped'] or any(r['state'] != 'COMPLETE' for r in self.ledger.data['reservations']):
             raise P5Stopped('P5_UNRESOLVED_CONSUMPTION')
+        from modules.p5_material_updates import require_journal_current
+        require_journal_current(self)
         store = self.workflow.bench.store if self.workflow is not None else self._store
         # A read-only identity check works inside P2's write transaction too.
         with sqlite3.connect(store.path.as_uri() + '?mode=ro', uri=True) as conn:
@@ -392,6 +455,8 @@ class P5Runtime:
 
     def secrets(self):
         self.require_current()
+        if self._credentials is None and self.credential_resolver is not None:
+            self._credentials = self.credential_resolver()
         from modules.p5_transport import P5Secrets
         if (not isinstance(self._credentials, P5Secrets)
                 or self._credentials.credential_ref != self.scope.credential_ref
@@ -399,6 +464,24 @@ class P5Runtime:
                 or self._credentials.shop_id != self.scope.shop_id):
             raise P5Stopped('P5_APPROVED_CREDENTIAL_ADAPTER_REQUIRED')
         return self._credentials
+
+    def require_operation(self, operation):
+        self.require_current()
+        if self.authorization_guard is not None:
+            self.authorization_guard(operation)
+        if self._material_action is not None:
+            from modules.p5_material_updates import require_update_send
+            require_update_send(self, operation)
+
+    def update_material(self, expected, *, reviewer, note, identity=None, fetch=None):
+        from modules.p5_material_updates import update_material
+        return update_material(self, expected, reviewer=reviewer, note=note, identity=identity, fetch=fetch)
+
+    def checkpoint(self, reason):
+        if self.checkpoint_hook is not None:
+            self.checkpoint_hook(self, reason)
+        elif self.authorization_guard is not None and not getattr(self.permit, 'offline_test', False):
+            raise P5Stopped('P5_CHECKPOINT_REQUIRED')
 
     def refresh_access_token(self):
         """Explicit bounded Bridge read. Never write credentials or auto-refresh."""
@@ -506,11 +589,13 @@ class P5Runtime:
     def acquire_attributes(self, client, category_id):
         self.require_current()
         self.attributes[category_id] = {'state': 'FAILED', 'tree_count': None,
+            'generation': uuid4().hex,
             'session': self.workflow.session.scope,
             'catalog_binding': self.workflow.session.current_classification_binding()}
         self._require_catalog_client(client, category_id)
         result = client.get_attribute_trees(self.scope.marketplace, (category_id,))[0]
         self.attributes[category_id] = {'state': 'FETCHED', 'tree_count': len(result['attribute_tree']),
+            'generation': self.attributes[category_id]['generation'],
             'tree': result['attribute_tree'], 'session': self.workflow.session.scope,
             'catalog_binding': self.category_receipt['binding']}
         return self.attributes[category_id]
@@ -529,9 +614,16 @@ class P5Runtime:
         return self.workflow.bench.output(expected, reserve_copy=reserve_copy, operational=True)
 
     def close(self):
-        if self.ledger is not None:
-            self.ledger.close()
-        self.ledger = self.workflow = self.category_receipt = None
-        self._store = None
-        self.attributes.clear()
-        self.weapon_receipts.clear()
+        try:
+            if self.ledger is not None:
+                try:
+                    if self.checkpoint_hook is not None or (self.authorization_guard is not None
+                            and not getattr(self.permit, 'offline_test', False)):
+                        self.checkpoint('session-end')
+                finally:
+                    self.ledger.close()
+        finally:
+            self.ledger = self.workflow = self.category_receipt = None
+            self._store = None
+            self.attributes.clear()
+            self.weapon_receipts.clear()

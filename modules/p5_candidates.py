@@ -144,7 +144,7 @@ class P5Candidates:
         self.runtime.ledger.persist()
 
     @_locked
-    def offer(self, source_type, rows):
+    def offer(self, source_type, rows, *, filter_criteria=None):
         """Record the actual producer material; never silently select any row."""
         d = self.data
         rows = copy.deepcopy(list(rows))
@@ -165,6 +165,11 @@ class P5Candidates:
             else:
                 stop('P5_SOURCE_TYPE_INVALID')
         batch = {'source_type': source_type, 'rows': rows}
+        if filter_criteria is not None and filter_criteria.active:
+            from modules.candidate_filters import partition_rows
+            if len(partition_rows(rows, None, filter_criteria).matched_rows) != len(rows):
+                stop('P5_FILTER_SELECTION_REQUIRED')
+            batch['filter_criteria'] = filter_criteria.to_dict()
         bid = _digest(batch)
         if bid not in d['batches']:
             d['batches'][bid] = batch
@@ -210,7 +215,7 @@ class P5Candidates:
         self.runtime.ledger.persist()
 
     @_locked
-    def handoff(self, bid):
+    def handoff(self, bid, *, rows_override=None):
         """Rebuild final Candidate and sidecars together, using existing validators."""
         from modules.prelisting_candidate_csv import (expansion_rows_to_prelisting_candidates,
             resolver_rows_to_prelisting_candidates, rows_to_prelisting_candidate_csv)
@@ -224,6 +229,11 @@ class P5Candidates:
             stop('P5_EXPLICIT_SELECTION_REQUIRED')
         batch = d['batches'][bid]
         rows = copy.deepcopy([r for r in batch['rows'] if _asin(r) in selection['asins']])
+        if rows_override is None:
+            from modules.p5_material_updates import current_rows
+            rows = current_rows(self.runtime, bid, rows)
+        else:
+            rows = copy.deepcopy(rows_override)
         candidates = (expansion_rows_to_prelisting_candidates(rows) if batch['source_type'] == 'EXPANSION'
                       else resolver_rows_to_prelisting_candidates(rows).output_rows)
         content = rows_to_prelisting_candidate_csv(candidates)
@@ -235,6 +245,8 @@ class P5Candidates:
     def require_record(self, record):
         from modules.prelisting_candidate_csv import parse_prelisting_candidate_csv
         d = self.data
+        from modules.p5_material_updates import require_record_generation
+        require_record_generation(self.runtime, record)
         # Source/Candidate identity is checked per product; unrelated batches may be added.
         actual = parse_prelisting_candidate_csv(record['source']['candidate'].encode('utf-8'),
                                                 filename=record['source']['filename'])
@@ -251,7 +263,20 @@ class P5Candidates:
                 filename='p5_text.csv', candidate_content=record['source']['candidate'].encode('utf-8'), candidates=actual)
             expected_text = parse_product_text_safety_sidecar(expected['text_content'],
                 filename='p5_text.csv', candidate_content=expected['candidate_content'], candidates=parsed)
+            from modules.ingredient_safety import parse_ingredient_safety_sidecar
+            actual_ingredients = parse_ingredient_safety_sidecar(record['source']['ingredients'].encode('utf-8'),
+                filename='p5_ingredients.csv', candidate_content=record['source']['candidate'].encode('utf-8'), candidates=actual)
+            expected_ingredients = parse_ingredient_safety_sidecar(expected['ingredient_content'],
+                filename='p5_ingredients.csv', candidate_content=expected['candidate_content'], candidates=parsed)
+            from modules.ph_image_safety import parse_image_sidecar
+            expected_images = parse_image_sidecar(expected['image_content'],
+                candidate_content=expected['candidate_content'], candidates=parsed)
+            image = next(r['fact'] for r in expected_images['rows'] if r['fact']['candidate_asin'] == record['asin'])
+            actual_image = (record.get('weapon') or {}).get('images', {})
             if (actual_row == expected_row and record['facts'] == producer.get('classification_facts')
+                    and actual_ingredients.facts_by_asin[record['asin']] == expected_ingredients.facts_by_asin[record['asin']]
+                    and all(actual_image.get(k) == image.get(k) for k in
+                            ('candidate_asin', 'provider', 'image_urls', 'root_category_id', 'capture_error'))
                     and actual_text.facts_by_asin[record['asin']] == expected_text.facts_by_asin[record['asin']]):
                 origin = (next(json.loads(v)['origin'] for v in self.runtime.scope.resolver_inputs
                                if json.loads(v)['source_id'] == producer['source_id'])

@@ -45,11 +45,193 @@ def scope_for(tmp_path, market='PH', **limits):
 
 
 def runtime_for(tmp_path, market='PH', **limits):
+    material_updates = limits.pop('material_updates', False)
     scope = scope_for(tmp_path, market, **limits)
-    initialize_p5_ledger(scope)
+    initialize_p5_ledger(scope, material_updates=material_updates)
     runtime = P5Runtime(scope, permit=P5ExecutionPermit(scope.digest, 'SYNTHETIC_ONLY', offline_test=True))
     runtime.start()
     return runtime
+
+
+def trusted_adapter(scope):
+    from dataclasses import asdict
+    from datetime import datetime, timedelta, timezone
+    from modules.p5_live_adapter import P5TrustedAdapter, OperatorApproval, OPERATIONS, BUDGETS
+    from modules.sg_continuous_runtime import _digest
+    now = datetime.now(timezone.utc)
+    source = dict(verified=True, body_digest='SYNTHETIC', version='fixture',
+        app_shop_permission='fixture', paging='fixture', request_response='fixture', rate_limit='fixture')
+    observed = dict(repository='1296080967', release=scope.release, source_digest='fixture-tree',
+        execution_target=scope.execution_target,
+        entrypoint='app_beta.py', machine='fixture-host', port=8511, loopback=True,
+        storage=dict(root=str(scope.directory), store_id=scope.store_id, volume='fixture-volume',
+                     acl='fixture-acl', identities='fixture-identities', capacity_ok=True),
+        credential=dict(reference=scope.credential_ref, marketplace=scope.marketplace, shop=scope.shop_id),
+        primary_sources={k: dict(source) for k in ('category', 'brand', 'attribute')},
+        pricing=dict(verified=True, reference='SYNTHETIC_PRICE', body_digest='SYNTHETIC_PRICE'), plan=asdict(scope))
+    approval = OperatorApproval('SYNTHETIC_OWNER', 'SYNTHETIC_ORIGINAL', now-timedelta(minutes=1),
+        now+timedelta(minutes=5), 'fixture-end', 'fixture-ticket', scope.digest, _digest(observed),
+        OPERATIONS, (scope,), tuple((k, getattr(scope, k)) for k in BUDGETS))
+    authority = SimpleNamespace(verify_original=lambda reference: approval)
+    adapter = P5TrustedAdapter(authority=authority, observe=lambda s: observed,
+        resolve_secrets=lambda s: pytest.fail('Unexpected credential resolution'), synthetic=True)
+    return adapter, authority, observed, approval
+
+
+@pytest.mark.parametrize('market', ['PH', 'SG'])
+def test_t01_trusted_composition_rechecks_original_observations_and_operations(tmp_path, market):
+    from datetime import timedelta
+    scope = scope_for(tmp_path, market)
+    initialize_p5_ledger(scope)
+    adapter, authority, observed, approval = trusted_adapter(scope)
+    rt = adapter.compose(scope, approval_reference='SYNTHETIC')
+    rt.start()
+    try:
+        for bad in ({'APPROVED': True}, replace(approval, revoked=True),
+                    replace(approval, expires_at=approval.approved_at-timedelta(seconds=1)),
+                    replace(approval, scope_digest='wrong'), replace(approval, original_instruction_ref='')):
+            authority.verify_original = lambda ref, bad=bad: bad
+            with pytest.raises((ValueError, RuntimeError)):
+                rt.require_operation('keepa.product')
+        authority.verify_original = lambda ref: approval
+        for key in observed:
+            original = observed[key]
+            observed[key] = 'CHANGED'
+            with pytest.raises(ValueError):
+                rt.require_current()
+            observed[key] = original
+        authority.verify_original = lambda ref: replace(approval, operations=frozenset({'output'}))
+        with pytest.raises(ValueError, match='OPERATION'):
+            rt.require_operation('keepa.product')
+        assert not rt.ledger.data['reservations']
+    finally:
+        rt.close()
+
+
+def test_t02_trusted_market_fixed_allocation_cannot_exceed_total(tmp_path):
+    scope = scope_for(tmp_path)
+    adapter, authority, _, approval = trusted_adapter(scope)
+    authority.verify_original = lambda ref: replace(approval,
+        total_limits=tuple((k, 0 if k == 'keepa_tokens' else v) for k, v in approval.total_limits))
+    with pytest.raises(ValueError, match='ALLOCATION_EXCEEDED'):
+        adapter.compose(scope, approval_reference='SYNTHETIC')
+
+
+def synthetic_setup():
+    from modules.p5_setup import P5Setup, StorageObservation, GiB
+    def inspect(path):
+        return StorageObservation(str(path.resolve()), 'FIXTURE_VOLUME', 'NTFS', True, True, True,
+            (str(path),), frozenset({'fixture-operator', 'SYSTEM', 'Administrators'}), True,
+            40*GiB, 4*GiB, 0)
+    return P5Setup(inspect=inspect, set_acl=lambda p: None,
+        probe=lambda p: dict.fromkeys(('create','read','fsync','rename','exclusive_lock','sqlite_transaction'), True),
+        expected_volume='FIXTURE_VOLUME', operator='fixture-operator')
+
+
+@pytest.mark.parametrize('market', ['PH', 'SG'])
+def test_t06_new_only_setup_checkpoint_and_disconnected_recovery(tmp_path, market):
+    from modules.p5_setup import checkpoint, restore_isolated
+    template = replace(scope_for(tmp_path / 'template', market), root=str(tmp_path / 'new'),
+        preparation_limit=2, store_id='UNOBSERVED')
+    setup = synthetic_setup()
+    scope = setup.install(template, required_bytes=1000)
+    assert scope.store_id != 'UNOBSERVED'
+    assert scope.digest != template.digest
+    before = {p: p.read_bytes() for p in scope.directory.iterdir() if p.is_file()}
+    with pytest.raises(FileExistsError):
+        setup.install(template, required_bytes=1000)
+    assert all(p.read_bytes() == content for p, content in before.items())
+    rt = P5Runtime(scope, permit=P5ExecutionPermit(scope.digest, 'SYNTHETIC', offline_test=True))
+    rt.start()
+    try:
+        target = checkpoint(rt, setup=setup, checkpoint_id='fixture1', required_bytes=1024**2)
+        result = restore_isolated(target, tmp_path / 'recovered', latest_ledger=rt.ledger.path,
+            setup=setup, required_bytes=1000)
+        assert result['live_resume_allowed'] is False
+        rid = rt.ledger.reserve('auth')
+        rt.ledger.finish(rid, success=False)
+        with pytest.raises(ValueError, match='BUDGET_ROLLBACK'):
+            restore_isolated(target, tmp_path / 'stale', latest_ledger=rt.ledger.path,
+                setup=setup, required_bytes=1000)
+        assert not (tmp_path / 'stale').exists()
+        unknown = checkpoint(rt, setup=setup, checkpoint_id='unknown', required_bytes=1024**2)
+        recovery = restore_isolated(unknown, tmp_path / 'unknown-recovered', latest_ledger=rt.ledger.path,
+            setup=setup, required_bytes=1000)
+        assert recovery['unresolved_preserved']
+    finally:
+        rt.close()
+
+
+@pytest.mark.parametrize('field,value', [('volume','OTHER'), ('filesystem','FAT32'), ('fixed',False),
+    ('ancestors_unaliased',False), ('isolated',False), ('identities',()),
+    ('acl_principals',frozenset({'Everyone'})), ('acl_inheritance_disabled',False),
+    ('free_bytes',None), ('free_bytes',9*1024**3), ('c_free_bytes',1024**3), ('run_bytes',10*1024**3)])
+def test_t06_unknown_alias_acl_and_capacity_rejected_before_creation(tmp_path, field, value):
+    setup = synthetic_setup()
+    inspect = setup.inspect
+    setup.inspect = lambda p: replace(inspect(p), **{field:value})
+    path = tmp_path / 'new'
+    with pytest.raises(ValueError):
+        setup.check(path, required_bytes=0)
+    assert not path.exists()
+
+
+@pytest.mark.parametrize('market', ['PH', 'SG'])
+def test_t06_partial_install_retained_and_never_reinitialized(tmp_path, market):
+    template = replace(scope_for(tmp_path / 'template', market), root=str(tmp_path / 'partial'), preparation_limit=2)
+    setup = synthetic_setup()
+    setup.probe = lambda p: {'create':True}
+    with pytest.raises(ValueError, match='PROBE_FAILED'):
+        setup.install(template, required_bytes=1000)
+    assert template.directory.exists()
+    assert not (template.directory / 'ledger.json').exists()
+    with pytest.raises(FileExistsError):
+        setup.install(template, required_bytes=1000)
+
+
+def test_t02_each_physical_brand_page_reads_bridge_before_signing(runtime, monkeypatch):
+    rt = runtime
+    rt._credentials = secrets(rt)
+    rt.authorization_guard = lambda operation=None: None
+    events = []
+    def bridge():
+        rid = rt.ledger.reserve('bridge')
+        rt.ledger.finish(rid, success=True)
+        rt._credentials = replace(rt._credentials, shopee_credentials=replace(
+            rt._credentials.shopee_credentials, access_token='SYNTHETIC_' + str(len(events))))
+        events.append('bridge')
+    monkeypatch.setattr(rt, 'refresh_access_token', bridge)
+    def response(url, params, timeout):
+        events.append('send')
+        assert params['access_token'].startswith('SYNTHETIC_')
+        if url.endswith('get_category'):
+            return catalog_response(url, params)
+        offset = int(params['offset'])
+        body = catalog_response(url, params)
+        body['response']['brand_list'][0]['brand_id'] += offset
+        body['response'].update(has_next_page=offset == 0, next_offset=1)
+        return body
+    client = make_catalog_client(rt, rt._credentials, request_json=response)
+    rt.acquire_catalog(client)
+    rt.acquire_brand(client, 100578)
+    assert events == ['bridge','send'] * 3
+    assert len([r for r in rt.ledger.data['reservations'] if r['kind']=='bridge']) == 3
+    assert len([r for r in rt.ledger.data['reservations'] if r['kind']=='shopee']) == 3
+
+
+def test_t01_lower_p2_write_and_download_cannot_bypass_operation_allowlist(runtime):
+    rt = runtime
+    prepare(rt)
+    def guard(operation=None):
+        if operation in {'p2.save','output'}:
+            raise P5Stopped('P5_OPERATION_NOT_APPROVED')
+    rt.authorization_guard = guard
+    before = rt.workflow.bench.store.history()
+    for operation in (rt.workflow.bench.refresh,
+                      lambda: rt.workflow.bench.output({'B000000000':1})):
+        with pytest.raises(ValueError, match='NOT_APPROVED'):
+            operation()
+    assert rt.workflow.bench.store.history() == before
 
 
 @pytest.fixture(params=['PH', 'SG'])

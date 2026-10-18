@@ -14,6 +14,7 @@ from modules.prelisting_gate import evaluate_prelisting_gate
 from modules.product_text_safety import parse_product_text_safety_sidecar
 from test_p5_runtime import runtime_for, secrets, catalog_response, forbid_network
 from test_sg_initial_beta import raw, inventory
+from test_keepa_candidate_filters import keepa_raw_product
 
 
 ASINS = ['B000000001', 'B000000002', 'B000000003']
@@ -30,7 +31,7 @@ def flow(request, tmp_path, forbid_network):
     rt.close()
 
 
-def sdk(runtime, *, title='Synthetic wired headphone', brand='Synthetic Maker', found=None):
+def sdk(runtime, *, title='Synthetic wired headphone', brand='Synthetic Maker', found=None, stats=None):
     calls = []
     def send(url, **kwargs):
         calls.append((url, kwargs))
@@ -42,6 +43,8 @@ def sdk(runtime, *, title='Synthetic wired headphone', brand='Synthetic Maker', 
             for asin in kwargs['params']['asin'].split(','):
                 p = raw(asin, title, 'Synthetic Maker' if asin == 'B000000000' else brand)
                 p['categoryTree'][0]['catId'] = 3210981
+                if stats is not None:
+                    p.update(stats={'current':stats}, availabilityAmazon=0)
                 products.append(p)
             body.update(tokensConsumed=len(products), products=products)
         return SimpleNamespace(status_code=200, json=lambda: body)
@@ -81,6 +84,283 @@ def confirm(runtime, asin):
     for kind, option in [('CATEGORY', 100578), ('BRAND', 7)]:
         runtime.workflow.confirm(runtime.workflow.select([asin]), kind=kind, option_id=option,
             reviewer='SYNTHETIC_OPERATOR', note='Synthetic classification', human_verified=True)
+
+
+@pytest.fixture(params=['PH', 'SG'])
+def updating_flow(request, tmp_path, forbid_network):
+    rt = runtime_for(tmp_path, request.param, material_updates=True, asins=('B000000000',),
+        preparation_limit=4, finder_queries=(json.dumps(QUERY),), resolver_inputs=(json.dumps(SOURCE),))
+    _, result, _ = discover(rt)
+    bid = fix(rt, result.rows, asins=ASINS[:2])
+    current_material(rt)
+    ingest(rt, bid)
+    for asin in ASINS[:2]:
+        confirm(rt, asin)
+    rt._test_bid = bid
+    yield rt
+    rt.close()
+
+
+def update_one(rt, *, fetch=None):
+    row = next(p for p in rt.workflow.bench.store.products() if p['asin'] == ASINS[0])
+    return rt.update_material({ASINS[0]: row['revision']}, reviewer='SYNTHETIC',
+        note='Synthetic current material comparison', fetch=fetch or (lambda rows: rows))
+
+
+def test_t03_t04_same_content_generation_preserves_selection_history_and_other_product(updating_flow):
+    rt = updating_flow
+    bench = rt.workflow.bench
+    original = copy.deepcopy(rt.candidates.data)
+    digest = rt.scope.digest
+    other = next(p for p in bench.store.products() if p['asin'] == ASINS[1])
+    history = bench.store.history()
+    update = update_one(rt)
+    assert update['state'] == 'COMMITTED'
+    assert rt.candidates.data == original and rt.scope.digest == digest
+    assert next(p for p in bench.store.products() if p['asin'] == ASINS[1]) == other
+    assert bench.store.history()[:len(history)] == history
+    target = next(p for p in bench.store.products() if p['asin'] == ASINS[0])
+    assert target['category'] is None and target['brand'] is None and target['preparation_state'] == 'RECHECK'
+    confirm(rt, ASINS[0])
+    assert len(bench.prepared_pool()) == 2
+    update_one(rt)
+    assert len(rt.ledger.data['material_updates']['intents']) == 2
+    rt.close()
+    rt.start()
+    assert not rt.workflow.bench.prepared_pool()
+    current_material(rt)
+    ingest(rt, rt._test_bid)
+    confirm(rt, ASINS[0])
+    assert rt.workflow.bench.prepared_pool()
+
+
+def test_t03_legacy_update_requires_new_installation_and_selected_subset(tmp_path, updating_flow):
+    from modules.p5_runtime import initialize_p5_ledger
+    with pytest.raises(ValueError, match='NEW_INSTALLATION'):
+        initialize_p5_ledger(updating_flow.scope, material_updates=True)
+    legacy = runtime_for(tmp_path / 'legacy', updating_flow.scope.marketplace)
+    try:
+        with pytest.raises(P5Stopped, match='LEGACY'):
+            legacy.update_material({ASINS[0]: 1}, reviewer='fixture', note='fixture', fetch=lambda rows: rows)
+    finally:
+        legacy.close()
+    with pytest.raises(P5Stopped, match='SELECTION'):
+        updating_flow.update_material({ASINS[2]: 1}, reviewer='fixture', note='fixture', fetch=lambda rows: rows)
+
+
+@pytest.mark.parametrize('boundary', ['BEGIN', 'INVALIDATED', 'VALIDATED', 'COMMITTED', 'P2_BEGIN', 'P2_COMMIT'])
+def test_t05_crash_each_boundary_never_revives_ready_or_resends(updating_flow, monkeypatch, boundary):
+    rt = updating_flow
+    ledger, store = rt.ledger, rt.workflow.bench.store
+    persist, write = ledger.persist, store.write
+    calls = []
+    reservations = copy.deepcopy(ledger.data['reservations'])
+    def crash_persist():
+        state = ledger.data['material_updates']['intents'][-1]['state']
+        if state == boundary:
+            raise OSError('Synthetic crash')
+        persist()
+    def crash_write(conn, value, *, action, expected_revision):
+        if action == {'P2_BEGIN': 'P5_MATERIAL_BEGIN', 'P2_COMMIT': 'P5_MATERIAL_COMMIT'}.get(boundary):
+            raise OSError('Synthetic P2 crash')
+        write(conn, value, action=action, expected_revision=expected_revision)
+    monkeypatch.setattr(ledger, 'persist', crash_persist)
+    monkeypatch.setattr(store, 'write', crash_write)
+    with pytest.raises((ValueError, RuntimeError, OSError)):
+        update_one(rt, fetch=lambda rows: (calls.append(True), rows)[1])
+    assert len(calls) == (boundary in {'VALIDATED', 'COMMITTED', 'P2_COMMIT'})
+    assert ledger.data['reservations'] == reservations
+    with pytest.raises((ValueError, RuntimeError)):
+        rt.require_current()
+    rt.close()
+    if boundary != 'BEGIN':
+        with pytest.raises((ValueError, RuntimeError)):
+            rt.start()
+
+
+def test_t02_t05_send_requires_both_invalidations_and_charges_same_ledger(updating_flow):
+    rt = updating_flow
+    before = len(rt.ledger.data['reservations'])
+    def fetch(rows):
+        products = {p['asin']:p for p in rt.workflow.bench.store.products()}
+        assert products[ASINS[0]]['category'] is None
+        budget = P5KeepaBudget(rt)
+        budget.balance = 100
+        rid = budget.reserve_keepa_call('product', {'domain':5,'asin':ASINS[0]})
+        budget.complete_keepa_call(rid, {'tokensLeft':99, 'tokensConsumed':1}, 200)
+        return rows
+    update_one(rt, fetch=fetch)
+    assert len(rt.ledger.data['reservations']) == before + 1
+    assert rt.ledger.data['material_updates']['intents'][-1]['reservations']
+
+
+def test_t05_pending_copy_and_stale_revision_stop_before_begin(updating_flow):
+    rt = updating_flow
+    before = copy.deepcopy(rt.ledger.data)
+    with pytest.raises(ValueError):
+        rt.update_material({ASINS[0]:0}, reviewer='fixture', note='fixture', fetch=lambda rows: rows)
+    assert rt.ledger.data == before
+    bench = rt.workflow.bench
+    row = next(p for p in bench.store.products() if p['asin'] == ASINS[0])
+    bench.output({ASINS[0]:row['revision']}, reserve_copy=True)
+    with pytest.raises(ValueError):
+        update_one(rt)
+    assert rt.ledger.data == before
+
+
+def test_t04_fresh_bypasses_fresh_cache_and_rebuilds_safety(updating_flow, monkeypatch):
+    rt = updating_flow
+    client, calls = sdk(rt, title='Synthetic rechargeable battery')
+    monkeypatch.setattr(rt, 'amazon_client', lambda: client)
+    # Discovery populated the same 7-day cache. This explicit update must send.
+    target = next(p for p in rt.workflow.bench.store.products() if p['asin'] == ASINS[0])
+    original = copy.deepcopy(rt.candidates.data)
+    rt.update_material({ASINS[0]:target['revision']}, reviewer='fixture', note='fresh response')
+    assert any('/product/' in url for url, _ in calls)
+    assert all('/query/' not in url for url, _ in calls)
+    assert rt.candidates.data['batches'] == original['batches']
+    with pytest.raises(ValueError):
+        confirm(rt, ASINS[0])  # Battery REVIEW still stops classification/output.
+    assert next(p for p in rt.workflow.bench.store.products() if p['asin'] == ASINS[0])['preparation_state'] == 'RECHECK'
+
+
+def test_t04_fresh_captures_both_price_and_rating(updating_flow, monkeypatch, keepa_raw_product):
+    rt = updating_flow
+    client, calls = sdk(rt, stats=keepa_raw_product['stats']['current'])
+    monkeypatch.setattr(rt, 'amazon_client', lambda: client)
+    target = next(p for p in rt.workflow.bench.store.products() if p['asin'] == ASINS[0])
+    update = rt.update_material({ASINS[0]:target['revision']}, reviewer='fixture', note='price and rating')
+    observed = update['rows'][0]['candidate_observation']
+    assert observed['price_jpy'] == 1000 and observed['rating'] == 4.5
+    assert observed['price_status'] == observed['rating_status'] == 'OBSERVED'
+    assert len(calls) == 2  # token and selected Product; Finder was not rerun
+
+
+@pytest.mark.parametrize('change', ['title','brand','model','category_tree','features','ingredients'])
+def test_t04_changed_fact_keeps_old_confirmation_invalid(updating_flow, change):
+    rt = updating_flow
+    def changed(rows):
+        fact = rows[0]['classification_facts']['fields'][change]
+        if change == 'category_tree':
+            fact['value'][-1]['name'] = 'Changed fixture category'
+        elif isinstance(fact['value'], list):
+            fact['value'] = ['Changed fixture content']
+        else:
+            fact['value'] = 'Changed fixture content'
+        return rows
+    # Inconsistent producer/sidecar fields are allowed to STOP, never old ready.
+    try:
+        update_one(rt, fetch=changed)
+    except (ValueError, RuntimeError):
+        with pytest.raises(ValueError): rt.require_current()
+    else:
+        assert next(p for p in rt.workflow.bench.store.products() if p['asin']==ASINS[0])['category'] is None
+
+
+def test_t05_missing_journal_never_downgrades_to_old_mode(updating_flow):
+    rt = updating_flow
+    update_one(rt)
+    del rt.ledger.data['material_updates']
+    rt.ledger.persist()
+    with pytest.raises(ValueError, match='JOURNAL_MISSING'):
+        rt.require_current()
+    rt.close()
+    with pytest.raises(ValueError):
+        rt.start()
+
+
+def test_t05_concurrent_update_and_output_fail_closed(updating_flow):
+    from threading import Event, Thread
+    rt = updating_flow
+    entered, release = Event(), Event()
+    errors = []
+    def fetch(rows):
+        entered.set()
+        assert release.wait(10)
+        return rows
+    def work():
+        try: update_one(rt, fetch=fetch)
+        except Exception as exc: errors.append(exc)
+    worker = Thread(target=work)
+    worker.start()
+    try:
+        assert entered.wait(10)
+        with pytest.raises(ValueError):
+            rt.require_current()
+        with pytest.raises(ValueError):
+            rt.workflow.bench.output({ASINS[0]:1})
+    finally:
+        release.set()
+        worker.join(10)
+    assert not worker.is_alive() and not errors
+
+
+@pytest.mark.parametrize('sidecar', ['ingredients', 'image'])
+def test_t04_all_safety_material_remains_bound_to_generation(updating_flow, sidecar):
+    rt = updating_flow
+    update_one(rt)
+    row = copy.deepcopy(next(p for p in rt.workflow.bench.store.products() if p['asin']==ASINS[0]))
+    if sidecar == 'ingredients':
+        row['source']['ingredients'] = row['source']['ingredients'].replace('keepa', 'canopy_test')
+    else:
+        row['weapon']['images']['root_category_id'] = 999999
+    with pytest.raises((ValueError, RuntimeError)):
+        rt.require_preparation_target(row)
+
+
+@pytest.mark.parametrize('market', ['PH','SG'])
+def test_t04_filter_reassessment_retains_selection_but_blocks_pool(tmp_path, market, keepa_raw_product):
+    from modules.candidate_filters import FilterCriteria, extract_keepa_observation
+    from modules.cache import utc_now_iso
+    rt = runtime_for(tmp_path, market, material_updates=True, asins=('B000000000',),
+        preparation_limit=4, finder_queries=(json.dumps(QUERY),))
+    try:
+        _, result, _ = discover(rt)
+        rows = [copy.deepcopy(result.rows[0])]
+        rows[0]['candidate_observation'] = extract_keepa_observation(keepa_raw_product, captured_at=utc_now_iso())
+        bid = rt.candidates.offer('EXPANSION', rows, filter_criteria=FilterCriteria(rating_min=4.5))
+        rt.candidates.select(bid, [ASINS[0]], human_confirmed=True, reviewer='fixture', note='fixture')
+        current_material(rt)
+        ingest(rt, bid)
+        confirm(rt, ASINS[0])
+        def changed(selected_rows):
+            selected_rows[0]['candidate_observation']['rating'] = 4.0
+            return selected_rows
+        update_one(rt, fetch=changed)
+        assert rt.candidates.data['selections'][bid]['asins'] == [ASINS[0]]
+        assert not rt.workflow.bench.prepared_pool()
+        with pytest.raises(ValueError): confirm(rt, ASINS[0])
+    finally:
+        rt.close()
+
+
+@pytest.mark.parametrize('market', ['PH','SG'])
+def test_t04_changed_resolver_requires_new_exact_comparison(tmp_path, market):
+    from modules.asin_resolver import verify_selected_rows
+    rt = runtime_for(tmp_path, market, material_updates=True, asins=('B000000000',),
+        preparation_limit=4, finder_queries=(json.dumps(QUERY),), resolver_inputs=(json.dumps(SOURCE),))
+    try:
+        client, _ = sdk(rt)
+        proposed = [{'selected':True, 'source_id':SOURCE['source_id'], 'input_title':SOURCE['input_title'],
+                     'asin':'B000000004', 'parse_status':'CANDIDATE'}]
+        rt.candidates.propose_resolver(proposed, human_confirmed=True, reviewer='fixture', note='fixture')
+        rows = verify_selected_rows(proposed, client)
+        bid = fix(rt, rows, 'RESOLVER', asins=['B000000004'], identity='CONFIRMED')
+        current_material(rt)
+        ingest(rt, bid)
+        def changed(selected_rows):
+            facts = selected_rows[0]['classification_facts']['fields']
+            facts['model'] = {**facts['title'], 'value':'Changed synthetic model'}
+            return selected_rows
+        product = rt.workflow.bench.store.products()[0]
+        with pytest.raises(ValueError, match='IDENTITY_UNRESOLVED'):
+            rt.update_material({product['asin']:product['revision']}, reviewer='fixture', note='comparison needed',
+                identity={product['asin']:'CONFIRMED'}, fetch=changed)
+        assert rt.ledger.data['material_updates']['intents'][-1]['response_rows']
+        assert rt.ledger.data['candidates']['selections'][bid]['identity'] == 'CONFIRMED'
+        with pytest.raises(ValueError): rt.require_current()
+    finally:
+        rt.close()
 
 
 def test_finder_selection_safety_classification_save_restart(flow):

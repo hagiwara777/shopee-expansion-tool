@@ -41,6 +41,20 @@ def test_operational_download_is_not_submission(contract_runtime):
     assert bench.store.products()[0]['listing_progress'] == 'WAITING'
 
 
+def test_t07_attribute_refresh_during_formatting_rejects_old_bytes(contract_runtime, monkeypatch):
+    rt = contract_runtime
+    from modules.preparation_validity import format_preparation_groups
+    original = format_preparation_groups
+    def refresh(*args, **kwargs):
+        result = original(*args, **kwargs)
+        rt.acquire_attributes(rt.category_receipt['client'], 100578)
+        return result
+    monkeypatch.setattr('modules.preparation_validity.format_preparation_groups', refresh)
+    with pytest.raises(ValueError):
+        rt.output(selected(rt.workflow.bench), reserve_copy=True)
+    assert not rt.workflow.bench.store.operations()
+
+
 def test_operational_permission_revoked_during_formatting_rolls_back(contract_runtime, monkeypatch):
     runtime = contract_runtime
     from modules.preparation_validity import format_preparation_groups

@@ -10,7 +10,8 @@ def render_p5_selection(runtime, source_type, rows):
     if not runtime.scope.preparation_limit:
         return rows
     try:
-        bid = runtime.candidates.offer(source_type, rows)
+        criteria = st.session_state.get('f12_' + ('expansion' if source_type == 'EXPANSION' else 'resolver') + '_criteria')
+        bid = runtime.candidates.offer(source_type, rows, filter_criteria=criteria)
     except (ValueError, RuntimeError, KeyError, TypeError):
         st.warning('承認済み探索結果との対応を確認できません。未確認・仕様不一致の商品は引き継げません。')
         return []
@@ -105,6 +106,8 @@ def render_p5_workspace(runtime):
                 if st.button('保存済み対象をSafetyへ再搬送', key='p5_resume'):
                     _activate_batch(runtime, bid)
             st.caption('対象固定と累積予算・履歴を維持します。現在のSafety・全ショップ資料・分類確認は再検証します。')
+        if 'material_updates' in runtime.ledger.data:
+            render_material_update(runtime)
     with st.expander('管理・公式資料取得', expanded=False):
         st.caption('取得開始・失敗は旧確認を失効します。再描画では取得しません。')
         if st.button('承認済みBridgeからAccess Tokenを取得', key='p5_bridge',
@@ -124,6 +127,33 @@ def render_p5_workspace(runtime):
             st.json(status['tree'])
     render_current_batch(workflow, runtime.scope.marketplace, key='p5_intake_')
     render_practical_controls(workflow, key='p5_work_', runtime=runtime)
+
+
+def render_material_update(runtime):
+    """Intent only; no network or credential access during rendering."""
+    with st.expander('固定商品の資料を更新', expanded=False):
+        selected = sorted({a for s in runtime.candidates.data['selections'].values() for a in s['asins']})
+        stored = {p['asin']:p for p in runtime.workflow.bench.store.products()}
+        asins = st.multiselect('資料更新の対象ASIN', [a for a in selected if a in stored], key='p5_update_asins')
+        st.caption(f'追加取得は選択した {len(asins)} 商品、最大 {len(asins)*2} Keepa tokens＋残高確認1 send。'
+                   '元の累積枠へ計上します。取得後は同じ内容でもCategory→Brandを再確認します。')
+        reviewer = st.text_input('資料更新の確認者', key='p5_update_reviewer')
+        note = st.text_input('資料更新・比較の理由', key='p5_update_note')
+        explicit = st.checkbox('対象旧readyを失効して資料を更新する', key='p5_update_confirm')
+        if st.button('選択商品の資料を更新', key='p5_update',
+                     disabled=not (asins and explicit and reviewer.strip() and note.strip())):
+            try:
+                if explicit is not True:
+                    raise ValueError('Explicit update required')
+                runtime.update_material({a:stored[a]['revision'] for a in asins}, reviewer=reviewer, note=note)
+                st.success('新しい資料世代を保存しました。Safety・全shop照合・Category→Brandを再確認してください。')
+            except (ValueError, RuntimeError, OSError, KeyError, TypeError):
+                st.error('更新を停止しました。旧readyは使用せず、保存済みintent・消費・P2履歴をofflineで照合してください。')
+                return
+        items = runtime.ledger.data['material_updates']['intents']
+        for item in items[-5:]:
+            st.caption(f'{item["state"]} / 対象 {len(item["targets"])} 商品 / '
+                       f'資料世代 {max(item["parent"].values())+1} / 再確認が必要')
 
 
 def render_p5_weapon(runtime, *, key):
