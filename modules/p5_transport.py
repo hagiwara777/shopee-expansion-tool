@@ -31,7 +31,7 @@ class P5KeepaBudget:
             return self._reserve_keepa_call(endpoint, payload)
 
     def _reserve_keepa_call(self, endpoint, payload):
-        self.runtime.require_current()
+        self.runtime.require_operation('keepa.' + endpoint)
         scope = self.runtime.scope
         units = tokens = 0
         candidate_request = None
@@ -46,6 +46,9 @@ class P5KeepaBudget:
                     or payload.get('history', 0) not in (0, 1)):
                 raise P5Stopped('P5_KEEPA_PARAMETERS_REFUSED')
             asins = payload.get('asin', '').split(',')
+            if (self.runtime._material_action is not None and
+                    set(asins) != set(self.runtime._material_action['item']['targets'])):
+                raise P5Stopped('P5_MATERIAL_RESPONSE_TARGET_MISMATCH')
             allowed = (self.runtime.candidates.allowed_products() if scope.preparation_limit
                        else set(scope.asins) | self.discovered)
             if (not asins or len(set(asins)) != len(asins) or not set(asins) <= allowed):
@@ -123,6 +126,9 @@ class P5CatalogPolicy:
         }
         if path not in expected or set(parameters) != expected[path]:
             raise P5Stopped('P5_CATALOG_ENDPOINT_REFUSED')
+        self.runtime.require_operation({'/api/v2/product/get_category': 'shopee.category',
+            '/api/v2/product/get_brand_list': 'shopee.brand',
+            '/api/v2/product/get_attribute_tree': 'shopee.attribute'}[path])
         if 'category_id' in parameters:
             if (int(parameters['category_id']) not in scope.category_ids or parameters['page_size'] != '100'
                     or parameters['status'] != '1' or int(parameters['offset']) < 0):
@@ -133,6 +139,15 @@ class P5CatalogPolicy:
                 raise P5Stopped('P5_ATTRIBUTE_SCOPE_REFUSED')
         if 'language' in parameters and parameters['language'] != 'en':
             raise P5Stopped('P5_CATALOG_LANGUAGE_REFUSED')
+        # Each physical page gets the latest Bridge token before signing. The
+        # trusted composition path requires Bridge; legacy synthetic injection
+        # keeps its explicit fixture credentials for compatibility.
+        if self.runtime.authorization_guard is not None:
+            self.runtime.refresh_access_token()
+            client.credentials = self.runtime.secrets().shopee_credentials
+            self.runtime.require_operation({'/api/v2/product/get_category': 'shopee.category',
+                '/api/v2/product/get_brand_list': 'shopee.brand',
+                '/api/v2/product/get_attribute_tree': 'shopee.attribute'}[path])
         return self.runtime.ledger.reserve('shopee')
 
     def finish(self, reservation, *, success):
@@ -160,7 +175,7 @@ class P5HTTP:
             raise P5Stopped('P5_SYNTHETIC_HTTP_REQUIRES_TEST_PERMIT')
 
     def request(self, method, url, **kwargs):
-        self.runtime.require_current()
+        self.runtime.require_operation(self.kind)
         if self.kind == 'openai' and not self.runtime.permit.offline_test and not self.runtime.permit.openai_pricing_ref:
             raise P5Stopped('P5_CURRENT_OPENAI_PRICING_UNVERIFIED')
         parsed = urlsplit(url)
@@ -320,17 +335,55 @@ def make_keepa_client(runtime, secrets, *, transport=None):
     api = keepa.Keepa(secrets.keepa_key, check_key=False, logging_level='CRITICAL')
     install_bounded_keepa_transport(api, P5KeepaBudget(runtime), transport=transport)
     class ScopedKeepaClient(KeepaExpansionClient):
+        def fresh_selected_products(self, old_rows):
+            from modules.keepa_client import _product_to_cache_data
+            from modules.candidate_filters import FilterCriteria
+            from types import SimpleNamespace
+            runtime.require_operation('keepa.product')
+            if runtime._material_action is None:
+                raise P5Stopped('P5_MATERIAL_INTENT_REQUIRED')
+            asins = runtime._material_action['item']['targets']
+            self._require_available_tokens(len(asins) * 2)
+            products = self.api.query(asins, domain='JP', history=False, offers=None,
+                stock=False, buybox=False, rating=True, stats=1, progress_bar=False, wait=False)
+            capture = FilterCriteria(price_min_jpy=0, rating_min=4.0)
+            values = [_product_to_cache_data(p, filter_criteria=capture) for p in products]
+            if len(values) != len(asins) or {p['asin'] for p in values} != set(asins):
+                raise P5Stopped('P5_MATERIAL_RESPONSE_TARGET_MISMATCH')
+            result = []
+            for before in old_rows:
+                asin = before.get('candidate_asin') or before['asin']
+                product = next(p for p in values if p['asin'] == asin)
+                if not product.get('classification_facts'):
+                    raise P5Stopped('P5_MATERIAL_FACT_INVALID')
+                if 'seed_asin' in before:
+                    row = self._build_candidate_row(SimpleNamespace(asin=before['seed_asin'], brand='', category=''),
+                        asin, product, 2, product['fetched_at'], before['source'], before.get('note', ''), '')
+                else:
+                    from modules.asin_resolver import _verified_row
+                    row = _verified_row(before, 'FOUND', 'KEEPA_VERIFIED', before.get('note', ''), product)
+                result.append(row)
+                self.cache.save_product(product)
+            return result
+
         def verify_products_by_asin(self, asins, **kwargs):
             runtime.require_current()
             if runtime.scope.preparation_limit and not set(asins) <= runtime.candidates.allowed_products():
                 raise P5Stopped('P5_KEEPA_PRODUCTS_OUTSIDE_SCOPE')
-            return super().verify_products_by_asin(asins, **kwargs)
+            with runtime.ledger._lock:
+                return super().verify_products_by_asin(asins, **kwargs)
+
+        def fetch_candidate_observations(self, *args, **kwargs):
+            with runtime.ledger._lock:
+                runtime.require_current()
+                return super().fetch_candidate_observations(*args, **kwargs)
 
         def find_related_products(self, source_asin, search_pages, search_mode='strict', filter_criteria=None):
             runtime.require_current()
             if source_asin not in runtime.scope.asins or search_pages != 1 or search_mode != 'strict':
                 raise P5Stopped('P5_EXPANSION_PLAN_REFUSED')
-            return super().find_related_products(source_asin, search_pages, search_mode, filter_criteria)
+            with runtime.ledger._lock:
+                return super().find_related_products(source_asin, search_pages, search_mode, filter_criteria)
 
         def _diagnose_and_fallback(self, source, original_error):
             # The legacy diagnostic includes a resend of the original query.

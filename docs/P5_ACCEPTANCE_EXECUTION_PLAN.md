@@ -188,10 +188,10 @@ P5のscope表示引数はP5_CONNECTIONに記載する。live許可loaderは提�
 
 | 最小差分候補 | 現行根拠・不足 | 保護・受入条件 |
 |---|---|---|
-| 明示P5接続adapter | `P5Runtime`と専用UIは存在するが、trusted permit/credential/実行コード観測の組成は未提供。P4は模擬専用 | 承認実施票と実コード/市場/shop/run/保存/予算を照合し注入。UIフラグ反転や設定だけの許可は禁止 |
-| 現在の公式資料搬送 | P5 Category/Brand/Attributeとstrict receiptはoffline実装済み。各Shopee操作前のBridge再取得は未接続 | 現行一次仕様確認とdefault transport、有限Bridge/auth予約を接続。fake/保存JSONを公式扱いしない |
+| 明示P5接続adapter | trusted operatorの原承認・現在観測・参照解決を注入するoffline組成境界を提供。production loaderは未提供。P4は模擬専用 | 承認実施票と実コード/市場/shop/run/保存/予算を照合し注入。UIフラグ反転や設定だけの許可は禁止 |
+| 現在の公式資料搬送 | strict receiptとtrusted経路の各Shopee物理page前Bridge再取得をoffline接続。一次仕様・liveは未確認 | 現行一次仕様確認とdefault transport、有限Bridge/auth予約を接続。fake/保存JSONを公式扱いしない |
 | 両市場のAPI予約と実消費 | P5Ledger/P5KeepaBudgetのtoken予約・actual/UNKNOWN・送信前永続化は既に実装済み | 重複実装せず、trusted組成と明示再取得も同じledgerへ計上。F08 live実測は未実施 |
-| 選択後の商品資料更新 | 現行`P5Candidates.require_record`は元batchのFact/Candidateと完全一致を要求し、変更時停止 | 元selectionとscopeを保った世代journal・先行失効・P2 revision/crash照合、明示fresh取得を最小追加。旧run自動移行なし |
+| 選択後の商品資料更新 | 新規formatでjournal・P2先行失効・世代/revision照合・明示fresh取得をoffline接続。旧formatは資料変更停止 | 元selectionとscopeを保つ。旧run自動移行なし。半端な世代やUNKNOWNでは出力・再送を拒否 |
 | 画像live根拠 | P4は模擬検査だけ。既存画像providerに再送経路あり | 既存selector・疑義判断を共用し、全sendを制限。模擬検査のsource変更で代用しない |
 | 運用出力/予約 | P5からP1/P2 operational出力・commit前/bytes前検査はoffline接続済み。実行許可は未注入 | 世代/許可の再検査を追加し、永続commit・UNKNOWNを維持。準備出力と外部投入・出品は別承認 |
 | 限定AUTO_RULE | 現adapterは個別運用permitを注入しない | rule/alias全体hash、market/shop/session/catalog、承認参照の完全一致。未承認ruleは拒否したまま |

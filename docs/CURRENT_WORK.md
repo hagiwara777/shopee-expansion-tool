@@ -29,11 +29,13 @@ P4の[共通日常操作](PRACTICAL_UI_P4.md)は、新規P2保存先を明示し
 P5の[二段階の探索・対象固定](P5_CONNECTION.md)は、承認済みFinder strict 1ページとResolver入力から
 人間が明示した準備対象を同じscope・ledgerのままSafety／分類／P2保存へ渡すoffline接続とする（DEC-0145）。
 選択・出所・同一性・累積予算を保存し、未選択・資料変更・Safety停止から分類確定／準備へ進めない。
-再開は固定資料の再搬送と現在根拠の再確認に限る。実商品再取得に伴う資料更新adapterとlive許可注入は未提供。
-[trusted live接続・商品資料更新・D保存契約](P5_LIVE_DESIGN.md)を実装前設計とする（DEC-0146）。
+旧formatの再開は固定資料の再搬送と現在根拠の再確認に限る。
+[trusted組成・商品資料更新・D保存契約](P5_LIVE_DESIGN.md)の最小offline接続を整備した（DEC-0146）。
 固定selection・ASIN・累積消費・履歴を保持し、更新開始の失効とledger/P2世代整合を要求する。
-設計は現在コードの資料変更停止を解除しない。D採用は専用ACL・非重複・設置検証・backupを条件とする。
-次の単一作業は、別承認によるこの契約の最小offline実装とT01〜T08の検証。
+資料世代は新規設置時だけ導入し、旧scope digest・旧ledgerの資料変更停止を維持する。
+T01〜T08はPH/SG合成検証で扱い、production承認source・credential解決・Windows設置inspectorを既定提供しない。
+D採用は専用ACL・非重複・実設置検証・backupを条件とし、合成検査を実端末成功へ昇格しない。
+次の単一作業は非公開実行票の未結合・一次仕様・trusted operator接続と設置条件を具体化すること。
 対象・一次資料・保存先・release・有限枠が固定され、設置と実行へのOwner別承認が成立するまで、
 実API・実商品反復受入は開始しない。
 Owner指定済みのshop・商品候補・既出品状況は非公開票で保持し、最新資料・SHA・今回scopeとの

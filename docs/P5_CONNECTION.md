@@ -3,8 +3,8 @@
 DEC-0144。既存P1/P2/P3/P4とSGの有限枠を再利用する案Bの接続契約。
 本書のコード・synthetic testsは実API成功、実商品受入、C12や実務Beta完成を証明しない。
 実施対象・取得量・費用は[P5実施設計・承認票](P5_ACCEPTANCE_EXECUTION_PLAN.md)で別に固定する。
-trusted live adapter、固定selectionを維持した商品資料更新、D保存先の実装前契約は
-[P5 live設計](P5_LIVE_DESIGN.md)／DEC-0146を参照する。設計だけでは以下の現行停止を解除しない。
+trusted組成のoffline境界、固定selectionの商品資料世代更新、新規保存先の検査契約は
+[P5 live設計](P5_LIVE_DESIGN.md)／DEC-0146を参照する。旧formatの停止を解除しない。
 Owner指定情報と今回の実行Evidence・実行承認は区別し、具体値と原指示は非公開票に保持する。
 
 ## 入口と許可
@@ -45,12 +45,13 @@ Safety／全ショップ照合の現在結果が停止ならCategory／Brand人�
 市場切替・再起動では選択と予算・P2履歴を保持するが、現在の全ショップ資料・分類資料と人間確認を再要求する。
 模擬receiptとoffline CSVのFALSE／PH_SG_P1_OFFLINEを維持し、運用CSVへ昇格しない。
 
-設計上の停止条件：既存scopeのASINや上限の書換え、claim／ledger欠落、固定対象の差替えは自動修復しない。
-選択後の商品Fact・Candidateが変わった場合も停止する。現在の最小接続は固定した資料の再搬送までとする。
+停止条件：既存scopeのASINや上限の書換え、claim／ledger欠落、固定対象の差替えは自動修復しない。
+旧formatで選択後の商品Fact・Candidateが変わった場合は停止し、固定資料の再搬送までとする。
 P5選択への同一ASIN複数行入力も停止する。通常Resolverの元行保持・既存Gate境界の一意化は変更しない。
-実商品再取得で変わる資料を同じ固定対象へ再確認するadapterは、P5_LIVE_DESIGNに従う別途実装・承認を要する。
+新規設置の更新対応formatではP5_LIVE_DESIGNのjournal/P2照合を通して同じ固定対象の資料だけを更新する。
 その場合も旧selection・予算・履歴を消さず、固定ASIN集合を維持する。新scope／新ledgerによる枠復活は禁止。
-本方式はtrusted live adapterの完成、F08 live、実商品受入、実務Beta完成を意味しない。
+実承認source・現在観測・Windows設置検査のproduction接続は別に必要であり、
+本方式はF08 live、実商品受入、実務Beta完成を意味しない。
 
 起動・初期表示・再描画・F1/F2条件変更では通信しない。P5は既存Amazon factoryへfallbackせず、
 専用clientを明示取得操作へ注入する。P4合成商品・mock catalog loader・画像replayと旧診断入口を使わない。

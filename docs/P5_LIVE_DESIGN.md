@@ -1,10 +1,32 @@
 # P5 live接続・商品資料更新・保存設計
 
-DEC-0146。これは実装前の設計契約であり、live実行許可ではない。
+DEC-0146。P5最小offline実装の設計・検証契約であり、live実行許可ではない。
 [既存offline契約](P5_CONNECTION.md)、[実施承認票](P5_ACCEPTANCE_EXECUTION_PLAN.md)、
 [P1](PREPARATION_VALIDITY_P1.md)／[P2](PERSISTENCE_P2.md)を再利用する。
 実装、formal採用、保存先設置・固定release反映、実API・有料通信、実商品受入は別の承認境界とする。
-既存実装の「選択後の資料変更は停止」は、以下の新adapterを実装・検証・正式採用するまで維持する。
+新規設置の更新対応formatだけで、同じ固定selectionの資料世代を更新する。
+旧ledger・旧固定ASIN modeの資料変更停止とdigestは維持し、自動移行しない。
+
+### offline実装の接続点
+
+- `p5_live_adapter.P5TrustedAdapter`は注入されたtrusted operatorの原承認照合・現在観測・参照解決を組成する。
+  開始・操作・出力で再照合し、市場別固定配賦と全体上限を検査する。合成authorityはoffline permitを使う。
+  productionの承認record loader・credential resolver・Windows設置inspectorは既定提供しない。
+  標準`--p5-config`から実行permitは作られず、PRIMARY_SOURCE_UNVERIFIEDのlive停止を維持する。
+- `p5_material_updates`は元P5Ledgerへversion 1の`material_updates`を追記するP5専用部品。
+  BEGIN→P2失効→INVALIDATED→取得→VALIDATED→P2 commit→COMMITTEDと進める。
+  旧batch/selectionを保持し、P2のsource marker・世代・採用revisionと履歴を照合する。
+  未完了intentは再起動でも停止し、自動復旧・再送・自動commit・返金を行わない。
+  受信済みrowsは比較失敗時も保持する。変更したResolverには旧新Fact digest付きの新しい人間比較が必要。
+- `p5_transport`の`fresh_selected_products`は更新intentの対象だけを、cache読取りを回避して取得する。
+  通常の7日cacheと元ledgerの有限予約を維持し、Candidate15列とSafety資料を既存生成器で再結合する。
+  固定時のF1/F2条件は同batchへ保持し、新世代の条件外・未確認商品はpoolへ進めない。
+- `p5_setup`はvolume/alias/ACL/容量の観測契約、明示排他初期化、SQLite backupとmanifest、隔離復旧を扱う。
+  実store IDの生成後にscopeを確定する。合成inspectorのPASSを実端末のACL/probe成功とは扱わない。
+  trusted組成の運用出力・資料更新にはcheckpoint hookを必要とし、未結合なら停止する。
+  復旧は旧scope/claim・UNKNOWNを保持する読取用コピーであり、live再開許可を返さない。
+- `p5_ui`は更新対象・最大追加token・確認者・理由・再確認を表示する。描画だけで取得しない。
+  crash/不整合は保存済みjournal・応答・消費・P2履歴のoffline照合へ止める。自動修復UIは設けない。
 
 ## 1. 保存契約
 
@@ -204,7 +226,7 @@ Safety BLOCK/REVIEW/EXCLUDE、manual_exclude/body_excluded、Battery/SLSを更�
 現行P5には送信前token予約/actual記録、strict公式取得、P1/P2出力が既にある。これらを重複再実装しない。
 必要な差分はtrusted組成、設置の安全検査、選択後更新、Bridge前置、明示fresh経路とその接続に限定する。
 T01〜T08は既存P1〜P4・有限transport・storeの保護を再利用した最小差分の検証条件であり、
-新しい汎用認証/監査/backup製品やBeta完成条件の追加要求ではない。設計正本化の工程では実装しない。
+新しい汎用認証/監査/backup製品やBeta完成条件の追加要求ではない。
 
 | offline試験 | 必須期待値（PH/SG双方、合成データ・通信禁止） |
 |---|---|
@@ -224,8 +246,8 @@ HUMAN初回ではC04限定AUTO_RULEの実務成立を未達として残す。実
 
 ## 5. 次の単一作業と停止
 
-次の単一作業は、Ownerがこの設計範囲の**最小offline実装**を別承認し、T01〜T08を満たす差分を作ること。
-実装承認があっても設置・credential利用・liveへ進まない。
+次の単一作業は、非公開実行票の未結合項目と一次仕様・trusted operator実装・設置検査を照合し、
+設置・credential参照利用・liveへの具体的な別承認を成立させること。offline成功だけで実行へ進まない。
 実対象、一次資料、現在価格、Google auth有限回数、release、ACL/probe/backupが未確認なら実行票はBLOCKED。
 shop・ジャンル・seed・既出品状況・Resolver URLのOwner原指示は、非公開票で指定と参照を回収し、
 最新資料/SHA/同一性・認証との実行Evidence結合と分ける。指定済みでも実行承認やcurrent証明にはならない。

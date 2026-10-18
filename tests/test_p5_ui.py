@@ -6,6 +6,23 @@ from modules.p5_runtime import P5Runtime
 from test_p5_runtime import scope_for, runtime_for, forbid_network
 from test_expansion_gate_handoff import result, offline
 from test_p5_candidates import flow, sdk, current_material, SOURCE
+from test_p5_candidates import updating_flow
+
+
+def update_entry(runtime):
+    from modules.p5_ui import render_material_update
+    render_material_update(runtime)
+
+
+def test_t07_update_display_rerenders_zero_send(updating_flow, monkeypatch):
+    rt = updating_flow
+    before = list(rt.ledger.data['reservations'])
+    monkeypatch.setattr(rt, 'amazon_client', lambda: pytest.fail('rerender attempted send'))
+    app = AppTest.from_function(update_entry, args=(rt,), default_timeout=30).run()
+    assert not app.exception and app.button(key='p5_update').disabled
+    app.multiselect(key='p5_update_asins').select('B000000001').run()
+    app.run()
+    assert not app.exception and rt.ledger.data['reservations'] == before
 
 
 @pytest.fixture(autouse=True)
