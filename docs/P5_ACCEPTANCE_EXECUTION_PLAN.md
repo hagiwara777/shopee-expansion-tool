@@ -7,6 +7,7 @@ DEC-0137〜0143を変更せず、P1〜P4・F1/F2のoffline成果を保護する�
 タスクの進捗・承認待ち・実測Git状態はrepo外Task Context、実行証拠はGit外に置く。
 最小接続のoffline実装契約は[P5_CONNECTION](P5_CONNECTION.md)、DEC-0144を参照する。
 接続コードが存在しても、本書の提案予算・実対象・live実行を承認したことにはならない。
+trusted adapter・資料世代更新・D保存先の設計契約は[P5 live設計](P5_LIVE_DESIGN.md)／DEC-0146を参照する。
 
 ## 1. 対象を固定する作業票
 
@@ -15,19 +16,21 @@ DEC-0137〜0143を変更せず、P1〜P4・F1/F2のoffline成果を保護する�
 
 | 項目 | PH | SG | 固定方法 |
 |---|---|---|---|
-| 対象shop | Owner指定待ち | Owner指定待ち | 識別名と実shop IDを非公開票へ。認証のexpected shopと照合 |
+| 対象shop | Owner指定済み／実行Evidence未結合 | Owner指定済み／実行Evidence未結合 | 原指示の実IDは非公開票へ回収。認証のexpected shop・今回scopeとの照合は未実施 |
 | 対象Category | 実leaf ID/path未確定、最大2 leaf案 | 実leaf ID/path未確定、最大2 leaf案 | 商品用途を先に確認し各市場の公式catalogで確定。他市場IDを転用しない |
-| A：Expansion | seed未指定、準備2商品案（許容1〜3） | seed未指定、準備2商品案（許容1〜3） | seed＋strict 1ページから安全に準備可能な候補を選定 |
-| B：Resolver | 英字title/source_id・実ASIN未指定、準備2商品案（許容1〜3） | 同左 | 正当なShopee由来title→手動Resolver結果→Keepa JP確認。AをBと名付け直さない |
-| 既出品照合標本 | 既存の正当な出品ASINがあれば別枠1件 | 同左 | 最新全ショップCSVとの一致確認専用。新規準備poolへ二重投入しない |
-| 全ショップ資料 | 全shop数・CSV所在・取得時刻未確定 | 同左 | 当該市場の全shop、対象shopを含む。0件も実態の確認を要する |
+| A：Expansion | seed指定済み／現在Fact・query未結合 | 同左 | 一般文具（電池なし）のOwner指定。strict 1ページからの準備対象ASINはまだ未選択 |
+| B：Resolver | 1商品URL・title指定済み／同一性・Amazon ASIN未結合 | 同左 | 原文・出所・source_id案を非公開票で保持。案のIDをP5形式へ暗黙変換せず、実行前に対応を固定 |
+| 既出品照合標本 | 0件とOwner確認済み。正例はNOT_RUN | 既存の正当な出品ASINがあれば別枠1件 | 最新全ショップCSVとの一致確認専用。架空の正例や新規準備poolへの二重投入を作らない |
+| 全ショップ資料 | 1shop・0件はOwner確認済み／最新0件資料・日時・SHA未結合 | 1shop・提供CSV全件包含はOwner確認済み／現物・日時・SHA未結合 | 事業上の指定を再質問せず、今回の実行資料と実shopを照合。PHもshop数0・CSV不要にしない |
 | 操作者／確認担当 | Owner指定待ち | Owner指定待ち | 同一人兼務可。Category・Brand・画像疑義の判断者を明記 |
 
-準備対象は標準8商品（PH 4＋SG 4）、許容4〜12商品。API取得商品数・CSV行数・一意ASIN数・
+一般計画は標準8商品（PH 4＋SG 4）、許容4〜12商品。指定URL各1件へ具体化した初回案は
+A2＋B1の各市場3商品・合計6商品であり、件数・枠は非公開票で再計算して別承認する。
+API取得商品数・CSV行数・一意ASIN数・
 実出品数を別々に記録する。新規実出品の計画値は0。
 同一ASIN再登場・同Category/Brandの別商品・未確認商品の保留を含める。
 危険物・Battery・刃物本体・コンタクトレンズ本体等を実出品試験に使わない。
-候補例は電源のない収納用品・一般文具等だが、安全認定やCategory指定ではない。
+初回ジャンルはOwner指定の一般文具（電池なし）。この指定をSafety認定・画像対象外・公式Category確定としない。
 画像対象rootを見積のために改変せず、対象なら必要画像検査を省略しない。
 
 実ASINごとの非公開票の必須列：
@@ -52,7 +55,7 @@ BのASINが未確定なら、Resolver候補作成までの操作と確認済みA
 | 属性・発送条件 | 公式attribute treeの未取得と取得済み0件を区別。Seller Centerの必須属性・発送条件は人間確認 |
 | Safety資産 | formal releaseのGuardrail/Battery/SLS/SG本体除外/画像selector版とdigest、必要な公式資料のmarket・版・取得日・参照箇所 |
 
-実証用rootは非公開票で固定し、`PH/<run>/`と`SG/<run>/`へ分ける。
+実証用rootは非公開票で固定し、`<root>/<run>/PH/<shop>/`と`<root>/<run>/SG/<shop>/`へ分ける。
 `inputs`（原資料）、`evidence`（結果・画面）、`exports`（CSV/TXT）、`backups`を分離する。
 証拠indexはA番号/C番号/F08、market、shop参照、release、session、群、ASIN参照、資料SHA、
 操作時刻（UTC＋JST）、操作者・確認者、期待値/実値、PASS/FAIL/NOT_RUN/BLOCKED、未達理由を持つ。
@@ -161,9 +164,13 @@ credential作成/変更・Google側同期変更・権限付与は本計画のAPI
 
 ## 6. 保存先・releaseと最小接続差分
 
-新規P2 root案はコード外の`%LOCALAPPDATA%/ShopeeExpansionTool/P5/<run-id>/`。
+新規P2 rootはD固定ドライブ上のコード外`P5_DATA_ROOT`を第一候補とする。
+正確な絶対pathは非公開票へ記録し、`P5Scope.root`にはrun-idを含めない。
+配置は`<root>/<run-id>/<market>/<shop>/`とし、C上の既存Git/worktree/.venv/DB/outputsを移動しない。
 `PH/<shop-ref>/work.sqlite3`と`SG/<shop-ref>/work.sqlite3`を分離し、各市場の新規cache・API ledger・claimも別ファイルにする。
-絶対path・既存rootとの非重複・リンク先・Owner/操作者の読み書き権限・容量を非公開票で固定する。
+絶対path・volume identity・既存rootとの非重複・リンク先・Owner/操作者の読み書き権限・容量を非公開票で固定する。
+Dは固定NTFSだが親の広いACLをそのまま継承しない。専用ACL・probe・排他初期化・backup/復旧・
+容量停止の具体契約はP5_LIVE_DESIGNに従う。今回は候補rootも作成しない。
 今回はP2 DB/cache/ledgerを作成しない。既存DBからの複製・移行・初期化・resetもしない。
 初回作成は承認後の明示一回操作、既存ファイルなら停止。P2 schema/store IDとshop/市場を照合する。
 
@@ -181,11 +188,12 @@ P5のscope表示引数はP5_CONNECTIONに記載する。live許可loaderは提�
 
 | 最小差分候補 | 現行根拠・不足 | 保護・受入条件 |
 |---|---|---|
-| 明示P5接続adapter | `practical_beta_ui.py`、`classification_workflow_ui.py`は模擬専用。P4 APIボタン停止 | P4既定/合成経路を維持し、承認されたmarket/shop/run/予算だけを注入。UIフラグ反転のみは禁止 |
-| 現在の公式資料搬送 | `ClassificationWorkflow.acquire_brand`→P1 strict receiptは再利用可能 | default transportの真正なlive取得を使う。fake transportを公式扱いせず、JSONでreceiptを捏造しない |
-| 両市場のAPI予約と実消費 | `keepa_bounded_transport`はsend上限。累積token/F08 envelope保存は不足 | PHにも同じsend前予約、token予約・actual、失敗消費維持。API keyをログへ出さない |
+| 明示P5接続adapter | `P5Runtime`と専用UIは存在するが、trusted permit/credential/実行コード観測の組成は未提供。P4は模擬専用 | 承認実施票と実コード/市場/shop/run/保存/予算を照合し注入。UIフラグ反転や設定だけの許可は禁止 |
+| 現在の公式資料搬送 | P5 Category/Brand/Attributeとstrict receiptはoffline実装済み。各Shopee操作前のBridge再取得は未接続 | 現行一次仕様確認とdefault transport、有限Bridge/auth予約を接続。fake/保存JSONを公式扱いしない |
+| 両市場のAPI予約と実消費 | P5Ledger/P5KeepaBudgetのtoken予約・actual/UNKNOWN・送信前永続化は既に実装済み | 重複実装せず、trusted組成と明示再取得も同じledgerへ計上。F08 live実測は未実施 |
+| 選択後の商品資料更新 | 現行`P5Candidates.require_record`は元batchのFact/Candidateと完全一致を要求し、変更時停止 | 元selectionとscopeを保った世代journal・先行失効・P2 revision/crash照合、明示fresh取得を最小追加。旧run自動移行なし |
 | 画像live根拠 | P4は模擬検査だけ。既存画像providerに再送経路あり | 既存selector・疑義判断を共用し、全sendを制限。模擬検査のsource変更で代用しない |
-| 運用出力/予約 | P2/P4はoffline CSVと模擬予約。P1にはoperational検証契約あり | 現在根拠・出力前後再検証・永続commit・UNKNOWNを維持。live準備出力の許可を別にbind |
+| 運用出力/予約 | P5からP1/P2 operational出力・commit前/bytes前検査はoffline接続済み。実行許可は未注入 | 世代/許可の再検査を追加し、永続commit・UNKNOWNを維持。準備出力と外部投入・出品は別承認 |
 | 限定AUTO_RULE | 現adapterは個別運用permitを注入しない | rule/alias全体hash、market/shop/session/catalog、承認参照の完全一致。未承認ruleは拒否したまま |
 
 この表は接続不足の設計記録。案Bのoffline開発範囲と停止境界はP5_CONNECTIONに固定し、
@@ -269,3 +277,60 @@ Keepa観測との時刻差/丸め/販売なし/評価欠損を分け、異なる
 承認の引用・日時・対象票digest・承認操作・上限・期限/終了条件をTask Contextに結合する。
 実行前に未解決blockerが0、technical gatesが対象releaseに一致、Owner承認が現在対象に一致することを確認する。
 承認待ちは`WAITING_APPROVAL`、Task Context lifecycleは`OPEN`。同じタスクで明示承認された操作だけ続ける。
+
+## 10. 初回実行票の固定欄と再利用審査
+
+この節は非公開実施票の必須schemaとする。値・一次資料の所在・確認者・確認日時・SHAを
+各欄へ対応させ、空欄/UNVERIFIEDが残る票は`BLOCKED`として最終実行承認を求めない。
+技術方式はP5_LIVE_DESIGNに固定し、Ownerへhash計算や実装方式の選択を求めない。
+以下の状態を分離する：`Owner指定済み／実行Evidence未結合`、`実行Evidence照合済み`、
+`実行未承認／承認済み`。原指示確認はlive許可や現在商品の証明ではない。
+個別shop ID・ASIN・URL・商品本文・実CSV・承認原文はGitへ入れず、非公開票で参照と状態を保持する。
+
+| 欄 | 必須の具体値と一致検査 |
+|---|---|
+| 票identity | 票ID/version/digest、目的、Owner承認原文/日時、許可操作、期限/終了条件、操作者・確認者 |
+| 市場/shop | PH/SG各初回1shopの実ID・識別名、全shop一覧と各CSV参照。Owner一覧・資料shop対応・expected shopを三者照合 |
+| A探索 | 各市場seed ASIN、用途、strict query全体、page=0/perPage、詳細最大数、準備上限、選択担当。探索承認と取得後選択を別記 |
+| B入力 | 各市場source_id/元title/originと手動Resolverサービス、候補ASIN、詳細取得対象確認、取得後の同一性根拠・確認者 |
+| 固定選択 | 探索後の選択ASIN集合・selection/batch digest、同一性、候補/文章/sidecar SHA、更新可能な同じASIN部分集合。追加・差替え不可 |
+| 公式資料 | 当該市場/shop Category全件・leaf ID/path、Brand strict終端/ID/name/区分、Attribute契約/観測、Seller Center確認担当。一次本文・版・権限・形式一致が必要 |
+| 全shop CSV | 実際に全shopであるOwner確認、各CSVの取得日時/市場/shop/SHA/行数、正当な0件資料、既存出品照合ASINを準備対象と区別 |
+| API/費用 | 操作別回数・payload上限・物理send・tokens/USD・両市場合計、再取得回数、現在公式単価参照、実測方法、失敗消費保持 |
+| release | 最小差分を正式採用した固定full commit/実ソースdigest、端末/実entrypoint/port、technical gates。PR #135の採用だけではlive adapter未提供 |
+| 保存 | Dの正確なroot/run/市場/shop path、volume identity/非重複/専用ACL/probe、作成後のstore ID/schema、cache/ledger/claim、backup/復旧path、容量計画 |
+| 操作境界 | 設置、既存credential参照利用、列挙API、商品準備保存/出力、再起動反復を別チェック。外部投入0・実出品0・AUTO_RULE0 |
+| 結果 | A01〜A07/F08/C01〜C12を市場別にoffline/mock/実画面/live/実商品/Owner受入へ分離し、未達/NOT_RUN/停止理由を保持 |
+
+提案枠を以下にまとめる。これは現在価格の確認済み見積・承認済み枠ではない。
+
+| 制約 | PH | SG | 合計/固定条件 |
+|---|---:|---:|---|
+| 準備商品 | A/B各1〜3 | A/B各1〜3 | 4〜12。seed/詳細取得数と別 |
+| Keepa requests | 20 | 20 | 40、token照会/失敗/再取得も物理送信として計数 |
+| Keepa tokens | 175 | 175 | 350。従来計画154/市場、308合計を実対象へ再計算 |
+| Keepa要求商品延べ数 | 最大72案 | 最大72案 | 144。Finderは別枠1ページ/市場、最大50返却 |
+| Shopee requests | 69 | 69 | 138。Category3＋Brand60＋Attribute6/市場、1取得10page維持 |
+| Bridge read | 69 | 69 | 138。各Shopee物理操作前。別診断読取を自動追加しない |
+| Google auth物理send | 最大69案 | 最大69案 | 138。Bridge1回あたり最大1 auth sendの内部案。ライブラリ隠れretryをofflineで拒否できなければ実行停止 |
+| OpenAI calls/USD | 13 / 0.50 | 13 / 0.50 | 26 / 1.00。Category12＋画像1/市場、現在model/単価再検証が必要 |
+| 画像GET | 3 | 3 | 6。既存selector、1画像検査call最大3枚、再検査も枠消費 |
+| 新規出品/外部投入 | 0 | 0 | 0。実SUCCESSを合成結果から作らない |
+
+上限はoperationごとの権限と併用する。余り枠で対象/endpoint/leaf/ページを増やさない。
+3 session・再取得/旧cache補完を含む詳細計画は3〜5節を基準にし、
+画像再検査が必要なら1call/市場で不足し得るため、迂回せず再見積・別承認する。
+
+過去指定の再利用は「同じだったと思う」では行わない。Owner原指示参照、正本Decision/承認票、
+一次商品資料/実CSVのASIN・市場・shop・用途・source_id、今回scopeの一致を行ごとに検査する。
+旧SGの最大3商品/$1/50page枠、6商品Category受入、旧100578資料を初回P5の指定や現行性証明へ流用しない。
+Owner原指示を直接確認できた指定は`MISSING`に戻さず、最新資料未照合なら
+`Owner指定済み／実行Evidence未結合`とする。提供済みとの原指示はあるが現物を特定できないCSVも同様とする。
+直接確認できない値は`UNVERIFIED`、未指定値/参照不明は`MISSING`とし、既指定値を再選定させず残る参照だけを確認する。
+過去P5 Contextの設計承認・offline採用は今回の実行承認ではない。
+
+即停止は、Governance HOLD/HARD_STOP、票/実コード/scope/shop/credential/保存不一致、一次仕様未確認、
+対象/資料/selection世代不一致、Safety停止、公式部分取得、有限枠不足/不明消費、保存/backup/容量検査失敗、
+未完了更新intent、PENDING/UNKNOWN投入lock、未承認AUTO_RULE、secret露出である。
+対応は対象process停止・現在出力失効・予約/履歴保持とし、retry・枠reset・資料の推測補完で継続しない。
+承認票version/対象/上限/主要リスク/releaseが変われば現在対象への承認を取り直す。

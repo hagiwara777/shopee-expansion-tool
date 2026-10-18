@@ -1756,3 +1756,16 @@
 - 保護: Safety BLOCK／REVIEW／EXCLUDE、Battery／SLS／SG本体・画像、全ショップ重複の既存validatorを維持する。Safety停止や現在根拠不足ではCategory／Brand人間確定を停止する。予算は送信前予約のまま再起動・別clientでも累積し、Finderの再検索を許可しない。選択・出所・同一性とP2履歴は保持し、新sessionへ過去ready／公式receiptを自動復元しない。
 - 停止・未完成: 選択後の商品Fact／Candidate変更は停止する。固定資料の再搬送をofflineで扱い、実再取得による資料更新とtrusted live adapterは後続の別承認へ残す。その接続も固定ASIN集合・旧selection・累積消費を維持する必要がある。mockを公式証拠・運用CSVへ昇格せず、offline成功をF08 live・C12・実務Beta完成としない。
 - 範囲・rollback: P5接続と関連tests・契約文書だけを変更し、既存P1〜P4、Guardrail資産、認証・実DB・旧ledger／claim、稼働release、PH／SG protected capabilityと他市場を変更しない。P5利用停止と通常revertで戻し、既存記録・予算・履歴を削除しない。main採用はtechnical gatesと現在対象へのOwner別最終承認を要する。
+
+
+## DEC-0146 — P5 trusted接続・固定対象の商品資料更新・D新規保存の実装前契約を定める
+
+- 日付: 2026-10-18
+- authority／目的: Ownerは実APIを使わず、live接続方式・商品資料の再取得更新・保存先・承認条件を具体化する設計を依頼した。実装、実API/有料通信、実credential操作、実商品処理、実運用DB作成・既存データ変更・移設・削除・実出品・未承認main変更は行わない。
+- 決定: 詳細はP5_LIVE_DESIGN、実対象の固定欄はP5_ACCEPTANCE_EXECUTION_PLANとする。P5専用trusted adapterだけが、現在のOwner明示承認と具体票・実コード/release/target・市場/shop/credential参照・保存identity・操作/有限枠を検査してメモリ内permitを注入する。設定/UI/env/参照文字列だけから許可を作らず、人間承認の暗号学的証明と称さない。既存bounded transport・P1/P2出力を再利用する。
+- 商品資料: scope/claim・選択ASIN集合・出所/旧selection・累積予約/実測・P2履歴と投入進行を保持する。同じledgerへversion付き資料世代/更新intentを追記し、更新開始で旧確認/出力を先に失効する。P2 revisionとledger世代の両commit整合前にはcurrent出力を許可せず、crash/不明結果で自動再送・旧成功復元しない。意味の変化したResolver同一性とCategory→Brand等を再確認し、対象外商品の無関係な確認を失わせない。新scope/ledger・別batchで対象や枠を復活させない。
+- 保存: D固定NTFSを新規P5データの第一候補とし、root/run/market/shopごとにP2/cache/ledger/claim・資料・結果を分離する。親の広いACLはそのまま継承せず、canonical/volume非重複・専用権限・排他初期化・整合backup/隔離復旧・容量監視を設置条件とする。今回root/probe/実DBは作成しない。同じD上のbackupはディスク故障対策ではない。既存Git/worktree/.venv/DB/outputsは移動せず、容量制約を新しいBeta MUSTにしない。
+- 置換範囲: DEC-0145の「選択後の資料変更停止」は現在コードに維持する。本設計の別承認offline実装・検証・formal採用後にだけ、承認された同一固定対象の資料更新経路へ限定して置き換える。旧ledger自動移行・旧固定modeのdigest変更はしない。初回HUMAN、C04未達、F08 live/C12別受入、PH/SG protectedと既存Safety停止を維持する。
+- 承認境界／次工程: 次は本契約の最小offline実装とT01〜T08の別承認作業。formal採用・新保存先設置/固定release・credential参照利用・列挙live/有料操作・実商品受入・外部投入/実出品をそれぞれの適用承認境界で扱う。一次Shopee仕様・実対象/全shop資料・現在料金・具体票が未確認ならlive停止。過去指定の再利用はOwner原指示・正本・一次資料の一致が確認できる範囲だけとする。
+- rollback／再検討: 設計文書は通常revert/新Decision追記で戻せる。実装後はP5入口停止と対象差分の通常revertを用い、過去scope・selection・予約消費・UNKNOWN lock・履歴・Evidenceを削除しない。一次仕様不一致・世代整合不良・必要予算変更・責務拡大は停止して別判断する。
+- 設計レビュー反映: Owner指定の回収と実行Evidence結合、具体的操作の承認は別に扱う。原指示確認済みのshop/ジャンル/seed/既出品状況/Resolver出所は非公開票へ保持し、未指定へ戻さない。最新CSV・SHA・公式資料・商品同一性・scopeの未結合はlive停止条件であり、最小offline実装そのもののblockerにしない。T01〜T08は既存保護を再利用する最小差分検証であり、追加機能・Beta MUSTの拡張ではない。

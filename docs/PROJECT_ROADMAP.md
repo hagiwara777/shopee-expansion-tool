@@ -17,7 +17,9 @@ P4の[共通日常操作](PRACTICAL_UI_P4.md)は、新規保存先を明示す�
 管理／診断分離、準備pool・CSV／TXT、5状態・永続予約・結果不明の復旧を扱う（DEC-0142）。
 F1/F2の[共通取得後判定](CANDIDATE_PRICE_RATING_FILTERS.md)と両入口・両市場の操作をoffline実装として整備した（DEC-0143）。
 [P5最小接続のoffline開発](P5_CONNECTION.md)は既存P1〜P4と有限API部品を再利用する（DEC-0144）。
-次の単一作業は、対象・一次資料・保存先・有限枠を固定し、別Owner承認後に同じP5タスクで行う少量実商品反復受入。
+P5の[trusted接続・資料更新・D保存設計](P5_LIVE_DESIGN.md)を先に最小offline実装・検証し（DEC-0146）、
+対象・一次資料・保存先・有限枠・固定releaseを確定して、設置・実行への別Owner承認後に少量実商品反復受入を行う。
+既指定の実対象は非公開票へ回収し、今回資料との未結合を記録する。未結合の解消はlive前条件でありoffline実装と分ける。
 F1/F2の実AMAZON円・評価・消費token照合もP5へ残し、offline成果を実務Beta全体の完成としない。
 個別AUTO_RULEの実運用適用、実API・費用・設置・release反映・実出品は別承認とする。
 固定PH基準（DEC-0116）は[既存機能の回帰基準](PH_BETA_MARKET_PARITY.md)として保持する。
