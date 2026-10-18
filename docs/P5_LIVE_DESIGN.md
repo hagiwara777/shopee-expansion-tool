@@ -42,7 +42,8 @@ D直下はAuthenticated Users等へ広い権限を持つため、継承したま
 
 1. 固定NTFSとvolume identityを再確認し、全祖先のreparse point/junction/symlink、UNC、SUBST等の別名を拒否する。
    canonical pathとvolume/file identityで、既存Git/worktree/.venv/SQLite/cache/outputs/ledger/claim、
-   他run・他市場・他shopおよびbackup先との同一・包含・alias重複を検査する。文字列prefixだけで判定しない。
+   他run・他市場・他shopとの同一・包含・alias重複を検査する。計画どおりの同shop内`backups/`は許容するが、
+   backupファイルと稼働ファイルの同一identityや、他保存先へ抜けるaliasを拒否する。文字列prefixだけで判定しない。
 2. 実行ユーザー、SYSTEM、管理者に限定した専用ACLを明示設定し、親の広い継承を除く。
    共有データ利用者が必要なら実名主体と権限をOwner票へ追加する。Everyone等の広い書込みを許可しない。
    credential参照先をこのrootへコピーしない。
