@@ -30,8 +30,14 @@ P5の[二段階の探索・対象固定](P5_CONNECTION.md)は、承認済みFind
 人間が明示した準備対象を同じscope・ledgerのままSafety／分類／P2保存へ渡すoffline接続とする（DEC-0145）。
 選択・出所・同一性・累積予算を保存し、未選択・資料変更・Safety停止から分類確定／準備へ進めない。
 再開は固定資料の再搬送と現在根拠の再確認に限る。実商品再取得に伴う資料更新adapterとlive許可注入は未提供。
-次の単一作業は、既存P5タスクで対象・一次資料・保存先・release・有限枠を固定し、
-Ownerの別承認後に行うP5少量実商品反復受入。
+[trusted live接続・商品資料更新・D保存契約](P5_LIVE_DESIGN.md)を実装前設計とする（DEC-0146）。
+固定selection・ASIN・累積消費・履歴を保持し、更新開始の失効とledger/P2世代整合を要求する。
+設計は現在コードの資料変更停止を解除しない。D採用は専用ACL・非重複・設置検証・backupを条件とする。
+次の単一作業は、別承認によるこの契約の最小offline実装とT01〜T08の検証。
+対象・一次資料・保存先・release・有限枠が固定され、設置と実行へのOwner別承認が成立するまで、
+実API・実商品反復受入は開始しない。
+Owner指定済みのshop・商品候補・既出品状況は非公開票で保持し、最新資料・SHA・今回scopeとの
+実行Evidence結合を別に確認する。指定の回収を実行承認にせず、未結合をoffline実装の停止理由にしない。
 F08の実AMAZON円・評価・tokensConsumed照合を含め、offline成功を実務Beta全体の完成としない。
 [実商品受入・Owner判断資料](PH_SG_BETA_ACCEPTANCE_PLAN.md)は旧SG少量2商品群計画を維持する。
 [P5実施設計・承認票](P5_ACCEPTANCE_EXECUTION_PLAN.md)でshop・商品・再取得予算・保存先・release・接続差分を固定する。
@@ -210,6 +216,8 @@ Source明示ON時のsilent fallbackを許さない。Bridge全面書込み障害
 SG Brand responseにmarketplace / Category echoがないため、server内部の別Category誤応答の独立検出は保証しない。
 
 ## Required Decisions
+
+- DEC-0146 — P5 trusted adapter・固定対象の商品資料世代更新・D新規保存、実装/設置/liveの別承認。
 
 - DEC-0145 — P5探索前の有限条件と探索後の明示対象固定、Resolver同一性、同じledgerでの再開と資料変更停止。
 
