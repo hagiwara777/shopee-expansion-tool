@@ -50,6 +50,8 @@ def render_beta(*, sg_config_path=None, ph_runtime_root=None, ph_api_env_path=No
         previous = st.session_state.get('p5_runtime')
         if previous is not None and previous.scope.digest != runtime.scope.digest:
             clear_country_session()
+        elif previous is not None:
+            runtime = previous  # keep the active lease/ledger across rerenders
         st.session_state['p5_runtime'] = runtime
         st.session_state['p4_diagnostics'] = False
         if not render_p5_start(runtime):
@@ -117,7 +119,8 @@ if __name__ == '__main__':
     if args.p5_config is not None:
         # Scope files are descriptive only; never deserialize a permit/client.
         import json
-        from modules.p5_runtime import P5Scope, P5Runtime
+        from modules.p5_runtime import P5Scope
+        from modules.p5_operator import configured_runtime
         p5_runtimes = {}
         for value in json.loads(args.p5_config.read_text('utf-8')):
             for name in ('asins', 'category_ids', 'finder_queries', 'openai_models'):
@@ -126,7 +129,7 @@ if __name__ == '__main__':
             scope = P5Scope(**value)
             if scope.marketplace in p5_runtimes:
                 raise ValueError('Duplicate P5 marketplace')
-            p5_runtimes[scope.marketplace] = P5Runtime(scope)
+            p5_runtimes[scope.marketplace] = configured_runtime(scope)
     render_beta(sg_config_path=args.sg_config, ph_runtime_root=args.ph_runtime_root,
                 ph_api_env_path=args.ph_api_env, sg_work_db=args.sg_work_db, sg_work_shop=args.sg_work_shop,
                 classification_workspaces=workspaces, practical_workspaces=practical or None,

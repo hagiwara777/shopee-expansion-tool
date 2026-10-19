@@ -1791,3 +1791,15 @@
 - 保護・置換範囲: DEC-0144/0146/0147の一律3仕様・未使用OpenAI価格要求だけを操作別契約へ置換する。Owner原承認、市場/shop・実コード/release/実行対象・保存identity、送信前永続予約、Shopee/Bridge/OAuth別計数、retry/redirect禁止、UNKNOWN停止・予約保持、Category/Brand現在根拠・完全Brand・No Brand無断fallback禁止、Safety/Battery/SLS/SG本体・画像、PH/SG protected、P1〜P4/F1/F2、既存DB/ledger/claim/履歴を維持する。C04の限定AUTO_RULE完成条件を変更せず、HUMANだけで実務Beta完成としない。
 - 検証／後続: 合成authority・HTTP・資料とAppTestで操作別preflightと失敗停止を検証する。offline成功を実API・実設置・F08 live/C12・Owner実務受入へ昇格しない。次は非公開実行票の未結合項目・使用操作の一次仕様・production原承認source/trusted operator・設置条件を具体化する。保存・設置・live・費用・実商品受入は各境界の別承認を要する。
 - 非対象／rollback: 属性値自動推定・入力・DB保存、新しい属性確認DB、CSV列変更、大規模workflow、汎用承認基盤、DB schema変更、既存出品ツール改修・自動連携・実出品は追加しない。P5利用停止と対象差分の通常revertで戻し、既存記録・予約・UNKNOWN・履歴・過去Decision/Evidenceを保持する。
+
+
+## DEC-0149 — P5原承認・Windows観測・Keepa参照を明示startと既存checkpointへoffline組成する
+
+- 日付: 2026-10-19
+- authority／目的: OwnerのP5 production組成最小実装依頼に従い、前工程の非公開3資料と既指定Owner情報を保持して、原承認provider・実OS観測・Keepa参照・入口・checkpointの未結合だけをoffline接続する。実API、有料送信、実credential本文、実商品、D設置／ACL／probe、稼働release変更、実出品とformal mergeは実施しない。
+- 決定: 詳細はP5_CONNECTIONとする。trusted operatorが原文と現在票を照合したtyped recordをP5専用authorityへ結合し、開始・操作・出力で元source・票・期限・撤回・scope・操作集合・配賦を再照合する。JSON／env／APPROVED文字列だけで許可しない。独立human-origin証明や汎用認証基盤を追加せず、実sourceとoperator登録未結合はproduction停止を維持する。
+- 組成: WindowsのPID／開始時刻／SID／実entrypoint／listener所有・loopbackと、実release／ロード済みコード、保存volume／全祖先alias／identity／非重複／ACL／容量を検査する部品を明示注入する。P5Setupの未作成先はidentity／容量を事前検査し、排他作成・ACL後の完全検査とprobeを省略しない。実設置は別承認とし、途中残骸を保持する。
+- 認証・開始: Keepaは承認観測へdigest結合した明示の既存key環境変数参照だけをservice操作時に解決する。Shopee／Googleの既存reader・bounded transportを維持し、service別cacheで利用順と未承認secretの先読みを分離する。OpenAI参照は未接続。app_betaの同じentrypointで明示start後だけpermit組成し、設定単独・初期表示・再描画は通信／secret読込／DB作成0とする。
+- 保存・保護: output／session-endのcheckpointを既存p5_setupへ接続し、hook欠落／backup失敗は停止を永続化する。既存schema／CSV列、ledger／claim／UNKNOWN／履歴、strict 1pageと累積有限予約、P1〜P4／F1/F2、Safety／Battery／SLS／PH・SG protectedを維持する。
+- 検証・後続: 合成原承認・OS・HTTPと実SDKのoffline traceで検証する。暫定4send／112 tokenは最大予約計画であり最終承認枠へ固定しない。Category／BrandとKeepa /token個別仕様のPRIMARY_SOURCE_UNVERIFIED、実参照・実対象のcurrent結合、実設置と完成票の別実行承認をlive前条件に残す。これらの未結合はoffline実装の無期限停止理由にしない。初回HUMANをC04完成とせず、F08 live／C12／実務Beta完成・実商品受入とは区別する。
+- rollback: P5利用停止と通常revertで戻す。既存保存・予約・消費・UNKNOWN・claim・履歴とOwner指定・過去Decision／Evidenceを削除・resetしない。新しい汎用基盤、重大な契約変更・責務拡張が必要なら独断で追加せず停止する。

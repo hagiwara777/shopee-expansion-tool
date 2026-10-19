@@ -420,6 +420,8 @@ class P5Runtime:
         scope.validate()
         self.scope, self.permit = scope, permit
         self._credentials = credentials
+        self._service_credentials = {}
+        self._bridge_token = None
         self._execution_identity = execution_identity
         self.ledger = self.workflow = None
         self._store = None
@@ -519,17 +521,24 @@ class P5Runtime:
             if not allowed:
                 raise P5Stopped('P5_OPERATION_NOT_APPROVED')
             self.require_operation(sorted(allowed)[0])
-        if self._credentials is None and self.credential_resolver is not None:
-            self._credentials = self.credential_resolver(service)
+        if self.credential_resolver is not None and self._credentials is None:
+            if service not in self._service_credentials:
+                self._service_credentials[service] = self.credential_resolver(service)
+            credentials = self._service_credentials[service]
+        else:
+            credentials = self._credentials  # legacy explicit synthetic injection
         from modules.p5_transport import P5Secrets
-        if (not isinstance(self._credentials, P5Secrets)
-                or self._credentials.credential_ref != self.scope.credential_ref
-                or self._credentials.marketplace != self.scope.marketplace
-                or self._credentials.shop_id != self.scope.shop_id
-                or (service in (None, 'shopee', 'bridge') and
-                    str(getattr(self._credentials.shopee_credentials, 'shop_id', '')) != self.scope.shop_id)):
+        if (not isinstance(credentials, P5Secrets)
+                or credentials.credential_ref != self.scope.credential_ref
+                or credentials.marketplace != self.scope.marketplace
+                or credentials.shop_id != self.scope.shop_id
+                or (service in (None, 'shopee') and
+                    str(getattr(credentials.shopee_credentials, 'shop_id', '')) != self.scope.shop_id)):
             raise P5Stopped('P5_APPROVED_CREDENTIAL_ADAPTER_REQUIRED')
-        return self._credentials
+        if service == 'shopee' and self._bridge_token is not None:
+            credentials = replace(credentials, shopee_credentials=replace(
+                credentials.shopee_credentials, access_token=self._bridge_token))
+        return credentials
 
     def require_operation(self, operation):
         self.require_current()
@@ -545,10 +554,19 @@ class P5Runtime:
         return update_material(self, expected, reviewer=reviewer, note=note, identity=identity, fetch=fetch)
 
     def checkpoint(self, reason):
-        if self.checkpoint_hook is not None:
-            self.checkpoint_hook(self, reason)
-        elif self.authorization_guard is not None and not getattr(self.permit, 'offline_test', False):
-            raise P5Stopped('P5_CHECKPOINT_REQUIRED')
+        try:
+            if self.checkpoint_hook is not None:
+                self.checkpoint_hook(self, reason)
+            elif self.authorization_guard is not None and not getattr(self.permit, 'offline_test', False):
+                raise P5Stopped('P5_CHECKPOINT_REQUIRED')
+        except Exception:
+            if self.ledger is not None:
+                self.ledger.data['stopped'] = True
+                try:
+                    self.ledger.persist()
+                except Exception:
+                    raise P5Stopped('P5_CHECKPOINT_STATE_PERSIST_FAILED') from None
+            raise P5Stopped('P5_CHECKPOINT_FAILED') from None
 
     def refresh_access_token(self):
         """Explicit bounded Bridge read. Never write credentials or auto-refresh."""
@@ -568,7 +586,9 @@ class P5Runtime:
             self.ledger.data['stopped'] = True
             self.ledger.persist()
             raise P5Stopped('P5_BRIDGE_TOKEN_UNVERIFIED') from None
-        self._credentials = replace(secrets, shopee_credentials=replace(secrets.shopee_credentials, access_token=token.value))
+        self._bridge_token = token.value
+        if self.credential_resolver is None:
+            self._credentials = replace(secrets, shopee_credentials=replace(secrets.shopee_credentials, access_token=token.value))
 
     def amazon_client(self):
         from modules.p5_transport import make_keepa_client
@@ -701,5 +721,7 @@ class P5Runtime:
         finally:
             self.ledger = self.workflow = self.category_receipt = None
             self._store = None
+            self._service_credentials.clear()
+            self._bridge_token = None
             self.attributes.clear()
             self.weapon_receipts.clear()

@@ -17,8 +17,8 @@ Keepaの商品取得枠は再取得を含む要求商品数であり、準備商
 
 設定だけで実行は許可しない。`P5Runtime`の明示startには、別承認されたtrusted integrationから
 完全scopeに一致する`P5ExecutionPermit`と、release/実行対象の観測関数を注入する必要がある。
-許可をJSON・環境変数・checkboxから作るloaderはない。標準の`--p5-config`入口はpermitを作らず停止する。
-production原承認source、保存先設置・release反映は既定提供しない。
+許可をJSON・環境変数・checkboxから作るloaderはない。標準の`--p5-config`単独ではpermitを作らず停止する。
+実原承認record、trusted operatorの実processへの登録、保存先設置・release反映は別承認後に結合する。
 Python object/referenceは人間承認の暗号学的証明ではなく、trusted adapterの責務境界である。
 
 ### production参照接続のoffline差分（DEC-0147）
@@ -35,16 +35,50 @@ production組成では以下の実装部品も要求し、従来の任意callbac
   非秘密参照のdigestも承認観測の`credential.binding_digest`へ含める。
   `P5CredentialResolver`をadapterに明示注入し、承認・開始検査の後、必要時だけ既存PH/SG readerを呼ぶ。
   読込後に実shopも照合し、legacy Access Tokenは破棄する。tokenは既存bounded Bridgeで後から解決する。
-  ADC・既定path・環境探索へのfallbackは追加しない。今回のresolverはShopee/Google参照に限定し、
-  Keepa/OpenAIの承認済みkey参照のproduction接続は未提供であり、空keyはclient生成前に停止する。
+  ADC・既定path・環境探索へのfallbackは追加しない。このresolver自身の責務はShopee/Google参照に限定する。
+  Keepaは下記のservice別接続だけを使い、OpenAI keyのproduction参照は未接続。空keyはclient生成前に停止する。
 - BridgeはGoogle credential本文の読込前にもBridge/auth操作許可を検査する。
   Sheetsはscopeのsheet・A:C・ROWSだけとし、Bridge 1回につきOAuth物理sendは最大1回。
   追加send・redirect・timeout・認証後のparse失敗・Bridge token不一致は停止し、
   既存ledgerの予約と停止状態を保持する。Shopee/Bridge/authは従来どおり別計数とする。
 
-production原承認の検証provider、端末/実process/port・保存/ACL/容量のtrusted観測、
-実credential参照の承認済みrecordは未結合。これらをfixtureや自己申告で完成済みにしない。
+実原承認source・端末/実process/port・保存先への設置と実credential参照の承認済みrecordは未結合。
+下記のoffline部品をfixtureや自己申告で実設置成功へ昇格しない。
 標準起動は引き続き実行不可。offline testsの合成authority・mock HTTPはproduction証明ではない。
+
+### production組成の最小offline接続（DEC-0149）
+
+- `p5_operator.P5OwnerAuthority`はtrusted operatorが原文と現在票を照合したtyped recordを受ける。
+  Owner・原文・日時・対象scope・操作集合・有限配賦・期限・終了条件・撤回と票digestを固定し、
+  元sourceと現在票を開始・操作・出力時に再取得して変更・欠落を拒否する。
+  自己申告JSON／APPROVED文字列を原承認へ変換するloaderはない。独立human-origin証明ではない。
+- `P5Operator`はこのauthority、`WindowsP5Observer`、service参照、checkpointを組成する。
+  trusted process initializerが明示登録したobjectだけを既存app_beta入口で使用する。
+  登録をJSON／CLI／環境変数／UIから行わず、実recordがない通常起動は停止する。
+  `--p5-config`の初期表示ではpermitを作らず、明示start後だけ組成・検査・既存DB openを行う。
+  同じscopeの再描画は既存runtimeとleaseを保持し、追加send・secret読込・DB作成を行わない。
+- `p5_windows`は実PID・開始時刻・実行SID・実Python/entrypoint・listenerの所有PIDとloopbackを観測する。
+  machine/PID/開始時刻/portから実行対象を導き、clean release・tree・import元・ロード済みコードと結合する。
+  storageは全祖先のreparse／SUBST、volume/file identity、保護先との非重複、hardlink、専用ACLと容量を検査する。
+  実体不明は停止。constructor/importはOS観測・ACL変更・probeを行わない。
+- `WindowsStorage.setup()`を既存P5Setupへ渡す。未作成先はvolume／祖先／非重複／容量だけを先に検査し、
+  新規親を含む排他作成・専用ACL設定後、完全なidentity／ACL検査とprobeを要求する。
+  installation rootは作成を承認された親範囲を含めて固定し、既存path・途中残骸は採用・再初期化しない。
+  backup・隔離復旧も同じ作成前／作成後検査を使い、既存のmanifest・履歴・UNKNOWN照合を維持する。
+- `P5ServiceCredentials`は使用serviceの非秘密参照digestを原承認観測へ結合する。
+  Keepaは`P5KeepaReference`で明示した既存環境変数名だけを必要時に読む。既定名探索・他serviceへのfallbackはない。
+  この環境変数はkeyの参照元であり実行承認ではない。keyの作成・読込やprocessへの配置は別承認とする。
+  BridgeはGoogle file参照だけを返し、本文は既存bounded transportのbridge/auth検査後に読む。
+  Shopeeは既存readerで実shopを照合しlegacy tokenを捨てる。cacheはservice別で、Keepa→Bridge／逆順でも分離する。
+  未承認serviceはcache利用前にも拒否。OpenAI／Attributeの初回未使用境界を維持する。
+- `P5Checkpoint`はoutput／session-end／承認済み資料更新を既存backupへ接続する。
+  hook欠落・backup失敗はledgerの停止を保存し、運用bytesを返さない。予約・claim・UNKNOWN・履歴を削除しない。
+
+合成HTTPと実SDKによるcold strict 1page=50のtraceはtoken→seed Product→query→候補Productの4send、
+要求商品延べ51、最大予約0＋1＋11＋100＝112 token。cache再表示は0send、別clientも同じ有限ledgerを使う。
+これは実消費の保証や最終承認予算ではない。Category／BrandとKeepa `/token`個別仕様の
+PRIMARY_SOURCE_UNVERIFIEDを維持し、実source・今回query／leaf／全shop資料・参照・設置・実行承認をlive前に結合する。
+Windows callbackの合成検証は実ACL／volume／probe／listenerの実証ではない。
 
 ## 操作別preflight（DEC-0148）
 
@@ -99,7 +133,7 @@ Safety／全ショップ照合の現在結果が停止ならCategory／Brand人�
 P5選択への同一ASIN複数行入力も停止する。通常Resolverの元行保持・既存Gate境界の一意化は変更しない。
 新規設置の更新対応formatではP5_LIVE_DESIGNのjournal/P2照合を通して同じ固定対象の資料だけを更新する。
 その場合も旧selection・予算・履歴を消さず、固定ASIN集合を維持する。新scope／新ledgerによる枠復活は禁止。
-実承認source・現在観測・Windows設置検査のproduction接続は別に必要であり、
+実承認source・現在観測・Windows設置検査の実環境への結合は別に必要であり、
 本方式はF08 live、実商品受入、実務Beta完成を意味しない。
 
 起動・初期表示・再描画・F1/F2条件変更では通信しない。P5は既存Amazon factoryへfallbackせず、
