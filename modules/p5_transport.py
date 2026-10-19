@@ -164,8 +164,9 @@ class P5HTTP:
              'image': {'m.media-amazon.com', 'images-na.ssl-images-amazon.com'},
              'openai': {'api.openai.com'}}
 
-    def __init__(self, runtime, kind, *, session=None):
+    def __init__(self, runtime, kind, *, session=None, max_attempts=None):
         self.runtime, self.kind = runtime, kind
+        self.max_attempts, self.attempts = max_attempts, 0
         self._session = session if session is not None else requests.Session()
         # No urllib3 automatic retries in production P5 sessions.
         if session is None:
@@ -185,6 +186,15 @@ class P5HTTP:
             raise P5Stopped('P5_HTTP_ROUTE_REFUSED')
         if self.kind == 'auth' and parsed.path != '/token':
             raise P5Stopped('P5_AUTH_ENDPOINT_REFUSED')
+        if self.kind == 'auth' and parsed.query:
+            raise P5Stopped('P5_AUTH_ENDPOINT_REFUSED')
+        if self.kind == 'bridge':
+            sheet = self.runtime.scope.bridge_spreadsheet_id
+            expected = f'https://sheets.googleapis.com/v4/spreadsheets/{quote(sheet, safe="")}/values/A%3AC'
+            if not sheet or url != expected or kwargs.get('params') != {'majorDimension': 'ROWS'}:
+                raise P5Stopped('P5_BRIDGE_BINDING_MISMATCH')
+        if self.max_attempts is not None and self.attempts >= self.max_attempts:
+            raise P5Stopped('P5_UNPLANNED_HTTP_SEND')
         if self.kind == 'openai' and url != 'https://api.openai.com/v1/responses':
             raise P5Stopped('P5_OPENAI_ENDPOINT_REFUSED')
         kwargs['allow_redirects'] = False
@@ -195,6 +205,7 @@ class P5HTTP:
             if self.kind == 'openai':
                 usd = P5OpenAIBudget.check_payload(self.runtime.scope, kwargs.get('json', {}))
             reservation = self.runtime.ledger.reserve(self.kind, usd=usd)
+            self.attempts += 1
             response = self._session.request(method, url, **kwargs)
             if response.status_code != 200:
                 raise P5Stopped('P5_HTTP_RESPONSE_FAILED')
@@ -323,6 +334,8 @@ def make_keepa_client(runtime, secrets, *, transport=None):
             or secrets.marketplace != runtime.scope.marketplace
             or secrets.shop_id != runtime.scope.shop_id):
         raise P5Stopped('P5_CREDENTIAL_REFERENCE_MISMATCH')
+    if not isinstance(secrets.keepa_key, str) or not secrets.keepa_key.strip():
+        raise P5Stopped('P5_APPROVED_KEEPA_CREDENTIAL_REQUIRED')
     if transport is not None and not runtime.permit.offline_test:
         raise P5Stopped('P5_MOCK_KEEPA_REFUSED')
     from modules.cache import KeepaCache
@@ -398,6 +411,8 @@ def make_image_inspector(runtime, secrets, *, api_session=None, image_session=No
     if (not isinstance(secrets, P5Secrets) or secrets.credential_ref != runtime.scope.credential_ref
             or secrets.marketplace != runtime.scope.marketplace or secrets.shop_id != runtime.scope.shop_id):
         raise P5Stopped('P5_CREDENTIAL_REFERENCE_MISMATCH')
+    if not isinstance(secrets.openai_key, str) or not secrets.openai_key.strip():
+        raise P5Stopped('P5_APPROVED_OPENAI_CREDENTIAL_REQUIRED')
     from modules.weapon_image_inspection import BudgetedLiveWeaponImageInspector
     class ScopedInspector(BudgetedLiveWeaponImageInspector):
         def inspect(self, evidence):
@@ -417,6 +432,8 @@ def make_category_provider(runtime, secrets, *, session=None):
     if (not isinstance(secrets, P5Secrets) or secrets.credential_ref != runtime.scope.credential_ref
             or secrets.marketplace != runtime.scope.marketplace or secrets.shop_id != runtime.scope.shop_id):
         raise P5Stopped('P5_CREDENTIAL_REFERENCE_MISMATCH')
+    if not isinstance(secrets.openai_key, str) or not secrets.openai_key.strip():
+        raise P5Stopped('P5_APPROVED_OPENAI_CREDENTIAL_REQUIRED')
     from modules.category_ai_openai import OpenAIResponsesCategoryProvider
     class ScopedProvider(OpenAIResponsesCategoryProvider):
         def select(self, request, profile):
@@ -440,7 +457,10 @@ class P5BridgeTransport:
         self.credential_file, self.spreadsheet_id = credential_file, spreadsheet_id
 
     def read_values(self, spreadsheet_id, cell_range):
-        self.runtime.require_current()
+        # Approval must cover the operation before even reading the credential
+        # body; each eventual physical send also rechecks its own operation.
+        self.runtime.require_operation('bridge')
+        self.runtime.require_operation('auth')
         if (not spreadsheet_id or spreadsheet_id != self.runtime.scope.bridge_spreadsheet_id
                 or spreadsheet_id != self.spreadsheet_id or cell_range != 'A:C'):
             raise P5Stopped('P5_BRIDGE_BINDING_MISMATCH')
@@ -448,14 +468,30 @@ class P5BridgeTransport:
         from google.auth.transport.requests import Request
         # Do not hand arbitrary external-account/executable configurations to
         # google-auth. Only these two local credential formats are supported.
-        data = json.loads(Path(self.credential_file).read_text(encoding='utf-8'))
+        try:
+            data = json.loads(Path(self.credential_file).read_text(encoding='utf-8'))
+        except Exception:
+            raise P5Stopped('P5_GOOGLE_CREDENTIAL_UNAVAILABLE') from None
         if not isinstance(data, dict) or data.get('type') not in {'authorized_user', 'service_account'}:
             raise P5Stopped('P5_GOOGLE_CREDENTIAL_TYPE_REFUSED')
-        request = Request(session=P5HTTP(self.runtime, 'auth'))
-        credentials, _ = google.auth.load_credentials_from_dict(data,
-            scopes=['https://www.googleapis.com/auth/spreadsheets.readonly'], request=request)
-        headers = {}
-        url = f'https://sheets.googleapis.com/v4/spreadsheets/{quote(spreadsheet_id, safe="")}/values/A%3AC'
-        credentials.before_request(request, 'GET', url, headers)
-        return P5HTTP(self.runtime, 'bridge').get(url, headers=headers,
-            params={'majorDimension': 'ROWS'}).json()
+        # One Bridge read authorizes at most one OAuth physical send. A library
+        # attempting an extra successful refresh cannot spend spare auth budget.
+        auth = P5HTTP(self.runtime, 'auth', max_attempts=1)
+        bridge = P5HTTP(self.runtime, 'bridge', max_attempts=1)
+        try:
+            request = Request(session=auth)
+            credentials, _ = google.auth.load_credentials_from_dict(data,
+                scopes=['https://www.googleapis.com/auth/spreadsheets.readonly'], request=request)
+            headers = {}
+            url = f'https://sheets.googleapis.com/v4/spreadsheets/{quote(spreadsheet_id, safe="")}/values/A%3AC'
+            credentials.before_request(request, 'GET', url, headers)
+            return bridge.get(url, headers=headers, params={'majorDimension': 'ROWS'}).json()
+        except Exception:
+            # Even a 200 OAuth response may have been consumed before a parser
+            # failure. Do not permit a new Bridge attempt to hide that outcome.
+            self.runtime.ledger.data['stopped'] = True
+            self.runtime.ledger.persist()
+            raise P5Stopped('P5_BRIDGE_ACTION_STOPPED') from None
+        finally:
+            auth.close()
+            bridge.close()

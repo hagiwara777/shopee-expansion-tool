@@ -461,7 +461,8 @@ class P5Runtime:
         if (not isinstance(self._credentials, P5Secrets)
                 or self._credentials.credential_ref != self.scope.credential_ref
                 or self._credentials.marketplace != self.scope.marketplace
-                or self._credentials.shop_id != self.scope.shop_id):
+                or self._credentials.shop_id != self.scope.shop_id
+                or str(getattr(self._credentials.shopee_credentials, 'shop_id', '')) != self.scope.shop_id):
             raise P5Stopped('P5_APPROVED_CREDENTIAL_ADAPTER_REQUIRED')
         return self._credentials
 
@@ -492,8 +493,13 @@ class P5Runtime:
             raise P5Stopped('P5_APPROVED_BRIDGE_REFERENCE_REQUIRED')
         bridge = P5BridgeTransport(self, credential_file=secrets.google_credential_file,
                                   spreadsheet_id=self.scope.bridge_spreadsheet_id)
-        token = GoogleSheetAccessTokenSource(self.scope.bridge_spreadsheet_id, transport=bridge).get_access_token(
-            self.scope.marketplace, int(self.scope.shop_id))
+        try:
+            token = GoogleSheetAccessTokenSource(self.scope.bridge_spreadsheet_id, transport=bridge).get_access_token(
+                self.scope.marketplace, int(self.scope.shop_id))
+        except Exception:
+            self.ledger.data['stopped'] = True
+            self.ledger.persist()
+            raise P5Stopped('P5_BRIDGE_TOKEN_UNVERIFIED') from None
         self._credentials = replace(secrets, shopee_credentials=replace(secrets.shopee_credentials, access_token=token.value))
 
     def amazon_client(self):

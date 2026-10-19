@@ -236,7 +236,7 @@ def test_t01_lower_p2_write_and_download_cannot_bypass_operation_allowlist(runti
 
 @pytest.fixture(params=['PH', 'SG'])
 def runtime(request, tmp_path):
-    runtime = runtime_for(tmp_path, request.param)
+    runtime = runtime_for(tmp_path, request.param, bridge_spreadsheet_id='synthetic-sheet')
     yield runtime
     runtime.close()
 
@@ -392,11 +392,13 @@ def test_failed_persistence_sends_nothing(runtime, monkeypatch):
         raise OSError('synthetic disk failure')
     monkeypatch.setattr('modules.sg_continuous_runtime.os.fsync', fail)
     with pytest.raises(P5Stopped):
-        P5HTTP(runtime, 'bridge', session=session).get('https://sheets.googleapis.com/v4/spreadsheets/synthetic/values/A:C')
+        P5HTTP(runtime, 'bridge', session=session).get(
+            'https://sheets.googleapis.com/v4/spreadsheets/synthetic-sheet/values/A%3AC',
+            params={'majorDimension': 'ROWS'})
     assert calls == []
 
 
-@pytest.mark.parametrize('kind,url', [('bridge', 'https://sheets.googleapis.com/v4/spreadsheets/synthetic'),
+@pytest.mark.parametrize('kind,url', [('bridge', 'https://sheets.googleapis.com/v4/spreadsheets/synthetic-sheet/values/A%3AC'),
     ('auth', 'https://oauth2.googleapis.com/token'), ('image', 'https://m.media-amazon.com/images/I/synthetic.jpg'),
     ('openai', 'https://api.openai.com/v1/responses')])
 def test_timeout_does_not_retry_and_paid_reservation_survives(runtime, kind, url):
@@ -407,6 +409,8 @@ def test_timeout_does_not_retry_and_paid_reservation_survives(runtime, kind, url
     session = SimpleNamespace(request=timeout)
     transport = P5HTTP(runtime, kind, session=session)
     kwargs = {'json': {'model': 'gpt-5.6-luna', 'store': False, 'max_output_tokens': 100, 'input': 'synthetic'}} if kind == 'openai' else {}
+    if kind == 'bridge':
+        kwargs = {'params': {'majorDimension': 'ROWS'}}
     method = transport.post if kind in {'auth', 'openai'} else transport.get
     with pytest.raises(P5Stopped): method(url, **kwargs)
     with pytest.raises(P5Stopped): method(url, **kwargs)
@@ -505,14 +509,16 @@ def test_expansion_and_resolver_share_bounded_sdk_and_filter_observations(runtim
 
 @pytest.mark.parametrize('kind', ['bridge', 'auth', 'image', 'openai'])
 def test_each_http_counter_is_independent_and_zero_limit_sends_nothing(tmp_path, kind):
-    runtime = runtime_for(tmp_path, **{kind+'_requests': 0})
+    runtime = runtime_for(tmp_path, bridge_spreadsheet_id='synthetic-sheet', **{kind+'_requests': 0})
     calls = []
     transport = P5HTTP(runtime, kind, session=SimpleNamespace(request=lambda *a, **k: calls.append(a)))
-    urls = {'bridge': 'https://sheets.googleapis.com/v4/spreadsheets/synthetic',
+    urls = {'bridge': 'https://sheets.googleapis.com/v4/spreadsheets/synthetic-sheet/values/A%3AC',
         'auth': 'https://oauth2.googleapis.com/token', 'image': 'https://m.media-amazon.com/a.jpg',
         'openai': 'https://api.openai.com/v1/responses'}
-    kwargs = {'json': {'model': 'gpt-5.6-luna', 'store': False, 'max_output_tokens': 100}} if kind == 'openai' else {}
-    with pytest.raises(P5Stopped):
+    kwargs = {'json': {'model': 'gpt-5.6-luna', 'store': False, 'max_output_tokens': 100, 'input': 'synthetic'}} if kind == 'openai' else {}
+    if kind == 'bridge':
+        kwargs = {'params': {'majorDimension': 'ROWS'}}
+    with pytest.raises(P5Stopped, match='HTTP_ACTION_STOPPED'):
         transport.request('POST' if kind in {'auth', 'openai'} else 'GET', urls[kind], **kwargs)
     assert not calls and not runtime.ledger.data['reservations']
     runtime.close()

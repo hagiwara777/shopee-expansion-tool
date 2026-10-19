@@ -18,8 +18,33 @@ Keepaの商品取得枠は再取得を含む要求商品数であり、準備商
 設定だけで実行は許可しない。`P5Runtime`の明示startには、別承認されたtrusted integrationから
 完全scopeに一致する`P5ExecutionPermit`と、release/実行対象の観測関数を注入する必要がある。
 許可をJSON・環境変数・checkboxから作るloaderはない。標準の`--p5-config`入口はpermitを作らず停止する。
-今回、そのlive許可注入・実credential参照の解決・保存先設置・release反映は行わない。
+production原承認source、保存先設置・release反映は既定提供しない。
 Python object/referenceは人間承認の暗号学的証明ではなく、trusted adapterの責務境界である。
+
+### production参照接続のoffline差分（DEC-0147）
+
+`P5TrustedAdapter`は原承認検証interfaceが欠落・失敗した場合、安全な理由だけで停止する。
+原承認recordを作るloader、APPROVED文字列からの許可生成、日常UIへのpermit発行は追加しない。
+production組成では以下の実装部品も要求し、従来の任意callbackは合成検証に限る。
+
+- `P5CodeIdentity`はimport元のcheckoutからGit root、origin、clean状態、実HEAD/treeと
+  実行中`app_beta.py`、P5/runtime/transport/Catalog import元とロード済み関数/メソッドを現在ソースへ照合する。
+  観測release・tree digest・entrypointを原承認に結合された観測と比較し、設定releaseの返却で代用しない。
+  fetch・checkout・設置は行わない。同じOSユーザーによる任意Python改変の隔離保証ではない。
+- `P5CredentialReference`はPH/SG、市場別shop、明示audit.env/Google file参照、Bridgeを固定する。
+  非秘密参照のdigestも承認観測の`credential.binding_digest`へ含める。
+  `P5CredentialResolver`をadapterに明示注入し、承認・開始検査の後、必要時だけ既存PH/SG readerを呼ぶ。
+  読込後に実shopも照合し、legacy Access Tokenは破棄する。tokenは既存bounded Bridgeで後から解決する。
+  ADC・既定path・環境探索へのfallbackは追加しない。今回のresolverはShopee/Google参照に限定し、
+  Keepa/OpenAIの承認済みkey参照のproduction接続は未提供であり、空keyはclient生成前に停止する。
+- BridgeはGoogle credential本文の読込前にもBridge/auth操作許可を検査する。
+  Sheetsはscopeのsheet・A:C・ROWSだけとし、Bridge 1回につきOAuth物理sendは最大1回。
+  追加send・redirect・timeout・認証後のparse失敗・Bridge token不一致は停止し、
+  既存ledgerの予約と停止状態を保持する。Shopee/Bridge/authは従来どおり別計数とする。
+
+production原承認の検証provider、端末/実process/port・保存/ACL/容量のtrusted観測、
+実credential参照の承認済みrecordは未結合。これらをfixtureや自己申告で完成済みにしない。
+標準起動は引き続き実行不可。offline testsの合成authority・mock HTTPはproduction証明ではない。
 
 ## 探索と対象固定の二段階（offline接続）
 
@@ -90,6 +115,10 @@ Category更新開始で旧receipt・Brand・Attributeを失効する。再起動
 Attributeは既存`get_attribute_trees()`を使い、NOT_FETCHED/FAILED/FETCHED、対象leaf、session、取得世代、
 treeと件数を画面へ渡す。空treeを必須属性0件と推定しない。属性自動入力やDB移行は追加しない。
 Seller Centerの必須属性・販売可否・発送条件は人間の最終確認として残る。
+NOT_FETCHEDだけでは準備停止を追加しない。取得開始後のFAILEDは停止し、NOT_FETCHEDへ戻して通さない。
+初回Betaの商品準備に自動属性取得を必須化しない方針とするが、PRIMARY_SOURCE_UNVERIFIEDを解除する
+live例外は未承認。現releaseのtrusted production組成は`shopee.attribute`操作を明示拒否し、
+自己申告のverified値でも有効化しない。Category/Brandの公式根拠・P5運用許可・Safety停止も維持する。
 
 P5出力はP1の現在Safety/重複/分類/公式BrandとSG正式運用gateを通す。
 P2 `BetaWorkBench.output(operational=True)`はP1出力後、commit前、commit後のbytes返却前に
