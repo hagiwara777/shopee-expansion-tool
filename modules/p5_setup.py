@@ -36,7 +36,7 @@ class StorageObservation:
     run_bytes: int
 
 
-def preflight(path, observation, *, expected_volume, operator, required_bytes):
+def preflight(path, observation, *, expected_volume, operator, required_bytes, require_acl=True):
     target = Path(path)
     allowed = frozenset({operator, 'SYSTEM', 'Administrators'})
     o = observation
@@ -45,7 +45,8 @@ def preflight(path, observation, *, expected_volume, operator, required_bytes):
             or o.filesystem != 'NTFS' or o.fixed is not True
             or o.ancestors_unaliased is not True or o.isolated is not True
             or not o.identities or len(set(o.identities)) != len(o.identities)
-            or not operator or o.acl_principals != allowed or o.acl_inheritance_disabled is not True):
+            or not operator or (require_acl and
+                (o.acl_principals != allowed or o.acl_inheritance_disabled is not True))):
         raise P5Stopped('P5_STORAGE_IDENTITY_ACL_UNVERIFIED')
     if (any(type(v) is not int or v < 0 for v in (o.free_bytes, o.c_free_bytes, o.run_bytes, required_bytes))
             or o.free_bytes < 10 * GiB or o.c_free_bytes < 2 * GiB or o.run_bytes >= 10 * GiB
@@ -64,16 +65,35 @@ class P5Setup:
         return preflight(path, self.inspect(Path(path)), expected_volume=self.expected_volume,
                          operator=self.operator, required_bytes=required_bytes)
 
+    def check_new(self, path, *, required_bytes):
+        # No target ACL exists yet. Volume/ancestors/isolation/capacity are
+        # mandatory here; the full ACL check follows exclusive creation.
+        path = Path(path)
+        if path.exists() or path.is_symlink():
+            raise FileExistsError('P5_NEW_STORAGE_REQUIRED')
+        return preflight(path, self.inspect(path), expected_volume=self.expected_volume,
+            operator=self.operator, required_bytes=required_bytes, require_acl=False)
+
+    def create_new(self, path, *, required_bytes):
+        self.check_new(path, required_bytes=required_bytes)
+        missing = []
+        parent = Path(path)
+        while not parent.exists():
+            missing.append(parent)
+            parent = parent.parent
+        # Never adopt a directory concurrently created by another installer.
+        for directory in reversed(missing):
+            self.check_new(directory, required_bytes=required_bytes)
+            directory.mkdir(exist_ok=False)
+            self.set_acl(directory)
+            self.check(directory, required_bytes=required_bytes)
+
     def install(self, template, *, required_bytes):
         template.validate()
         if not template.preparation_limit:
             raise P5Stopped('P5_TWO_STAGE_SCOPE_REQUIRED')
         directory = template.directory
-        self.check(directory, required_bytes=required_bytes)
-        # mkdir is exclusive at the shop directory; never reinitialize remnants.
-        directory.mkdir(parents=True, exist_ok=False)
-        self.set_acl(directory)
-        self.check(directory, required_bytes=required_bytes)
+        self.create_new(directory, required_bytes=required_bytes)
         result = self.probe(directory)
         if (not isinstance(result, dict) or set(result) !=
                 {'create', 'read', 'fsync', 'rename', 'exclusive_lock', 'sqlite_transaction'}
@@ -131,10 +151,7 @@ def checkpoint(runtime, *, setup, checkpoint_id, required_bytes):
         if target.resolve().parent != (runtime.scope.directory / 'backups').resolve():
             raise P5Stopped('P5_BACKUP_PATH_REFUSED')
         # Inspector must allow intended same-shop backup and reject aliases.
-        setup.check(target, required_bytes=required_bytes)
-        target.mkdir(parents=True, exist_ok=False)
-        setup.set_acl(target)
-        setup.check(target, required_bytes=required_bytes)
+        setup.create_new(target, required_bytes=required_bytes)
         with runtime._store.transaction():
             for name in ('work.sqlite3', 'keepa.sqlite3'):
                 source_path = runtime.scope.directory / name
@@ -163,7 +180,7 @@ def checkpoint(runtime, *, setup, checkpoint_id, required_bytes):
 def restore_isolated(backup, destination, *, latest_ledger, setup, required_bytes):
     backup, destination = Path(backup), Path(destination)
     setup.check(backup, required_bytes=required_bytes)
-    setup.check(destination, required_bytes=required_bytes)
+    setup.check_new(destination, required_bytes=required_bytes)
     manifest = json.loads((backup / 'manifest.json').read_text('utf-8'))
     payload = {k: v for k, v in manifest.items() if k != 'checksum'}
     if manifest.get('checksum') != _digest(payload) or set(manifest['files']) != {
@@ -186,9 +203,7 @@ def restore_isolated(backup, destination, *, latest_ledger, setup, required_byte
     meta = manifest['databases']['work.sqlite3']['meta']
     if any(meta.get(k) != manifest[k] for k in ('store_id', 'marketplace', 'shop_id')):
         raise P5Stopped('P5_BACKUP_STORE_MISMATCH')
-    destination.mkdir(parents=True, exist_ok=False)
-    setup.set_acl(destination)
-    setup.check(destination, required_bytes=required_bytes)
+    setup.create_new(destination, required_bytes=required_bytes)
     for name in manifest['files']:
         with (destination / name).open('xb') as output:
             output.write((backup / name).read_bytes())

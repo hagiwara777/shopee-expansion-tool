@@ -69,6 +69,8 @@ def render_p5_start(runtime):
     except (ValueError, RuntimeError):
         approved = False
         st.warning('実行未承認、または公式API仕様が未確認です。設定だけではAPIを実行できません。')
+    if getattr(runtime, 'can_request_start', None) is not None:
+        approved = runtime.can_request_start()
     if st.button('承認対象のP5作業を開始', key='p5_start', disabled=not approved):
         try:
             runtime.start()

@@ -88,6 +88,7 @@ class P5CodeIdentity:
             relative = entrypoint.relative_to(root).as_posix()
             if relative != 'app_beta.py':
                 raise ValueError()
+            self._require_loaded_source(sys.modules['__main__'], entrypoint)
             # Reject mixed imports from an older checkout, even with equal HEAD.
             from modules import p5_transport  # explicit start only; no credential I/O
             for name in ('p5_live_adapter', 'p5_runtime', 'p5_transport', 'shopee_catalog_client'):
@@ -167,6 +168,70 @@ class P5CredentialResolver:
 
 
 @dataclass(frozen=True, repr=False)
+class P5KeepaReference:
+    """Explicit existing key reference; no discovery or environment fallback."""
+    reference: str
+    marketplace: str
+    shop_id: str
+    environment_name: str
+
+    def describe(self, scope):
+        import re
+        if (self.reference != scope.credential_ref or self.marketplace != scope.marketplace
+                or self.shop_id != scope.shop_id or not isinstance(self.environment_name, str)
+                or not re.fullmatch(r'[A-Z][A-Z0-9_]{0,127}', self.environment_name)):
+            raise P5Stopped('P5_APPROVED_KEEPA_CREDENTIAL_REQUIRED')
+        return _digest(asdict(self))
+
+
+class P5ServiceCredentials:
+    """P5-only composition of existing Shopee and explicit Keepa references.
+
+    Descriptions never read secrets. Bridge returns only its file reference;
+    its bounded transport reads Google credentials after bridge/auth checks.
+    OpenAI is deliberately unconnected.
+    """
+    def __init__(self, *, shopee=None, keepa=None):
+        self.shopee, self.keepa = shopee, keepa
+
+    def describe(self, scope, operations):
+        bindings = {}
+        if operations & {'shopee.category', 'shopee.brand', 'bridge', 'auth'}:
+            if type(self.shopee) is not P5CredentialResolver:
+                raise P5Stopped('P5_APPROVED_CREDENTIAL_REFERENCE_REQUIRED')
+            bindings['shopee_bridge'] = self.shopee.describe(scope)['binding_digest']
+        if operations & {'keepa.token', 'keepa.product', 'keepa.query'}:
+            if type(self.keepa) is not P5KeepaReference:
+                raise P5Stopped('P5_APPROVED_KEEPA_CREDENTIAL_REQUIRED')
+            bindings['keepa'] = self.keepa.describe(scope)
+        return dict(reference=scope.credential_ref, marketplace=scope.marketplace,
+                    shop=scope.shop_id, binding_digest=_digest(bindings))
+
+    def resolve(self, scope, service):
+        from modules.p5_transport import P5Secrets
+        if service == 'keepa':
+            import os
+            if type(self.keepa) is not P5KeepaReference:
+                raise P5Stopped('P5_APPROVED_KEEPA_CREDENTIAL_REQUIRED')
+            self.keepa.describe(scope)
+            key = os.environ.get(self.keepa.environment_name, '')
+            if not isinstance(key, str) or not key.strip():
+                raise P5Stopped('P5_APPROVED_KEEPA_CREDENTIAL_REQUIRED')
+            return P5Secrets(scope.credential_ref, scope.marketplace, scope.shop_id,
+                             None, keepa_key=key.strip())
+        if service in {'shopee', 'bridge'}:
+            if type(self.shopee) is not P5CredentialResolver:
+                raise P5Stopped('P5_APPROVED_CREDENTIAL_REFERENCE_REQUIRED')
+            self.shopee.describe(scope)
+            if service == 'bridge':
+                return P5Secrets(scope.credential_ref, scope.marketplace, scope.shop_id,
+                    None, google_credential_file=self.shopee.reference.google_credential_file)
+            from dataclasses import replace
+            return replace(self.shopee(scope), google_credential_file='')
+        raise P5Stopped('P5_OPERATION_NOT_APPROVED')
+
+
+@dataclass(frozen=True, repr=False)
 class OperatorApproval:
     owner_ref: str
     original_instruction_ref: str
@@ -231,10 +296,13 @@ class P5TrustedAdapter:
         if not isinstance(observed, dict):
             raise P5Stopped('P5_EXECUTION_OBSERVATION_MISMATCH')
         credential = dict(reference=scope.credential_ref, marketplace=scope.marketplace, shop=scope.shop_id)
+        if type(self.resolve_secrets) is P5ServiceCredentials:
+            credential = self.resolve_secrets.describe(scope, approval.operations)
         if not self.synthetic:
             if type(self.code_identity) is not P5CodeIdentity:
                 raise P5Stopped('P5_EXECUTION_CODE_UNVERIFIED')
-            if approval.operations & {'shopee.category', 'shopee.brand', 'shopee.attribute', 'bridge', 'auth'}:
+            if type(self.resolve_secrets) is not P5ServiceCredentials and approval.operations & {
+                    'shopee.category', 'shopee.brand', 'shopee.attribute', 'bridge', 'auth'}:
                 if type(self.resolve_secrets) is not P5CredentialResolver:
                     raise P5Stopped('P5_APPROVED_CREDENTIAL_REFERENCE_REQUIRED')
                 credential = self.resolve_secrets.describe(scope)
@@ -284,8 +352,10 @@ class P5TrustedAdapter:
                   for k in required_primary_sources(approval.operations)), offline_test=self.synthetic,
             openai_pricing_ref=observed['pricing']['reference'] if 'openai' in approval.operations else '',
             operations=approval.operations)
-        runtime = P5Runtime(scope, permit=permit,
-            execution_identity=lambda: (self.observe(scope)['release'], self.observe(scope)['execution_target']))
+        def execution_identity():
+            current = self.observe(scope)
+            return current['release'], current['execution_target']
+        runtime = P5Runtime(scope, permit=permit, execution_identity=execution_identity)
         def guard(operation=None):
             current, _ = self._check(scope, approval_reference)
             if current != approval or (operation is not None and operation not in current.operations):
@@ -294,8 +364,12 @@ class P5TrustedAdapter:
         # Resolver is called lazily only after a valid start and permission check.
         def resolve(service=None):
             guard()
-            # The installed production resolver handles Shopee/Google only.
-            # Paid key references still need a separate approved integration.
+            choices = {'keepa': {'keepa.token', 'keepa.product', 'keepa.query'},
+                'shopee': {'shopee.category', 'shopee.brand'}, 'bridge': {'bridge'}, 'openai': {'openai'}}
+            if service is not None and not (choices.get(service, set()) & approval.operations):
+                raise P5Stopped('P5_OPERATION_NOT_APPROVED')
+            if type(self.resolve_secrets) is P5ServiceCredentials:
+                return self.resolve_secrets.resolve(scope, service)
             if not self.synthetic and service in {'keepa', 'openai'}:
                 raise P5Stopped('P5_APPROVED_' + service.upper() + '_CREDENTIAL_REQUIRED')
             return self.resolve_secrets(scope)

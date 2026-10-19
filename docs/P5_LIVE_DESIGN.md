@@ -11,9 +11,10 @@ DEC-0146。P5最小offline実装の設計・検証契約であり、live実行�
 
 - `p5_live_adapter.P5TrustedAdapter`は注入されたtrusted operatorの原承認照合・現在観測・参照解決を組成する。
   開始・操作・出力で再照合し、市場別固定配賦と全体上限を検査する。合成authorityはoffline permitを使う。
-  productionの承認record loader・Windows設置inspectorは既定提供しない。
+  productionの承認record loaderは提供しない。DEC-0149のP5専用operatorとWindows inspectorを明示組成する。
   DEC-0147のcode観測・承認済みShopee/Google参照resolverを明示注入できるが、原承認provider・
-  端末process観測・実credential参照・設置への結合は未成立。詳細はP5_CONNECTIONを参照する。
+  端末process観測・Keepa参照・checkpointのoffline部品はDEC-0149で接続するが、
+  実原承認source・実credential参照・設置への結合は別承認後に行う。詳細はP5_CONNECTIONを参照する。
   標準`--p5-config`から実行permitは作られず、PRIMARY_SOURCE_UNVERIFIEDのlive停止を維持する。
 - `p5_material_updates`は元P5Ledgerへversion 1の`material_updates`を追記するP5専用部品。
   BEGIN→P2失効→INVALIDATED→取得→VALIDATED→P2 commit→COMMITTEDと進める。
