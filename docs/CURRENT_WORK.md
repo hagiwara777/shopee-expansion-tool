@@ -40,6 +40,14 @@ Shopee credential遅延読込、実shop照合、Bridge/auth個別予約と追加
 Attribute自動取得を商品準備の必須前提にしない方針とし、NOT_FETCHEDだけでは追加停止しない。
 FAILED停止・FETCHED空の未推定・Seller Center最終確認を維持し、production Attribute操作は拒否する。
 この方針でPRIMARY_SOURCE_UNVERIFIED、P5運用許可、Category/Brand公式根拠・Safety停止を解除しない。
+P5の[操作別preflight](P5_CONNECTION.md)は、承認allowlistに応じた必要一次資料・料金・有限枠をoffline検証する（DEC-0148）。
+Category限定はCategory、Brand取得と保存／準備出力はCategory＋Brandの現在根拠を要求する。
+未使用Attribute資料と未使用OpenAI価格を必須にせず、対応枠0・未承認操作の送信前拒否を維持する。
+関連Shopee／Bridge／OAuth枠、原承認・実コード・保存identity・Safety・UNKNOWN停止は省略しない。
+準備CSV／TXTのTRUEは外部一括出品の無条件許可ではない。ASINを手動で既存出品ツールへ渡し、
+同Category／Brandでも商品ごとの属性値・適用可否はユーザーが確認する。属性自動入力・DB追加・ツール間自動連携は行わない。
+取得限定scopeの起動・再描画は0送信・認証本文未読のまま。production Attributeはruntime／transportでも拒否する。
+C04限定AUTO_RULE、F08 live、C12と実務Beta全体の完成はoffline成立へ読み替えない。
 D採用は専用ACL・非重複・実設置検証・backupを条件とし、合成検査を実端末成功へ昇格しない。
 次の単一作業は非公開実行票の未結合・一次仕様・trusted operator接続と設置条件を具体化すること。
 対象・一次資料・保存先・release・有限枠が固定され、設置と実行へのOwner別承認が成立するまで、
@@ -224,6 +232,8 @@ Source明示ON時のsilent fallbackを許さない。Bridge全面書込み障害
 SG Brand responseにmarketplace / Category echoがないため、server内部の別Category誤応答の独立検出は保証しない。
 
 ## Required Decisions
+
+- DEC-0148 — P5操作別の一次資料・料金・認証・有限枠、Attribute production禁止と手動属性確認の境界。
 
 - DEC-0147 — P5 production参照接続のoffline差分、Attribute非必須方針とlive停止・原承認不足の維持。
 

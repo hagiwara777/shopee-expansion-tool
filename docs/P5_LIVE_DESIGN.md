@@ -152,11 +152,13 @@ PH/SGの上限を固定分配し、その和を全体上限以下にする。残
 6. P1現在根拠→P2 transaction commit前→bytes返却前に、許可・資料世代・保存revision・SG正式gateを再照合する。
    permitは同process/session内だけで使い、再起動時に承認・期限・元ledgerを再検査する。新枠を作らない。
 
-一次資料はCategory/Brand/Attributeの現行本文・版/取得日・対象App/shop権限・全件/paging・rate制限・
-request/responseを確認した記録を必要とする。参照URLが3つあるだけでは不足。
+一次資料は[P5操作別preflight](P5_CONNECTION.md#操作別preflightdec-0148)に従い、
+承認操作に必要な現行本文・版/取得日・対象App/shop権限・全件/paging・rate制限・request/responseを検査する。
+Category限定にはCategory、Brandと保存/準備出力にはCategory＋Brandを必要とし、未使用Attribute資料を要求しない。
+参照URLだけでは不足。OpenAIの現在価格確認はOpenAIを承認した場合だけ必要とする。
 Attributeの`category_id_list`とサンプルの`category_ids`、値の配列/文字列形式の不一致は
 公式本文の照合で解消するまで`PRIMARY_SOURCE_UNVERIFIED`。試しのlive送信で解消しない。
-DEC-0147では自動Attribute取得を商品準備の必須前提にしない方針を保持するが、上のlive停止は解除しない。
+DEC-0147/0148のAttribute非必須方針は、使用操作の一次仕様未確認による停止を解除しない。
 現production adapterはAttribute操作を明示拒否する。NOT_FETCHED/FAILED/FETCHED空とSeller Center最終確認を
 区別し、この方針をP5運用許可やBeta完成条件の変更に読み替えない。
 
@@ -253,7 +255,7 @@ HUMAN初回ではC04限定AUTO_RULEの実務成立を未達として残す。実
 
 次の単一作業は、非公開実行票の未結合項目と一次仕様・trusted operator実装・設置検査を照合し、
 設置・credential参照利用・liveへの具体的な別承認を成立させること。offline成功だけで実行へ進まない。
-実対象、一次資料、現在価格、Google auth有限回数、release、ACL/probe/backupが未確認なら実行票はBLOCKED。
+実対象、使用操作の一次資料・認証・料金条件、関連通信の有限枠、release、ACL/probe/backupが未確認なら実行票はBLOCKED。
 shop・ジャンル・seed・既出品状況・Resolver URLのOwner原指示は、非公開票で指定と参照を回収し、
 最新資料/SHA/同一性・認証との実行Evidence結合と分ける。指定済みでも実行承認やcurrent証明にはならない。
 非公開票の未結合はこの最小offline実装のblockerとしないが、live前には必要な全結合を要求する。

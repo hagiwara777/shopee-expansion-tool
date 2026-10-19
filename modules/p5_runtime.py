@@ -30,6 +30,22 @@ class P5Stopped(LiveValidationStopped):
     """Safe reason only; never expose payloads, credentials or raw exceptions."""
 
 
+P5_OPERATIONS = frozenset({'keepa.token', 'keepa.product', 'keepa.query', 'shopee.category',
+    'shopee.brand', 'shopee.attribute', 'bridge', 'auth', 'image', 'openai',
+    'material.update', 'p2.save', 'output'})
+
+
+def required_primary_sources(operations):
+    required = set()
+    if operations & {'shopee.category', 'shopee.brand', 'shopee.attribute', 'p2.save', 'output'}:
+        required.add('category')
+    if operations & {'shopee.brand', 'p2.save', 'output'}:
+        required.add('brand')
+    if 'shopee.attribute' in operations:
+        required.add('attribute')
+    return tuple(sorted(required))
+
+
 @dataclass(frozen=True)
 class P5Scope:
     run_id: str
@@ -130,14 +146,35 @@ class P5ExecutionPermit:
     primary_source_refs: tuple[str, ...] = ()
     offline_test: bool = False
     openai_pricing_ref: str = ''
+    # None retains the legacy three-source contract for existing trusted callers.
+    # New adapters always bind an explicit immutable operation allowlist.
+    operations: frozenset[str] | None = None
 
-    def require(self, scope, *, operational=False):
+    def require(self, scope, *, operational=False, operation=None):
+        if operational:
+            operation = 'output'
         if (self.scope_digest != scope.digest or not self.authorization_ref.strip()
                 or type(self.offline_test) is not bool):
             raise P5Stopped('P5_EXECUTION_NOT_APPROVED')
-        if not self.offline_test and (type(self.primary_source_refs) is not tuple or len(self.primary_source_refs) != 3
+        if self.operations is not None and (type(self.operations) is not frozenset
+                or not self.operations or not self.operations <= P5_OPERATIONS):
+            raise P5Stopped('P5_OPERATION_NOT_APPROVED')
+        if self.operations is not None and operation is not None and operation not in self.operations:
+            raise P5Stopped('P5_OPERATION_NOT_APPROVED')
+        count = 3 if self.operations is None else len(required_primary_sources(self.operations))
+        if not self.offline_test and (type(self.primary_source_refs) is not tuple or len(self.primary_source_refs) != count
                 or any(not isinstance(ref, str) or not ref.strip() for ref in self.primary_source_refs)):
             raise P5Stopped('PRIMARY_SOURCE_UNVERIFIED')
+        if not self.offline_test and self.operations is not None and (
+                tuple(ref.partition(':')[0] for ref in self.primary_source_refs) != required_primary_sources(self.operations)
+                or any(not ref.partition(':')[2].strip() for ref in self.primary_source_refs)):
+            raise P5Stopped('PRIMARY_SOURCE_UNVERIFIED')
+        if (not self.offline_test and self.operations is not None
+                and 'openai' in self.operations and not self.openai_pricing_ref.strip()):
+            raise P5Stopped('P5_CURRENT_OPENAI_PRICING_UNVERIFIED')
+        if not self.offline_test and (operation == 'shopee.attribute'
+                or self.operations is not None and 'shopee.attribute' in self.operations):
+            raise P5Stopped('P5_ATTRIBUTE_LIVE_NOT_ENABLED')
         if operational and self.offline_test:
             raise P5Stopped('P5_SYNTHETIC_IS_NOT_OFFICIAL')
 
@@ -277,6 +314,16 @@ def initialize_p5_ledger(scope, *, material_updates=False):
 
 
 class P5WorkBench(BetaWorkBench):
+    def refresh(self):
+        runtime = self.session.runtime
+        runtime.require_current()
+        if runtime.permit.operations is not None and 'p2.save' not in runtime.permit.operations:
+            # Acquisition-only scopes may observe history without implicitly
+            # rewriting P2 assessments at start or after catalog acquisition.
+            # All mutation/output/pool paths retain their operation guards.
+            return self.store.products()
+        return super().refresh()
+
     @contextmanager
     def _transaction(self, **kwargs):
         # Checkpoints share this existing ledger lock with P2 writers.
@@ -333,7 +380,7 @@ class P5PreparationSession(PreparationSession):
         if attribute is not None:
             result['basis'] = _digest([result.get('basis'), attribute.get('generation'),
                                        attribute.get('state'), attribute.get('tree')])
-            if attribute.get('state') != 'FETCHED':
+            if attribute.get('state') not in {'NOT_FETCHED', 'FETCHED'}:
                 result['valid'] = False
                 result['reasons'] = list(result['reasons']) + ['P5_CURRENT_ATTRIBUTE_REQUIRED']
         return result
@@ -453,21 +500,40 @@ class P5Runtime:
                 or json.loads((self.scope.directory / 'claim.json').read_text('utf-8')) != {'scope_digest': self.scope.digest}):
             raise P5Stopped('P5_CURRENT_BINDING_CHANGED')
 
-    def secrets(self):
+    def secrets(self, service=None):
         self.require_current()
+        if service is None and self.permit.operations is not None:
+            operations = self.permit.operations
+            service = next((name for name, choices in (
+                ('shopee', {'shopee.category', 'shopee.brand', 'shopee.attribute'}),
+                ('bridge', {'bridge', 'auth'}), ('keepa', {'keepa.token', 'keepa.product', 'keepa.query'}),
+                ('openai', {'openai'})) if operations & choices), 'unused')
+        if service is not None:
+            candidates = {'shopee': {'shopee.category', 'shopee.brand', 'shopee.attribute'},
+                'bridge': {'bridge'}, 'keepa': {'keepa.token', 'keepa.product', 'keepa.query'},
+                'openai': {'openai'}}.get(service, set())
+            if not candidates:
+                raise P5Stopped('P5_OPERATION_NOT_APPROVED')
+            operations = self.permit.operations
+            allowed = candidates if operations is None else candidates & operations
+            if not allowed:
+                raise P5Stopped('P5_OPERATION_NOT_APPROVED')
+            self.require_operation(sorted(allowed)[0])
         if self._credentials is None and self.credential_resolver is not None:
-            self._credentials = self.credential_resolver()
+            self._credentials = self.credential_resolver(service)
         from modules.p5_transport import P5Secrets
         if (not isinstance(self._credentials, P5Secrets)
                 or self._credentials.credential_ref != self.scope.credential_ref
                 or self._credentials.marketplace != self.scope.marketplace
                 or self._credentials.shop_id != self.scope.shop_id
-                or str(getattr(self._credentials.shopee_credentials, 'shop_id', '')) != self.scope.shop_id):
+                or (service in (None, 'shopee', 'bridge') and
+                    str(getattr(self._credentials.shopee_credentials, 'shop_id', '')) != self.scope.shop_id)):
             raise P5Stopped('P5_APPROVED_CREDENTIAL_ADAPTER_REQUIRED')
         return self._credentials
 
     def require_operation(self, operation):
         self.require_current()
+        self.permit.require(self.scope, operation=operation)
         if self.authorization_guard is not None:
             self.authorization_guard(operation)
         if self._material_action is not None:
@@ -488,7 +554,9 @@ class P5Runtime:
         """Explicit bounded Bridge read. Never write credentials or auto-refresh."""
         from modules.p5_transport import P5BridgeTransport
         from modules.shopee_access_token_source import GoogleSheetAccessTokenSource
-        secrets = self.secrets()
+        self.require_operation('bridge')
+        self.require_operation('auth')
+        secrets = self.secrets('bridge')
         if not secrets.google_credential_file or not self.scope.bridge_spreadsheet_id:
             raise P5Stopped('P5_APPROVED_BRIDGE_REFERENCE_REQUIRED')
         bridge = P5BridgeTransport(self, credential_file=secrets.google_credential_file,
@@ -504,11 +572,12 @@ class P5Runtime:
 
     def amazon_client(self):
         from modules.p5_transport import make_keepa_client
-        return make_keepa_client(self, self.secrets())
+        return make_keepa_client(self, self.secrets('keepa'))
 
-    def catalog_client(self):
+    def catalog_client(self, *, operation='shopee.category'):
         from modules.p5_transport import make_catalog_client
-        return make_catalog_client(self, self.secrets())
+        self.require_operation(operation)
+        return make_catalog_client(self, self.secrets('shopee'))
 
     def require_output_proof(self, record):
         self.require_permit(operational=True)
@@ -545,7 +614,7 @@ class P5Runtime:
 
     def acquire_catalog(self, client):
         from modules.category_ai_core import CategoryCatalog, CategoryNode
-        self.require_current()
+        self.require_operation('shopee.category')
         self.invalidate_catalog()
         self._require_client_identity(client)
         rows = client.get_categories(self.scope.marketplace, strict=True)
@@ -570,13 +639,14 @@ class P5Runtime:
         return catalog
 
     def acquire_brand(self, client, category_id):
-        self.require_current()
+        self.require_operation('shopee.brand')
         self._require_catalog_client(client, category_id)
         return self.workflow.acquire_brand(client, category_id, max_pages=10)
 
     def _require_catalog_client(self, client, category_id):
         self._require_client_identity(client)
         if (category_id not in self.scope.category_ids or self.category_receipt is None
+                or self.category_receipt['session'] != self.workflow.session.scope
                 or self.category_receipt['binding'] != self.workflow.session.current_classification_binding()):
             raise P5Stopped('P5_CURRENT_CATALOG_ROUTE_REQUIRED')
 
@@ -593,7 +663,7 @@ class P5Runtime:
             raise P5Stopped('P5_APPROVED_CATALOG_ROUTE_REQUIRED')
 
     def acquire_attributes(self, client, category_id):
-        self.require_current()
+        self.require_operation('shopee.attribute')
         self.attributes[category_id] = {'state': 'FAILED', 'tree_count': None,
             'generation': uuid4().hex,
             'session': self.workflow.session.scope,

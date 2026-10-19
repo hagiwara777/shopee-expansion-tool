@@ -47,9 +47,16 @@ def test_attribute_not_fetched_empty_and_failed_preserve_preparation_contract(co
     record = rt.workflow.bench.store.products()[0]
     assert rt.attribute_status(100578)['state'] == 'NOT_FETCHED'
     assert session.assess(record)['valid']
+    rt.attributes[100578] = {'state': 'NOT_FETCHED'}
+    assert session.assess(record)['valid']
+    rt.attributes.clear()
     content, _, _ = rt.output(selected(rt.workflow.bench))
     assert b'TRUE' in content  # preparation only, never Seller Center completion
     client = rt.category_receipt['client']
+    # production Attribute is refused even for a legacy injected permit.
+    # State transitions below are explicit synthetic-only contract checks.
+    production_permit = rt.permit
+    rt.permit = replace(rt.permit, offline_test=True)
     empty = rt.acquire_attributes(client, 100578)
     assert empty['state'] == 'FETCHED' and empty['tree_count'] == 0
     assert 'mandatory_attribute_count' not in empty
@@ -60,6 +67,7 @@ def test_attribute_not_fetched_empty_and_failed_preserve_preparation_contract(co
     monkeypatch.setattr(client, 'get_attribute_trees', failed)
     with pytest.raises(ValueError, match='SYNTHETIC_ATTRIBUTE_FAILURE'):
         rt.acquire_attributes(client, 100578)
+    rt.permit = production_permit
     assert rt.attribute_status(100578)['state'] == 'FAILED'
     assert 'P5_CURRENT_ATTRIBUTE_REQUIRED' in session.assess(record)['reasons']
     with pytest.raises(ValueError):

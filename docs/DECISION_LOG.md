@@ -1779,3 +1779,15 @@
 - 通信: 既存Shopee/Bridge/auth個別ledgerと送信前検査を維持する。Google本文読込前の操作許可、scopeのsheet/A:C/ROWS、Bridge1回につき最大1 OAuth物理sendを接続する。余り枠を隠れた追加sendに使わず、timeout・不明消費・認証後parse失敗・token不一致は停止を保存し返金・自動再送しない。production Attribute操作は自己申告のverified値でも有効化しない。
 - 保護・未完成: PRIMARY_SOURCE_UNVERIFIED、P5運用許可、Category/Brand公式根拠、Safety/Battery/SLS/SG本体・画像、P1〜P4/F1/F2、PH/SG protected、既存DB/ledger/claim・稼働releaseを維持する。原承認provider・端末process/port/保存inspector・実参照record・Keepa/OpenAI key参照のproduction結合は未提供。合成authority・mock・code観測を人間原承認・実設置・live成功・実務Beta完成へ昇格しない。
 - 次工程／rollback: 非公開実行票を検証するproduction原承認sourceとtrusted operator境界を具体化し、対象・一次資料・実観測・認証参照・予算・設置条件の未結合を確認する。実行は各境界の別承認後だけとする。P5入口停止と通常revertで戻し、旧データ・予約・UNKNOWN・履歴・過去Decision/Evidenceを削除・resetしない。
+
+
+## DEC-0148 — P5のpreflightを承認操作の依存条件へ限定しAttribute production禁止を維持する
+
+- 日付: 2026-10-19
+- authority／目的: OwnerはAttribute APIを使わないP5の操作別preflightの最小実装・offline受入A〜I、通常開発のcommit／push／Draft PR／CI／read-only reviewを依頼した。実API・credential本文使用・設置・稼働release変更・実商品・実出品・formal main mergeは実施しない。
+- 決定: 詳細契約はP5_CONNECTIONとする。原承認allowlistから必要資料を導きpermitへ同じ操作集合を結合する。CategoryはCategory公式仕様、Brandと保存／準備出力はCategory＋Brand公式仕様を要求する。OpenAI価格はOpenAI承認時だけ検査し、未使用Attribute資料をverifiedへ変換・補完しない。旧直接注入permitの3資料契約を互換維持する。
+- 予算・認証: 未使用サービスはallowlist外・対応予算0。使用サービスは正の有限枠と関連操作を要求し、ShopeeにはBridge/auth、Keepa Product/queryにはtoken、画像にはOpenAI、資料更新にはKeepa Product/tokenとP2保存、出力にはP2保存を必要とする。未承認操作は物理送信前と必要なcredential読込前に拒否する。取得限定scopeはP2履歴を読めるが、起動・catalog更新で再評価を書き込まず、保存／pool／出力許可を作らない。Keepa/OpenAI keyのproduction参照接続は未提供のまま停止し、Shopee resolverへfallbackしない。
+- Attributeと実務フロー: production Attributeはadapter／runtime／transportで拒否し、画面取得はsynthetic検証専用とする。NOT_FETCHEDだけで準備を止めず、FAILED停止とFETCHED空の未推定を維持する。Expansion ToolはASIN候補・Safety/Battery/SLS・Category/Brand商品群整理・CSV/TXT・進行管理を担う。ユーザーがASINを手動で既存出品ツールへ渡し、必須属性取得・属性値選択・一括API出品はそこで扱う。同Category/Brandでも属性値一致を保証せずユーザーが適用可否を確認する。listing_ready=TRUEは無条件の外部一括出品許可や出品完了ではない。
+- 保護・置換範囲: DEC-0144/0146/0147の一律3仕様・未使用OpenAI価格要求だけを操作別契約へ置換する。Owner原承認、市場/shop・実コード/release/実行対象・保存identity、送信前永続予約、Shopee/Bridge/OAuth別計数、retry/redirect禁止、UNKNOWN停止・予約保持、Category/Brand現在根拠・完全Brand・No Brand無断fallback禁止、Safety/Battery/SLS/SG本体・画像、PH/SG protected、P1〜P4/F1/F2、既存DB/ledger/claim/履歴を維持する。C04の限定AUTO_RULE完成条件を変更せず、HUMANだけで実務Beta完成としない。
+- 検証／後続: 合成authority・HTTP・資料とAppTestで操作別preflightと失敗停止を検証する。offline成功を実API・実設置・F08 live/C12・Owner実務受入へ昇格しない。次は非公開実行票の未結合項目・使用操作の一次仕様・production原承認source/trusted operator・設置条件を具体化する。保存・設置・live・費用・実商品受入は各境界の別承認を要する。
+- 非対象／rollback: 属性値自動推定・入力・DB保存、新しい属性確認DB、CSV列変更、大規模workflow、汎用承認基盤、DB schema変更、既存出品ツール改修・自動連携・実出品は追加しない。P5利用停止と対象差分の通常revertで戻し、既存記録・予約・UNKNOWN・履歴・過去Decision/Evidenceを保持する。
