@@ -33,7 +33,13 @@ P5の[二段階の探索・対象固定](P5_CONNECTION.md)は、承認済みFind
 [trusted組成・商品資料更新・D保存契約](P5_LIVE_DESIGN.md)の最小offline接続を整備した（DEC-0146）。
 固定selection・ASIN・累積消費・履歴を保持し、更新開始の失効とledger/P2世代整合を要求する。
 資料世代は新規設置時だけ導入し、旧scope digest・旧ledgerの資料変更停止を維持する。
-T01〜T08はPH/SG合成検証で扱い、production承認source・credential解決・Windows設置inspectorを既定提供しない。
+T01〜T08はPH/SG合成検証で扱い、production承認source・Windows設置inspectorを既定提供しない。
+P5内の[production参照接続](P5_CONNECTION.md)は、実行中checkout/entrypointの観測、承認済み参照からの
+Shopee credential遅延読込、実shop照合、Bridge/auth個別予約と追加OAuth送信拒否をoffline整備した（DEC-0147）。
+原承認provider、実process/port/保存観測、実参照record、Keepa/OpenAI key参照のproduction接続は未結合。
+Attribute自動取得を商品準備の必須前提にしない方針とし、NOT_FETCHEDだけでは追加停止しない。
+FAILED停止・FETCHED空の未推定・Seller Center最終確認を維持し、production Attribute操作は拒否する。
+この方針でPRIMARY_SOURCE_UNVERIFIED、P5運用許可、Category/Brand公式根拠・Safety停止を解除しない。
 D採用は専用ACL・非重複・実設置検証・backupを条件とし、合成検査を実端末成功へ昇格しない。
 次の単一作業は非公開実行票の未結合・一次仕様・trusted operator接続と設置条件を具体化すること。
 対象・一次資料・保存先・release・有限枠が固定され、設置と実行へのOwner別承認が成立するまで、
@@ -218,6 +224,8 @@ Source明示ON時のsilent fallbackを許さない。Bridge全面書込み障害
 SG Brand responseにmarketplace / Category echoがないため、server内部の別Category誤応答の独立検出は保証しない。
 
 ## Required Decisions
+
+- DEC-0147 — P5 production参照接続のoffline差分、Attribute非必須方針とlive停止・原承認不足の維持。
 
 - DEC-0146 — P5 trusted adapter・固定対象の商品資料世代更新・D新規保存、実装/設置/liveの別承認。
 

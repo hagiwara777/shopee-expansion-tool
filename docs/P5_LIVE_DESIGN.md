@@ -11,7 +11,9 @@ DEC-0146。P5最小offline実装の設計・検証契約であり、live実行�
 
 - `p5_live_adapter.P5TrustedAdapter`は注入されたtrusted operatorの原承認照合・現在観測・参照解決を組成する。
   開始・操作・出力で再照合し、市場別固定配賦と全体上限を検査する。合成authorityはoffline permitを使う。
-  productionの承認record loader・credential resolver・Windows設置inspectorは既定提供しない。
+  productionの承認record loader・Windows設置inspectorは既定提供しない。
+  DEC-0147のcode観測・承認済みShopee/Google参照resolverを明示注入できるが、原承認provider・
+  端末process観測・実credential参照・設置への結合は未成立。詳細はP5_CONNECTIONを参照する。
   標準`--p5-config`から実行permitは作られず、PRIMARY_SOURCE_UNVERIFIEDのlive停止を維持する。
 - `p5_material_updates`は元P5Ledgerへversion 1の`material_updates`を追記するP5専用部品。
   BEGIN→P2失効→INVALIDATED→取得→VALIDATED→P2 commit→COMMITTEDと進める。
@@ -154,6 +156,9 @@ PH/SGの上限を固定分配し、その和を全体上限以下にする。残
 request/responseを確認した記録を必要とする。参照URLが3つあるだけでは不足。
 Attributeの`category_id_list`とサンプルの`category_ids`、値の配列/文字列形式の不一致は
 公式本文の照合で解消するまで`PRIMARY_SOURCE_UNVERIFIED`。試しのlive送信で解消しない。
+DEC-0147では自動Attribute取得を商品準備の必須前提にしない方針を保持するが、上のlive停止は解除しない。
+現production adapterはAttribute操作を明示拒否する。NOT_FETCHED/FAILED/FETCHED空とSeller Center最終確認を
+区別し、この方針をP5運用許可やBeta完成条件の変更に読み替えない。
 
 ## 3. 再取得時の商品資料世代
 

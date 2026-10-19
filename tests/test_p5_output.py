@@ -41,6 +41,32 @@ def test_operational_download_is_not_submission(contract_runtime):
     assert bench.store.products()[0]['listing_progress'] == 'WAITING'
 
 
+def test_attribute_not_fetched_empty_and_failed_preserve_preparation_contract(contract_runtime, monkeypatch):
+    rt = contract_runtime
+    session = rt.workflow.session
+    record = rt.workflow.bench.store.products()[0]
+    assert rt.attribute_status(100578)['state'] == 'NOT_FETCHED'
+    assert session.assess(record)['valid']
+    content, _, _ = rt.output(selected(rt.workflow.bench))
+    assert b'TRUE' in content  # preparation only, never Seller Center completion
+    client = rt.category_receipt['client']
+    empty = rt.acquire_attributes(client, 100578)
+    assert empty['state'] == 'FETCHED' and empty['tree_count'] == 0
+    assert 'mandatory_attribute_count' not in empty
+    assert 'seller_center_confirmed' not in empty
+    # Failure before a physical send isolates Attribute state from ledger stop.
+    def failed(*args, **kwargs):
+        raise ValueError('SYNTHETIC_ATTRIBUTE_FAILURE')
+    monkeypatch.setattr(client, 'get_attribute_trees', failed)
+    with pytest.raises(ValueError, match='SYNTHETIC_ATTRIBUTE_FAILURE'):
+        rt.acquire_attributes(client, 100578)
+    assert rt.attribute_status(100578)['state'] == 'FAILED'
+    assert 'P5_CURRENT_ATTRIBUTE_REQUIRED' in session.assess(record)['reasons']
+    with pytest.raises(ValueError):
+        rt.output(selected(rt.workflow.bench))
+    assert rt.attribute_status(100578)['state'] == 'FAILED'
+
+
 def test_t07_attribute_refresh_during_formatting_rejects_old_bytes(contract_runtime, monkeypatch):
     rt = contract_runtime
     from modules.preparation_validity import format_preparation_groups

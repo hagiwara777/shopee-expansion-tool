@@ -1769,3 +1769,13 @@
 - 承認境界／次工程: 次は本契約の最小offline実装とT01〜T08の別承認作業。formal採用・新保存先設置/固定release・credential参照利用・列挙live/有料操作・実商品受入・外部投入/実出品をそれぞれの適用承認境界で扱う。一次Shopee仕様・実対象/全shop資料・現在料金・具体票が未確認ならlive停止。過去指定の再利用はOwner原指示・正本・一次資料の一致が確認できる範囲だけとする。
 - rollback／再検討: 設計文書は通常revert/新Decision追記で戻せる。実装後はP5入口停止と対象差分の通常revertを用い、過去scope・selection・予約消費・UNKNOWN lock・履歴・Evidenceを削除しない。一次仕様不一致・世代整合不良・必要予算変更・責務拡大は停止して別判断する。
 - 設計レビュー反映: Owner指定の回収と実行Evidence結合、具体的操作の承認は別に扱う。原指示確認済みのshop/ジャンル/seed/既出品状況/Resolver出所は非公開票へ保持し、未指定へ戻さない。最新CSV・SHA・公式資料・商品同一性・scopeの未結合はlive停止条件であり、最小offline実装そのもののblockerにしない。T01〜T08は既存保護を再利用する最小差分検証であり、追加機能・Beta MUSTの拡張ではない。
+
+## DEC-0147 — P5の承認済み参照・実コード観測をoffline接続しAttributeのlive停止を維持する
+
+- 日付: 2026-10-19
+- authority／目的: OwnerはShopee公式Attribute回答を待たず、既存trusted adapter・PH/SG認証・有限transportを再利用する最小production接続のoffline実装・合成検証・同タスクreviewと、technical gates後の通常branch公開・Draft PRを依頼した。main mergeは別承認、実API・実credential取得利用・設置・実商品受入は行わない。
+- 方針: 初回BetaではAttribute自動取得を商品準備の必須前提にしない方向とする。既存NOT_FETCHEDだけでは不要な停止を追加せず、取得開始後FAILEDは停止しNOT_FETCHEDに変換しない。FETCHED空から必須属性0件を推定せず、Seller Centerの必須属性・発送条件・販売可否の人間最終確認を維持する。公式仕様を解決済みにせず、完成条件変更やlive例外は別Owner判断とする。
+- 最小接続: 詳細はP5_CONNECTION。production組成で実import元checkoutのclean HEAD/tree・entrypoint観測と、承認観測へdigest結合したPH/SGの明示credential参照resolverを要求する。承認後の必要時だけ既存readerを呼び実shopを照合し、legacy tokenを使用しない。原承認検証interface不足は停止し、偽の原承認sourceや汎用認証基盤を作らない。
+- 通信: 既存Shopee/Bridge/auth個別ledgerと送信前検査を維持する。Google本文読込前の操作許可、scopeのsheet/A:C/ROWS、Bridge1回につき最大1 OAuth物理sendを接続する。余り枠を隠れた追加sendに使わず、timeout・不明消費・認証後parse失敗・token不一致は停止を保存し返金・自動再送しない。production Attribute操作は自己申告のverified値でも有効化しない。
+- 保護・未完成: PRIMARY_SOURCE_UNVERIFIED、P5運用許可、Category/Brand公式根拠、Safety/Battery/SLS/SG本体・画像、P1〜P4/F1/F2、PH/SG protected、既存DB/ledger/claim・稼働releaseを維持する。原承認provider・端末process/port/保存inspector・実参照record・Keepa/OpenAI key参照のproduction結合は未提供。合成authority・mock・code観測を人間原承認・実設置・live成功・実務Beta完成へ昇格しない。
+- 次工程／rollback: 非公開実行票を検証するproduction原承認sourceとtrusted operator境界を具体化し、対象・一次資料・実観測・認証参照・予算・設置条件の未結合を確認する。実行は各境界の別承認後だけとする。P5入口停止と通常revertで戻し、旧データ・予約・UNKNOWN・履歴・過去Decision/Evidenceを削除・resetしない。
