@@ -144,7 +144,7 @@ class P5CatalogPolicy:
         # keeps its explicit fixture credentials for compatibility.
         if self.runtime.authorization_guard is not None:
             self.runtime.refresh_access_token()
-            client.credentials = self.runtime.secrets().shopee_credentials
+            client.credentials = self.runtime.secrets('shopee').shopee_credentials
             self.runtime.require_operation({'/api/v2/product/get_category': 'shopee.category',
                 '/api/v2/product/get_brand_list': 'shopee.brand',
                 '/api/v2/product/get_attribute_tree': 'shopee.attribute'}[path])
@@ -330,6 +330,8 @@ def make_catalog_client(runtime, secrets, *, request_json=None):
 
 def make_keepa_client(runtime, secrets, *, transport=None):
     runtime.require_current()
+    # Reject before constructing the SDK/cache or inspecting an API key.
+    runtime.require_operation('keepa.token')
     if (not isinstance(secrets, P5Secrets) or secrets.credential_ref != runtime.scope.credential_ref
             or secrets.marketplace != runtime.scope.marketplace
             or secrets.shop_id != runtime.scope.shop_id):
@@ -407,7 +409,8 @@ def make_keepa_client(runtime, secrets, *, transport=None):
 
 
 def make_image_inspector(runtime, secrets, *, api_session=None, image_session=None):
-    runtime.require_current()
+    runtime.require_operation('image')
+    runtime.require_operation('openai')
     if (not isinstance(secrets, P5Secrets) or secrets.credential_ref != runtime.scope.credential_ref
             or secrets.marketplace != runtime.scope.marketplace or secrets.shop_id != runtime.scope.shop_id):
         raise P5Stopped('P5_CREDENTIAL_REFERENCE_MISMATCH')
@@ -428,7 +431,7 @@ def make_image_inspector(runtime, secrets, *, api_session=None, image_session=No
 
 
 def make_category_provider(runtime, secrets, *, session=None):
-    runtime.require_current()
+    runtime.require_operation('openai')
     if (not isinstance(secrets, P5Secrets) or secrets.credential_ref != runtime.scope.credential_ref
             or secrets.marketplace != runtime.scope.marketplace or secrets.shop_id != runtime.scope.shop_id):
         raise P5Stopped('P5_CREDENTIAL_REFERENCE_MISMATCH')

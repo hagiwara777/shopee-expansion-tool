@@ -46,6 +46,30 @@ production原承認の検証provider、端末/実process/port・保存/ACL/容�
 実credential参照の承認済みrecordは未結合。これらをfixtureや自己申告で完成済みにしない。
 標準起動は引き続き実行不可。offline testsの合成authority・mock HTTPはproduction証明ではない。
 
+## 操作別preflight（DEC-0148）
+
+`P5TrustedAdapter`は原承認の明示allowlistから必要資料を決め、同じ操作集合を
+`P5ExecutionPermit.operations`へ固定する。開始・各操作・物理送信・保存・出力で再照合する。
+未使用資料をverifiedへ変換せず、未確認値はそのまま承認観測へ結合する。
+
+| 承認操作 | 必要な検査・関連操作 |
+|---|---|
+| `shopee.category` | Category公式本文・版・App/shop権限・全件/paging・request/response・rate limit。Shopee、Bridge、authの個別承認と正の有限枠 |
+| `shopee.brand` | Category＋Brand公式資料、今回sessionのCategory取得binding・対象leaf、strict終端取得（最大10ページ）。Bridge/authを含む個別枠 |
+| `keepa.token/product/query` | 必要な操作だけ承認。Product/queryにはtoken承認も必要。承認ASIN／strict検索条件・JP・認証・requests／商品数／tokensと残高を送信前検査 |
+| `openai` | 現在価格のverified/reference/body digest、承認model・入力／出力bound・requests／USD。必要なkeyがなければclient生成前停止 |
+| `image` | OpenAI承認とその価格・費用枠も必要。画像GETは独立枠、既存selector・画像Safetyを維持 |
+| `p2.save` / `output` | Category＋Brand公式資料、現在の商品Fact・Safety・重複照合・分類・作業状態・保存／出力許可。出力にはP2保存の承認も必要。通信操作の許可は自動追加しない |
+| `material.update` | Keepa Product/tokenとP2保存の承認。固定selection・更新journal・世代・同じ累積ledgerを検査 |
+| `shopee.attribute` | productionではadapter／runtime／transport境界で拒否。synthetic検証だけに限定 |
+
+未使用サービスのrequests／商品数／tokens／USD枠は0、対応操作はallowlist外とする。
+Category限定でもBridge/authを0にして通すことはできない。余り枠は未承認操作を許可しない。
+OpenAI未使用時は価格検証を要求せず、Keepa/OpenAIだけの操作はShopee/Googleのcredential本文を読まない。
+productionのKeepa/OpenAI key参照は未結合のまま、必要時は停止し、Shopee resolverへfallbackしない。
+取得限定scopeでは起動・catalog更新時にP2再評価を書き込まず履歴を読むだけとし、保存・pool・出力の権限を迂回しない。
+旧直接注入permitの3資料契約は互換維持するが、production Attribute送信は禁止する。
+
 ## 探索と対象固定の二段階（offline接続）
 
 DEC-0145。`preparation_limit > 0`の明示scopeでは、`asins`は探索前の承認商品（Expansion seed等）のまま変更しない。
@@ -95,7 +119,7 @@ Category AIの予算付きproviderは接続部品として分離し、初回の�
 
 Google/画像の通信件数をKeepa tokenやOpenAI費用と合算しない。PH/SGの承認上限は別scopeへ分配し、
 両scopeの合計がOwnerの全体上限以内であることを実行承認票で確認する。
-350 tokens、USD 1、Shopee 69 requests/市場は未承認の提案値。実行許可へ自動採用しない。
+350 tokens、USD 1、Shopee 63 requests/市場は未承認の提案値。実行許可へ自動採用しない。
 
 SGのOS process lease、checksum、fsync＋atomic replace、保存失敗後の停止を再利用する。
 同じscopeの二重openを拒否し、ledger/claim/storeの欠落・不一致を自動修復しない。
@@ -116,14 +140,17 @@ Attributeは既存`get_attribute_trees()`を使い、NOT_FETCHED/FAILED/FETCHED�
 treeと件数を画面へ渡す。空treeを必須属性0件と推定しない。属性自動入力やDB移行は追加しない。
 Seller Centerの必須属性・販売可否・発送条件は人間の最終確認として残る。
 NOT_FETCHEDだけでは準備停止を追加しない。取得開始後のFAILEDは停止し、NOT_FETCHEDへ戻して通さない。
-初回Betaの商品準備に自動属性取得を必須化しない方針とするが、PRIMARY_SOURCE_UNVERIFIEDを解除する
-live例外は未承認。現releaseのtrusted production組成は`shopee.attribute`操作を明示拒否し、
+初回Betaの商品準備に自動属性取得を必須化せず、使用操作に必要な一次資料がPRIMARY_SOURCE_UNVERIFIEDならliveを停止する。現releaseのtrusted production組成は`shopee.attribute`操作を明示拒否し、
 自己申告のverified値でも有効化しない。Category/Brandの公式根拠・P5運用許可・Safety停止も維持する。
 
 P5出力はP1の現在Safety/重複/分類/公式BrandとSG正式運用gateを通す。
 P2 `BetaWorkBench.output(operational=True)`はP1出力後、commit前、commit後のbytes返却前に
 実運用許可も再確認する。保存前にbytesを返さず、返却直前の失効では保存済み投入予約を保持する。
 downloadと外部投入を分け、UNKNOWNのlock・5状態は既存P2のまま扱う。
+Expansion Toolで商品群を確認しASINを手動で既存出品ツールへ渡し、必須属性取得・属性値選択・一括API出品はそちらで行う。
+`listing_ready=TRUE`は準備対象の表示で、外部ツールで無条件に一括出品してよい許可ではない。
+同じCategory/Brandでも属性値一致・適用可否は保証しない。ユーザーが商品ごとに確認し、出品完了を別に記録する。
+属性の自動推定・入力・DB保存、ツール間自動連携、出品ツール改修、実出品は提供しない。CSV列契約は維持する。
 P4既定のFALSE/PH_SG_P1_OFFLINEは変わらない。
 
 P5は初回HUMANに限定し、個別AUTO_RULE permitを注入しない。
@@ -140,7 +167,7 @@ default HTTP関数をmockする正常出力testsは契約のsimulationであり�
 実行結果・Git/PR/head・Owner判断はGit外Evidence/Task Context/GitHubに置く。
 
 Shopee現行公式API仕様はPRIMARY_SOURCE_UNVERIFIED。現行clientとfixtureの契約を実装しただけで、
-現行公式の全件取得・paging・権限・制限が確認済みとはしない。permit注入前に3 endpointの一次資料を確認する。
+現行公式の全件取得・paging・権限・制限が確認済みとはしない。permit注入前に上表の承認操作が必要とする一次資料を確認する。
 OpenAIの価格表は既存計算表を使う。paid送信は別途現在価格の確認参照を要求し、価格差があれば再見積り・最小修正する。
 対象shop/ASIN/leaf、認証参照、専用保存先/権限/backup/復旧、観測release/実行対象、有限枠、
 実API操作のOwner明示承認が揃うまでliveへ進まない。

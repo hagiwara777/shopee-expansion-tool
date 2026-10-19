@@ -14,17 +14,40 @@ import sys
 import inspect
 from types import CodeType, FunctionType
 
-from modules.p5_runtime import P5ExecutionPermit, P5Runtime, P5Stopped
+from modules.p5_runtime import (P5ExecutionPermit, P5Runtime, P5Stopped,
+    P5_OPERATIONS, required_primary_sources)
 from modules.sg_continuous_runtime import _digest
 
 
 OBSERVATIONS = frozenset({'repository', 'release', 'source_digest', 'entrypoint',
     'execution_target', 'machine', 'port', 'loopback', 'storage', 'credential', 'primary_sources', 'pricing', 'plan'})
-OPERATIONS = frozenset({'keepa.token', 'keepa.product', 'keepa.query', 'shopee.category',
-    'shopee.brand', 'shopee.attribute', 'bridge', 'auth', 'image', 'openai',
-    'material.update', 'p2.save', 'output'})
+OPERATIONS = P5_OPERATIONS
 BUDGETS = ('keepa_requests', 'keepa_products', 'keepa_tokens', 'shopee_requests',
            'bridge_requests', 'auth_requests', 'image_requests', 'openai_requests', 'openai_usd')
+
+
+def _require_operation_budgets(scope, operations):
+    """Unused services get zero; related physical sends need their own grants."""
+    dependencies = {'shopee.category': {'bridge', 'auth'}, 'shopee.brand': {'bridge', 'auth'},
+        'shopee.attribute': {'bridge', 'auth'}, 'bridge': {'auth'},
+        'keepa.product': {'keepa.token'}, 'keepa.query': {'keepa.token'},
+        'material.update': {'keepa.product', 'keepa.token', 'p2.save'}, 'image': {'openai'},
+        'output': {'p2.save'}}
+    if any(not dependencies.get(op, set()) <= operations for op in operations):
+        raise P5Stopped('P5_OPERATION_DEPENDENCY_NOT_APPROVED')
+    uses = {
+        'keepa_requests': bool(operations & {'keepa.token', 'keepa.product', 'keepa.query'}),
+        'keepa_products': 'keepa.product' in operations,
+        'keepa_tokens': bool(operations & {'keepa.product', 'keepa.query'}),
+        'shopee_requests': bool(operations & {'shopee.category', 'shopee.brand', 'shopee.attribute'}),
+        'bridge_requests': 'bridge' in operations, 'auth_requests': 'auth' in operations,
+        'image_requests': 'image' in operations, 'openai_requests': 'openai' in operations,
+        'openai_usd': 'openai' in operations}
+    if any((Decimal(str(getattr(scope, name))) > 0) != used for name, used in uses.items()):
+        raise P5Stopped('P5_OPERATION_BUDGET_MISMATCH')
+    if 'openai' in operations and (not scope.openai_models or not scope.openai_input_bound
+            or not scope.openai_output_tokens):
+        raise P5Stopped('P5_PAID_PROFILE_INVALID')
 
 
 class P5CodeIdentity:
@@ -203,6 +226,7 @@ class P5TrustedAdapter:
             if not ceiling.is_finite() or ceiling < 0 or sum(
                     (Decimal(str(getattr(s, name))) for s in allocations), Decimal(0)) > ceiling:
                 raise P5Stopped('P5_MARKET_ALLOCATION_EXCEEDED')
+        _require_operation_budgets(scope, approval.operations)
         observed = self.observe(scope)
         if not isinstance(observed, dict):
             raise P5Stopped('P5_EXECUTION_OBSERVATION_MISMATCH')
@@ -210,14 +234,15 @@ class P5TrustedAdapter:
         if not self.synthetic:
             if type(self.code_identity) is not P5CodeIdentity:
                 raise P5Stopped('P5_EXECUTION_CODE_UNVERIFIED')
-            if type(self.resolve_secrets) is not P5CredentialResolver:
-                raise P5Stopped('P5_APPROVED_CREDENTIAL_REFERENCE_REQUIRED')
-            credential = self.resolve_secrets.describe(scope)
+            if approval.operations & {'shopee.category', 'shopee.brand', 'shopee.attribute', 'bridge', 'auth'}:
+                if type(self.resolve_secrets) is not P5CredentialResolver:
+                    raise P5Stopped('P5_APPROVED_CREDENTIAL_REFERENCE_REQUIRED')
+                credential = self.resolve_secrets.describe(scope)
             code = self.code_identity.observe()
             if any(observed.get(key) != value for key, value in code.items()):
                 raise P5Stopped('P5_EXECUTION_CODE_MISMATCH')
         if (not isinstance(observed, dict) or set(observed) != OBSERVATIONS
-                or any(not v for v in observed.values())
+                or any(not v for k, v in observed.items() if k not in {'primary_sources', 'pricing'})
                 or observed['release'] != scope.release
                 or observed['execution_target'] != scope.execution_target
                 or observed['loopback'] is not True or type(observed['port']) is not int
@@ -233,37 +258,47 @@ class P5TrustedAdapter:
                            ('volume', 'acl', 'identities', 'capacity_ok'))):
             raise P5Stopped('P5_EXECUTION_TARGET_MISMATCH')
         sources = observed['primary_sources']
-        if (not isinstance(sources, dict) or set(sources) != {'category', 'brand', 'attribute'}
+        required = required_primary_sources(approval.operations)
+        if (not isinstance(sources, dict) or not set(required) <= set(sources)
                 or any(not isinstance(s, dict) or s.get('verified') is not True
                     or any(not s.get(k) for k in ('body_digest', 'version', 'app_shop_permission',
                                                  'paging', 'request_response', 'rate_limit'))
-                    for s in sources.values())):
+                    for s in (sources[k] for k in required))):
             raise P5Stopped('PRIMARY_SOURCE_UNVERIFIED')
         # The Attribute request contract remains unresolved in this release.
         # Even a self-declared verified flag cannot enable its live operation.
         if not self.synthetic and 'shopee.attribute' in approval.operations:
             raise P5Stopped('P5_ATTRIBUTE_LIVE_NOT_ENABLED')
         pricing = observed['pricing']
-        if (not isinstance(pricing, dict) or pricing.get('verified') is not True
+        if 'openai' in approval.operations and (not isinstance(pricing, dict) or pricing.get('verified') is not True
                 or not pricing.get('reference') or not pricing.get('body_digest')):
             raise P5Stopped('P5_CURRENT_OPENAI_PRICING_UNVERIFIED')
-        return approval
+        return approval, observed
 
     def compose(self, scope, *, approval_reference):
         # No I/O/credential lookup at construction or rendering. Explicit start
         # calls this method after operator verification is available.
-        approval = self._check(scope, approval_reference)
+        approval, observed = self._check(scope, approval_reference)
         permit = P5ExecutionPermit(scope.digest, approval.original_instruction_ref,
-            ('category', 'brand', 'attribute'), offline_test=self.synthetic,
-            openai_pricing_ref=self.observe(scope)['pricing']['reference'])
+            tuple(k + ':' + observed['primary_sources'][k]['body_digest']
+                  for k in required_primary_sources(approval.operations)), offline_test=self.synthetic,
+            openai_pricing_ref=observed['pricing']['reference'] if 'openai' in approval.operations else '',
+            operations=approval.operations)
         runtime = P5Runtime(scope, permit=permit,
             execution_identity=lambda: (self.observe(scope)['release'], self.observe(scope)['execution_target']))
         def guard(operation=None):
-            current = self._check(scope, approval_reference)
+            current, _ = self._check(scope, approval_reference)
             if current != approval or (operation is not None and operation not in current.operations):
                 raise P5Stopped('P5_OPERATION_NOT_APPROVED')
         runtime.authorization_guard = guard
         # Resolver is called lazily only after a valid start and permission check.
-        runtime.credential_resolver = lambda: self.resolve_secrets(scope)
+        def resolve(service=None):
+            guard()
+            # The installed production resolver handles Shopee/Google only.
+            # Paid key references still need a separate approved integration.
+            if not self.synthetic and service in {'keepa', 'openai'}:
+                raise P5Stopped('P5_APPROVED_' + service.upper() + '_CREDENTIAL_REQUIRED')
+            return self.resolve_secrets(scope)
+        runtime.credential_resolver = resolve
         runtime.checkpoint_hook = self.checkpoint
         return runtime

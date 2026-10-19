@@ -192,3 +192,26 @@ def test_json_scope_loads_resolver_plan_without_creating_permit(flow):
     assert not app.exception
     assert app.button(key='p5_start').disabled
     assert flow.ledger.path.read_bytes() == before
+
+@pytest.mark.parametrize('market', ['PH', 'SG'])
+def test_production_attribute_button_is_disabled_and_rerender_reads_no_credentials(tmp_path, monkeypatch, market):
+    from test_p5_operation_preflight import scoped, production
+    scope, adapter, observed, bind = scoped(tmp_path, market)
+    production(adapter, observed, scope, tmp_path, monkeypatch)
+    bind()
+    rt = adapter.compose(scope, approval_reference='SYNTHETIC')
+    rt.checkpoint_hook = lambda *a: None
+    rt.start()
+    try:
+        monkeypatch.setattr(rt, 'secrets', lambda *a: pytest.fail('credential read during render'))
+        # Catalog presence cannot enable the production Attribute button.
+        rt.category_receipt = {'fixture':True}
+        app = app_for(rt)
+        assert app.button(key='p5_attribute').disabled
+        assert any('取得専用の承認' in c.value for c in app.caption)
+        assert any('属性値の一致は保証しません' in c.value for c in app.caption)
+        app.run()
+        assert not app.exception and app.button(key='p5_attribute').disabled
+        assert not rt.ledger.data['reservations']
+    finally:
+        rt.close()

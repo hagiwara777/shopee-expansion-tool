@@ -22,6 +22,9 @@ P5の[trusted接続・資料更新・D保存設計](P5_LIVE_DESIGN.md)を先に�
 既指定の実対象は非公開票へ回収し、今回資料との未結合を記録する。未結合の解消はlive前条件でありoffline実装と分ける。
 F1/F2の実AMAZON円・評価・消費token照合もP5へ残し、offline成果を実務Beta全体の完成としない。
 個別AUTO_RULEの実運用適用、実API・費用・設置・release反映・実出品は別承認とする。
+P5の[操作別preflight](P5_CONNECTION.md)はDEC-0148を適用し、未使用Attribute資料・OpenAI価格だけで他操作を停止しない。
+商品群はCategory／Brand別に整理してASINを手動で既存出品ツールへ渡し、属性値の共通性・適用可否はユーザーが確認する。
+C04限定AUTO_RULEとP5実務受入の完成条件・工程順は変更しない。
 固定PH基準（DEC-0116）は[既存機能の回帰基準](PH_BETA_MARKET_PARITY.md)として保持する。
 MY／TW／TH追加は共通実務Beta受入後。MYは販売価格・貨物価格・送料等に基づく税務確認を国別工程で整理する。
 

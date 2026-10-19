@@ -138,8 +138,8 @@ PH/SG各最大2 leaf、3 session（A開始、再起動後A再確認＋B追加、
 |---|---:|---:|
 | GET `/api/v2/product/get_category` | 1 request（全件） | 3 |
 | GET `/api/v2/product/get_brand_list` | 2 leaf×10 pages、page_size=100 | 60 |
-| GET `/api/v2/product/get_attribute_tree` | 2 leaf、個別1 requestずつの保守案 | 6 |
-| 合計 | 23 | **69/市場、138/両市場** |
+| GET `/api/v2/product/get_attribute_tree` | production禁止・allowlist外 | 0 |
+| 合計 | 21 | **63/市場、126/両市場** |
 
 これはAPIサービスの公式rate limitではなく、Owner承認用の内部上限案。
 BrandはP1の1取得最大10ページを維持する。旧SG隔離50ページ承認をP5へ流用しない。
@@ -153,12 +153,15 @@ Brandが少ページで終了した余裕を対象Category拡大へ使わない�
 [Brand](https://open.shopee.com/documents/v2/v2.product.get_brand_list?module=89&type=1)、
 [Attribute](https://open.shopee.com/documents/v2/v2.product.get_attribute_tree?module=89&type=1)）の本文は公開取得で確認できなかった。
 現在の仕様・paging・shop権限・rate limitは、Ownerが閲覧可能な公式資料で実行前に確認する。
+DEC-0148により[P5操作別preflight](P5_CONNECTION.md)を適用する。未使用Attribute仕様は要求せずproduction操作は禁止する。
+未使用OpenAIはallowlist外・requests/USD=0とし料金検証を要求しない。必要な画像検査は別に維持し、
+使用するShopee/Bridge/OAuthの個別枠を0にしない。上表は複数操作を含む提案であり、承認操作ごとに再見積りする。
 過去DEC/現clientのpage_size=100・10ページ契約は実装根拠であって最新外部仕様の確認済み宣言ではない。
 部分取得や第三者SDKを公式完全取得の根拠へ昇格しない。
 
 認証は既存Google Sheet Access Token Sourceの市場別Bridge Viewer読み取りを提案する。
 expected shop照合、操作ごと最新token取得、Source失敗時silent fallback禁止、Mapper refresh禁止を維持する。
-Bridge readはShopee requestと別集計で最大69/市場を提案。Google認証refresh等の必要通信も事前に列挙し、
+Bridge readはShopee requestと別集計で最大63/市場を提案。Google認証refresh等の必要通信も事前に列挙し、
 credential作成/変更・Google側同期変更・権限付与は本計画のAPI承認に含めない。
 既存Keepa key/OpenAI key/Partner設定/Service Accountは非公開参照だけを記録し、本文を表示・複製しない。
 
@@ -265,8 +268,8 @@ Keepa観測との時刻差/丸め/販売なし/評価欠損を分け、異なる
 次の9項目を非公開の実対象・release・保存先と対応させて提示する。空欄があれば実行承認を求めず先に補完する。
 
 1. **商品・件数**：PH/SG各A/B 1〜3商品、seed/title/source_id/選定ASIN/leaf/shop、全shop CSV一覧、担当者。
-2. **API操作**：上表のKeepa JP取得、Shopee 3 GET、Bridge read、必要画像GET/OpenAIのみ。対象外endpointは0。
-3. **上限**：Keepa20 requests/市場・175 tokens/市場・合計350、標準見積308。OpenAI各$0.50・合計$1案。Shopee69/市場。Owner確定値へ再計算。
+2. **API操作**：上表のKeepa JP取得、Shopee Category/Brand GET（Attributeは0）、Bridge read、必要画像GET/OpenAIのみ。対象外endpointは0。
+3. **上限**：Keepa20 requests/市場・175 tokens/市場・合計350、標準見積308。OpenAI各$0.50・合計$1案。Shopee63/市場。Owner確定値へ再計算。
 4. **認証・保存**：既存秘密の参照利用のみ、新規市場別P2/cache/ledger/claim、権限・backup・復旧先の絶対pathを非公開票で固定。
 5. **release・環境**：接続差分の採用済み固定release、専用起動設定/port/端末、offline保護回帰の証拠。旧設定への書込みなし。
 6. **実出品**：初回0。必要になった場合だけASIN/shop/価格/属性/数量/具体操作/取消方法を別票で承認。
@@ -294,7 +297,7 @@ Keepa観測との時刻差/丸め/販売なし/評価欠損を分け、異なる
 | A探索 | 各市場seed ASIN、用途、strict query全体、page=0/perPage、詳細最大数、準備上限、選択担当。探索承認と取得後選択を別記 |
 | B入力 | 各市場source_id/元title/originと手動Resolverサービス、候補ASIN、詳細取得対象確認、取得後の同一性根拠・確認者 |
 | 固定選択 | 探索後の選択ASIN集合・selection/batch digest、同一性、候補/文章/sidecar SHA、更新可能な同じASIN部分集合。追加・差替え不可 |
-| 公式資料 | 当該市場/shop Category全件・leaf ID/path、Brand strict終端/ID/name/区分、Attribute契約/観測、Seller Center確認担当。一次本文・版・権限・形式一致が必要 |
+| 公式資料 | 当該市場/shop Category全件・leaf ID/path、Brand strict終端/ID/name/区分、Seller Centerまたは既存出品ツールでの商品別属性確認担当。承認操作の一次本文・版・権限・形式一致が必要 |
 | 全shop CSV | 実際に全shopであるOwner確認、各CSVの取得日時/市場/shop/SHA/行数、正当な0件資料、既存出品照合ASINを準備対象と区別 |
 | API/費用 | 操作別回数・payload上限・物理send・tokens/USD・両市場合計、再取得回数、現在公式単価参照、実測方法、失敗消費保持 |
 | release | 最小差分を正式採用した固定full commit/実ソースdigest、端末/実entrypoint/port、technical gates。PR #135の採用だけではlive adapter未提供 |
@@ -310,9 +313,9 @@ Keepa観測との時刻差/丸め/販売なし/評価欠損を分け、異なる
 | Keepa requests | 20 | 20 | 40、token照会/失敗/再取得も物理送信として計数 |
 | Keepa tokens | 175 | 175 | 350。従来計画154/市場、308合計を実対象へ再計算 |
 | Keepa要求商品延べ数 | 最大72案 | 最大72案 | 144。Finderは別枠1ページ/市場、最大50返却 |
-| Shopee requests | 69 | 69 | 138。Category3＋Brand60＋Attribute6/市場、1取得10page維持 |
-| Bridge read | 69 | 69 | 138。各Shopee物理操作前。別診断読取を自動追加しない |
-| Google auth物理send | 最大69案 | 最大69案 | 138。Bridge1回あたり最大1 auth sendの内部案。ライブラリ隠れretryをofflineで拒否できなければ実行停止 |
+| Shopee requests | 63 | 63 | 126。Category3＋Brand60、Attribute0/市場、1取得10page維持 |
+| Bridge read | 63 | 63 | 126。各Shopee物理操作前。別診断読取を自動追加しない |
+| Google auth物理send | 最大63案 | 最大63案 | 126。Bridge1回あたり最大1 auth sendの内部案。ライブラリ隠れretryをofflineで拒否できなければ実行停止 |
 | OpenAI calls/USD | 13 / 0.50 | 13 / 0.50 | 26 / 1.00。Category12＋画像1/市場、現在model/単価再検証が必要 |
 | 画像GET | 3 | 3 | 6。既存selector、1画像検査call最大3枚、再検査も枠消費 |
 | 新規出品/外部投入 | 0 | 0 | 0。実SUCCESSを合成結果から作らない |

@@ -95,6 +95,9 @@ def render_p5_workspace(runtime):
     workflow = runtime.workflow
     st.subheader('分類・準備・出品管理')
     st.caption('Category / Brandは今回の公式取得経路から確認します。初回はHUMAN経路を使用します。')
+    st.caption('CSV / TXTとlisting_ready=TRUEは準備対象の表示です。商品群を確認してASINを手動で既存出品ツールへ渡し、'
+               '商品ごとの必須属性・属性値・発送条件・販売可否を確認してください。'
+               '同じCategory / Brandでも属性値の一致は保証しません。出品完了は別に記録します。')
     if runtime.permit.offline_test:
         st.warning('synthetic接続検証です。模擬応答を実運用の根拠には使えません。')
     if runtime.scope.preparation_limit:
@@ -117,14 +120,20 @@ def render_p5_workspace(runtime):
             _action(lambda: runtime.acquire_catalog(runtime.catalog_client()))
         cid = st.selectbox('取得対象leaf Category', runtime.scope.category_ids, key='p5_leaf')
         if st.button('Brandを完全取得', key='p5_brand', disabled=runtime.category_receipt is None):
-            _action(lambda: runtime.acquire_brand(runtime.catalog_client(), cid))
-        if st.button('Attributeを取得', key='p5_attribute', disabled=runtime.category_receipt is None):
-            _action(lambda: runtime.acquire_attributes(runtime.catalog_client(), cid))
+            _action(lambda: runtime.acquire_brand(runtime.catalog_client(operation='shopee.brand'), cid))
+        if st.button('Attributeを取得（synthetic検証専用）', key='p5_attribute',
+                     disabled=not runtime.permit.offline_test or runtime.category_receipt is None
+                     or runtime.permit.operations is not None and 'shopee.attribute' not in runtime.permit.operations):
+            _action(lambda: runtime.acquire_attributes(runtime.catalog_client(operation='shopee.attribute'), cid))
         status = runtime.attribute_status(cid)
         st.caption(f'Attribute：{status["state"]} / tree件数：{status["tree_count"]}')
         st.caption('空のtreeから必須属性0件とは判断しません。Seller Centerで最終確認してください。')
+        st.caption('production Attribute APIは停止中です。NOT_FETCHEDだけでは準備を停止せず、FAILEDは停止します。')
         if status.get('tree'):
             st.json(status['tree'])
+    if runtime.permit.operations is not None and 'p2.save' not in runtime.permit.operations:
+        st.caption('取得専用の承認です。商品保存・準備出力には対応する操作の承認が必要です。')
+        return
     render_current_batch(workflow, runtime.scope.marketplace, key='p5_intake_')
     render_practical_controls(workflow, key='p5_work_', runtime=runtime)
 
@@ -186,7 +195,7 @@ def render_p5_weapon(runtime, *, key):
                 record = next(r for r in workflow.bench.store.products() if r['asin'] == asin)
                 item, review = _session(record, runtime.scope.marketplace)
                 evidence = review.current(item)
-                result = make_image_inspector(runtime, runtime.secrets()).inspect(evidence)
+                result = make_image_inspector(runtime, runtime.secrets('openai')).inspect(evidence)
                 review.finish_image_inspection(item, evidence_binding=evidence.binding, inspection=result)
                 _save(workflow, record, capture_weapon_review(item, review, images=record['weapon']['images']), 'P5画像検査', result='P5_INSPECTION')
                 runtime.weapon_receipts[asin] = (digest([record['facts'], record['source'], record['weapon']['images']]), digest(asdict(result)))
