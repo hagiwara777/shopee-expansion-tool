@@ -191,9 +191,15 @@ class WindowsP5Observer:
             self.storage.setup().check(scope.directory, required_bytes=self.required_bytes)
             observed = self.storage.inspect(scope.directory)
             # Store identity is read from the actual P2 DB, never just scope.
+            # Guards also run inside P2's active write transaction. Observation
+            # must not acquire a second writer or initialize/repair the store.
             from modules.beta_work_store import BetaWorkStore
-            store = BetaWorkStore(scope.db_path, marketplace=scope.marketplace, shop_id=scope.shop_id)
-            if store.store_id != scope.store_id:
+            with sqlite3.connect(scope.db_path.as_uri() + '?mode=ro', uri=True) as conn:
+                if conn.execute('PRAGMA integrity_check').fetchone()[0] != 'ok':
+                    raise ValueError()
+                meta = dict(conn.execute('SELECT key,value FROM meta'))
+            if any(meta.get(k) != v for k, v in dict(schema=BetaWorkStore.SCHEMA,
+                    marketplace=scope.marketplace, shop_id=scope.shop_id, store_id=scope.store_id).items()):
                 raise ValueError()
             if self.operations & {'keepa.token', 'keepa.product', 'keepa.query'}:
                 token_spec = self.sources.get('keepa.token', {})
@@ -201,7 +207,7 @@ class WindowsP5Observer:
                     raise P5Stopped('PRIMARY_SOURCE_UNVERIFIED')
             return dict(repository='1296080967', **code, machine=machine, port=self.port,
                 loopback=True, execution_target=_digest(machine | {'port': self.port}),
-                storage=dict(root=str(scope.directory), store_id=store.store_id, volume=observed.volume,
+                storage=dict(root=str(scope.directory), store_id=meta['store_id'], volume=observed.volume,
                     acl=_digest(sorted(observed.acl_principals)), identities=observed.identities, capacity_ok=True),
                 credential=self.credentials.describe(scope, self.operations),
                 primary_sources=self.sources, pricing=self.pricing, plan=asdict(scope))

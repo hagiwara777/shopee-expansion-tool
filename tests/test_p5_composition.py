@@ -228,6 +228,39 @@ def test_observation_binds_process_identity_not_ticket_label(tmp_path, monkeypat
     assert first['machine']['pid'] == os.getpid()
 
 
+@pytest.mark.parametrize('market', ['PH', 'SG'])
+def test_observation_can_recheck_inside_existing_p2_write_transaction(tmp_path, monkeypatch, market):
+    from modules.beta_work_store import BetaWorkStore
+    scope, observer, _, _ = observer_fixture(tmp_path, monkeypatch)
+    if market == 'SG':
+        scope = scope_for(tmp_path, market, bridge_spreadsheet_id='synthetic-sheet')
+        observer.credentials = P5ServiceCredentials(
+            shopee=P5CredentialResolver(credential_reference(scope, tmp_path)),
+            keepa=P5KeepaReference(scope.credential_ref, scope.marketplace, scope.shop_id, 'SYNTHETIC_KEEPA_KEY'))
+    store = BetaWorkStore(scope.db_path, marketplace=scope.marketplace, shop_id=scope.shop_id)
+    history = store.history()
+    with store.transaction() as conn:
+        changes = conn.total_changes
+        observed = observer.observe(scope)
+        assert observed['storage']['store_id'] == store.store_id
+        assert conn.total_changes == changes
+    assert store.history() == history
+
+
+@pytest.mark.parametrize('change', ['store_id', 'marketplace', 'shop_id', 'schema', 'missing'])
+def test_observation_rejects_actual_store_identity_changes_without_repair(tmp_path, monkeypatch, change):
+    import sqlite3
+    scope, observer, _, _ = observer_fixture(tmp_path, monkeypatch)
+    if change == 'missing':
+        scope = replace(scope, run_id='synthetic-missing')
+    else:
+        with sqlite3.connect(scope.db_path) as conn:
+            conn.execute('UPDATE meta SET value=? WHERE key=?', ('SYNTHETIC_CHANGED', change))
+    with pytest.raises(P5Stopped, match='PROCESS_OBSERVATION_MISMATCH'):
+        observer.observe(scope)
+    assert scope.db_path.exists() is (change != 'missing')
+
+
 def test_full_operator_composition_uses_original_os_references_and_real_checkpoint(tmp_path, monkeypatch):
     scope, observer, process, _ = observer_fixture(tmp_path, monkeypatch)
     scope = replace(scope, image_requests=0, openai_requests=0, openai_usd='0',
