@@ -66,6 +66,21 @@ KeepaのWeb画面操作、Amazonページ操作、Amazon/Keepaスクレイピン
 `keepa`の場合は、従来どおり`KEEPA_API_KEY`とKeepa経路を利用します。未知のprovider値を
 Keepaへ自動fallbackしません。
 
+`commerce-api-core`経由のExpansion adapterは、明示したSG Continuous実行だけで選択できます。
+`commerce-api-core`を同じPython環境へ導入したうえで、SG Continuousの既存永続Keepa request枠を
+使用します。Keepa Productはtoken確認と商品取得をそれぞれ送信前に予約し、Finderは1 requestを
+予約します。自動wait・retry・redirectは行いません。送信結果がUNKNOWN、または処理再開時に
+未確定予約が残る場合は停止します。PHやSG Continuous以外では永続budget ownerがないため、
+このproviderは開始前に失敗します。旧来の`keepa`が既定で、cache・Candidate CSV・Safety schemaは
+共通です。provider間の自動fallbackはありません。
+
+```dotenv
+AMAZON_DATA_PROVIDER=keepa_core
+```
+
+このadapterは`commerce-api-core` 0.1.xとその固定Keepa依存に対応します。ローカルcheckoutを使う場合は、
+リポジトリ直下から`python -m pip install -e ..\commerce-api-core`で同じ環境へ導入できます。
+
 Beta開発・試験時だけ、プロジェクト直下のGit管理外`.env`で次を明示するとCanopy TEST経路を
 利用できます。
 

@@ -10,7 +10,7 @@ def install_bounded_keepa_transport(api, budget, *, transport=None):
     send = requests.get if transport is None else transport
     failed = False
 
-    def request(request_type, payload, wait=True, raw_response=False, is_json=True):
+    def request_impl(request_type, payload, wait=True, raw_response=False, is_json=True):
         nonlocal failed
         if failed:
             raise RuntimeError('Keepa action stopped; explicit new action required')
@@ -56,6 +56,15 @@ def install_bounded_keepa_transport(api, budget, *, transport=None):
             if key in data:
                 setattr(api.status, key, data[key])
         return response if raw_response else data
+
+    def request(request_type, payload, wait=True, raw_response=False, is_json=True):
+        # SG Continuous exposes this lock so legacy bounded sends and Core's
+        # token/product pair cannot overlap on the same persistent request grant.
+        call_guard = getattr(budget, 'core_keepa_call', None)
+        if getattr(budget, 'has_core_keepa_concurrency_guard', False) and callable(call_guard):
+            with call_guard():
+                return request_impl(request_type, payload, wait, raw_response, is_json)
+        return request_impl(request_type, payload, wait, raw_response, is_json)
 
     api._request = request
     return api

@@ -6,8 +6,9 @@ from typing import Any
 
 
 KEEPA_PROVIDER = "keepa"
+KEEPA_CORE_PROVIDER = "keepa_core"
 CANOPY_TEST_PROVIDER = "canopy_test"
-SUPPORTED_AMAZON_DATA_PROVIDERS = {KEEPA_PROVIDER, CANOPY_TEST_PROVIDER}
+SUPPORTED_AMAZON_DATA_PROVIDERS = {KEEPA_PROVIDER, KEEPA_CORE_PROVIDER, CANOPY_TEST_PROVIDER}
 
 
 class AmazonDataProviderError(RuntimeError):
@@ -24,7 +25,7 @@ def normalize_amazon_data_provider(value: str | None) -> str:
     provider = (value or KEEPA_PROVIDER).strip().casefold() or KEEPA_PROVIDER
     if provider not in SUPPORTED_AMAZON_DATA_PROVIDERS:
         raise AmazonDataProviderConfigurationError(
-            "AMAZON_DATA_PROVIDER must be keepa or canopy_test."
+            "AMAZON_DATA_PROVIDER must be keepa, keepa_core, or canopy_test."
         )
     return provider
 
@@ -36,14 +37,42 @@ def create_amazon_data_client(
     keepa_cache: Any | None = None,
     canopy_transport: Any | None = None,
     request_budget: Any | None = None,
+    persistent_budget: Any | None = None,
+    keepa_transport: Any | None = None,
 ) -> Any:
     """Create only the explicitly configured provider client."""
 
     provider = normalize_amazon_data_provider(settings.amazon_data_provider)
-    if provider == KEEPA_PROVIDER:
+    if provider in {KEEPA_PROVIDER, KEEPA_CORE_PROVIDER}:
         if not settings.keepa_api_key and keepa_api is None:
             raise AmazonDataProviderConfigurationError(
-                "KEEPA_API_KEY is required when AMAZON_DATA_PROVIDER=keepa."
+                f"KEEPA_API_KEY is required when AMAZON_DATA_PROVIDER={provider}."
+            )
+        if provider == KEEPA_CORE_PROVIDER:
+            if request_budget is not None:
+                raise AmazonDataProviderConfigurationError(
+                    "keepa_core requires persistent_budget, not the legacy request_budget hook."
+                )
+            if persistent_budget is None:
+                raise AmazonDataProviderConfigurationError(
+                    "AMAZON_DATA_PROVIDER=keepa_core requires a persistent Keepa budget owner."
+                )
+            if keepa_api is not None:
+                raise AmazonDataProviderConfigurationError(
+                    "Inject keepa_core transport through keepa_transport, not a legacy Keepa API."
+                )
+            from modules.commerce_keepa_expansion import CommerceKeepaExpansionClient
+
+            return CommerceKeepaExpansionClient(
+                settings=settings,
+                persistent_budget=persistent_budget,
+                domain=settings.keepa_domain,
+                cache=keepa_cache,
+                transport=keepa_transport,
+            )
+        if persistent_budget is not None or keepa_transport is not None:
+            raise AmazonDataProviderConfigurationError(
+                "persistent_budget and keepa_transport are only supported by keepa_core."
             )
         from modules.keepa_client import KeepaExpansionClient
 
@@ -59,8 +88,8 @@ def create_amazon_data_client(
             kwargs['request_budget'] = request_budget
         return KeepaExpansionClient(**kwargs)
 
-    if request_budget is not None:
-        raise AmazonDataProviderConfigurationError('Continuous budget currently supports Keepa only.')
+    if request_budget is not None or persistent_budget is not None or keepa_transport is not None:
+        raise AmazonDataProviderConfigurationError('A Keepa budget is not supported by canopy_test.')
 
     if not settings.canopy_api_key and canopy_transport is None:
         raise AmazonDataProviderConfigurationError(

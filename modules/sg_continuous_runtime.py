@@ -4,12 +4,15 @@ An authorization reference records a separately approved policy; parsing it does
 not establish approval. Legacy limited Grants keep their own contract and records.
 """
 from dataclasses import dataclass, asdict
+from contextlib import contextmanager
+from collections.abc import Mapping
 from decimal import Decimal
 import hashlib
 import json
 import os
 from pathlib import Path
 import re
+from uuid import uuid4
 
 from modules.sg_live_validation import LiveValidationStopped, BudgetedOpenAISession, OpenAIValidationBudget
 from modules.sg_live_runtime import (SGRunLedger, PersistentSGOpenAIBudget,
@@ -115,6 +118,7 @@ class SGContinuousLedger(SGRunLedger):
     def __init__(self, path, policy, *, initialize=False):
         self.failed = False
         self.scope = None
+        self._core_keepa_active_reservations = set()
         super().__init__(path, policy, initialize=initialize)
 
     def _initial_data(self):
@@ -133,7 +137,11 @@ class SGContinuousLedger(SGRunLedger):
 
     def _validate(self):
         d = self.data
-        if (set(d) != {"grant_digest", "catalog_requests", "attribute_requests", "keepa_requests", "brand_page_counts", "openai", "checksum"}
+        expected = {"grant_digest", "catalog_requests", "attribute_requests", "keepa_requests",
+                    "brand_page_counts", "openai", "checksum"}
+        if "keepa_core" in d:
+            expected.add("keepa_core")
+        if (set(d) != expected
                 or d["grant_digest"] != self.grant.digest
                 or d["checksum"] != _digest({k: v for k, v in d.items() if k != "checksum"})
                 or not isinstance(d["brand_page_counts"], dict)):
@@ -152,6 +160,48 @@ class SGContinuousLedger(SGRunLedger):
                 or not Decimal(b["reserved_upper_bound_usd"]).is_finite()
                 or not 0 <= Decimal(b["reserved_upper_bound_usd"]) <= Decimal(b["limit_usd"])):
             raise LiveValidationStopped("Invalid continuous SG ledger counters")
+        if "keepa_core" in d:
+            self._validate_core_keepa_state(d["keepa_core"], d["keepa_requests"])
+
+    @staticmethod
+    def _validate_core_keepa_state(state, keepa_requests):
+        if (not isinstance(state, dict) or set(state) != {"version", "stopped", "reservations"}
+                or state["version"] != 1 or type(state["stopped"]) is not bool
+                or not isinstance(state["reservations"], list)):
+            raise LiveValidationStopped("Invalid continuous SG core Keepa state")
+        identifiers = set()
+        accounted_requests = 0
+        contains_unknown = False
+        for row in state["reservations"]:
+            if (not isinstance(row, dict)
+                    or set(row) != {"id", "endpoint", "maximum_usage", "state", "actual_usage"}
+                    or not isinstance(row["id"], str) or not re.fullmatch(r"[0-9a-f]{32}", row["id"])
+                    or row["id"] in identifiers
+                    or row["endpoint"] not in {"keepa.product", "keepa.finder", "keepa.token"}
+                    or row["state"] not in {"RESERVED", "COMPLETE", "CANCELLED", "UNKNOWN"}):
+                raise LiveValidationStopped("Invalid continuous SG core Keepa reservation")
+            identifiers.add(row["id"])
+            maximum = row["maximum_usage"]
+            if (not isinstance(maximum, dict) or set(maximum) != {"requests", "keepa_tokens"}
+                    or type(maximum["requests"]) is not int or maximum["requests"] != 1
+                    or type(maximum["keepa_tokens"]) is not int or maximum["keepa_tokens"] < 0
+                    or (row["endpoint"] == "keepa.token" and maximum["keepa_tokens"] != 0)):
+                raise LiveValidationStopped("Invalid continuous SG core Keepa reservation ceiling")
+            actual = row["actual_usage"]
+            if row["state"] == "COMPLETE":
+                if (not isinstance(actual, dict) or set(actual) != {"requests", "keepa_tokens"}
+                        or type(actual["requests"]) is not int or actual["requests"] != 1
+                        or type(actual["keepa_tokens"]) is not int or actual["keepa_tokens"] < 0
+                        or actual["keepa_tokens"] > maximum["keepa_tokens"]):
+                    raise LiveValidationStopped("Invalid continuous SG core Keepa usage receipt")
+            elif actual is not None:
+                raise LiveValidationStopped("Unexpected continuous SG core Keepa usage receipt")
+            if row["state"] in {"RESERVED", "COMPLETE", "UNKNOWN"}:
+                accounted_requests += 1
+            if row["state"] == "UNKNOWN":
+                contains_unknown = True
+        if accounted_requests > keepa_requests or (contains_unknown and not state["stopped"]):
+            raise LiveValidationStopped("Invalid continuous SG core Keepa accounting")
 
     def require_current(self):
         if self.failed:
@@ -203,11 +253,154 @@ class SGContinuousLedger(SGRunLedger):
 
     def reserve_keepa_request(self):
         with self._lock:
-            self.require_current()
+            if type(self) is SGContinuousLedger and "keepa_core" in self.data:
+                self._require_core_keepa_available()
+            else:
+                self.require_current()
             if self.data['keepa_requests'] >= self.grant.keepa_request_limit:
                 raise LiveValidationStopped('Continuous Keepa send budget exhausted')
             self.data['keepa_requests'] += 1
             self.persist()
+
+    def _require_core_keepa_supported(self):
+        # P5Ledger has a separate durable schema and must never inherit this port.
+        if type(self) is not SGContinuousLedger:
+            raise LiveValidationStopped("Core Keepa requires the SG Continuous ledger")
+
+    @property
+    def has_core_keepa_concurrency_guard(self):
+        return type(self) is SGContinuousLedger
+
+    def _core_keepa_state(self, *, create=False):
+        state = self.data.get("keepa_core")
+        if state is None and create:
+            state = {"version": 1, "stopped": False, "reservations": []}
+            self.data["keepa_core"] = state
+        return state
+
+    def _require_core_keepa_available(self):
+        self._require_core_keepa_supported()
+        self.require_current()
+        state = self._core_keepa_state()
+        if state is None:
+            return
+        unresolved = any(
+            row["state"] == "UNKNOWN"
+            or (row["state"] == "RESERVED" and row["id"] not in self._core_keepa_active_reservations)
+            for row in state["reservations"]
+        )
+        if state["stopped"] or unresolved:
+            raise LiveValidationStopped("Core Keepa has unresolved or UNKNOWN usage; explicit recovery is required")
+
+    @property
+    def core_keepa_stopped(self):
+        with self._lock:
+            self._require_core_keepa_supported()
+            self.require_current()
+            state = self._core_keepa_state()
+            if state is None:
+                return False
+            return state["stopped"] or any(
+                row["state"] == "UNKNOWN"
+                or (row["state"] == "RESERVED" and row["id"] not in self._core_keepa_active_reservations)
+                for row in state["reservations"]
+            )
+
+    @contextmanager
+    def core_keepa_call(self):
+        """Serialize one Core API call, including a Product token preflight pair."""
+        self._require_core_keepa_supported()
+        with self._lock:
+            self._require_core_keepa_available()
+            yield
+
+    def reserve(self, endpoint, maximum_usage):
+        """Persist a one-request Core grant before its physical Keepa send."""
+        with self._lock:
+            self._require_core_keepa_available()
+            if (endpoint not in {"keepa.product", "keepa.finder", "keepa.token"}
+                    or not isinstance(maximum_usage, Mapping)
+                    or set(maximum_usage) != {"requests", "keepa_tokens"}):
+                raise LiveValidationStopped("Core Keepa reservation is invalid")
+            request_count = maximum_usage["requests"]
+            token_count = maximum_usage["keepa_tokens"]
+            if (isinstance(request_count, bool) or isinstance(token_count, bool)
+                    or Decimal(str(request_count)) != Decimal(1)
+                    or Decimal(str(token_count)) != Decimal(str(int(Decimal(str(token_count)))))
+                    or int(Decimal(str(token_count))) < 0
+                    or (endpoint == "keepa.token" and int(Decimal(str(token_count))) != 0)):
+                raise LiveValidationStopped("Core Keepa reservation ceiling is invalid")
+            if self.data["keepa_requests"] >= self.grant.keepa_request_limit:
+                raise LiveValidationStopped("Continuous Keepa send budget exhausted")
+            state = self._core_keepa_state(create=True)
+            reservation_id = uuid4().hex
+            maximum = {"requests": 1, "keepa_tokens": int(Decimal(str(token_count)))}
+            state["reservations"].append({
+                "id": reservation_id,
+                "endpoint": endpoint,
+                "maximum_usage": maximum,
+                "state": "RESERVED",
+                "actual_usage": None,
+            })
+            self.data["keepa_requests"] += 1
+            self.persist()
+            self._core_keepa_active_reservations.add(reservation_id)
+            return reservation_id
+
+    def complete(self, reservation_id, actual_usage):
+        with self._lock:
+            self._require_core_keepa_available()
+            state = self._core_keepa_state()
+            row = next((item for item in state["reservations"] if item["id"] == reservation_id), None)
+            if row is None or row["state"] != "RESERVED" or reservation_id not in self._core_keepa_active_reservations:
+                raise LiveValidationStopped("Core Keepa reservation is not current")
+            try:
+                if (not isinstance(actual_usage, Mapping)
+                        or set(actual_usage) != {"requests", "keepa_tokens"}
+                        or type(actual_usage["requests"]) is not int or actual_usage["requests"] != 1
+                        or type(actual_usage["keepa_tokens"]) is not int or actual_usage["keepa_tokens"] < 0
+                        or actual_usage["keepa_tokens"] > row["maximum_usage"]["keepa_tokens"]):
+                    raise ValueError
+            except Exception:
+                row["state"] = "UNKNOWN"
+                state["stopped"] = True
+                self._core_keepa_active_reservations.discard(reservation_id)
+                self.persist()
+                raise LiveValidationStopped("Core Keepa usage exceeded or missed its reservation") from None
+            row["state"] = "COMPLETE"
+            row["actual_usage"] = {"requests": 1, "keepa_tokens": actual_usage["keepa_tokens"]}
+            self._core_keepa_active_reservations.discard(reservation_id)
+            self.persist()
+
+    def cancel(self, reservation_id):
+        """Cancel only a reservation for which the Core client sent no request."""
+        with self._lock:
+            self._require_core_keepa_available()
+            state = self._core_keepa_state()
+            row = next((item for item in state["reservations"] if item["id"] == reservation_id), None)
+            if row is None or row["state"] != "RESERVED" or reservation_id not in self._core_keepa_active_reservations:
+                raise LiveValidationStopped("Core Keepa reservation cannot be cancelled")
+            row["state"] = "CANCELLED"
+            self.data["keepa_requests"] -= 1
+            self._core_keepa_active_reservations.discard(reservation_id)
+            self.persist()
+
+    def unknown(self, reservation_id):
+        with self._lock:
+            self._require_core_keepa_supported()
+            self.require_current()
+            state = self._core_keepa_state()
+            if state is None:
+                state = self._core_keepa_state(create=True)
+            row = next((item for item in state["reservations"] if item["id"] == reservation_id), None)
+            if row is not None and row["state"] == "RESERVED":
+                row["state"] = "UNKNOWN"
+                row["actual_usage"] = None
+            state["stopped"] = True
+            self._core_keepa_active_reservations.discard(reservation_id)
+            self.persist()
+            if row is None or row["state"] != "UNKNOWN":
+                raise LiveValidationStopped("Core Keepa reservation state is unknown")
 
 
 class ContinuousOpenAIBudget(PersistentSGOpenAIBudget):

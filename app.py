@@ -896,7 +896,7 @@ def _render_prelisting_gate_input_tab(marketplace=None, *, enable_expansion_hand
         st.session_state.pop('classification_current_batch', None)
 
 
-def _continuous_amazon_budget(marketplace, config_path):
+def _continuous_amazon_budget(marketplace, config_path, provider="keepa"):
     if marketplace != 'SG' or config_path is None:
         return {}
     from modules.sg_beta_environment import preflight
@@ -912,6 +912,8 @@ def _continuous_amazon_budget(marketplace, config_path):
                 or runtime.run_path != (Path(config['data_root']).resolve() / 'continuous')):
             raise ValueError
         runtime.ledger.require_current()
+        if provider == 'keepa_core':
+            return {'persistent_budget': runtime.ledger}
         return {'request_budget': runtime.ledger}
     except Exception:
         raise AmazonDataProviderConfigurationError('SG通常利用の作業を開始し、永続取得枠を確認してください。') from None
@@ -943,7 +945,12 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
     def amazon_client():
         if p5_runtime is not None:
             return p5_runtime.amazon_client()
-        return create_amazon_data_client(amazon_settings, **_continuous_amazon_budget(beta_marketplace, sg_config_path))
+        return create_amazon_data_client(
+            amazon_settings,
+            **_continuous_amazon_budget(
+                beta_marketplace, sg_config_path, amazon_settings.amazon_data_provider,
+            ),
+        )
 
     acquisition_offline = practical_workspace is not None and p5_runtime is None
     previous_provider = st.session_state.get("active_amazon_data_provider")
