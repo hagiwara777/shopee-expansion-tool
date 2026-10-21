@@ -394,6 +394,123 @@ def test_closed_runtime_budget_cannot_spend_after_reopening(tmp_path, policy):
     finally: current.close()
 
 
+def test_core_keepa_reservations_share_persistent_request_limit_and_receipts(tmp_path, policy):
+    runtime = open_runtime(tmp_path, policy)
+    try:
+        with runtime.ledger.core_keepa_call():
+            token = runtime.ledger.reserve('keepa.token', {'requests': 1, 'keepa_tokens': 0})
+            product = runtime.ledger.reserve('keepa.product', {'requests': 1, 'keepa_tokens': 4})
+            runtime.ledger.complete(token, {'requests': 1, 'keepa_tokens': 0})
+            runtime.ledger.complete(product, {'requests': 1, 'keepa_tokens': 3})
+        assert runtime.ledger.data['keepa_requests'] == 2
+        state = runtime.ledger.data['keepa_core']
+        assert [row['state'] for row in state['reservations']] == ['COMPLETE', 'COMPLETE']
+        assert state['reservations'][1]['actual_usage']['keepa_tokens'] == 3
+        runtime.ledger.reserve_keepa_request()
+        with pytest.raises((ValueError, RuntimeError), match='exhausted'):
+            with runtime.ledger.core_keepa_call():
+                runtime.ledger.reserve('keepa.finder', {'requests': 1, 'keepa_tokens': 11})
+    finally:
+        runtime.close()
+
+
+def test_core_keepa_cancel_releases_only_unsent_request_reservation(tmp_path, policy):
+    runtime = open_runtime(tmp_path, policy)
+    try:
+        with runtime.ledger.core_keepa_call():
+            reservation = runtime.ledger.reserve('keepa.finder', {'requests': 1, 'keepa_tokens': 11})
+            assert runtime.ledger.data['keepa_requests'] == 1
+            runtime.ledger.cancel(reservation)
+        assert runtime.ledger.data['keepa_requests'] == 0
+        assert runtime.ledger.data['keepa_core']['reservations'][0]['state'] == 'CANCELLED'
+    finally:
+        runtime.close()
+
+
+def test_core_keepa_unknown_and_interrupted_reservations_stop_after_restart(tmp_path, policy):
+    runtime = open_runtime(tmp_path, policy)
+    with runtime.ledger.core_keepa_call():
+        unknown = runtime.ledger.reserve('keepa.finder', {'requests': 1, 'keepa_tokens': 11})
+        runtime.ledger.unknown(unknown)
+    with pytest.raises((ValueError, RuntimeError), match='UNKNOWN'):
+        with runtime.ledger.core_keepa_call():
+            pass
+    with pytest.raises((ValueError, RuntimeError), match='UNKNOWN'):
+        runtime.ledger.reserve_keepa_request()
+    runtime.close()
+
+    restarted = open_runtime(tmp_path, policy)
+    try:
+        assert restarted.ledger.core_keepa_stopped
+        with pytest.raises((ValueError, RuntimeError), match='UNKNOWN'):
+            with restarted.ledger.core_keepa_call():
+                pass
+        with pytest.raises((ValueError, RuntimeError), match='UNKNOWN'):
+            restarted.ledger.reserve_keepa_request()
+    finally:
+        restarted.close()
+
+
+def test_core_keepa_restart_refuses_an_unresolved_pre_send_reservation(tmp_path, policy):
+    runtime = open_runtime(tmp_path, policy)
+    with runtime.ledger.core_keepa_call():
+        runtime.ledger.reserve('keepa.product', {'requests': 1, 'keepa_tokens': 1})
+    runtime.close()
+
+    restarted = open_runtime(tmp_path, policy)
+    try:
+        assert restarted.ledger.core_keepa_stopped
+        with pytest.raises((ValueError, RuntimeError), match='unresolved or UNKNOWN'):
+            with restarted.ledger.core_keepa_call():
+                pass
+        with pytest.raises((ValueError, RuntimeError), match='unresolved or UNKNOWN'):
+            restarted.ledger.reserve_keepa_request()
+    finally:
+        restarted.close()
+
+
+def test_sg_legacy_keepa_send_serializes_with_core_api_calls(tmp_path, policy):
+    from threading import Event, Thread
+    from types import SimpleNamespace
+    from modules.keepa_bounded_transport import install_bounded_keepa_transport
+
+    runtime = open_runtime(tmp_path, policy)
+    entered_transport = Event()
+    finished = Event()
+
+    class Response:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return {"tokensLeft": 9}
+
+    def send(url, **kwargs):
+        entered_transport.set()
+        return Response()
+
+    api = SimpleNamespace(_timeout=1, tokens_left=0, status=SimpleNamespace())
+    install_bounded_keepa_transport(api, runtime.ledger, transport=send)
+
+    def legacy_request():
+        api._request("query", {"key": "synthetic", "domain": 5, "selection": "{}"}, wait=False)
+        finished.set()
+
+    thread = Thread(target=legacy_request)
+    try:
+        with runtime.ledger.core_keepa_call():
+            thread.start()
+            assert not entered_transport.wait(0.05)
+        assert entered_transport.wait(1)
+        assert finished.wait(1)
+        thread.join(timeout=1)
+        assert runtime.ledger.data["keepa_requests"] == 1
+    finally:
+        if thread.is_alive():
+            thread.join(timeout=1)
+        runtime.close()
+
+
 @pytest.mark.parametrize('amount', ['1.05', '01.050'])
 def test_continuous_paid_ceiling_is_finite_owner_policy_not_legacy_one_dollar(tmp_path, policy, amount):
     from modules.sg_live_validation import OpenAIValidationBudget
