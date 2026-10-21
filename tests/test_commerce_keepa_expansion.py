@@ -70,7 +70,6 @@ def _ledger(tmp_path):
 
 
 def test_keepa_core_adapter_uses_real_core_and_preserves_expansion_result_offline(tmp_path):
-    pytest.importorskip("commerce_api.providers.keepa")
     ledger = _ledger(tmp_path)
     transport = OfflineKeepaTransport()
     try:
@@ -103,7 +102,6 @@ def test_keepa_core_adapter_uses_real_core_and_preserves_expansion_result_offlin
 
 
 def test_keepa_core_unknown_finder_usage_does_not_trigger_expansion_fallback(tmp_path):
-    pytest.importorskip("commerce_api.providers.keepa")
     ledger = _ledger(tmp_path)
     transport = OfflineKeepaTransport(fail_finder=True)
     try:
@@ -124,5 +122,3 @@ def test_keepa_core_unknown_finder_usage_does_not_trigger_expansion_fallback(tmp
         assert ledger.core_keepa_stopped
     finally:
         ledger.close()
-
-\n

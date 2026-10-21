@@ -89,6 +89,8 @@ jobs:
   offline-tests:
     name: tests.offline
     runs-on: windows-latest
+    permissions:
+      contents: read
     env:
       GOVERNANCE_EVIDENCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
@@ -96,10 +98,36 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
+          persist-credentials: false
+      - name: Reject fork pull requests before private dependency access
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+        shell: pwsh
+        run: throw "tests.offline requires private commerce-api-core access; fork pull requests cannot receive that access."
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.13"
       - run: python -m pip install -r requirements.txt
+      - name: Create read-only commerce-api-core token
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        id: commerce-api-core-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.COMMERCE_API_CORE_APP_ID }}
+          private-key: ${{ secrets.COMMERCE_API_CORE_APP_PRIVATE_KEY }}
+          owner: hagiwara777
+          repositories: commerce-api-core
+          permission-contents: read
+      - name: Checkout pinned commerce-api-core
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/checkout@v4
+        with:
+          repository: hagiwara777/commerce-api-core
+          ref: 31dd33fe4afa9bf4da1208c2886b62d899744658
+          path: .ci/commerce-api-core
+          token: ${{ steps.commerce-api-core-token.outputs.token }}
+          persist-credentials: false
+      - name: Install pinned commerce-api-core
+        run: python -m pip install ./.ci/commerce-api-core
       - run: python -m pytest -q
       - shell: powershell
         if: github.event_name == 'pull_request'
