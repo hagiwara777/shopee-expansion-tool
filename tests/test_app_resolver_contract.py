@@ -131,7 +131,10 @@ def test_unknown_provider_stops_without_keepa_fallback(monkeypatch, tmp_path):
 
     app = _test_app(monkeypatch, tmp_path)
 
-    assert any("must be keepa or canopy_test" in str(item.value) for item in app.error)
+    assert any(
+        "must be keepa, keepa_core, or canopy_test" in str(item.value)
+        for item in app.error
+    )
 
 def test_resolver_ui_handles_30_synthetic_tsv_lines_and_malformed_url(monkeypatch, tmp_path):
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "localappdata"))
