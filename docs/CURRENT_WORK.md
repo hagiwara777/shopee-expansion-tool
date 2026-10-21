@@ -43,6 +43,10 @@ Windowsのprocess／port／保存観測、Keepaの明示参照・service別遅�
 設定だけではpermitを発行せず、未登録operator・未結合原承認では通常起動を停止する。
 未作成先の事前検査とACL適用後の完全検査を分離し、hook／backup失敗では出力を止め予約・UNKNOWN・履歴を保持する。
 実設置・実secret利用・実API成功の証明ではなく、OpenAI keyのproduction参照は未接続。
+P5のtrusted process起動接続は、既存の型付き部品からoperatorを登録し、同processで
+正規`app_beta.py`を起動する最小initializerを備える（[接続契約](P5_CONNECTION.md)）。
+initializer自体の実コード検査を含め、未登録・原承認／票／対象不一致は停止する。
+合成AppTestの成立を実原承認source・Windows実設置・live成功へ昇格しない。
 Attribute自動取得を商品準備の必須前提にしない方針とし、NOT_FETCHEDだけでは追加停止しない。
 FAILED停止・FETCHED空の未推定・Seller Center最終確認を維持し、production Attribute操作は拒否する。
 この方針でPRIMARY_SOURCE_UNVERIFIED、P5運用許可、Category/Brand公式根拠・Safety停止を解除しない。

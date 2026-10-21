@@ -21,6 +21,50 @@ Keepaの商品取得枠は再取得を含む要求商品数であり、準備商
 実原承認record、trusted operatorの実processへの登録、保存先設置・release反映は別承認後に結合する。
 Python object/referenceは人間承認の暗号学的証明ではなく、trusted adapterの責務境界である。
 
+### trusted processからの最小起動接続
+
+`modules.p5_initializer.initialize_and_run()`は、承認済みtrusted processが保持する
+既存`P5OwnerAuthority`、`WindowsP5Observer`、`P5ServiceCredentials`、`P5Checkpoint`と
+原承認参照を受け、`P5Operator`を組成して`register_operator()`へ渡す。
+同じinterpreterのStreamlit bootstrapで、固定した`app_beta.py`へ`--p5-config`を渡す。
+登録は`configured_runtime()`より前であり、再描画script内からinitializerを呼ばない。
+通常のStreamlit起動と`app_beta.py`は変更しない。import時の登録・CLI/env/JSONからの部品loaderはない。
+
+承認済み呼出側の接続箇所は次の形とする。各objectは既存のtrusted確認で準備するもので、
+この例は原承認sourceやcredentialを作成する手順ではない。
+
+```python
+from modules.p5_initializer import initialize_and_run
+
+initialize_and_run(
+    authority=reviewed_authority,
+    observer=windows_observer,
+    credentials=service_references,
+    checkpoint=approved_checkpoint,
+    approval_reference=original_approval_reference,
+    scope_config=private_scope_path,
+)
+```
+
+呼出側processの実OSコマンドラインにも`run <当該checkoutのapp_beta.py>`を残す。
+例は`python <承認済みtrusted起動担当.py> run <app_beta.py>`の形であり、起動担当の
+実コード・所在・原承認source・現在票・引数処理は別承認の実設置で固定する。
+Pythonの`sys.argv`書換えではOS観測を代用できず、引数欠落・別entrypointは既存Windows検査で停止する。
+新しいserverはobserverのportにloopback限定で起動し、Streamlitのscript実行対象は
+`__main__.__file__ == app_beta.py`を維持する。子processへ登録を失う起動や別scriptへの実行先変更は行わない。
+initializer自身もWindows観測のimport元・ロード済み関数／現ソース検査対象に含める。
+
+起動接続はpermitを発行しない。原承認・現在票・実コード・保存identity等の照合と既存DB openは
+従来の明示start後だけであり、secretはさらに承認済みservice操作時まで読まない。
+初期描画・再描画・市場切替は追加送信・保存初期化を行わない。未設置先を自動作成しない。
+既存operatorは原承認scopeとservice参照に結合されるため、他市場/shopの票を同じ許可で開始できない。
+別対象に切り替えるために登録を差し替えず、対象ごとの承認済みprocessと分離した既存保存先／枠を使う。
+標準`--p5-config`単独の未登録停止、実source不存在・不一致・期限切れ・撤回時の停止は維持する。
+
+`tests/test_p5_initializer.py`は実`app_beta.py`のAppTestで合成接続・明示start・再描画と撤回を検証する。
+server/socket、OS、承認と保存先は合成境界であり、実Windows起動やOwner原承認・実設置の成功証明ではない。
+rollbackはP5利用停止と通常revertとし、既存checkpoint・予約・UNKNOWN・claim・履歴を保持する。
+
 ### production参照接続のoffline差分（DEC-0147）
 
 `P5TrustedAdapter`は原承認検証interfaceが欠落・失敗した場合、安全な理由だけで停止する。
