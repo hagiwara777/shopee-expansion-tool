@@ -6,6 +6,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -531,6 +532,137 @@ def _owner_comment_case():
                  "created_at": "2026-09-27T12:00:00Z", "updated_at": "2026-09-27T12:00:00Z"}]
     now = datetime(2026, 9, 27, 12, 1, tzinfo=UTC)
     return key, anchor, context, verification, summary, repository, pull, comments, now
+
+
+def _owner_provider_main_inputs(tmp_path: Path, case):
+    _key, anchor, context, verification, summary, repository, pull, comments, _now = case
+    paths = {}
+    for name, value in (("context", context), ("verification", verification), ("summary", summary)):
+        path = tmp_path / f"{name}.json"
+        path.write_text(json.dumps(value), encoding="utf-8")
+        paths[name] = str(path)
+    argv = ["owner-comment-provider"]
+    for name in ("context", "verification", "summary"):
+        argv.extend((f"--{name}", paths[name]))
+    argv.extend(("--output-dir", str(tmp_path / "owner-evidence")))
+    return anchor, repository, pull, comments, argv
+
+
+def _owner_key_env_value(key: Ed25519PrivateKey) -> str:
+    raw = key.private_bytes(
+        serialization.Encoding.Raw, serialization.PrivateFormat.Raw, serialization.NoEncryption(),
+    )
+    return base64.b64encode(raw).decode("ascii")
+
+
+def test_owner_provider_gh_environment_filters_key_even_if_provider_env_has_it(monkeypatch) -> None:
+    synthetic_key = "synthetic-signing-key-value"
+    monkeypatch.setenv(owner_comment_provider.PRIVATE_KEY_ENV, synthetic_key)
+    observed = {}
+
+    def fake_run(args, **kwargs):
+        assert args == ["gh", "api", "repos/example/repository"]
+        observed.update(kwargs["env"])
+        return subprocess.CompletedProcess(args, 0, stdout="{}", stderr="")
+
+    monkeypatch.setattr(owner_comment_provider.subprocess, "run", fake_run)
+    assert owner_comment_provider._github_api("repos/example/repository") == {}
+    assert owner_comment_provider.PRIVATE_KEY_ENV not in observed
+    assert os.environ[owner_comment_provider.PRIVATE_KEY_ENV] == synthetic_key
+
+
+def test_owner_provider_removes_signing_key_and_excludes_it_from_gh(tmp_path, monkeypatch, capsys) -> None:
+    case = _owner_comment_case()
+    key, anchor, _context, verification, summary, repository, pull, comments, _now = case
+    anchor, repository, pull, comments, argv = _owner_provider_main_inputs(tmp_path, case)
+    encoded_key = _owner_key_env_value(key)
+    monkeypatch.setenv(owner_comment_provider.PRIVATE_KEY_ENV, encoded_key)
+    monkeypatch.setattr(sys, "argv", argv)
+    monkeypatch.setattr(engine, "_load_anchor", lambda: (anchor, "synthetic-anchor"))
+    responses = iter((repository, pull, comments))
+    child_environments = []
+    real_run = subprocess.run
+
+    def fake_run(args, **kwargs):
+        if args[:2] != ["gh", "api"]:
+            return real_run(args, **kwargs)
+        assert args[:2] == ["gh", "api"]
+        child_env = kwargs["env"]
+        assert owner_comment_provider.PRIVATE_KEY_ENV not in child_env
+        child_environments.append(child_env)
+        return subprocess.CompletedProcess(args, 0, stdout=json.dumps(next(responses)), stderr="")
+
+    monkeypatch.setattr(owner_comment_provider.subprocess, "run", fake_run)
+    assert owner_comment_provider.main() == engine.EXIT_CONTINUE
+    assert owner_comment_provider.PRIVATE_KEY_ENV not in os.environ
+    assert len(child_environments) == 3
+    captured = capsys.readouterr()
+    assert encoded_key not in captured.out + captured.err
+    records = [json.loads(path.read_text(encoding="utf-8"))
+               for path in (tmp_path / "owner-evidence").glob("*.json")]
+    assert len(records) == 1
+    assert engine._owner_evidence_matches(
+        records, verification["verification_input_hash"], anchor, summary["summary_binding"],
+        "d" * 40, 95, datetime.now(UTC),
+    ) == (True, "OWNER_ACCEPTANCE_BOUND")
+
+
+@pytest.mark.parametrize("key_kind", ["invalid", "mismatch"])
+def test_owner_provider_removes_key_and_holds_for_invalid_or_mismatched_key(
+    tmp_path, monkeypatch, capsys, key_kind: str,
+) -> None:
+    case = _owner_comment_case()
+    key, anchor, _context, _verification, _summary, _repository, _pull, _comments, _now = case
+    anchor, _repository, _pull, _comments, argv = _owner_provider_main_inputs(tmp_path, case)
+    encoded_key = "not-base64" if key_kind == "invalid" else _owner_key_env_value(key)
+    if key_kind == "mismatch":
+        anchor["owner_evidence_public_key"] = base64.b64encode(b"x" * 32).decode("ascii")
+    monkeypatch.setenv(owner_comment_provider.PRIVATE_KEY_ENV, encoded_key)
+    monkeypatch.setattr(sys, "argv", argv)
+    monkeypatch.setattr(engine, "_load_anchor", lambda: (anchor, "synthetic-anchor"))
+    monkeypatch.setattr(
+        owner_comment_provider.subprocess, "run",
+        lambda *_args, **_kwargs: pytest.fail("GitHub must not be queried for an invalid signing key"),
+    )
+    assert owner_comment_provider.main() == engine.EXIT_HOLD
+    assert owner_comment_provider.PRIVATE_KEY_ENV not in os.environ
+    captured = capsys.readouterr()
+    expected = "OWNER_PROVIDER_KEY_REQUIRED" if key_kind == "invalid" else "OWNER_PROVIDER_KEY_MISMATCH"
+    assert expected in captured.err
+    assert encoded_key not in captured.out + captured.err
+    assert not (tmp_path / "owner-evidence").exists()
+
+
+def test_owner_provider_api_failure_holds_without_leaking_signing_key(tmp_path, monkeypatch, capsys) -> None:
+    case = _owner_comment_case()
+    key, anchor, *_rest = case
+    anchor, _repository, _pull, _comments, argv = _owner_provider_main_inputs(tmp_path, case)
+    encoded_key = _owner_key_env_value(key)
+    monkeypatch.setenv(owner_comment_provider.PRIVATE_KEY_ENV, encoded_key)
+    monkeypatch.setattr(sys, "argv", argv)
+    monkeypatch.setattr(engine, "_load_anchor", lambda: (anchor, "synthetic-anchor"))
+
+    def fail_api(args, **kwargs):
+        assert owner_comment_provider.PRIVATE_KEY_ENV not in kwargs["env"]
+        return subprocess.CompletedProcess(args, 1, stdout="", stderr=encoded_key)
+
+    monkeypatch.setattr(owner_comment_provider.subprocess, "run", fail_api)
+    assert owner_comment_provider.main() == engine.EXIT_HOLD
+    assert owner_comment_provider.PRIVATE_KEY_ENV not in os.environ
+    captured = capsys.readouterr()
+    assert "GITHUB_OWNER_PROVIDER_UNAVAILABLE" in captured.err
+    assert encoded_key not in captured.out + captured.err
+    assert not (tmp_path / "owner-evidence").exists()
+
+
+def test_owner_provider_github_spawn_error_is_safe_hold(monkeypatch) -> None:
+    def fail_spawn(*_args, **_kwargs):
+        raise OSError("synthetic spawn failure")
+
+    monkeypatch.setattr(owner_comment_provider.subprocess, "run", fail_spawn)
+    with pytest.raises(engine.GovernanceError) as exc:
+        owner_comment_provider._github_api("repos/example/repository")
+    assert exc.value.reason_code == "GITHUB_OWNER_PROVIDER_UNAVAILABLE"
 
 
 @pytest.mark.parametrize("newline", ["\n", "\r\n"], ids=["LF", "CRLF"])
