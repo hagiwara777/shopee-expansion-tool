@@ -28,10 +28,20 @@ APPROVAL = re.compile(
     r"SCOPE: ([^\r\n]+)\s*\Z"
 )
 REVOKED = re.compile(r"\AOWNER_ACCEPTANCE: REVOKED\b")
+PRIVATE_KEY_ENV = "GOVERNANCE_OWNER_EVIDENCE_PRIVATE_KEY"
 
 
 def _github_api(path: str) -> Any:
-    result = subprocess.run(["gh", "api", path], capture_output=True, text=True, check=False)
+    child_env = os.environ.copy()
+    child_env.pop(PRIVATE_KEY_ENV, None)
+    try:
+        result = subprocess.run(
+            ["gh", "api", path], capture_output=True, text=True, check=False, env=child_env,
+        )
+    except OSError as exc:
+        raise engine.GovernanceError(
+            "GITHUB_OWNER_PROVIDER_UNAVAILABLE", "GitHub観測に失敗しました。", engine.EXIT_HOLD,
+        ) from exc
     if result.returncode:
         raise engine.GovernanceError("GITHUB_OWNER_PROVIDER_UNAVAILABLE", "GitHub観測に失敗しました。", engine.EXIT_HOLD)
     try:
@@ -132,6 +142,7 @@ def build_evidence(
 
 
 def main() -> int:
+    raw_key = os.environ.pop(PRIVATE_KEY_ENV, "")
     parser = argparse.ArgumentParser(prog="owner-comment-provider")
     parser.add_argument("--context", required=True)
     parser.add_argument("--verification", required=True)
@@ -142,7 +153,6 @@ def main() -> int:
         anchor, _ = engine._load_anchor()
         if anchor is None:
             raise engine.GovernanceError("TRUST_ANCHOR_MISSING", "Trust Anchorがありません。", engine.EXIT_HOLD)
-        raw_key = os.environ.get("GOVERNANCE_OWNER_EVIDENCE_PRIVATE_KEY", "")
         try:
             private_key = Ed25519PrivateKey.from_private_bytes(base64.b64decode(raw_key, validate=True))
         except (ValueError, TypeError) as exc:
