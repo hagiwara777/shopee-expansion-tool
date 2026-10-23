@@ -392,24 +392,58 @@ def _normalize_remote(remote: str) -> tuple[str, str, str] | None:
 
 
 def _load_anchor() -> tuple[dict[str, Any] | None, str]:
+    anchor, reason, _, _ = _load_anchor_with_provenance()
+    return anchor, reason
+
+
+def _load_anchor_with_provenance() -> tuple[dict[str, Any] | None, str, str | None, str | None]:
+    """Resolve exactly one explicitly selected, owner-managed Trust Anchor source."""
+    source = os.environ.get("GOVERNANCE_TRUST_ANCHOR_SOURCE", "").strip()
     env_value = os.environ.get("GOVERNANCE_TRUST_ANCHOR_JSON")
-    file_value: dict[str, Any] | None = None
-    env_anchor: dict[str, Any] | None = None
-    if env_value:
+    env_configured = env_value is not None
+    local_root = os.environ.get("LOCALAPPDATA")
+    anchor_path = (
+        Path(local_root) / "ShopeeGovernance" / "trust" / "1296080967.json"
+        if local_root
+        else None
+    )
+    local_configured = anchor_path is not None and anchor_path.exists()
+
+    if env_configured and local_configured:
+        raise GovernanceError("TRUST_ANCHOR_SOURCE_CONFLICT", "複数Trust Anchor参照元が同時に指定されています。")
+    if source not in {"", "local-file", "ci-env-json"}:
+        raise GovernanceError("TRUST_ANCHOR_SOURCE_INVALID", "Trust Anchor参照方式が不正です。")
+    if not source:
+        if env_configured or local_configured:
+            return None, "TRUST_ANCHOR_SOURCE_UNSPECIFIED", None, None
+        return None, "TRUST_ANCHOR_MISSING", None, None
+
+    if source == "local-file":
+        if env_configured:
+            raise GovernanceError("TRUST_ANCHOR_SOURCE_CONFLICT", "選択した参照元以外にもTrust Anchorが指定されています。")
+        if anchor_path is None or not anchor_path.exists():
+            return None, "TRUST_ANCHOR_SELECTED_SOURCE_MISSING", source, None
+        anchor = load_json(anchor_path)
+    else:
+        if local_configured:
+            raise GovernanceError("TRUST_ANCHOR_SOURCE_CONFLICT", "選択した参照元以外にもTrust Anchorが指定されています。")
+        if os.environ.get("GITHUB_ACTIONS", "").lower() != "true":
+            raise GovernanceError("TRUST_ANCHOR_CI_SOURCE_OUTSIDE_CI", "CI用Trust Anchor参照元をCI外で使用できません。")
+        if not env_configured or not env_value:
+            return None, "TRUST_ANCHOR_SELECTED_SOURCE_MISSING", source, None
         try:
-            env_anchor = json.loads(env_value, object_pairs_hook=_reject_duplicate_keys)
+            anchor = json.loads(
+                env_value,
+                object_pairs_hook=_reject_duplicate_keys,
+                parse_constant=lambda value: (_ for _ in ()).throw(
+                    GovernanceError("NON_FINITE_NUMBER", "Trust Anchorの非有限数は許可されません。")
+                ),
+            )
         except (json.JSONDecodeError, GovernanceError) as exc:
             raise GovernanceError("TRUST_ANCHOR_INVALID", "Trust Anchor環境値が不正です。") from exc
-    app_data = os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA")
-    if app_data:
-        anchor_path = Path(app_data) / "ShopeeGovernance" / "trust" / "1296080967.json"
-        if anchor_path.is_file():
-            file_value = load_json(anchor_path)
-    if env_anchor is not None and file_value is not None and env_anchor != file_value:
-        raise GovernanceError("TRUST_ANCHOR_CONFLICT", "複数Trust Anchorが一致しません。")
-    anchor = env_anchor if env_anchor is not None else file_value
-    if anchor is None:
-        return None, "TRUST_ANCHOR_MISSING"
+
+    if not isinstance(anchor, dict):
+        raise GovernanceError("TRUST_ANCHOR_INVALID", "Trust Anchorの契約が不正です。")
     required = {
         "anchor_version",
         "provider",
@@ -432,7 +466,28 @@ def _load_anchor() -> tuple[dict[str, Any] | None, str]:
             raise GovernanceError("TRUST_ANCHOR_INVALID", "Owner Evidence公開鍵が不正です。") from exc
         if len(key) != 32:
             raise GovernanceError("TRUST_ANCHOR_INVALID", "Owner Evidence公開鍵が不正です。")
-    return anchor, "TRUST_ANCHOR_LOADED"
+    return anchor, "TRUST_ANCHOR_LOADED", source, sha256_bytes(canonical_bytes(anchor))
+
+
+def _working_tree_binding(repository: Path) -> dict[str, Any]:
+    """Hash tracked working-tree changes without placing source content in Evidence."""
+    status = subprocess.run(
+        ["git", "-C", str(repository), "status", "--porcelain=v1", "--untracked-files=all"],
+        check=False,
+        capture_output=True,
+    )
+    diff = subprocess.run(
+        ["git", "-C", str(repository), "diff", "--binary", "HEAD"],
+        check=False,
+        capture_output=True,
+    )
+    if status.returncode or diff.returncode:
+        raise GovernanceError("GIT_OBSERVATION_FAILED", "working treeを安全に観測できません。", EXIT_INTERNAL)
+    untracked = any(line.startswith(b"?? ") for line in status.stdout.splitlines())
+    return {
+        "tracked_diff_sha256": sha256_bytes(diff.stdout),
+        "has_untracked_files": untracked,
+    }
 
 
 def _path_components(path: str, components: Sequence[Mapping[str, Any]]) -> set[str]:
@@ -594,7 +649,7 @@ def generate_context(
     clock: datetime | None = None,
 ) -> dict[str, Any]:
     bundle = load_bundle(repository)
-    anchor, anchor_reason = _load_anchor()
+    anchor, anchor_reason, anchor_source, anchor_digest = _load_anchor_with_provenance()
     head = _run_git(bundle.root, ["rev-parse", "HEAD"])
     tree = _run_git(bundle.root, ["rev-parse", "HEAD^{tree}"])
     branch = _run_git(bundle.root, ["branch", "--show-current"], allow_failure=True) or None
@@ -611,7 +666,13 @@ def generate_context(
     remote_identity = _normalize_remote(remote or "")
     records: list[dict[str, Any]] = []
     if anchor is None:
-        records.append(_safe_record("trust-anchor", "UNKNOWN", None, anchor_reason, "trust-anchor"))
+        records.append(
+            _safe_record(
+                "trust-anchor", "UNKNOWN",
+                {"source_method": anchor_source, "canonical_sha256": anchor_digest},
+                anchor_reason, "trust-anchor",
+            )
+        )
         repository_id = None
     else:
         repository_id = anchor["repository_id"]
@@ -631,7 +692,19 @@ def generate_context(
             records.append(_safe_record("provider-repository-id", "PASS", True, "PROVIDER_ID_MATCH", "provider"))
         else:
             records.append(_safe_record("provider-repository-id", "FAIL", None, "REPOSITORY_IDENTITY_MISMATCH", "provider"))
-        records.append(_safe_record("trust-anchor", "PASS", True, "TRUST_ANCHOR_LOADED", "trust-anchor"))
+        records.append(
+            _safe_record(
+                "trust-anchor", "PASS",
+                {"source_method": anchor_source, "canonical_sha256": anchor_digest},
+                "TRUST_ANCHOR_LOADED", "trust-anchor",
+            )
+        )
+    records.append(
+        _safe_record(
+            "working-tree-binding", "PASS", _working_tree_binding(bundle.root),
+            "WORKING_TREE_BINDING_CAPTURED", "git",
+        )
+    )
     task = _load_task_context(bundle, task_context_path, anchor)
     canonical: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
@@ -950,6 +1023,7 @@ def verify_context(
     clock: datetime | None = None,
     provider: Mapping[str, Any] | None = None,
     owner_summary: Mapping[str, Any] | None = None,
+    task_context_path: Path | None = None,
 ) -> dict[str, Any]:
     bundle = load_bundle(repository)
     _schema_validate(context, bundle.schemas["schemas/context.schema.json"], "context")
@@ -978,10 +1052,72 @@ def verify_context(
         decision = "HARD_STOP"
         blockers.extend(sorted(hard_stop_reasons))
 
+    freshness_blockers: list[str] = []
+    git_identity = context["observations"]["git_identity"]
+    current_head = _run_git(bundle.root, ["rev-parse", "HEAD"])
+    current_tree = _run_git(bundle.root, ["rev-parse", "HEAD^{tree}"])
+    if current_head != git_identity.get("head"):
+        freshness_blockers.append("GIT_HEAD_CHANGED")
+    if current_tree != git_identity.get("tree"):
+        freshness_blockers.append("GIT_TREE_CHANGED")
+    current_config_hashes = dict(sorted(bundle.hashes.items()))
+    if current_config_hashes != context["canonical"].get("config_hashes"):
+        freshness_blockers.append("GOVERNANCE_CONFIG_CHANGED")
+
+    current_worktree = _working_tree_binding(bundle.root)
+    snapshot_worktree = observation_map.get("working-tree-binding", {}).get("value")
+    if not isinstance(snapshot_worktree, dict) or snapshot_worktree != current_worktree:
+        freshness_blockers.append("WORKING_TREE_CHANGED")
+    if current_worktree["has_untracked_files"]:
+        freshness_blockers.append("WORKTREE_HAS_UNTRACKED_FILES")
+
+    current_task: dict[str, Any] | None = None
+    snapshot_task = context["canonical"].get("task")
+    if task_context_path is not None:
+        current_task = _load_task_context(bundle, task_context_path, None)
+        if snapshot_task is None or canonical_bytes(current_task) != canonical_bytes(snapshot_task):
+            freshness_blockers.append("TASK_CONTEXT_CHANGED")
+    elif snapshot_task is not None:
+        freshness_blockers.append("TASK_CONTEXT_CURRENT_BINDING_REQUIRED")
+
+    current_anchor, current_anchor_reason, current_anchor_source, current_anchor_digest = (
+        _load_anchor_with_provenance()
+    )
+    if (
+        current_anchor is not None
+        and current_task is not None
+        and current_task.get("repository_id") != current_anchor["repository_id"]
+    ):
+        freshness_blockers.append("TASK_CONTEXT_REPOSITORY_MISMATCH")
     anchor_observation = observation_map.get("trust-anchor", {})
-    if anchor_observation.get("observation") != "PASS" and decision != "HARD_STOP":
-        decision = "HOLD"
-        blockers.append(anchor_observation.get("reason_code", "TRUST_ANCHOR_MISSING"))
+    if current_anchor is None:
+        freshness_blockers.append(current_anchor_reason)
+    else:
+        recorded_anchor = anchor_observation.get("value")
+        if anchor_observation.get("observation") != "PASS":
+            freshness_blockers.append("TRUST_ANCHOR_SNAPSHOT_NOT_FRESH")
+        if not isinstance(recorded_anchor, dict):
+            freshness_blockers.append("TRUST_ANCHOR_BINDING_MISSING")
+        elif recorded_anchor.get("source_method") != current_anchor_source:
+            freshness_blockers.append("TRUST_ANCHOR_SOURCE_CHANGED")
+        elif recorded_anchor.get("canonical_sha256") != current_anchor_digest:
+            freshness_blockers.append("TRUST_ANCHOR_DIGEST_CHANGED")
+
+        remote = _run_git(bundle.root, ["remote", "get-url", "origin"], allow_failure=True)
+        current_remote_identity = _normalize_remote(remote or "")
+        expected_remote_identity = _normalize_remote(
+            f"https://{current_anchor['host']}/{current_anchor['repository_full_name']}.git"
+        )
+        if current_remote_identity is None:
+            freshness_blockers.append("REMOTE_NOT_AVAILABLE")
+        elif current_remote_identity != expected_remote_identity:
+            decision = "HARD_STOP"
+            blockers.append("REPOSITORY_IDENTITY_MISMATCH")
+
+    for reason in freshness_blockers:
+        if decision != "HARD_STOP":
+            decision = "HOLD"
+        blockers.append(reason)
 
     if profile_id == "formal-acceptance":
         provider_identity = observation_map.get("provider-repository-id", {})
@@ -1020,16 +1156,28 @@ def verify_context(
         and bool(requirements)
         and all(item["observation"] == "PASS" for item in requirements)
     )
+    task_digest = sha256_bytes(canonical_bytes(current_task)) if current_task is not None else None
+    fresh_binding = {
+        "head": current_head,
+        "tree": current_tree,
+        "configuration_hashes": current_config_hashes,
+        "task_context_sha256": task_digest,
+        "trust_anchor_source": current_anchor_source,
+        "trust_anchor_canonical_sha256": current_anchor_digest,
+        "working_tree_sha256": sha256_bytes(canonical_bytes(current_worktree)),
+        "working_tree_has_untracked_files": current_worktree["has_untracked_files"],
+    }
     verification_input = {
         "context_sha256": context["canonical_sha256"],
         "profile_id": profile_id,
         "requirements": requirements,
         "provider": provider or {},
+        "verification_mode": "fresh",
+        "fresh_binding": fresh_binding,
     }
     verification_input_hash = sha256_bytes(canonical_bytes(verification_input))
     expected_summary_binding = _expected_owner_summary_binding(owner_summary, verification_input_hash)
     if owner_ready:
-        current_anchor, _ = _load_anchor()
         if current_anchor is None:
             decision = "HOLD"
             blockers.append("TRUST_ANCHOR_MISSING")
@@ -1048,6 +1196,7 @@ def verify_context(
     result = {
         "schema_version": SCHEMA_VERSION,
         "profile_id": profile_id,
+        "verification_mode": "fresh",
         "decision": decision,
         "requirements": requirements,
         "warnings": warnings,
@@ -1063,7 +1212,11 @@ def verify_context(
 def build_owner_acceptance_summary(
     verification: Mapping[str, Any], summary_input: Mapping[str, Any]
 ) -> dict[str, Any]:
-    if not verification.get("owner_acceptance_ready") or verification.get("decision") == "HARD_STOP":
+    if (
+        verification.get("verification_mode") != "fresh"
+        or not verification.get("owner_acceptance_ready")
+        or verification.get("decision") == "HARD_STOP"
+    ):
         raise GovernanceError(
             "OWNER_ACCEPTANCE_NOT_READY",
             "mandatory technical gate未完了のためOwner Acceptanceを要求できません。",
@@ -1123,7 +1276,11 @@ def _context_markdown(context: Mapping[str, Any]) -> str:
 
 
 def _verification_markdown(result: Mapping[str, Any]) -> str:
-    lines = ["# Governance Verification", "", f"- profile: {result['profile_id']}", f"- decision: {result['decision']}", "", "## Requirements", ""]
+    lines = [
+        "# Governance Verification", "", f"- profile: {result['profile_id']}",
+        f"- mode: {result['verification_mode']}", f"- decision: {result['decision']}",
+        "", "## Requirements", "",
+    ]
     for requirement in result["requirements"]:
         lines.append(f"- {requirement['id']}: {requirement['observation']} / {requirement['consequence']}")
     if result["blockers"]:
@@ -1164,6 +1321,7 @@ def _cli_parser() -> argparse.ArgumentParser:
     verify.add_argument("--provider")
     verify.add_argument("--evidence", action="append", default=[])
     verify.add_argument("--owner-summary")
+    verify.add_argument("--task-context")
     summary = subparsers.add_parser("owner-summary")
     summary.add_argument("--verification", required=True)
     summary.add_argument("--input", required=True)
@@ -1209,6 +1367,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 evidence=records,
                 provider=_read_provider(args.provider),
                 owner_summary=load_json(Path(args.owner_summary)) if args.owner_summary else None,
+                task_context_path=Path(args.task_context) if args.task_context else None,
             )
             output = Path(args.output_dir)
             _write_output(output / "verification.json", canonical_bytes(result))

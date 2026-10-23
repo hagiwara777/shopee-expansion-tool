@@ -20,8 +20,13 @@ DEC-0087に基づく配置とDEC-0088のDecision読込手順を適用し、DEC-0
 
 唯一のbootstrap期待値はowner受入済みのrepo外recordです。ローカルは
 `%LOCALAPPDATA%\ShopeeGovernance\trust\1296080967.json`、CIは
-`GOVERNANCE_TRUST_ANCHOR_JSON`を使用します。repo内の値から生成・上書きせず、
-`--expected-repo`等の本番overrideを設けません。欠落はHOLD、不正・競合・identity不一致はHARD_STOPです。
+`GOVERNANCE_TRUST_ANCHOR_JSON`を使用し、実行前に
+`GOVERNANCE_TRUST_ANCHOR_SOURCE=local-file`または`ci-env-json`を明示します。
+CI方式はGitHub Actions内に限ります。`APPDATA` fallback、暗黙の優先順位、二重指定はありません。
+選択元の欠落・方式未指定はHOLD、形式不正・二重指定・identity不一致はHARD_STOPです。
+snapshotは参照方式とAnchorのcanonical JSON SHA-256を記録し、Verifyは選択元から現在の値を再解決します。
+Anchorの配置・差替えはOwnerの別承認を要し、repo内の値から生成・上書きしません。
+`--expected-repo`等の本番overrideも設けません。
 
 ## Task Context
 
@@ -44,14 +49,21 @@ local-validationの例は次のとおり。必要なEvidenceを「Evidence」に
 
 ```powershell
 .\scripts\Invoke-GovernanceV2.ps1 -Mode Validate
-.\scripts\Update-ContextSnapshot.ps1 -TaskContext <repo外context.json>
-.\scripts\Verify-ContextSnapshot.ps1 -Profile local-validation -ContextPath outputs\governance\context.json
+.\scripts\Update-ContextSnapshot.ps1 -TaskContext <repo外context.json> -TrustAnchorSource local-file
+.\scripts\Verify-ContextSnapshot.ps1 -Profile local-validation -ContextPath outputs\governance\context.json `
+  -TaskContext <repo外context.json> -TrustAnchorSource local-file
 ```
 
 Pythonは`-PythonPath`、`GOVERNANCE_PYTHON`、PATHの順に解決します。PowerShell 5.1と7で同じPython共通実装を呼びます。
 Generatorは観測だけを行い、fetch、checkout、branch、index、Stateを変更しません。Verifierは既存contextを評価し、
 Generatorを暗黙実行せず、snapshotを削除しません。Generatorはoptional観測不足だけで失敗させません。
 派生出力は既定のGit管理外 `outputs/governance/` に生成します。手編集・commitはしません。
+
+通常Verifyは常に`verification_mode=fresh`です。現在のHEAD/tree、Git working-tree差分、Governance設定hash、
+Trust Anchor参照方式/hash、Task Context本文をsnapshotと再照合し、古いbindingはHOLDします。
+Task Contextを含むcontextをVerifyするときは、同じrepo外ファイルを`-TaskContext`へ渡してください。
+過去snapshotのhistorical replayは現行Verifyにありません。古い形式や現在のAnchor bindingを持たないsnapshotは
+再利用せず、現在のAnchorとTask Contextからsnapshotを新規生成します。
 
 Exit codeは`0=CONTINUE`、`10=HOLD`、`20=HARD_STOP`、`64=usage`、`70=internal`です。
 
@@ -120,7 +132,7 @@ SUMMARY_BINDING: <current Owner Acceptance Summary binding>
 SCOPE: <approved scope>
 ```
 
-明示承認後、現在のSummaryを渡したformal-acceptance technical Verifyが`owner_acceptance_ready=true`、
+明示承認後、現在のSummaryを渡したformal-acceptance fresh Verifyが`owner_acceptance_ready=true`、
 停止理由が`OWNER_ACCEPTANCE_REQUIRED`だけであることを確認する。formal mainへ正式採用済みのhelperから
 次を実行する。`--scope`はOwnerが明示承認した一行の範囲をそのまま渡す。helperは現在のrepo / PR / head、
 Summary binding、Owner actorを照合し、同じ最新の未編集コメントがあれば重複投稿しない。投稿結果だけを
@@ -132,7 +144,20 @@ python -m governance.owner_acceptance_transport --context outputs/governance/con
   --summary outputs/governance/owner-summary.json --scope '<Ownerが承認した一行の事業範囲>'
 ```
 
-PR #105のGovernance移行PR自身は、当時のformal mainの旧方式で受入済みである。この旧方式の例外はPR #105だけに適用する。後続PRは、通常、Ownerの明示的最終承認後にformal mainへ採用済みのhelperを使い、技術値の手動コピーを求めない。helperはOwner actorの最新コメントが`OWNER_ACCEPTANCE: REVOKED`ならHOLDし、APPROVEDを自動投稿しない。稀な再承認では新しいOwner明示判断と新コメントを要し、完全形式の手動コメントによるfail-closed復旧を許す。新helperはPR #105がformal mainへ採用される前には起動を拒否する。
+Owner Acceptance Provider / Transportは`verification_mode=fresh`の結果だけを受け付けます。
+実行プロセスにも上記`GOVERNANCE_TRUST_ANCHOR_SOURCE`を明示し、ローカル操作では`local-file`を指定します。
+ProviderとTransportはGovernance一式が`refs/remotes/origin/main`と一致し、Governance配下に未追跡ファイルがない場合だけ動作します。engineだけなど一部helper以外を変更した候補版からも署名付きOwner Evidenceや承認コメントを作成しません。
+
+Governance実装そのものを変更するPRの初回審査では、候補checkoutのengine / Provider / Transportを承認に使いません。
+別のformal-main checkoutからformal main版の`governance.engine`とOwner helperを実行し、CLIの`--repository`
+には審査対象checkoutを指定します。そこで新しいTask Contextからsnapshotを生成し、同じcandidate HEAD・CI Evidence・
+Owner bindingを従来のformal main実装でVerifyします。候補schemaの`verification_mode`は、旧formal main writerとの
+この移行審査に限り省略可能ですが、候補engineは常に`fresh`を出力し、候補Owner helperは`fresh`欠落を拒否します。
+この旧方式のVerifyはP5設置可否のfresh Verifyとして流用せず、Anchor復旧後のP5確認と、候補PR merge後の新方式
+Validate／snapshot／fresh Verifyを別途行います。formal-main checkoutや候補targetの正確なbindingを用意できない場合は
+審査をHOLDし、候補版Verifyへ切り替えて続行しません。
+
+PR #105のGovernance移行PR自身は、当時のformal mainの旧方式で受入済みである。上記のcurrent formal-main実装によるcandidate審査は、以降のGovernance実装PRにも使える移行経路であり、PR #105固有の例外手順とは区別する。通常の後続PRはOwnerの明示的最終承認後にformal mainへ採用済みのhelperを使い、技術値の手動コピーを求めない。helperはOwner actorの最新コメントが`OWNER_ACCEPTANCE: REVOKED`ならHOLDし、APPROVEDを自動投稿しない。稀な再承認では新しいOwner明示判断と新コメントを要し、完全形式の手動コメントによるfail-closed復旧を許す。新helperはformal main採用前に候補checkoutから起動できない。
 
 GitHub取得は`python -m governance.owner_comment_provider`だけが行い、GeneratorとVerifierは外部fetchを
 行わない。ProviderはGitHub APIでrepository・PR・Owner numeric actor ID・head・コメント本文・編集状態・
@@ -145,6 +170,7 @@ python -m governance.owner_comment_provider --context outputs/governance/context
   --summary outputs/governance/owner-summary.json --output-dir outputs/governance/owner-evidence
 .\scripts\Verify-ContextSnapshot.ps1 -Profile formal-acceptance `
   -ContextPath outputs/governance/context.json -Provider outputs/governance/provider.json `
+  -TaskContext <repo外context.json> -TrustAnchorSource local-file `
   -OwnerSummary outputs/governance/owner-summary.json -Evidence <CI Evidence paths>,<Owner Evidence path>
 ```
 

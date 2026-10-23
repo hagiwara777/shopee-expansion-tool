@@ -9,6 +9,8 @@ param(
     [ValidateSet("read-only", "local-change", "local-validation", "formal-acceptance")]
     [string]$Profile = "read-only",
     [string]$TaskContext,
+    [ValidateSet("local-file", "ci-env-json")]
+    [string]$TrustAnchorSource,
     [string]$Provider,
     [string]$OwnerSummary,
     [string[]]$Evidence = @()
@@ -50,6 +52,9 @@ $repositoryRoot = (& git -C (Join-Path $PSScriptRoot "..") rev-parse --show-topl
 if ($LASTEXITCODE -ne 0) {
     throw "The Git repository root could not be determined."
 }
+if ($Mode -in @("Generate", "Verify") -and [string]::IsNullOrWhiteSpace($TrustAnchorSource)) {
+    throw "Generate and Verify require an explicit -TrustAnchorSource selection."
+}
 $pythonCommand = Resolve-GovernancePython -ExplicitPath $PythonPath
 $arguments = @($pythonCommand.Prefix) + @("-m", "governance.engine")
 switch ($Mode) {
@@ -67,6 +72,9 @@ switch ($Mode) {
     }
     "Verify" {
         $arguments += @("verify", "--repository", $repositoryRoot, "--context", $ContextPath, "--profile", $Profile, "--output-dir", $OutputDirectory)
+        if (-not [string]::IsNullOrWhiteSpace($TaskContext)) {
+            $arguments += @("--task-context", $TaskContext)
+        }
         if (-not [string]::IsNullOrWhiteSpace($Provider)) {
             $arguments += @("--provider", $Provider)
         }
@@ -80,10 +88,15 @@ switch ($Mode) {
 }
 
 Push-Location $repositoryRoot
+$previousTrustAnchorSource = [Environment]::GetEnvironmentVariable("GOVERNANCE_TRUST_ANCHOR_SOURCE", "Process")
 try {
+    if (-not [string]::IsNullOrWhiteSpace($TrustAnchorSource)) {
+        [Environment]::SetEnvironmentVariable("GOVERNANCE_TRUST_ANCHOR_SOURCE", $TrustAnchorSource, "Process")
+    }
     & $pythonCommand.Command @arguments
     exit $LASTEXITCODE
 }
 finally {
     Pop-Location
+    [Environment]::SetEnvironmentVariable("GOVERNANCE_TRUST_ANCHOR_SOURCE", $previousTrustAnchorSource, "Process")
 }
