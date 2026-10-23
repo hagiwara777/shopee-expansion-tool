@@ -5,6 +5,9 @@ param(
     [string]$OutputDirectory = "outputs/governance",
     [ValidateSet("read-only", "local-change", "local-validation", "formal-acceptance")]
     [string]$Profile = "read-only",
+    [string]$TaskContext,
+    [ValidateSet("local-file", "ci-env-json")]
+    [string]$TrustAnchorSource,
     [string]$Provider,
     [string]$OwnerSummary,
     [string[]]$Evidence = @()
@@ -13,5 +16,5 @@ param(
 # Verifier is deliberately independent: it never calls the Generator and never
 # deletes or rewrites an existing context.
 $invoke = Join-Path $PSScriptRoot "Invoke-GovernanceV2.ps1"
-& $invoke -Mode Verify -PythonPath $PythonPath -ContextPath $ContextPath -OutputDirectory $OutputDirectory -Profile $Profile -Provider $Provider -OwnerSummary $OwnerSummary -Evidence $Evidence
+& $invoke -Mode Verify -PythonPath $PythonPath -ContextPath $ContextPath -OutputDirectory $OutputDirectory -Profile $Profile -TaskContext $TaskContext -TrustAnchorSource $TrustAnchorSource -Provider $Provider -OwnerSummary $OwnerSummary -Evidence $Evidence
 exit $LASTEXITCODE

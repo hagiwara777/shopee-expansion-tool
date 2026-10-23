@@ -39,6 +39,8 @@ def build_comment(
         _hold("OWNER_TRANSPORT_CONTEXT_INVALID", "PR対象またはheadが不正です。")
     if verification.get("profile_id") != "formal-acceptance" or not verification.get("owner_acceptance_ready"):
         _hold("OWNER_TRANSPORT_GATES_NOT_READY", "technical gatesが完了していません。")
+    if verification.get("verification_mode") != "fresh":
+        _hold("OWNER_VERIFICATION_NOT_FRESH", "fresh Verify結果だけをOwner Acceptanceへ渡せます。")
     if verification.get("decision") != "HOLD" or set(verification.get("blockers", [])) != {"OWNER_ACCEPTANCE_REQUIRED"}:
         _hold("OWNER_TRANSPORT_VERIFICATION_INVALID", "Owner承認待ち以外の停止理由があります。")
     if not isinstance(verification_hash, str) or not HEX64.fullmatch(verification_hash):
@@ -74,17 +76,8 @@ def build_comment(
 
 
 def _require_formal_main_activation(root: Path) -> None:
-    """The migration PR must be accepted under the pre-migration procedure."""
-    path = "governance/owner_acceptance_transport.py"
-    expected = subprocess.run(
-        ["git", "-C", str(root), "rev-parse", f"refs/remotes/origin/main:{path}"],
-        capture_output=True, text=True, check=False,
-    )
-    actual = subprocess.run(
-        ["git", "-C", str(root), "hash-object", str(root / path)],
-        capture_output=True, text=True, check=False,
-    )
-    if expected.returncode or actual.returncode or expected.stdout.strip() != actual.stdout.strip():
+    """Prevent candidate Governance code from posting Owner approval comments."""
+    if not owner_comment_provider._governance_matches_formal_main(root):
         _hold("OWNER_TRANSPORT_NOT_FORMAL", "このhelperはformal main採用後にだけ使用できます。")
 
 
@@ -139,6 +132,8 @@ def main() -> int:
         context = engine.load_json(Path(args.context))
         verification = engine.load_json(Path(args.verification))
         summary = engine.load_json(Path(args.summary))
+        if verification.get("verification_mode") != "fresh":
+            _hold("OWNER_VERIFICATION_NOT_FRESH", "fresh Verify結果だけをOwner Acceptanceへ渡せます。")
         full_name = anchor["repository_full_name"]
         subject = context.get("canonical", {}).get("task", {}).get("subject", {})
         number = subject.get("number") if isinstance(subject, dict) else None

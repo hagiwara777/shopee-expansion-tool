@@ -1803,3 +1803,15 @@
 - 保存・保護: output／session-endのcheckpointを既存p5_setupへ接続し、hook欠落／backup失敗は停止を永続化する。既存schema／CSV列、ledger／claim／UNKNOWN／履歴、strict 1pageと累積有限予約、P1〜P4／F1/F2、Safety／Battery／SLS／PH・SG protectedを維持する。
 - 検証・後続: 合成原承認・OS・HTTPと実SDKのoffline traceで検証する。暫定4send／112 tokenは最大予約計画であり最終承認枠へ固定しない。Category／BrandとKeepa /token個別仕様のPRIMARY_SOURCE_UNVERIFIED、実参照・実対象のcurrent結合、実設置と完成票の別実行承認をlive前条件に残す。これらの未結合はoffline実装の無期限停止理由にしない。初回HUMANをC04完成とせず、F08 live／C12／実務Beta完成・実商品受入とは区別する。
 - rollback: P5利用停止と通常revertで戻す。既存保存・予約・消費・UNKNOWN・claim・履歴とOwner指定・過去Decision／Evidenceを削除・resetしない。新しい汎用基盤、重大な契約変更・責務拡張が必要なら独断で追加せず停止する。
+
+
+## DEC-0150 — Trust Anchorを明示解決しVerifyを現在binding専用にする
+
+- 日付: 2026-10-23
+- authority／順序: Ownerは正式Trust Anchorの復旧、現行Governanceでの新規Validate／snapshot／Verify、恒久対策の正式採用の順を指定した。Anchor原本の復旧・配置はOwner管理元と別途の明示承認に限る。候補Governanceは既存formal main手順で審査し、自身のVerifyを自己承認に使わない。
+- Anchor解決: ローカル正本は`%LOCALAPPDATA%\ShopeeGovernance\trust\1296080967.json`、CI正本は`GOVERNANCE_TRUST_ANCHOR_JSON`とし、`GOVERNANCE_TRUST_ANCHOR_SOURCE`で`local-file`または`ci-env-json`を必須明示する。APPDATA fallback、repo内Anchor、暗黙優先順位を禁止する。未指定・選択元欠落はHOLD、二重指定・不正形式・CI参照元のCI外使用・identity不一致はHARD_STOPとする。
+- Fresh binding: 新contextのTrust Anchor観測へ参照方式とcanonical JSON SHA-256を記録する。通常Verifyはfresh専用で、現在のAnchor方式/hash、HEAD/tree、working-tree差分hash、Governance設定hash、Task Context本文を再観測しsnapshotと照合する。不一致、旧snapshot、Task Context再指定漏れはHOLDとする。decision enumは`CONTINUE`／`HOLD`／`HARD_STOP`のまま維持し、historical replay機能は設けない。過去snapshotは現行Verifyの結果として再判定しない。
+- Owner Acceptance: Owner Summary、Provider、Transportは`verification_mode=fresh`だけを受け付ける。Provider／TransportはGovernance一式が`refs/remotes/origin/main`と一致しGovernance配下に未追跡ファイルがない場合だけ動作する。候補PRの初回審査だけは別formal-main checkoutから既存formal main実装をcandidate repository rootへ向けて実行する。schemaは移行審査用に旧writerの`verification_mode`欠落を許容するが、候補engineは常にfreshを出力し、候補Owner helperは欠落を拒否する。旧VerifyをP5設置可否に流用しない。既存Trust Anchorの署名鍵、Owner receipt署名・検証方式、mandatory gate、protected capabilityを変更しない。新Verify bindingに結合したSummary／Evidenceは再生成する。
+- 範囲・検証: Governance engine／schema／manifest、PowerShell入口、Runbook、既存Owner Acceptance helper、testsを一体で更新する。source未指定・二重指定・欠落・形式不正・digest／HEAD／tree／設定／Task Context／working-tree変更、Owner helperのfresh限定をofflineで検証する。CI Actions secret等の設定は追加しない。
+- 非対象・停止: Trust Anchorの原本探索・復元配置、P5実設置、ACL／probe、運用DB・cache・ledger・claim、credential／実API／有料・実商品操作を行わない。正式原本の特定・配置承認前、または現行formal VerifyがHOLDならP5実設置へ進まない。固定release／Python 3.13.2／7依存Evidenceは再利用し、環境を再構築しない。
+- rollback: 候補変更は通常revertする。Anchor bytes、署名鍵、過去snapshot／Evidence／Task Contextを変更・削除せず、force pushを使わない。
