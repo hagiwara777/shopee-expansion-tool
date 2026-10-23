@@ -212,7 +212,8 @@ class WindowsP5Observer:
                     or Path(args[args.index('run') + 1]).resolve() != Path(sys.modules['__main__'].__file__).resolve()):
                 raise ValueError()
             machine = {k: process[k] for k in ('machine', 'pid', 'started')}
-            for name in ('p5_operator', 'p5_windows', 'p5_setup'):
+            from modules import p5_initializer  # inert; include the launch boundary
+            for name in ('p5_operator', 'p5_windows', 'p5_setup', 'p5_initializer'):
                 module = sys.modules['modules.' + name]
                 source = Path(__file__).parent / (name + '.py')
                 if Path(module.__file__).resolve() != source.resolve():
