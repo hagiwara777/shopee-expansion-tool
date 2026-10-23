@@ -91,6 +91,9 @@ def test_gv2_ci_workflow_emits_evidence_for_every_mandatory_check() -> None:
 
     assert all(f'"{check_id}"' in generator for check_id in check_ids)
     assert all(f"-GateId {check_id} " in workflow for check_id in check_ids)
+    assert "path: work/ci/commerce-api-core" in workflow
+    assert "python -m pip install ./work/ci/commerce-api-core" in workflow
+    assert git(ROOT, "check-ignore", "work/ci/commerce-api-core") == "work/ci/commerce-api-core"
 
 
 @pytest.mark.parametrize(
@@ -276,6 +279,33 @@ def test_gv2_fresh_002_worktree_change_holds(trusted: None, monkeypatch: pytest.
     result = engine.verify_context(ROOT, context, profile_id="read-only")
     assert result["decision"] == "HOLD"
     assert "WORKING_TREE_CHANGED" in result["blockers"]
+
+
+def test_gv2_worktree_binding_detects_untracked_dependency_checkout(tmp_path: Path) -> None:
+    repository = tmp_path / "repository"
+    repository.mkdir()
+    git(repository, "init", "-b", "main")
+    git(repository, "config", "user.name", "Governance Test")
+    git(repository, "config", "user.email", "governance@example.invalid")
+    shutil.copyfile(ROOT / ".gitignore", repository / ".gitignore")
+    git(repository, "add", ".gitignore")
+    git(repository, "commit", "-m", "fixture")
+    assert engine._working_tree_binding(repository)["has_untracked_files"] is False
+
+    dependency = repository / ".ci" / "dependency"
+    dependency.mkdir(parents=True)
+    git(dependency, "init", "-b", "main")
+    git(dependency, "config", "user.name", "Governance Test")
+    git(dependency, "config", "user.email", "governance@example.invalid")
+    (dependency / "fixture.txt").write_text("synthetic dependency", encoding="utf-8")
+    git(dependency, "add", "fixture.txt")
+    git(dependency, "commit", "-m", "dependency fixture")
+    assert engine._working_tree_binding(repository)["has_untracked_files"] is True
+
+    ignored_parent = repository / "work" / "ci"
+    ignored_parent.mkdir(parents=True)
+    dependency.rename(ignored_parent / "dependency")
+    assert engine._working_tree_binding(repository)["has_untracked_files"] is False
 
 
 def test_gv2_fresh_003_config_hash_change_holds(trusted: None) -> None:
