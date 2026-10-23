@@ -61,6 +61,7 @@ C04限定AUTO_RULE、F08 live、C12と実務Beta全体の完成はoffline成立�
 D採用は専用ACL・非重複・実設置検証・backupを条件とし、合成検査を実端末成功へ昇格しない。
 次の単一作業は使用一次仕様と非公開実行票の未結合を揃え、trusted operator実登録・固定release・
 保存範囲／ACL／容量／backupと停止方法を含む最小設置票を固定すること。
+P5設置着手時は、Owner管理元の正式Trust Anchorを指定経路から再解決し、現行formal Governanceで新Task Contextに対するValidate／snapshot／fresh VerifyがCONTINUEすることを前提とする。
 対象・一次資料・保存先・release・有限枠が固定され、設置と実行へのOwner別承認が成立するまで、
 実API・実商品反復受入は開始しない。
 Owner指定済みのshop・商品候補・既出品状況は非公開票で保持し、最新資料・SHA・今回scopeとの
@@ -243,6 +244,8 @@ Source明示ON時のsilent fallbackを許さない。Bridge全面書込み障害
 SG Brand responseにmarketplace / Category echoがないため、server内部の別Category誤応答の独立検出は保証しない。
 
 ## Required Decisions
+
+- DEC-0150 — Trust Anchorの明示解決、現在bindingを確認するfresh Verify、Owner Acceptanceのfresh限定。
 
 - DEC-0149 — P5原承認再照合・Windows観測・Keepa service分離・明示start・checkpointのoffline組成と実設置／live境界。
 

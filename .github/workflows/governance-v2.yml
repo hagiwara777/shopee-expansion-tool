@@ -123,11 +123,11 @@ jobs:
         with:
           repository: hagiwara777/commerce-api-core
           ref: 31dd33fe4afa9bf4da1208c2886b62d899744658
-          path: .ci/commerce-api-core
+          path: work/ci/commerce-api-core
           token: ${{ steps.commerce-api-core-token.outputs.token }}
           persist-credentials: false
       - name: Install pinned commerce-api-core
-        run: python -m pip install ./.ci/commerce-api-core
+        run: python -m pip install ./work/ci/commerce-api-core
       - run: python -m pytest -q
       - shell: powershell
         if: github.event_name == 'pull_request'

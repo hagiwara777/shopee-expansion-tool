@@ -6,6 +6,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -41,6 +42,8 @@ def git(path: Path, *args: str) -> str:
 @pytest.fixture
 def trusted(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setenv("GOVERNANCE_TRUST_ANCHOR_JSON", json.dumps(ANCHOR))
+    monkeypatch.setenv("GOVERNANCE_TRUST_ANCHOR_SOURCE", "ci-env-json")
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "empty-appdata"))
     monkeypatch.delenv("APPDATA", raising=False)
 
@@ -88,6 +91,9 @@ def test_gv2_ci_workflow_emits_evidence_for_every_mandatory_check() -> None:
 
     assert all(f'"{check_id}"' in generator for check_id in check_ids)
     assert all(f"-GateId {check_id} " in workflow for check_id in check_ids)
+    assert "path: work/ci/commerce-api-core" in workflow
+    assert "python -m pip install ./work/ci/commerce-api-core" in workflow
+    assert git(ROOT, "check-ignore", "work/ci/commerce-api-core") == "work/ci/commerce-api-core"
 
 
 @pytest.mark.parametrize(
@@ -153,6 +159,7 @@ def test_gv2_task_002_context_cannot_delete_mandatory_gate(trusted: None, tmp_pa
 
 def test_gv2_anchor_001_missing_is_hold(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.delenv("GOVERNANCE_TRUST_ANCHOR_JSON", raising=False)
+    monkeypatch.delenv("GOVERNANCE_TRUST_ANCHOR_SOURCE", raising=False)
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
     context = engine.generate_context(ROOT)
     result = engine.verify_context(ROOT, context, profile_id="read-only")
@@ -162,11 +169,209 @@ def test_gv2_anchor_001_missing_is_hold(monkeypatch: pytest.MonkeyPatch, tmp_pat
 
 def test_gv2_anchor_002_repo_fake_anchor_is_not_trusted(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.delenv("GOVERNANCE_TRUST_ANCHOR_JSON", raising=False)
+    monkeypatch.delenv("GOVERNANCE_TRUST_ANCHOR_SOURCE", raising=False)
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "outside"))
     fake = tmp_path / "repo" / "governance" / "trust-anchor.json"
     fake.parent.mkdir(parents=True)
     fake.write_text(json.dumps(ANCHOR), encoding="utf-8")
     assert engine._load_anchor() == (None, "TRUST_ANCHOR_MISSING")
+
+
+def test_gv2_anchor_004_explicit_source_is_required(trusted: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("GOVERNANCE_TRUST_ANCHOR_SOURCE", raising=False)
+    context = engine.generate_context(ROOT)
+    result = engine.verify_context(ROOT, context, profile_id="read-only")
+    assert result["decision"] == "HOLD"
+    assert "TRUST_ANCHOR_SOURCE_UNSPECIFIED" in result["blockers"]
+
+
+def test_gv2_anchor_005_dual_source_is_hard_stop(
+    trusted: None, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    anchor_path = tmp_path / "ShopeeGovernance" / "trust" / "1296080967.json"
+    anchor_path.parent.mkdir(parents=True)
+    anchor_path.write_text(json.dumps(ANCHOR), encoding="utf-8")
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    with pytest.raises(engine.GovernanceError) as error:
+        engine._load_anchor()
+    assert error.value.reason_code == "TRUST_ANCHOR_SOURCE_CONFLICT"
+
+
+@pytest.mark.parametrize("raw_anchor", ["not-json", "null", "NaN"])
+def test_gv2_anchor_invalid_content_is_hard_stop(
+    trusted: None, monkeypatch: pytest.MonkeyPatch, raw_anchor: str
+) -> None:
+    monkeypatch.setenv("GOVERNANCE_TRUST_ANCHOR_JSON", raw_anchor)
+    with pytest.raises(engine.GovernanceError) as error:
+        engine._load_anchor()
+    assert error.value.reason_code == "TRUST_ANCHOR_INVALID"
+
+
+def test_gv2_anchor_006_source_and_digest_are_recorded(trusted: None) -> None:
+    context = engine.generate_context(ROOT)
+    record = next(item for item in context["observations"]["records"] if item["id"] == "trust-anchor")
+    assert record["value"] == {
+        "source_method": "ci-env-json",
+        "canonical_sha256": engine.sha256_bytes(engine.canonical_bytes(ANCHOR)),
+    }
+
+
+def test_gv2_verification_schema_allows_pre_migration_formal_writer(trusted: None) -> None:
+    context = engine.generate_context(ROOT)
+    verification = engine.verify_context(ROOT, context, profile_id="read-only")
+    assert verification["verification_mode"] == "fresh"
+    legacy_formal_result = dict(verification)
+    legacy_formal_result.pop("verification_mode")
+    engine._schema_validate(
+        legacy_formal_result,
+        engine.load_bundle(ROOT).schemas["schemas/verification.schema.json"],
+        "verification",
+    )
+
+
+def test_gv2_anchor_007_current_digest_change_holds(
+    trusted: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    context = engine.generate_context(ROOT)
+    changed_anchor = dict(ANCHOR, owner_actor_id="different-owner")
+    monkeypatch.setenv("GOVERNANCE_TRUST_ANCHOR_JSON", json.dumps(changed_anchor))
+    result = engine.verify_context(ROOT, context, profile_id="read-only")
+    assert result["decision"] == "HOLD"
+    assert "TRUST_ANCHOR_DIGEST_CHANGED" in result["blockers"]
+
+
+def test_gv2_old_snapshot_holds_when_current_anchor_source_disappears(
+    trusted: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    context = engine.generate_context(ROOT)
+    monkeypatch.delenv("GOVERNANCE_TRUST_ANCHOR_JSON", raising=False)
+    result = engine.verify_context(ROOT, context, profile_id="read-only")
+    assert result["verification_mode"] == "fresh"
+    assert result["decision"] == "HOLD"
+    assert "TRUST_ANCHOR_SELECTED_SOURCE_MISSING" in result["blockers"]
+
+
+@pytest.mark.parametrize("revision", ["HEAD", "HEAD^{tree}"])
+def test_gv2_fresh_001_head_or_tree_change_holds(
+    trusted: None, monkeypatch: pytest.MonkeyPatch, revision: str
+) -> None:
+    context = engine.generate_context(ROOT)
+    original = engine._run_git
+
+    def changed_head(repository: Path, args: list[str], **kwargs: object) -> str | None:
+        if args == ["rev-parse", revision]:
+            return "f" * 40
+        return original(repository, args, **kwargs)
+
+    monkeypatch.setattr(engine, "_run_git", changed_head)
+    result = engine.verify_context(ROOT, context, profile_id="read-only")
+    assert result["decision"] == "HOLD"
+    assert ("GIT_HEAD_CHANGED" if revision == "HEAD" else "GIT_TREE_CHANGED") in result["blockers"]
+
+
+def test_gv2_fresh_002_worktree_change_holds(trusted: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    context = engine.generate_context(ROOT)
+    monkeypatch.setattr(
+        engine,
+        "_working_tree_binding",
+        lambda _repository: {"tracked_diff_sha256": "f" * 64, "has_untracked_files": False},
+    )
+    result = engine.verify_context(ROOT, context, profile_id="read-only")
+    assert result["decision"] == "HOLD"
+    assert "WORKING_TREE_CHANGED" in result["blockers"]
+
+
+def test_gv2_worktree_binding_detects_untracked_dependency_checkout(tmp_path: Path) -> None:
+    repository = tmp_path / "repository"
+    repository.mkdir()
+    git(repository, "init", "-b", "main")
+    git(repository, "config", "user.name", "Governance Test")
+    git(repository, "config", "user.email", "governance@example.invalid")
+    shutil.copyfile(ROOT / ".gitignore", repository / ".gitignore")
+    git(repository, "add", ".gitignore")
+    git(repository, "commit", "-m", "fixture")
+    assert engine._working_tree_binding(repository)["has_untracked_files"] is False
+
+    dependency = repository / ".ci" / "dependency"
+    dependency.mkdir(parents=True)
+    git(dependency, "init", "-b", "main")
+    git(dependency, "config", "user.name", "Governance Test")
+    git(dependency, "config", "user.email", "governance@example.invalid")
+    (dependency / "fixture.txt").write_text("synthetic dependency", encoding="utf-8")
+    git(dependency, "add", "fixture.txt")
+    git(dependency, "commit", "-m", "dependency fixture")
+    assert engine._working_tree_binding(repository)["has_untracked_files"] is True
+
+    ignored_parent = repository / "work" / "ci"
+    ignored_parent.mkdir(parents=True)
+    dependency.rename(ignored_parent / "dependency")
+    assert engine._working_tree_binding(repository)["has_untracked_files"] is False
+
+
+def test_gv2_fresh_003_config_hash_change_holds(trusted: None) -> None:
+    context = engine.generate_context(ROOT)
+    context = copy.deepcopy(context)
+    context["canonical"]["config_hashes"]["changed"] = "f" * 64
+    context["canonical_sha256"] = engine.sha256_bytes(engine.canonical_bytes(context["canonical"]))
+    result = engine.verify_context(ROOT, context, profile_id="read-only")
+    assert result["decision"] == "HOLD"
+    assert "GOVERNANCE_CONFIG_CHANGED" in result["blockers"]
+
+
+def test_gv2_fresh_004_task_context_current_content_required(
+    trusted: None, tmp_path: Path
+) -> None:
+    path = tmp_path / "task-context.json"
+    task = task_context()
+    path.write_text(json.dumps(task), encoding="utf-8")
+    context = engine.generate_context(ROOT, task_context_path=path)
+    task["lifecycle"] = "CLOSED"
+    path.write_text(json.dumps(task), encoding="utf-8")
+    result = engine.verify_context(
+        ROOT, context, profile_id="local-validation", task_context_path=path
+    )
+    assert result["decision"] == "HOLD"
+    assert "TASK_CONTEXT_CHANGED" in result["blockers"]
+
+
+def test_gv2_fresh_005_task_context_path_is_required_for_task_snapshot(
+    trusted: None, tmp_path: Path
+) -> None:
+    path = tmp_path / "task-context.json"
+    path.write_text(json.dumps(task_context()), encoding="utf-8")
+    context = engine.generate_context(ROOT, task_context_path=path)
+    result = engine.verify_context(ROOT, context, profile_id="read-only")
+    assert result["decision"] == "HOLD"
+    assert "TASK_CONTEXT_CURRENT_BINDING_REQUIRED" in result["blockers"]
+
+
+def test_gv2_anchor_008_explicit_local_file_source_is_used(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    anchor_path = tmp_path / "ShopeeGovernance" / "trust" / "1296080967.json"
+    anchor_path.parent.mkdir(parents=True)
+    anchor_path.write_text(json.dumps(ANCHOR), encoding="utf-8")
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    monkeypatch.setenv("GOVERNANCE_TRUST_ANCHOR_SOURCE", "local-file")
+    monkeypatch.delenv("GOVERNANCE_TRUST_ANCHOR_JSON", raising=False)
+    anchor, reason = engine._load_anchor()
+    assert anchor == ANCHOR
+    assert reason == "TRUST_ANCHOR_LOADED"
+
+
+def test_gv2_anchor_009_appdata_is_not_a_fallback(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    anchor_path = tmp_path / "ShopeeGovernance" / "trust" / "1296080967.json"
+    anchor_path.parent.mkdir(parents=True)
+    anchor_path.write_text(json.dumps(ANCHOR), encoding="utf-8")
+    monkeypatch.delenv("LOCALAPPDATA", raising=False)
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    monkeypatch.setenv("GOVERNANCE_TRUST_ANCHOR_SOURCE", "local-file")
+    monkeypatch.delenv("GOVERNANCE_TRUST_ANCHOR_JSON", raising=False)
+    anchor, reason = engine._load_anchor()
+    assert anchor is None
+    assert reason == "TRUST_ANCHOR_SELECTED_SOURCE_MISSING"
 
 
 def test_gv2_anchor_003_remote_mismatch_hard_stop(trusted: None, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -359,7 +564,10 @@ def test_gv2_ci_001_governance_checks_are_independent_of_branch_protection(
     if branch_protection_checks is not None:
         provider["branch_protection_checks"] = branch_protection_checks
     context = formal_context(tmp_path, provider)
-    result = engine.verify_context(ROOT, context, profile_id="formal-acceptance", provider=provider)
+    result = engine.verify_context(
+        ROOT, context, profile_id="formal-acceptance", provider=provider,
+        task_context_path=tmp_path / "task-context.json",
+    )
     assert result["decision"] == "HOLD"
     assert "EVIDENCE_MISSING" in result["blockers"]
     assert "BRANCH_PROTECTION_UNKNOWN" not in result["blockers"]
@@ -375,7 +583,8 @@ def test_gv2_ci_002_formal_mandatory_evidence_failure_is_hard_stop(
     evidence = make_evidence(bundle, context, "governance.validate", profile_id="formal-acceptance")
     evidence["observation"] = "FAIL"
     result = engine.verify_context(
-        ROOT, context, profile_id="formal-acceptance", provider=provider, evidence=[evidence]
+        ROOT, context, profile_id="formal-acceptance", provider=provider, evidence=[evidence],
+        task_context_path=tmp_path / "task-context.json",
     )
     assert result["decision"] == "HARD_STOP"
     assert "EVIDENCE_FAILURE" in result["blockers"]
@@ -393,6 +602,7 @@ def test_gv2_ci_003_owner_acceptance_remains_required_after_technical_readiness(
         profile_id="formal-acceptance",
         provider=provider,
         evidence=formal_evidence(engine.load_bundle(ROOT), context),
+        task_context_path=tmp_path / "task-context.json",
     )
     assert result["decision"] == "HOLD"
     assert result["owner_acceptance_ready"] is True
@@ -405,7 +615,10 @@ def test_gv2_provider_003_repository_identity_mismatch_is_hard_stop(
 ) -> None:
     provider = {"repository_id": "different-repository"}
     context = formal_context(tmp_path, provider)
-    result = engine.verify_context(ROOT, context, profile_id="formal-acceptance", provider=provider)
+    result = engine.verify_context(
+        ROOT, context, profile_id="formal-acceptance", provider=provider,
+        task_context_path=tmp_path / "task-context.json",
+    )
     assert result["decision"] == "HARD_STOP"
     assert "REPOSITORY_IDENTITY_MISMATCH" in result["blockers"]
 
@@ -417,7 +630,7 @@ def test_gv2_owner_001_summary_requires_technical_readiness() -> None:
 
 
 def test_gv2_owner_002_summary_binding_changes_with_business_content() -> None:
-    verification = {"decision": "CONTINUE", "owner_acceptance_ready": True, "verification_input_hash": "a" * 64}
+    verification = {"verification_mode": "fresh", "decision": "CONTINUE", "owner_acceptance_ready": True, "verification_input_hash": "a" * 64}
     sections = {key: "事業向け説明" for key in ["acceptance_target", "change_scope", "non_targets", "existing_operations_impact", "major_risks", "verified_evidence", "known_limits", "meaning_after_acceptance", "rollback"]}
     first = engine.build_owner_acceptance_summary(verification, sections)
     sections["change_scope"] = "変更された説明"
@@ -438,6 +651,7 @@ def test_gv2_git_001_fresh_clone_detached_head_no_local_main(trusted: None, tmp_
     git(tmp_path, "clone", "--bare", str(source), str(bare))
     clone = tmp_path / "clone"
     git(tmp_path, "clone", str(bare), str(clone))
+    git(clone, "remote", "set-url", "origin", "https://github.com/hagiwara777/shopee-expansion-tool.git")
     head = git(clone, "rev-parse", "HEAD")
     git(clone, "checkout", "--detach", head)
     git(clone, "branch", "-D", "main")
@@ -520,7 +734,11 @@ def _owner_comment_case():
     }))
     context = {"canonical": {"task": {"subject": {"type": "PR", "number": 95}}},
                "observations": {"git_identity": {"head": head}}}
-    verification = {"verification_input_hash": verification_hash, "owner_acceptance_ready": True}
+    verification = {
+        "verification_mode": "fresh",
+        "verification_input_hash": verification_hash,
+        "owner_acceptance_ready": True,
+    }
     summary = {"schema_version": "2.0.0", "summary_binding": binding, "sections": sections}
     repository = {"id": 1296080967, "full_name": ANCHOR["repository_full_name"]}
     pull = {"number": 95, "head": {"sha": head}, "base": {"repo": {"id": 1296080967}}}
@@ -531,6 +749,140 @@ def _owner_comment_case():
                  "created_at": "2026-09-27T12:00:00Z", "updated_at": "2026-09-27T12:00:00Z"}]
     now = datetime(2026, 9, 27, 12, 1, tzinfo=UTC)
     return key, anchor, context, verification, summary, repository, pull, comments, now
+
+
+def _owner_provider_main_inputs(tmp_path: Path, case):
+    _key, anchor, context, verification, summary, repository, pull, comments, _now = case
+    paths = {}
+    for name, value in (("context", context), ("verification", verification), ("summary", summary)):
+        path = tmp_path / f"{name}.json"
+        path.write_text(json.dumps(value), encoding="utf-8")
+        paths[name] = str(path)
+    argv = ["owner-comment-provider"]
+    for name in ("context", "verification", "summary"):
+        argv.extend((f"--{name}", paths[name]))
+    argv.extend(("--output-dir", str(tmp_path / "owner-evidence")))
+    return anchor, repository, pull, comments, argv
+
+
+def _owner_key_env_value(key: Ed25519PrivateKey) -> str:
+    raw = key.private_bytes(
+        serialization.Encoding.Raw, serialization.PrivateFormat.Raw, serialization.NoEncryption(),
+    )
+    return base64.b64encode(raw).decode("ascii")
+
+
+def test_owner_provider_gh_environment_filters_key_even_if_provider_env_has_it(monkeypatch) -> None:
+    synthetic_key = "synthetic-signing-key-value"
+    monkeypatch.setenv(owner_comment_provider.PRIVATE_KEY_ENV, synthetic_key)
+    observed = {}
+
+    def fake_run(args, **kwargs):
+        assert args == ["gh", "api", "repos/example/repository"]
+        observed.update(kwargs["env"])
+        return subprocess.CompletedProcess(args, 0, stdout="{}", stderr="")
+
+    monkeypatch.setattr(owner_comment_provider.subprocess, "run", fake_run)
+    assert owner_comment_provider._github_api("repos/example/repository") == {}
+    assert owner_comment_provider.PRIVATE_KEY_ENV not in observed
+    assert os.environ[owner_comment_provider.PRIVATE_KEY_ENV] == synthetic_key
+
+
+def test_owner_provider_removes_signing_key_and_excludes_it_from_gh(tmp_path, monkeypatch, capsys) -> None:
+    monkeypatch.setattr(owner_comment_provider, "_require_formal_main_activation", lambda _root: None)
+    case = _owner_comment_case()
+    key, anchor, _context, verification, summary, repository, pull, comments, _now = case
+    anchor, repository, pull, comments, argv = _owner_provider_main_inputs(tmp_path, case)
+    encoded_key = _owner_key_env_value(key)
+    monkeypatch.setenv(owner_comment_provider.PRIVATE_KEY_ENV, encoded_key)
+    monkeypatch.setattr(sys, "argv", argv)
+    monkeypatch.setattr(engine, "_load_anchor", lambda: (anchor, "synthetic-anchor"))
+    responses = iter((repository, pull, comments))
+    child_environments = []
+    real_run = subprocess.run
+
+    def fake_run(args, **kwargs):
+        if args[:2] != ["gh", "api"]:
+            return real_run(args, **kwargs)
+        assert args[:2] == ["gh", "api"]
+        child_env = kwargs["env"]
+        assert owner_comment_provider.PRIVATE_KEY_ENV not in child_env
+        child_environments.append(child_env)
+        return subprocess.CompletedProcess(args, 0, stdout=json.dumps(next(responses)), stderr="")
+
+    monkeypatch.setattr(owner_comment_provider.subprocess, "run", fake_run)
+    assert owner_comment_provider.main() == engine.EXIT_CONTINUE
+    assert owner_comment_provider.PRIVATE_KEY_ENV not in os.environ
+    assert len(child_environments) == 3
+    captured = capsys.readouterr()
+    assert encoded_key not in captured.out + captured.err
+    records = [json.loads(path.read_text(encoding="utf-8"))
+               for path in (tmp_path / "owner-evidence").glob("*.json")]
+    assert len(records) == 1
+    assert engine._owner_evidence_matches(
+        records, verification["verification_input_hash"], anchor, summary["summary_binding"],
+        "d" * 40, 95, datetime.now(UTC),
+    ) == (True, "OWNER_ACCEPTANCE_BOUND")
+
+
+@pytest.mark.parametrize("key_kind", ["invalid", "mismatch"])
+def test_owner_provider_removes_key_and_holds_for_invalid_or_mismatched_key(
+    tmp_path, monkeypatch, capsys, key_kind: str,
+) -> None:
+    monkeypatch.setattr(owner_comment_provider, "_require_formal_main_activation", lambda _root: None)
+    case = _owner_comment_case()
+    key, anchor, _context, _verification, _summary, _repository, _pull, _comments, _now = case
+    anchor, _repository, _pull, _comments, argv = _owner_provider_main_inputs(tmp_path, case)
+    encoded_key = "not-base64" if key_kind == "invalid" else _owner_key_env_value(key)
+    if key_kind == "mismatch":
+        anchor["owner_evidence_public_key"] = base64.b64encode(b"x" * 32).decode("ascii")
+    monkeypatch.setenv(owner_comment_provider.PRIVATE_KEY_ENV, encoded_key)
+    monkeypatch.setattr(sys, "argv", argv)
+    monkeypatch.setattr(engine, "_load_anchor", lambda: (anchor, "synthetic-anchor"))
+    monkeypatch.setattr(
+        owner_comment_provider.subprocess, "run",
+        lambda *_args, **_kwargs: pytest.fail("GitHub must not be queried for an invalid signing key"),
+    )
+    assert owner_comment_provider.main() == engine.EXIT_HOLD
+    assert owner_comment_provider.PRIVATE_KEY_ENV not in os.environ
+    captured = capsys.readouterr()
+    expected = "OWNER_PROVIDER_KEY_REQUIRED" if key_kind == "invalid" else "OWNER_PROVIDER_KEY_MISMATCH"
+    assert expected in captured.err
+    assert encoded_key not in captured.out + captured.err
+    assert not (tmp_path / "owner-evidence").exists()
+
+
+def test_owner_provider_api_failure_holds_without_leaking_signing_key(tmp_path, monkeypatch, capsys) -> None:
+    monkeypatch.setattr(owner_comment_provider, "_require_formal_main_activation", lambda _root: None)
+    case = _owner_comment_case()
+    key, anchor, *_rest = case
+    anchor, _repository, _pull, _comments, argv = _owner_provider_main_inputs(tmp_path, case)
+    encoded_key = _owner_key_env_value(key)
+    monkeypatch.setenv(owner_comment_provider.PRIVATE_KEY_ENV, encoded_key)
+    monkeypatch.setattr(sys, "argv", argv)
+    monkeypatch.setattr(engine, "_load_anchor", lambda: (anchor, "synthetic-anchor"))
+
+    def fail_api(args, **kwargs):
+        assert owner_comment_provider.PRIVATE_KEY_ENV not in kwargs["env"]
+        return subprocess.CompletedProcess(args, 1, stdout="", stderr=encoded_key)
+
+    monkeypatch.setattr(owner_comment_provider.subprocess, "run", fail_api)
+    assert owner_comment_provider.main() == engine.EXIT_HOLD
+    assert owner_comment_provider.PRIVATE_KEY_ENV not in os.environ
+    captured = capsys.readouterr()
+    assert "GITHUB_OWNER_PROVIDER_UNAVAILABLE" in captured.err
+    assert encoded_key not in captured.out + captured.err
+    assert not (tmp_path / "owner-evidence").exists()
+
+
+def test_owner_provider_github_spawn_error_is_safe_hold(monkeypatch) -> None:
+    def fail_spawn(*_args, **_kwargs):
+        raise OSError("synthetic spawn failure")
+
+    monkeypatch.setattr(owner_comment_provider.subprocess, "run", fail_spawn)
+    with pytest.raises(engine.GovernanceError) as exc:
+        owner_comment_provider._github_api("repos/example/repository")
+    assert exc.value.reason_code == "GITHUB_OWNER_PROVIDER_UNAVAILABLE"
 
 
 @pytest.mark.parametrize("newline", ["\n", "\r\n"], ids=["LF", "CRLF"])
@@ -564,6 +916,35 @@ def test_gv2_owner_comment_provider_and_offline_verifier(newline: str) -> None:
     forged_mirror["source"]["summary_binding"] = "b" * 64
     assert engine._owner_evidence_matches([forged_mirror], verification["verification_input_hash"],
                                           anchor, summary["summary_binding"], "d" * 40, 95, now)[0] is False
+
+
+def test_gv2_owner_provider_rejects_non_fresh_verification() -> None:
+    for verification in ({"verification_mode": "historical-replay"}, {}):
+        with pytest.raises(engine.GovernanceError) as exc:
+            owner_comment_provider.build_evidence({}, verification, {}, {}, {}, {}, [], None)
+        assert exc.value.reason_code == "OWNER_VERIFICATION_NOT_FRESH"
+
+
+def test_gv2_owner_provider_candidate_cannot_sign_before_formal_adoption(tmp_path: Path) -> None:
+    with pytest.raises(engine.GovernanceError) as exc:
+        owner_comment_provider._require_formal_main_activation(tmp_path)
+    assert exc.value.reason_code == "OWNER_PROVIDER_NOT_FORMAL"
+
+
+def test_gv2_owner_provider_requires_all_governance_files_to_match_formal_main(tmp_path: Path) -> None:
+    root = tmp_path / "candidate"
+    (root / "governance").mkdir(parents=True)
+    (root / "governance" / "engine.py").write_text("formal verifier\n", encoding="utf-8")
+    git(root, "init", "-b", "main")
+    git(root, "config", "user.name", "Governance Test")
+    git(root, "config", "user.email", "governance@example.invalid")
+    git(root, "add", "governance/engine.py")
+    git(root, "commit", "-m", "formal verifier")
+    git(root, "update-ref", "refs/remotes/origin/main", "HEAD")
+    assert owner_comment_provider._governance_matches_formal_main(root)
+
+    (root / "governance" / "engine.py").write_text("candidate verifier\n", encoding="utf-8")
+    assert not owner_comment_provider._governance_matches_formal_main(root)
 
 
 @pytest.mark.parametrize("newline", ["\n", "\r\n"], ids=["LF", "CRLF"])
@@ -631,7 +1012,7 @@ def test_gv2_owner_transport_formats_current_binding() -> None:
 
 
 @pytest.mark.parametrize("mutation", [
-    "gates", "other_blocker", "summary", "head", "repository", "actor", "scope", "base", "closed",
+    "gates", "other_blocker", "historical", "legacy", "summary", "head", "repository", "actor", "scope", "base", "closed",
 ])
 def test_gv2_owner_transport_fails_closed(mutation: str) -> None:
     anchor, context, verification, summary, repository, pull, actor = _owner_transport_case()
@@ -640,6 +1021,10 @@ def test_gv2_owner_transport_fails_closed(mutation: str) -> None:
         verification["owner_acceptance_ready"] = False
     elif mutation == "other_blocker":
         verification["blockers"].append("MANDATORY_CHECK_MISSING")
+    elif mutation == "historical":
+        verification["verification_mode"] = "historical-replay"
+    elif mutation == "legacy":
+        verification.pop("verification_mode")
     elif mutation == "summary":
         summary["sections"]["major_risks"] = "changed after approval"
     elif mutation == "head":

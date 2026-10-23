@@ -4,11 +4,13 @@ No API, credential, installation, ACL change or probe occurs in constructors.
 OS observations are fresh; expected values are operator-bound, never inferred
 from the execution ticket being verified.
 """
+from contextlib import closing
 from dataclasses import asdict
 import json
 import os
 from pathlib import Path
 import sqlite3
+import stat
 import subprocess
 import sys
 from uuid import uuid4
@@ -94,20 +96,34 @@ class WindowsStorage:
             raise P5Stopped('P5_STORAGE_ACL_FAILED')
 
     def probe(self, path):
-        """Explicit install-only create/read/fsync/rename/lock/SQLite probe."""
+        """Explicit install-only probe; failed/uncertain residue is retained."""
         import msvcrt
         self.setup().check(path)
         directory = Path(path) / ('probe' + uuid4().hex)
         directory.mkdir(exist_ok=False)
+
+        def identity(item, *, is_directory=False):
+            observed = item.lstat()
+            expected_type = stat.S_ISDIR if is_directory else stat.S_ISREG
+            if (not expected_type(observed.st_mode) or not observed.st_ino
+                    or getattr(observed, 'st_file_attributes', 0) & 0x400
+                    or not is_directory and observed.st_nlink != 1):
+                raise ValueError()
+            return observed.st_dev, observed.st_ino
+
         try:
+            directory_identity = identity(directory, is_directory=True)
             first, second = directory / 'first', directory / 'second'
             with first.open('xb') as stream:
+                first_identity = identity(first)
                 stream.write(b'P5 storage probe')
                 stream.flush()
                 os.fsync(stream.fileno())
             if first.read_bytes() != b'P5 storage probe':
                 raise ValueError()
             first.rename(second)
+            if identity(second) != first_identity:
+                raise ValueError()
             with second.open('r+b') as lock:
                 msvcrt.locking(lock.fileno(), msvcrt.LK_NBLCK, 1)
                 try:
@@ -121,20 +137,36 @@ class WindowsStorage:
                 finally:
                     lock.seek(0)
                     msvcrt.locking(lock.fileno(), msvcrt.LK_UNLCK, 1)
-            with sqlite3.connect(directory / 'probe.sqlite3') as conn:
-                conn.execute('CREATE TABLE probe (value INTEGER)')
-                conn.execute('INSERT INTO probe VALUES (1)')
-                conn.commit()
+            database = directory / 'probe.sqlite3'
+            with database.open('xb'):
+                pass
+            database_identity = identity(database)
+            # Connection.__exit__ commits/rolls back but does not close the DB.
+            # Close before Windows cleanup, including on transaction failure.
+            with closing(sqlite3.connect(database.as_uri() + '?mode=rw', uri=True)) as conn:
+                with conn:
+                    conn.execute('CREATE TABLE probe (value INTEGER)')
+                    conn.execute('INSERT INTO probe VALUES (1)')
                 if conn.execute('SELECT value FROM probe').fetchall() != [(1,)]:
                     raise ValueError()
+            expected = {second: first_identity, database: database_identity}
+            if (identity(directory, is_directory=True) != directory_identity
+                    or set(directory.iterdir()) != set(expected)):
+                raise ValueError()
+            # Validate all own files before deleting any. Unknown files, aliases,
+            # replacements or failed probes remain available for investigation.
+            for item, expected_identity in expected.items():
+                if identity(item) != expected_identity:
+                    raise ValueError()
+            for item in expected:
+                item.unlink()
+            if (identity(directory, is_directory=True) != directory_identity
+                    or any(directory.iterdir())):
+                raise ValueError()
+            directory.rmdir()  # only the same empty probe directory; no recursion
             return dict.fromkeys(('create', 'read', 'fsync', 'rename', 'exclusive_lock', 'sqlite_transaction'), True)
         except Exception:
             raise P5Stopped('P5_STORAGE_PROBE_FAILED') from None
-        finally:
-            # Only this newly-created probe directory; never recurse/delete data.
-            for item in directory.iterdir():
-                item.unlink()
-            directory.rmdir()
 
     def setup(self):
         return P5Setup(inspect=self.inspect, set_acl=self.set_acl, probe=self.probe,

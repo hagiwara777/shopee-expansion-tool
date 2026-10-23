@@ -28,10 +28,20 @@ APPROVAL = re.compile(
     r"SCOPE: ([^\r\n]+)\s*\Z"
 )
 REVOKED = re.compile(r"\AOWNER_ACCEPTANCE: REVOKED\b")
+PRIVATE_KEY_ENV = "GOVERNANCE_OWNER_EVIDENCE_PRIVATE_KEY"
 
 
 def _github_api(path: str) -> Any:
-    result = subprocess.run(["gh", "api", path], capture_output=True, text=True, check=False)
+    child_env = os.environ.copy()
+    child_env.pop(PRIVATE_KEY_ENV, None)
+    try:
+        result = subprocess.run(
+            ["gh", "api", path], capture_output=True, text=True, check=False, env=child_env,
+        )
+    except OSError as exc:
+        raise engine.GovernanceError(
+            "GITHUB_OWNER_PROVIDER_UNAVAILABLE", "GitHub観測に失敗しました。", engine.EXIT_HOLD,
+        ) from exc
     if result.returncode:
         raise engine.GovernanceError("GITHUB_OWNER_PROVIDER_UNAVAILABLE", "GitHub観測に失敗しました。", engine.EXIT_HOLD)
     try:
@@ -53,12 +63,43 @@ def _comments(full_name: str, pr_number: int) -> list[dict[str, Any]]:
         page += 1
 
 
+def _governance_matches_formal_main(root: Path) -> bool:
+    """Require the full Governance bundle to match origin/main before Owner actions."""
+    top_level = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", "--show-toplevel"],
+        capture_output=True, text=True, check=False,
+    )
+    if top_level.returncode or Path(top_level.stdout.strip()).resolve() != root.resolve():
+        return False
+    diff = subprocess.run(
+        ["git", "-C", str(root), "diff", "--quiet", "refs/remotes/origin/main", "--", "governance"],
+        capture_output=True, check=False,
+    )
+    status = subprocess.run(
+        ["git", "-C", str(root), "status", "--porcelain=v1", "--untracked-files=all", "--", "governance"],
+        capture_output=True, check=False,
+    )
+    return diff.returncode == 0 and status.returncode == 0 and not status.stdout
+
+
+def _require_formal_main_activation(root: Path) -> None:
+    """Do not use candidate Governance code to sign Owner Evidence."""
+    if not _governance_matches_formal_main(root):
+        raise engine.GovernanceError(
+            "OWNER_PROVIDER_NOT_FORMAL", "Governance一式がformal main採用後に一致するまでProviderを使えません。", engine.EXIT_HOLD
+        )
+
+
 def build_evidence(
     context: dict[str, Any], verification: dict[str, Any], summary: dict[str, Any],
     anchor: dict[str, Any], repository: dict[str, Any], pull: dict[str, Any],
     comments: list[dict[str, Any]], private_key: Ed25519PrivateKey,
     *, observed_at: datetime | None = None,
 ) -> dict[str, Any]:
+    if verification.get("verification_mode") != "fresh":
+        raise engine.GovernanceError(
+            "OWNER_VERIFICATION_NOT_FRESH", "fresh Verify結果だけをOwner Evidenceへ渡せます。", engine.EXIT_HOLD
+        )
     if anchor.get("anchor_version") != "1.1.0":
         raise engine.GovernanceError("OWNER_EVIDENCE_TRUST_KEY_REQUIRED", "Owner Evidence公開鍵が未設定です。", engine.EXIT_HOLD)
     if (
@@ -132,6 +173,7 @@ def build_evidence(
 
 
 def main() -> int:
+    raw_key = os.environ.pop(PRIVATE_KEY_ENV, "")
     parser = argparse.ArgumentParser(prog="owner-comment-provider")
     parser.add_argument("--context", required=True)
     parser.add_argument("--verification", required=True)
@@ -139,10 +181,17 @@ def main() -> int:
     parser.add_argument("--output-dir", required=True)
     args = parser.parse_args()
     try:
+        _require_formal_main_activation(Path(__file__).resolve().parents[1])
         anchor, _ = engine._load_anchor()
         if anchor is None:
             raise engine.GovernanceError("TRUST_ANCHOR_MISSING", "Trust Anchorがありません。", engine.EXIT_HOLD)
-        raw_key = os.environ.get("GOVERNANCE_OWNER_EVIDENCE_PRIVATE_KEY", "")
+        context = engine.load_json(Path(args.context))
+        verification = engine.load_json(Path(args.verification))
+        summary = engine.load_json(Path(args.summary))
+        if verification.get("verification_mode") != "fresh":
+            raise engine.GovernanceError(
+                "OWNER_VERIFICATION_NOT_FRESH", "fresh Verify結果だけをOwner Evidenceへ渡せます。", engine.EXIT_HOLD
+            )
         try:
             private_key = Ed25519PrivateKey.from_private_bytes(base64.b64decode(raw_key, validate=True))
         except (ValueError, TypeError) as exc:
@@ -150,9 +199,6 @@ def main() -> int:
         public_key = private_key.public_key().public_bytes_raw()
         if base64.b64encode(public_key).decode("ascii") != anchor.get("owner_evidence_public_key"):
             raise engine.GovernanceError("OWNER_PROVIDER_KEY_MISMATCH", "Provider署名鍵がTrust Anchorと一致しません。", engine.EXIT_HOLD)
-        context = engine.load_json(Path(args.context))
-        verification = engine.load_json(Path(args.verification))
-        summary = engine.load_json(Path(args.summary))
         subject = context["canonical"]["task"]["subject"]
         full_name = anchor["repository_full_name"]
         repository = _github_api(f"repos/{full_name}")
