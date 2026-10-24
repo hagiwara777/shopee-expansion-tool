@@ -20,6 +20,39 @@ from modules.p5_setup import P5Setup, StorageObservation
 from modules.sg_continuous_runtime import _digest
 
 
+EXECUTION_PROFILE_PREFIX = 'p5-profile-v1:'
+
+
+def execution_profile_target(*, machine, operator_sid, interpreter, host_interpreter, entrypoint, port):
+    """Stable NEW-scope target; fresh PID/start remain in reviewed observations."""
+    try:
+        if (any(not isinstance(v, str) or not v.strip() for v in
+                (machine, operator_sid, interpreter, host_interpreter, entrypoint))
+                or not Path(interpreter).is_absolute() or not Path(host_interpreter).is_absolute()
+                or not Path(entrypoint).is_absolute()
+                or Path(entrypoint).name != 'app_beta.py'
+                or type(port) is not int or not 1 <= port <= 65535):
+            raise ValueError()
+        return EXECUTION_PROFILE_PREFIX + _digest(dict(
+            machine=machine, sid=operator_sid,
+            interpreter=os.path.normcase(str(Path(interpreter).resolve())),
+            host_interpreter=os.path.normcase(str(Path(host_interpreter).resolve())),
+            entrypoint=os.path.normcase(str(Path(entrypoint).resolve())), port=port))
+    except Exception:
+        raise P5Stopped('P5_EXECUTION_PROFILE_INVALID') from None
+
+
+def plan_execution_target(*, operator_sid, interpreter, entrypoint, port):
+    """Read-only installation planning; no listener/start/credential or store I/O."""
+    host = _windows('Host')
+    if (not isinstance(host, dict) or set(host) != {'machine', 'sid', 'executable'}
+            or host['sid'] != operator_sid
+            or Path(interpreter).resolve() != Path(sys.executable).resolve()):
+        raise P5Stopped('P5_EXECUTION_PROFILE_UNVERIFIED')
+    return execution_profile_target(machine=host['machine'], operator_sid=host['sid'],
+        interpreter=interpreter, host_interpreter=host['executable'], entrypoint=entrypoint, port=port)
+
+
 def _windows(action, path=None, operator=None, port=None):
     if sys.platform != 'win32':
         raise P5Stopped('P5_WINDOWS_OBSERVATION_REQUIRED')
@@ -204,7 +237,8 @@ class WindowsP5Observer:
             # The listener must belong to this exact interpreter/entrypoint.
             if (process['pid'] != os.getpid() or not process['started'] or not process['machine']
                     or process['sid'] != self.storage.operator
-                    or Path(process['executable']).resolve() != Path(sys.executable).resolve()
+                    or (not scope.execution_target.startswith(EXECUTION_PROFILE_PREFIX)
+                        and Path(process['executable']).resolve() != Path(sys.executable).resolve())
                     or not process['listeners']
                     or any(row['pid'] != os.getpid() or row['address'] not in {'127.0.0.1', '::1'}
                            or row['port'] != self.port for row in process['listeners'])
@@ -220,6 +254,19 @@ class WindowsP5Observer:
                     raise ValueError()
                 P5CodeIdentity._require_loaded_source(module, source)
             code = P5CodeIdentity().observe()
+            # Opt-in only: old process-bound scopes keep their exact contract.
+            # The full observation below STILL includes this actual PID/start;
+            # a previous process's Owner review is stale after a restart.
+            target = _digest(machine | {'port': self.port})
+            if scope.execution_target.startswith(EXECUTION_PROFILE_PREFIX):
+                target = execution_profile_target(machine=process['machine'],
+                    operator_sid=process['sid'], interpreter=sys.executable,
+                    host_interpreter=process['executable'],
+                    entrypoint=str(Path(sys.modules['__main__'].__file__).resolve()), port=self.port)
+                if target != scope.execution_target:
+                    raise P5Stopped('P5_EXECUTION_PROFILE_MISMATCH')
+            elif scope.execution_target.startswith('p5-profile-'):
+                raise P5Stopped('P5_EXECUTION_PROFILE_UNSUPPORTED')
             self.storage.setup().check(Path(scope.root), required_bytes=self.required_bytes)
             self.storage.setup().check(scope.directory, required_bytes=self.required_bytes)
             observed = self.storage.inspect(scope.directory)
@@ -239,7 +286,7 @@ class WindowsP5Observer:
                 if token_spec.get('verified') is not True or not token_spec.get('body_digest') or not token_spec.get('version'):
                     raise P5Stopped('PRIMARY_SOURCE_UNVERIFIED')
             return dict(repository='1296080967', **code, machine=machine, port=self.port,
-                loopback=True, execution_target=_digest(machine | {'port': self.port}),
+                loopback=True, execution_target=target,
                 storage=dict(root=str(scope.directory), store_id=meta['store_id'], volume=observed.volume,
                     acl=_digest(sorted(observed.acl_principals)), identities=observed.identities, capacity_ok=True),
                 credential=self.credentials.describe(scope, self.operations),

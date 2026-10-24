@@ -47,6 +47,10 @@ P5のtrusted process起動接続は、既存の型付き部品からoperatorを�
 正規`app_beta.py`を起動する最小initializerを備える（[接続契約](P5_CONNECTION.md)）。
 initializer自体の実コード検査を含め、未登録・原承認／票／対象不一致は停止する。
 合成AppTestの成立を実原承認source・Windows実設置・live成功へ昇格しない。
+新規P5 scopeは[再起動profile](P5_CONNECTION.md)で端末／SID／固定interpreter・entrypoint／portを
+永続targetへ結合し、PID／開始時刻は毎startの原承認review・実観測へ結合する（DEC-0151）。
+同じstore／claim／台帳・累積消費・履歴を維持し、旧process reviewの再利用とUNKNOWN再開を拒否する。
+旧scopeのdigest・process targetを変更せず、自動移行・再初期化・実設置／release反映を行わない。
 Attribute自動取得を商品準備の必須前提にしない方針とし、NOT_FETCHEDだけでは追加停止しない。
 FAILED停止・FETCHED空の未推定・Seller Center最終確認を維持し、production Attribute操作は拒否する。
 この方針でPRIMARY_SOURCE_UNVERIFIED、P5運用許可、Category/Brand公式根拠・Safety停止を解除しない。
@@ -244,6 +248,8 @@ Source明示ON時のsilent fallbackを許さない。Bridge全面書込み障害
 SG Brand responseにmarketplace / Category echoがないため、server内部の別Category誤応答の独立検出は保証しない。
 
 ## Required Decisions
+
+- DEC-0151 — 新規P5の安定した起動profileと毎processのfresh観測、旧形式互換と台帳・UNKNOWN保全。
 
 - DEC-0150 — Trust Anchorの明示解決、現在bindingを確認するfresh Verify、Owner Acceptanceのfresh限定。
 
