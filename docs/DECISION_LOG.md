@@ -1815,3 +1815,14 @@
 - 範囲・検証: Governance engine／schema／manifest、PowerShell入口、Runbook、既存Owner Acceptance helper、testsを一体で更新する。source未指定・二重指定・欠落・形式不正・digest／HEAD／tree／設定／Task Context／working-tree変更、Owner helperのfresh限定をofflineで検証する。CI Actions secret等の設定は追加しない。
 - 非対象・停止: Trust Anchorの原本探索・復元配置、P5実設置、ACL／probe、運用DB・cache・ledger・claim、credential／実API／有料・実商品操作を行わない。正式原本の特定・配置承認前、または現行formal VerifyがHOLDならP5実設置へ進まない。固定release／Python 3.13.2／7依存Evidenceは再利用し、環境を再構築しない。
 - rollback: 候補変更は通常revertする。Anchor bytes、署名鍵、過去snapshot／Evidence／Task Contextを変更・削除せず、force pushを使わない。
+
+
+## DEC-0151 — 新規P5の永続scopeと起動ごとの実process観測を分離する
+
+- 日付: 2026-10-24
+- authority／目的: Ownerは同じP5タスクで、設置後の別process起動・再起動が永続scope／claim／ledgerと不一致になる問題の最小offline解決を指示した。API調査へ戻らず、実API・credential操作・有料処理・実設置・固定release反映・main統合を実行承認へ含めない。
+- 決定: 詳細はP5_CONNECTIONの再起動profileとする。新規scopeだけが`p5-profile-v1:`を明示使用し、実machine／operator SID／正規化した固定venv入口・OSのPython実体・entrypoint path／portへexecution targetを結合する。設置前のHost観測は承認interpreter内からmachine identity・現在SID・現在PythonのOS実体pathを読み取り、実store IDは引き続き排他作成後に観測する。未知version・profile不一致は拒否する。
+- 現在性: 各start・send・出力のPID／開始時刻／SID／実interpreter・entrypoint／listener所有・loopback・実コード照合は維持する。実PID／開始時刻を観測全体とOwner review digestへ残し、旧processの承認観測は次processで拒否する。trusted operatorは原指示・現在票・許可範囲・期限・撤回と新しい実process観測を再結合する。profile文字列・JSON・envだけでpermitを生成しない。
+- 互換・保護: P5Scopeのschema・digest方式、prefixのない旧process target契約、既存scope／claim／ledgerを変更しない。同じ新規scopeでstore ID・累積予約／消費・UNKNOWN・候補／選択・資料世代・P2履歴・投入進行を維持し、旧台帳のmigration・編集・再初期化・新scopeでの枠復活を行わない。PRIMARY_SOURCE_UNVERIFIED、現在API権限・料金・有限枠、Safety／Battery／SLS、P1〜P4／F1/F2、PH／SG保護を維持する。
+- 検証: 合成storeとtyped authority、実際に別々に起動するPython processを使い、同一永続scopeと消費・履歴の維持、旧観測拒否、UNKNOWN停止、machine／SID／code path／port／listener不一致、旧方式互換をoffline検証する。Hostのread-only観測と合成OS観測を実App起動・実設置・live成功へ昇格しない。
+- 後続／rollback: 候補のformal採用後に、採用済みreleaseとexact installer・実対象の設置票を固定し、Ownerの別承認でrelease反映・設置を行う。実API条件の未確認と問い合わせ保留は維持する。候補は通常revertできるが、新profileで作られたstoreを旧コードで再開・再初期化せず保全して停止する。既存データ・旧process scope・予算・履歴・署名鍵・Trust Anchorは変更しない。

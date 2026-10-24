@@ -102,7 +102,8 @@ production組成では以下の実装部品も要求し、従来の任意callbac
   `--p5-config`の初期表示ではpermitを作らず、明示start後だけ組成・検査・既存DB openを行う。
   同じscopeの再描画は既存runtimeとleaseを保持し、追加send・secret読込・DB作成を行わない。
 - `p5_windows`は実PID・開始時刻・実行SID・実Python/entrypoint・listenerの所有PIDとloopbackを観測する。
-  machine/PID/開始時刻/portから実行対象を導き、clean release・tree・import元・ロード済みコードと結合する。
+  既存scopeはmachine/PID/開始時刻/portから実行対象を導く。新規設置のversion付きprofileは下記を使う。
+  いずれも実process観測をclean release・tree・import元・ロード済みコードと結合する。
   storageは全祖先のreparse／SUBST、volume/file identity、保護先との非重複、hardlink、専用ACLと容量を検査する。
   実体不明は停止。constructor/importはOS観測・ACL変更・probeを行わない。
 - `WindowsStorage.setup()`を既存P5Setupへ渡す。未作成先はvolume／祖先／非重複／容量だけを先に検査し、
@@ -123,6 +124,28 @@ production組成では以下の実装部品も要求し、従来の任意callbac
 これは実消費の保証や最終承認予算ではない。Category／BrandとKeepa `/token`個別仕様の
 PRIMARY_SOURCE_UNVERIFIEDを維持し、実source・今回query／leaf／全shop資料・参照・設置・実行承認をlive前に結合する。
 Windows callbackの合成検証は実ACL／volume／probe／listenerの実証ではない。
+
+
+### 新規P5設置と再起動の結合（DEC-0151）
+
+- 新規scopeだけが`p5-profile-v1:`付きexecution targetを明示選択する。
+  trusted installerは`p5_windows.plan_execution_target()`へ実operator SID、固定interpreter、
+  固定releaseの`app_beta.py`絶対path、承認portを渡す。Host観測はmachine identityと現在SIDの
+  読み取りに加え、現在PythonのOS実体pathだけを観測する。承認interpreter内から計画し、
+  listener／App起動・store作成・credential／APIを必要としない。
+- profileはmachine／SID／正規化したvenv入口・OSのPython実体・entrypoint path／portに結合する。
+  Windowsのvenv入口とOS imageの差を混同せず、実観測で両方のpathを再照合する。
+  PIDや開始時刻を永続scopeへ入れないため、同じscope／store／claim／ledgerを別processで再開できる。
+  scopeの他の項目・digest方式、旧process target方式は変更せず、既存台帳を変換しない。
+- 各startとsend／出力では従来の実PID、開始時刻、SID、実コード、listener所有とloopbackを検査する。
+  実PID／開始時刻は観測全体とOwner reviewのdigestに残る。旧processのreviewを次processへ再利用できない。
+  原Owner指示が認める再開でも、trusted operatorは現在process観測を原指示・現在票へ再結合する。
+  scope／操作／予算／期限等が変わる場合は既存の別承認境界を適用し、設定から許可を生成しない。
+- `plan_execution_target()`で作った値は設置前の実観測へ結合する。仮PID・fixture・架空Categoryで埋めない。
+  既設の旧形式をprefixへ書換える、claim／ledger再初期化、予算復活、自動migrationは行わない。
+  UNKNOWN、lease、履歴、選択と資料世代、backup／隔離復旧、Safety／PH・SG保護は従来どおり。
+- 合成の別Python processによる再開テストとread-only Host観測は、実App／実設置／実APIの受入ではない。
+  候補コードのformal採用・固定release反映・新規設置・実行はそれぞれの別承認境界に残る。
 
 ## 操作別preflight（DEC-0148）
 

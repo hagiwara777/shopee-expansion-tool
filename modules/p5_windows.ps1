@@ -1,12 +1,22 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('Storage','Process','SetAcl')][string]$Action,
+    [ValidateSet('Storage','Process','SetAcl','Host')][string]$Action,
     [string]$Target,
     [string]$OperatorSid,
     [int]$Port
 )
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
+if ($Action -eq 'Host') {
+    # Read-only profile planning before any store or application exists.
+    $parentId = (Get-CimInstance Win32_Process -Filter "ProcessId=$PID").ParentProcessId
+    $parentImage = (Get-CimInstance Win32_Process -Filter "ProcessId=$parentId").ExecutablePath
+    @{ machine=(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Cryptography').MachineGuid;
+       sid=[System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value;
+       executable=$parentImage
+    } | ConvertTo-Json -Compress
+    exit
+}
 if ($Action -eq 'Process') {
     # Parent Python PID, since this script runs in a child PowerShell process.
     $parentId = (Get-CimInstance Win32_Process -Filter "ProcessId=$PID").ParentProcessId
