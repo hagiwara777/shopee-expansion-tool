@@ -61,6 +61,8 @@ Category限定はCategory、Brand取得と保存／準備出力はCategory＋Bra
 準備CSV／TXTのTRUEは外部一括出品の無条件許可ではない。ASINを手動で既存出品ツールへ渡し、
 同Category／Brandでも商品ごとの属性値・適用可否はユーザーが確認する。属性自動入力・DB追加・ツール間自動連携は行わない。
 取得限定scopeの起動・再描画は0送信・認証本文未読のまま。production Attributeはruntime／transportでも拒否する。
+[P5合成一連リハーサル](P5_ACCEPTANCE_EXECUTION_PLAN.md#11-実行前の合成一連リハーサル)は、PH/SGの固定A/B選択・現在資料・HUMAN確認・P2出力とcheckpointを3 sessionで検証する。
+原承認撤回とUNKNOWN再開の停止も同じ組成で確認し、実原承認・Windows観測・Bridge/認証は合成境界として区別する。
 C04限定AUTO_RULE、F08 live、C12と実務Beta全体の完成はoffline成立へ読み替えない。
 D採用は専用ACL・非重複・実設置検証・backupを条件とし、合成検査を実端末成功へ昇格しない。
 次の単一作業は使用一次仕様と非公開実行票の未結合を揃え、trusted operator実登録・固定release・
