@@ -18,17 +18,20 @@ AGENTSには毎タスク必須の恒久原則、[RUNBOOK](docs/RUNBOOK_CHATGPT_C
 - 開始時に `git status`、`git rev-parse --show-toplevel`、`git log -1 --oneline` を実行する。
   root、remote、branch、HEAD、main、origin/main、clean / dirtyを実測し、正式状態と照合する。
 - 本書と適用する下位AGENTSを全文読み、CURRENT_WORK、PROJECT_ROADMAPを読む。
-  DECISION_LOGは全Decision見出し一覧とCURRENT_WORKのRequired Decisionsを確認し、
-  必須DEC・今回のmarketplace / module / phase関連DECの本文を読む。選択・検索拡大・全文読込への
-  fallbackはRUNBOOK「Decision読込」を必ず適用する。Required Decisionsだけで対象を限定しない。
+  現行手順は本書とRUNBOOKを入口とし、Decisionは判断理由・変更履歴として読む。
+  CURRENT_WORKのRequired Decisionsから今回の対象に関係する本文を選び、変更する契約の根拠・
+  置換関係を確認する。疑義・不足・矛盾時はRUNBOOK「Decision読込」の検索拡大を適用する。
+  通常調査のたびに全Decision見出し・無関係な過去受入本文を一律再読込しない。
   利用方法・機能仕様に関係する場合はREADMEも読む。
 - 変更対象・禁止範囲を編集前に特定し、振舞い・scope変更は事前に報告する。
   作業票と再開案内のmarketplace / module / phase、およびGit / Task Contextの作業対象が
   不一致なら推測で進めず停止する。停止条件に反して保留工程を再開しない。
 - dirtyなworktreeのユーザー変更・未追跡ファイルを無断整理・破棄・上書きしない。
   dirtyのままbranchを切り替えず、無関係な変更をstage / commitしない。
-- 開始時はRUNBOOK「開始・実行」のValidate・snapshot生成を必ず行う。
-  Governance操作前は「正本」「Trust Anchor」「Task Context」「開始・実行」を適用する。
+- 開始条件はRUNBOOK「開始・実行」の操作別手順を適用する。通常のread-only調査には
+  Validate・snapshot・実環境Trust Anchorを要求しない。通常編集とoffline検証はscope・差分・
+  関連testsを確認し、正式受入・設置は従来のValidate・snapshot・fresh Verifyを省略しない。
+  正式Governance操作前は「正本」「Trust Anchor」「Task Context」「開始・実行」を適用する。
 
 ## 軽量開発運用 v1・承認境界
 
@@ -52,6 +55,8 @@ AGENTSには毎タスク必須の恒久原則、[RUNBOOK](docs/RUNBOOK_CHATGPT_C
 ## Governance・protected capability・秘密情報
 
 - HOLD / HARD_STOP、Protected Capability Gate、mandatory technical gateを無効化・迂回・緩和しない。
+  停止は当該操作とその結果・信頼前提に依存する操作へ適用する。RUNBOOK「HOLDの適用範囲」に従い、
+  承認済みで独立した原因調査・安全なlocal修正・offline検証準備は継続できる。
   Task Contextで既存gate、Global State、保護capabilityを削除・緩和しない。
 - bootstrap repository identityはOwner受入済みrepo外Trust Anchorだけを信頼し、
   repo / remote / State / Config / Task Contextの自己申告を期待値にしない。
@@ -86,9 +91,10 @@ AGENTSには毎タスク必須の恒久原則、[RUNBOOK](docs/RUNBOOK_CHATGPT_C
   正式状態、確認済み・未解決事項、次の単一作業、停止条件を過去会話なしで再開可能にする。
 - formal mainで成立する再開案内の変更は同一PR内のCURRENT_WORKへ、恒久判断変更はDECISION_LOGへ新IDで追記（既存entryを書き換えない）、
   工程順変更時はPROJECT_ROADMAP、恒久ルール変更時はAGENTS等を更新する。詳細を重複複製しない。
-- CURRENT_WORKまたはDECISION_LOG更新時はRUNBOOK「開始・実行」に従いsnapshotを再生成・検証する。
-  テスト失敗、無関係なdirty変更、snapshot生成失敗、正本矛盾で正本化できない場合は、
-  阻害要因を明示して停止し完了扱いにしない。復旧時はRUNBOOK「Rollback」を適用する。
+- CURRENT_WORKまたはDECISION_LOG更新時はRUNBOOK「開始・実行」の操作別検証を行う。
+  正式受入では現在対象のsnapshotを再生成・検証する。テスト失敗、無関係なdirty変更、
+  必須のsnapshot生成失敗、正本矛盾で正本化できない場合は、当該正本化を完了扱いにせず
+  阻害要因を報告する。独立作業は「HOLDの適用範囲」、復旧は「Rollback」に従う。
 
 ## Post-Merge Stability・正本化連鎖防止
 

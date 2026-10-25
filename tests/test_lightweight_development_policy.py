@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import subprocess
+import os
+import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -94,3 +97,39 @@ def test_historical_and_product_chatgpt_references_remain_allowed():
 
     assert "FORMAL_WORK_UNIT_CLOSED" in decision_log
     assert "ChatGPT" in readme
+
+
+def test_readonly_and_independent_local_work_do_not_require_formal_acceptance(tmp_path):
+    # A synthetic missing-anchor environment, never the operator's real trust store.
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GOVERNANCE_")}
+    env["LOCALAPPDATA"] = str(tmp_path / "empty-appdata")
+    env["APPDATA"] = str(tmp_path / "empty-roaming")
+    env["GOVERNANCE_TRUST_ANCHOR_SOURCE"] = "local-file"
+    output = tmp_path / "snapshot"
+    for command in (
+        ["git", "status", "--short"],
+        ["git", "rev-parse", "--show-toplevel"],
+        ["git", "log", "-1", "--oneline"],
+        [sys.executable, "-m", "governance.engine", "validate", "--repository", str(PROJECT_ROOT)],
+        [sys.executable, "-m", "governance.engine", "generate", "--repository", str(PROJECT_ROOT), "--output-dir", str(output)],
+    ):
+        result = subprocess.run(command, cwd=PROJECT_ROOT, env=env, capture_output=True, timeout=30)
+        assert result.returncode == 0
+    result = subprocess.run(
+        [sys.executable, "-m", "governance.engine", "verify", "--repository", str(PROJECT_ROOT),
+         "--context", str(output / "context.json"), "--profile", "formal-acceptance", "--output-dir", str(output)],
+        cwd=PROJECT_ROOT, env=env, capture_output=True, timeout=30,
+    )
+    assert result.returncode == 10
+    verification = json.loads((output / "verification.json").read_text(encoding="utf-8"))
+    assert verification["decision"] == "HOLD"
+    assert "TRUST_ANCHOR_SELECTED_SOURCE_MISSING" in verification["blockers"]
+    assert not verification["owner_acceptance_ready"]
+    for scenario, expected in (("ReadOnly", 0), ("LocalEdit", 0), ("LocalTest", 0), ("Merge", 3), ("PaidApi", 3)):
+        result = subprocess.run(
+            ["powershell.exe", "-NoProfile", "-File", str(POLICY_SCRIPT), "-Scenario", scenario],
+            cwd=PROJECT_ROOT, env=env, capture_output=True, timeout=30,
+        )
+        assert result.returncode == expected
+    # Local policy results neither modify the formal decision nor confer authority.
+    assert json.loads((output / "verification.json").read_text(encoding="utf-8")) == verification

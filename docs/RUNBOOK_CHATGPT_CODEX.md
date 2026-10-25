@@ -2,7 +2,8 @@
 
 毎タスクのmandatory原則は[AGENTS.md](../AGENTS.md)、本書はその詳細手順とする。
 AGENTSが指定する実行時点で該当節を必ず読み、適用する。参照化で手順・承認・gateを任意化しない。
-DEC-0087に基づく配置とDEC-0088のDecision読込手順を適用し、DEC-0072 / DEC-0073の管理・承認契約を変更しない。
+現行の入口はAGENTSと本書。DEC-0152は開始・停止範囲・参照方法を整理する。
+DEC-0072 / DEC-0073の正式な信頼・承認契約、DEC-0150のfresh Verifyは維持する。
 
 ## 正本
 
@@ -43,16 +44,38 @@ DECISION_LOGは次節「Decision読込」の手順で選択して本文を読み
 branch / HEAD / tree / 差分はGit、タスク固有状態はTask Contextと照合する。
 作業票のmarketplace / module / phase / 作業対象と食い違う場合は、推測で進めない。
 
-開始時に次のValidateとsnapshot生成を実行する。CURRENT_WORKまたはDECISION_LOG更新後も
-snapshotを再生成し、対象作業のprofileで検証する。生成・検証の失敗を完了扱いにしない。
-local-validationの例は次のとおり。必要なEvidenceを「Evidence」に従って渡す。
+### 操作別の開始・検証条件
+
+| 操作 | 開始時と成果確認 | 正式受入との境界 |
+| --- | --- | --- |
+| 通常read-only調査（Git・コード・文書・非秘密の保存ログ） | 上記Git観測、AGENTS・再開案内・対象scope確認後に開始。関連箇所を読む | Validate、snapshot、Task Context新設、実Trust Anchorの読込は開始条件にしない。実API・実商品・secret読込は「read-only」という名称でも含まない |
+| 通常のlocal編集 | 承認された目的・変更対象・禁止範囲、既存ユーザー差分、関連する現行契約を確認。継続タスクは既存Task Contextと照合 | 範囲内編集・修正のために正式VerifyのCONTINUEを要求しない。未承認の境界変更、停止中の実運用、別taskの差分混入は不可 |
+| offline検証・commit・push・Draft PR | 関連tests、変更時のGovernance設定Validate、差分・secret確認。必要な既存CIを実行し、未実行・失敗を区別 | 合成fixture・mockは実受入の証拠にしない。snapshotを通常編集の度に作らない。検証済み候補の公開はDEC-0073の承認範囲内 |
+| 正式受入・merge、および既存契約で正式検証を要求する設置 | repo外Task Context、承認された実Trust Anchor参照、現在対象のValidate→snapshot→fresh Verify。mandatory technical gates、Summary、Owner最終承認、fresh Owner Evidenceを確認 | HOLD / HARD_STOPを保持。実環境の鍵・Anchor操作、設置・live・deployはそれぞれ別承認。merge後のValidate・snapshot・read-only Verifyも維持 |
+
+通常調査は既存Git・`rg`・ファイル読込で行い、新しい認可engineを設けない。
+`Verify-ContextSnapshot.ps1 -Profile read-only`は**正式なsnapshotの検証profile**であり、
+通常の読み取り調査を意味しない。既存の全Verify profileは従来どおりTrust Anchorとfresh bindingを要求する。
+軽量作業の成功・policy checkerのPASSをformal VerifyのCONTINUEへ読み替えない。
+
+Governance設定Validateは実Anchorや秘密鍵を使わず実行できる。
 
 ```powershell
 .\scripts\Invoke-GovernanceV2.ps1 -Mode Validate
+```
+
+正式検証が必要なときだけ、承認された参照元とrepo外Task Contextを用いる。
+以下の例は実Anchorの読込承認がある場合に限る。受入時は`formal-acceptance`と必要Evidenceを指定する。
+
+```powershell
 .\scripts\Update-ContextSnapshot.ps1 -TaskContext <repo外context.json> -TrustAnchorSource local-file
 .\scripts\Verify-ContextSnapshot.ps1 -Profile local-validation -ContextPath outputs\governance\context.json `
   -TaskContext <repo外context.json> -TrustAnchorSource local-file
 ```
+
+CURRENT_WORK・DECISION_LOG更新時は参照先・置換範囲・意味整合と関連docs testを確認する。
+正式受入では文書変更も含め現在対象のsnapshotを生成し直す。合成Anchorを実Anchorの代わりに配置しない。
+offline再現に必要なsnapshotはtestsの一時領域で生成し、正式Evidenceと明確に区別する。
 
 Pythonは`-PythonPath`、`GOVERNANCE_PYTHON`、PATHの順に解決します。PowerShell 5.1と7で同じPython共通実装を呼びます。
 Generatorは観測だけを行い、fetch、checkout、branch、index、Stateを変更しません。Verifierは既存contextを評価し、
@@ -67,24 +90,39 @@ Task Contextを含むcontextをVerifyするときは、同じrepo外ファイル
 
 Exit codeは`0=CONTINUE`、`10=HOLD`、`20=HARD_STOP`、`64=usage`、`70=internal`です。
 
+## HOLDの適用範囲
+
+停止理由、対象操作、依存先、再開条件を既存Task Contextのopen_itemsまたは作業報告へ短く残す。
+新しい承認台帳や停止解除制度を作らない。判断不能な信頼・外部影響・復元不能性は停止側へ倒す。
+
+| 停止の原因 | 停止を維持する操作 | 独立して継続できる承認済み作業 |
+| --- | --- | --- |
+| Anchor／署名鍵不足、Owner未承認、CI・Evidence不足／古いbinding | 正式受入・署名・merge、およびその成立を前提にする設置・live | コード・文書の原因調査、合成fixtureでの修正・tests、差分review、検証済み候補のDraft公開 |
+| tests失敗、Config不正、protected gate失敗 | 失敗対象を検証済みとしてcommit／採用すること、依存する製品操作 | 該当原因の調査・最小修正・失敗testの再実行。gate削除や期待値の無根拠な変更は不可 |
+| repository identity不一致、secret露出疑義、無関係dirty変更 | 当該信頼前提による書込み・公開・署名・実行。ユーザー差分の上書き | 読取診断、秘密を出さない範囲確認。独立した正しい対象を実測できるまでは依存する編集をしない |
+| Safety／予算／商品／実運用の明示停止 | 当該商品・サービス・保存先と依存する操作 | 停止対象へ触れない、承認済みの文書・合成tests等。別task・別profileを名乗って同じ操作を再開しない |
+
+HARD_STOPも解除しない。独立性を確認できない作業は停止対象に含める。
+Ownerが全作業停止を明示した場合はそれを優先する。原因解消後は元のgateを現在対象で再評価し、
+失敗記録や実行済み消費を消さない。正式VerifyがHOLDのままならformal採用完了とは報告しない。
+
 ## Decision読込
 
-通常タスクでDECISION_LOG全文の再読込は必須にしない。次の順で必要な判断根拠を確認する。
-これは読込方法の変更であり、未読DECの制約失効、作業許可、承認・Governance gateの代替を意味しない。
+DEC-0152により、通常の実行手順はAGENTSと本書から特定する。
+Decision Logは判断理由・変更履歴のappend-only正本であり、古い実行記録を毎回現行手順へ再構成しない。
 
-1. AGENTS / 適用下位AGENTS、CURRENT_WORK、PROJECT_ROADMAPから今回のmarketplace / module / phase、対象・禁止範囲を確認する。
-2. `rg "^## DEC-" docs/DECISION_LOG.md` で全Decision見出し一覧を確認する。Required Decisionsにない関連候補も拾う。見出しだけで判断内容・有効性を確定しない。
-3. CURRENT_WORKのRequired Decisionsに列挙された各DECの本文全体（当該見出しから次のDEC見出し直前まで、末尾DECはEOFまで）を読む。途中省略・出力切捨てがあれば分割して読み切る。
-4. 見出し一覧から今回のmarketplace / module / phase、変更対象・禁止範囲に直接関係するDECを追加で読む。選択した本文の根拠・前提・置換元として必要な参照DECも読む。選択IDを本文全体から検索し、そのIDを参照する後続DECも確認する。数字の新しさだけで旧決定全体が失効したと推測せず、置換された範囲を確認する。
-5. 判断根拠が不足、競合・置換関係が不明、shared core / Governance / approval boundaryに影響、またはRequired Decisionsの漏れが疑われる場合は、本文全体を対象に関連語・IDで検索範囲を広げ、ヒットしたDECを全文読む。Required Decisionsの欠落・空欄・存在しないID、見出しだけでは関連性が判断できない場合も同じ扱いとする。Governance・承認に関係する場合はDEC-0072 / DEC-0073と関連する後続DECを必ず確認する。
-6. 検索・参照追跡後も必要な根拠と適用範囲を判断できない場合だけDECISION_LOG全文を読む。それでも矛盾・承認・停止条件を解消できなければ、依存する作業を停止し、不明点を報告する。全文読込自体を許可の根拠にしない。
+1. CURRENT_WORK・PROJECT_ROADMAPで対象／禁止範囲を確認し、Required Decisionsのうち今回のmarketplace／module／phaseと変更する契約に関係する本文を読む。通常調査では無関係な市場・過去受入本文の一律読込を要求しない。
+2. 契約を変更する場合は、その根拠DECと必要な前提・置換元、対象IDを参照する後続DECを検索して本文を確認する。Governance・承認変更ではDEC-0072 / DEC-0073と関連する後続DECを必須とする。番号の新しさだけで旧判断全体を失効させない。
+3. 現行文書と履歴の矛盾、参照不足、対象不明、Required Decisionsの欠落・陳腐化を疑う場合は、`rg "^## DEC-" docs/DECISION_LOG.md`と本文全体の関連語／ID検索へ広げる。ヒットした本文は省略せず読む。解消しなければ全文へfallbackし、それでも不明な承認・停止条件に依存する操作は停止する。
 
-たとえば `rg -n -C 2 'DEC-0087|読込|正本|承認|Governance' docs/DECISION_LOG.md` は候補発見用であり、検索結果の数行だけで本文確認を済ませない。`rg`が使えない場合はPowerShellの`Select-String`等で同じ検索を行う。
-選択ID、追加検索した理由、解消した置換関係または未解決事項を作業報告かrepo外Task Contextへ短く残す。新しい必須台帳は作らない。
+通常の変更なし調査には全見出し読込・全後続履歴追跡を要求しないが、未読を制約なしとは扱わない。
+現行文書から重要な制約が脱落している疑いがあれば、履歴を無視して進めず上記検索で解消する。
+読込済みで内容が変わっていない本文は同じタスクで再読込不要。選択理由・解消した置換関係は既存の作業報告へ短く残せばよい。
 
-Required Decisionsは現在の単一作業に必要なIDと短い参照理由だけの再開案内とし、本文の複製、全履歴index、承認状態の正本にしない。
-現在の単一作業・scope・phaseの変更時と終了・handoff時に見出し一覧と照合して更新する。欠落を発見した場合は根拠DECを確認して補正する。
-新しい手動巨大indexは作らない。派生indexが必要になった場合も見出しから再生成可能な非正本に限り、DECISION_LOG本文との照合を省略しない。
+Required Decisionsは次の単一作業に必要なIDと参照理由だけに保つ。
+過去工程の全IDや本文を積み増さず、不要になった参照は再開案内から外せる。Decision本文と受入履歴は削除しない。
+恒久契約の変更時はAGENTS／Runbookの該当手順と新Decisionを同一PRで整合させ、
+新Decisionに置換する旧規則の範囲と維持する境界を明記する。巨大索引・新しい管理基盤は作らない。
 
 ## Evidence
 
@@ -95,6 +133,12 @@ Required Decisionsは現在の単一作業に必要なIDと短い参照理由だ
 - legacy migrationは`LEGACY_ACCEPTANCE`とし、実行していないVer2 TESTを捏造しません。
 - overrideとOwner Acceptanceはexact target bindingが変われば失効します。
 
+現行実装の限定offline再現では、snapshot生成時刻だけの更新と同一bindingのOwner receipt再取得は
+Summaryの変更を要求しない。一方、同じHEAD・scopeでもCI再実行のrun attemptに伴うEvidence ID変更や
+Provider観測情報の変更はverification input hashを変え、旧Summaryを無効にする。
+単なるEvidence実行時刻変更と識別情報変更は同一ではない。再取得・再実行前後のbindingをCodexが照合し、
+変更があれば現行の再提示・再承認を維持する。今回、技術再検証とOwner承認を分離する新方式は導入しない。
+
 ## Formal acceptance
 
 Governance mandatory checksはbranch protectionと独立して評価します。provider欠落、check欠落、pending、
@@ -102,6 +146,31 @@ skipped、neutral、古いheadはformal acceptanceを満たしません。mandat
 
 Owner Acceptance Summaryは、採用対象、変更、非対象、既存運用影響、主要リスク、確認済みEvidence、既知制約、
 承認後の意味、rollbackの9項目を事業用語で説明します。オーナーへhash、SHA、schema等の技術判断を要求しません。
+
+### 通常のOwner Acceptanceの入口
+
+通常は本節から実施する。PR #96 bootstrapや過去PRの復旧記録は履歴であり、通常受入の手順ではない。
+現在の鍵の所在・実環境の使用許可はOwner管理元の現在の指定を使い、過去のpathや成功記録から推定しない。
+
+1. **権限と環境を確定**：現在の対象PR・scope、実Anchorの読込許可、既存鍵の限定利用許可を既存Task Context／Owner指示で照合する。採用承認だけから秘密鍵利用を推定しない。使用するPythonのversion・依存と、formal main採用済みのGovernance一式・実import元を確認する。WindowsではUTF-8で起動し、既存の保護鍵を扱える許可済みユーザー／実行環境を用いる。環境の再構築・権限変更を自動実行しない。
+2. **現在のAnchorを確認**：許可された操作で「Trust Anchor」節の`local-file`（CI内だけ`ci-env-json`）を明示し、Owner管理元から指定された正本を解決する。欠落・二重指定・不一致時は停止する。履歴のbootstrap起点は現在HEADへ書き換えない。repo内の公開鍵・自己申告identityで代替しない。
+3. **技術条件と説明を固定**：現在Task Context・Validate・snapshot・fresh VerifyとCI Evidenceを照合し、mandatory technical gatesとPost-Merge Stability確認後に9項目Summaryを提示する。Ownerの現在対象への明示的最終承認を待つ。鍵利用許可が未成立なら、必要な権限もこの時点で具体的に説明する。
+4. **承認の搬送と署名**：下記方式Bを用いる。Owner指定の既存保護鍵だけを許可済みprocess内で一時解決する。DPAPI保護seedの場合はCurrentUserでメモリ内だけに復号し、Provider専用子processの`GOVERNANCE_OWNER_EVIDENCE_PRIVATE_KEY`へ渡す。親shellの恒久設定、コマンド引数、ログ、ファイルへ平文を置かない。Providerは入口で環境変数を除去し、派生公開鍵と現在Anchorの公開鍵を**GitHub取得・署名前**に照合する。不一致・鍵未設定はHOLD。子process終了とfinallyで一時環境を破棄する。子孫ghへ秘密鍵を渡さない。メモリの完全消去保証とは称さない。
+5. **採用直前と終了**：同じ現在対象のOwnerコメントをProviderで再観測し、5分以内の署名Evidenceとformal Verify CONTINUEを連続して確認する。mergeには別途その対象の最終承認が必要。merge後は「Post-Merge Stability」の検証とTask Context CLOSEDを行う。失敗時は当該操作を止め、鍵の新規生成・探索・交換・Anchor変更へ自動移行しない。
+
+現在の保護鍵参照を特定できない場合はOwner管理元へ参照情報を確認する。秘密本文の貼付けを求めず、
+ディスク全体・過去backupを総当たりしない。参照が一度固定できれば既存Task Contextに非秘密の参照だけを保持できる。
+実鍵／Anchorの確認を行っていないoffline作業では「現在有効な鍵を確認済み」と報告しない。
+
+#### 未採択の提案：最終採用承認に既存鍵の限定利用を含める
+
+別の明示決裁までは上記の個別許可を維持する。提案は、Ownerへ提示するPR・現在Summary・scopeに限り、
+既存の指定済み保護鍵とAnchorの読込、メモリ内復号、公開鍵一致確認、Provider署名、5分receiptの再取得を
+最終採用承認の説明へ含めるもの。対象変更・撤回・不一致・終了でその利用を止める。
+新鍵生成・交換・永続環境設定・秘密のexport・Anchor変更・GitHub設定・deploy・商品APIを含めない。
+効果は承認後の鍵利用確認の往復削減。リスクは同一agentが承認搬送と署名を行う既存trust modelの下で
+秘密を扱う権限まで一度に委任する点であり、GitHub actorは独立した人間操作証明ではない。
+本提案を含む文書PRの採用承認だけでは、この権限変更の承認とみなさない。
 
 ### PR authorとOwnerが同一の場合のGitHub Owner証跡
 
@@ -184,7 +253,7 @@ Provider再観測とVerifyからmergeまでを連続して行う。GitHub API・
 scope変更もHOLDとして再承認または復旧を待つ。承認コメントはGitHubでの後続`OWNER_ACCEPTANCE: REVOKED`投稿で
 撤回できる。撤回後の再承認は新しい明示判断と新コメントを要する。
 
-### v1.0 → v1.1 Trust Anchorの一回限りのbootstrap（PR #96）
+### 歴史資料：v1.0 → v1.1 Trust Anchorの一回限りのbootstrap（PR #96）
 
 この節はPR #96のGovernance移行だけに適用する。通常のOwner Acceptance、technical gates、
 formal Verify、merge直前のOwner最終承認を免除しない。PR headまたはSummary bindingが変われば、
@@ -232,6 +301,9 @@ Ownerは作りたいもの、理由、利用方法、満足条件、避けたい
 CodexはGit・正本の実測、曖昧な要望の具体化、技術設計、local編集、tests、平易な完了報告を担い、
 Ownerへ技術方式、branch、テスト方式の選択を求めない。
 GPTは必須の伝言役または承認者ではない。技術的整合性はVerifier、tests、CI、Codexが検証する。
+同一差分・環境の成功testを理由なく繰り返さず、失敗・変更・未解決事項に応じて再実行する。
+結果は対象・環境・実行方法・成否を特定できる最小限で報告し、全ログを複製しない。
+mandatory checksの削減、古いEvidenceの新headへの転用、未実行のPASS扱いはしない。
 
 WORK_BRIEFを使う条件は、目的が曖昧、複数module、責務変更、外部API、費用、データ移行、
 復元不能操作等を伴い、短い依頼だけでは安全な実装範囲を固定できない場合とする。
@@ -257,18 +329,18 @@ pushまたはPRだけを理由に必須化しない。project名、chat名、wor
 1. 採用するコード・設定・テストを確定する。
 2. 対象testと必要な回帰testの結果を確認する。mock、実API、実データ、Owner受入を分ける。
 3. `git status`とdiffで、無関係な変更、未追跡ファイル、secret混入がないか確認する。
-4. formal mainで成立する再開案内が変わる場合は、merge後にも正しいCURRENT_WORKを同一PRへ含める。Required Decisionsも「Decision読込」に従い見出し一覧と照合する。
+4. formal mainで成立する再開案内が変わる場合は、merge後にも正しいCURRENT_WORKを同一PRへ含める。Required Decisionsも「Decision読込」に従い次工程への関連性を確認する。
 5. 恒久判断が変わった場合だけDECISION_LOGへ新IDで追記し、既存entryを書き換えない。
 6. 長期工程・順序が変わる場合だけPROJECT_ROADMAPを更新する。
 7. 恒久ルールが変わる場合だけAGENTS等を更新する。詳細を複数文書に複製しない。
-8. 正本文書更新時は必要なsnapshotを再生成する。CURRENT_WORKまたはDECISION_LOG更新時は必須。
-   「開始・実行」に従い検証し、生成失敗・未解決の検証失敗を完了扱いにしない。
+8. 正本文書更新時は「開始・実行」の操作別検証を行う。正式受入ではsnapshotを再生成する。
+   必須生成・検証の失敗を完了扱いにしない。通常編集にはsnapshotを一律要求しない。
 9. 関連検証、変更ファイル、未追跡ファイル、secret確認後、検証済み範囲だけlocal commitする。
    push / Draft PRは通常開発承認のscope内、merge / deployは別の承認規則に従う。
 
 次のタスクが過去会話を読まずに正式状態、確認済み事項、未解決事項、次の単一作業と停止条件を
 判断できることを完了条件とする。テスト失敗、無関係なdirty変更、snapshot生成失敗、正本矛盾で
-正本化できない場合は阻害要因を示して停止する。handoff自体は正本の代替にしない。
+正本化できない場合は阻害要因を示して当該正本化を停止する。独立作業は「HOLDの適用範囲」に従う。handoff自体は正本の代替にしない。
 handoffには完了内容、確認済みtests、未解決事項、次タスクの目的、最初に読む正本fileまたはcommitを記載する。
 
 ## Post-Merge Stability

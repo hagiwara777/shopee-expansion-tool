@@ -249,75 +249,13 @@ SG Brand responseにmarketplace / Category echoがないため、server内部の
 
 ## Required Decisions
 
-- DEC-0151 — 新規P5の安定した起動profileと毎processのfresh観測、旧形式互換と台帳・UNKNOWN保全。
+現行のGovernance手順はAGENTSとRUNBOOKを入口とする（DEC-0152）。
+以下は次のP5実務受入準備に必要な参照。今回の対象に関係する本文を読む。
+過去工程の判断理由は上記本文と対象module文書の参照から辿り、全履歴を開始条件にしない。
 
-- DEC-0150 — Trust Anchorの明示解決、現在bindingを確認するfresh Verify、Owner Acceptanceのfresh限定。
-
-- DEC-0149 — P5原承認再照合・Windows観測・Keepa service分離・明示start・checkpointのoffline組成と実設置／live境界。
-
-- DEC-0148 — P5操作別の一次資料・料金・認証・有限枠、Attribute production禁止と手動属性確認の境界。
-
-- DEC-0147 — P5 production参照接続のoffline差分、Attribute非必須方針とlive停止・原承認不足の維持。
-
-- DEC-0146 — P5 trusted adapter・固定対象の商品資料世代更新・D新規保存、実装/設置/liveの別承認。
-
-- DEC-0145 — P5探索前の有限条件と探索後の明示対象固定、Resolver同一性、同じledgerでの再開と資料変更停止。
-
-- DEC-0144 — P5専用接続・有限予約・公式Category取得境界・P1/P2出力・HUMAN初回とlive別承認。
-
-- DEC-0143 — F1/F2共通取得後判定・旧cacheの未確認・明示補完予算・15列／Safety結合・F08のoffline／live分離。
-
-- DEC-0142 — P4共通画面・offline出力・5状態と予約復旧、取得世代・既存経路の保護。
-
-- DEC-0141 — P3共通分類操作・通常根拠搬送・部分集合保存、限定AUTO_RULEの個別承認照合とP4境界。
-
-- DEC-0140 — P2共通保存・市場／shop／schema分離、現在準備と投入進行の分離、永続予約とP3引継ぎ。
-
-- DEC-0139 — P1共通検証、session失効、公式完全取得と通常根拠未搬送時停止、P2／P3引継ぎ。
-
-- DEC-0138 — F1/F2のBeta前MUST、P1〜P4優先とP5前の完成、P1の境界。
-
-- DEC-0137 — PH・SG共通の実務Beta完成条件、差分監査・最小順序、少量受入、価格／評価候補の採否境界。
-- DEC-0136 — Home Appliances候補分類CLIの独立入力・出力、Fact出所、既知回帰と未知精度、後続接続の分離。
-
-- DEC-0135 — SG初期Betaのoffline限定AUTO_RULE・Fact出所・長期保存・5状態、既存実務受入と実運用承認の分離。
-
-- DEC-0134 — SG通常継続利用の有限承認、商品群受付・失効、既存保護、新旧方式と実務受入・rollback。
-
-- DEC-0133 — Shared Battery v0.2の限定5表現、既存11語維持、汎用語非追加、REVIEWとSLSの責務分離。
-- DEC-0132 — Expansion→Gateのsession内一式引継ぎ、既存検証共用、確認保持と失効、手動経路の維持。
-- DEC-0131 — Shadow V3の任意の読取専用比較、商品Fact結合、不一致時の比較不能と既存Safety保護。
-- DEC-0130 — SG本体確認記録のCandidate結合、既存Gate EXCLUDEと準備出力への最小接続。
-- DEC-0129 — SGレンズの公式根拠による本体除外、一般台所用包丁の内部暫定除外、本体不明REVIEWと実装の受入境界。
-- DEC-0044 / DEC-0052 — 確定禁止と具体的確認が可能なREVIEW、資料identityと現行性・Rule採用の分離。
-
-- DEC-0128 — 1つのアプリ内でPH / SGを切り替え、既存の国別保存先・認証・API枠を維持。
-
-- DEC-0127 — 採用済み固定コード・SG専用起動先・永続データとAPI枠で少量ベータを利用。
-
-- DEC-0126 — SGベータ入口・手動出品準備出力の採用候補と正式採用前の閉鎖。
-
-- DEC-0125 — 全商品の説明・画像の人間確認を削除し、画像用途を武器疑義へ限定。
-
-- DEC-0124 — 明示承認枠と永続消費記録付きの隔離SG実接続画面・準備確認。
-
-- DEC-0123 — 共通画像対象selectorと国別設定、PH / SG初期条件とMY / TH設計準備。
-
-- DEC-0122 — Category指定・累積ページ上限付きの隔離Brand取得枠。
-- DEC-0121 — SG APIのNo Brand表記差への対応とstrict検証・人間確認の維持。
-- DEC-0120 — 専用末端全件比較・関連分類探索後の適切なOthers候補と隔離V2。
-- DEC-0118 — 最大3商品・OpenAI上限1米ドルの隔離実接続と既存認証Source再利用。
-- DEC-0119 — PH同期を維持する別SG Bridgeと、Google側反映の承認境界。
-- DEC-0116 — 固定PH Beta基準のSG機能統一、共通module＋国別情報、後続MY / TH展開。
-- DEC-0117 — SG隔離開発版の一連操作と、開発用画像対象・live採用の分離。
-- DEC-0115 — PH / SGの共通操作入口と、SG未提供機能・起動環境調査の境界。
-- DEC-0114 — 正本化連鎖防止、同一PRのmerge後安定性、Decision必要条件と終了責務。
-- DEC-0111 / DEC-0112 / DEC-0113 — Step 8完成線・正式採用・CLOSED、Step 9別承認境界。
-- DEC-0072 / DEC-0073 / DEC-0087 / DEC-0088 — Governance・formal承認・必須手順配置・Decision読込。
-- DEC-0091 / DEC-0092 / DEC-0106 / DEC-0107 — Owner Evidence、freshness、限定移行と方式B。
-- DEC-0071 / DEC-0075 / DEC-0076 / DEC-0077 — SG Safety・Shared Battery・SLS資産とPH runtime保護。
-- DEC-0079 / DEC-0080 / DEC-0081 — SG商品単位Category確認、current再validation、live OpenAI閉鎖。
-- DEC-0082 / DEC-0084 / DEC-0085 / DEC-0086 / DEC-0089 / DEC-0090 — 共通認証・Catalog責務と既知制約。
-- DEC-0093 / DEC-0096 / DEC-0098 / DEC-0099 / DEC-0100 / DEC-0101 / DEC-0102 / DEC-0103 —
-  source・import・実商品Category受入と過去STOPの置換範囲。
-- DEC-0104 / DEC-0105 / DEC-0108 / DEC-0109 — Brand・SLS offline成果とlive・production別承認境界。
+- DEC-0137 / DEC-0138 — 共通実務Beta完成線、C01〜C12とF1/F2、P5実商品受入の位置。
+- DEC-0144 / DEC-0145 — P5専用接続、探索・対象固定、有限枠、HUMANと限定AUTO_RULEの境界。
+- DEC-0146 / DEC-0147 — trusted接続、D保存設計、実参照・実設置・liveの別承認。
+- DEC-0148 / DEC-0149 — 操作別一次仕様、Attribute禁止、原承認・OS観測・service別参照とcheckpoint。
+- DEC-0150 / DEC-0151 — 正式Anchor・fresh Verify、P5永続scopeと起動ごとの実観測。
+- DEC-0152 — 通常調査・offline開発と正式受入の分離、停止範囲、現行手順の入口。
