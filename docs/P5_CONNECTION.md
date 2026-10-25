@@ -128,6 +128,9 @@ Windows callbackの合成検証は実ACL／volume／probe／listenerの実証で
 
 ### 新規P5設置と再起動の結合（DEC-0151）
 
+- 新規設置templateの`store_id`は`None`で未結合を明示する。`P5Setup.install()`は
+  他のscope項目を完全検証し、仮ID・既存store IDは作成前に拒否する。排他作成後の実store IDで
+  通常のscope検証を行ってからcache／claim／ledgerを作る。未結合templateはruntime／ledgerへ渡せない。
 - 新規scopeだけが`p5-profile-v1:`付きexecution targetを明示選択する。
   trusted installerは`p5_windows.plan_execution_target()`へ実operator SID、固定interpreter、
   固定releaseの`app_beta.py`絶対path、承認portを渡す。Host観測はmachine identityと現在SIDの

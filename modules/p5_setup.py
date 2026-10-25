@@ -89,7 +89,7 @@ class P5Setup:
             self.check(directory, required_bytes=required_bytes)
 
     def install(self, template, *, required_bytes):
-        template.validate()
+        template.validate_new_install()
         if not template.preparation_limit:
             raise P5Stopped('P5_TWO_STAGE_SCOPE_REQUIRED')
         directory = template.directory
@@ -102,6 +102,7 @@ class P5Setup:
         store = BetaWorkStore.create(directory / 'work.sqlite3',
                                      marketplace=template.marketplace, shop_id=template.shop_id)
         scope = replace(template, store_id=store.store_id)
+        scope.validate()
         KeepaCache(directory / 'keepa.sqlite3')
         initialize_p5_ledger(scope, material_updates=True)
         for name in ('inputs', 'evidence', 'exports', 'backups'):

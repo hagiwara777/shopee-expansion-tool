@@ -132,10 +132,21 @@ def synthetic_setup():
 def test_t06_new_only_setup_checkpoint_and_disconnected_recovery(tmp_path, market):
     from modules.p5_setup import checkpoint, restore_isolated
     template = replace(scope_for(tmp_path / 'template', market), root=str(tmp_path / 'new'),
-        preparation_limit=2, store_id='UNOBSERVED')
+        preparation_limit=2, store_id=None)
     setup = synthetic_setup()
+    with pytest.raises(P5Stopped, match='SCOPE_BINDING_INVALID'):
+        template.validate()
+    with pytest.raises(P5Stopped, match='SCOPE_BINDING_INVALID'):
+        initialize_p5_ledger(template)
+    for predeclared in ('UNOBSERVED', scope_for(tmp_path / 'other', market).store_id):
+        with pytest.raises(P5Stopped, match='NEW_STORE_ID_MUST_BE_UNBOUND'):
+            setup.install(replace(template, store_id=predeclared), required_bytes=1000)
+    with pytest.raises(P5Stopped, match='SCOPE_BINDING_INVALID'):
+        setup.install(replace(template, category_ids=()), required_bytes=1000)
+    assert not template.directory.exists()
     scope = setup.install(template, required_bytes=1000)
-    assert scope.store_id != 'UNOBSERVED'
+    scope.validate()
+    assert scope.store_id == BetaWorkStore(scope.db_path, marketplace=market, shop_id='22').store_id
     assert scope.digest != template.digest
     before = {p: p.read_bytes() for p in scope.directory.iterdir() if p.is_file()}
     with pytest.raises(FileExistsError):
@@ -178,7 +189,8 @@ def test_t06_unknown_alias_acl_and_capacity_rejected_before_creation(tmp_path, f
 
 @pytest.mark.parametrize('market', ['PH', 'SG'])
 def test_t06_partial_install_retained_and_never_reinitialized(tmp_path, market):
-    template = replace(scope_for(tmp_path / 'template', market), root=str(tmp_path / 'partial'), preparation_limit=2)
+    template = replace(scope_for(tmp_path / 'template', market), root=str(tmp_path / 'partial'),
+        preparation_limit=2, store_id=None)
     setup = synthetic_setup()
     setup.probe = lambda p: {'create':True}
     with pytest.raises(ValueError, match='PROBE_FAILED'):
