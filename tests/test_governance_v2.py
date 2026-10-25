@@ -1178,3 +1178,90 @@ def test_sls_category_assets_are_shared_core(path):
     classified = engine.classify_changes([change("A", new=path)], bundle.ownership)
     assert classified["classification"] == "SHARED_CORE"
     assert "safety.shared" in classified["components"]
+
+
+def test_gv2_offline_validate_never_resolves_trust_anchor(monkeypatch, capsys) -> None:
+    def forbidden():
+        pytest.fail("offline config validation must not resolve a real Trust Anchor")
+
+    monkeypatch.setattr(engine, "_load_anchor_with_provenance", forbidden)
+    assert engine.main(["validate", "--repository", str(ROOT)]) == engine.EXIT_CONTINUE
+    assert "PASS: governance v2 config" in capsys.readouterr().out
+
+
+def test_gv2_reverification_with_only_new_snapshot_time_keeps_owner_binding(trusted, tmp_path) -> None:
+    provider = {"repository_id": "1296080967"}
+    context = formal_context(tmp_path, provider)
+    evidence = formal_evidence(engine.load_bundle(ROOT), context)
+    task_path = tmp_path / "task-context.json"
+    first = engine.verify_context(
+        ROOT, context, profile_id="formal-acceptance", provider=provider,
+        evidence=evidence, task_context_path=task_path,
+    )
+    later_context = engine.generate_context(
+        ROOT, provider=provider, task_context_path=task_path,
+        clock=datetime(2040, 1, 1, tzinfo=UTC),
+    )
+    later = engine.verify_context(
+        ROOT, later_context, profile_id="formal-acceptance", provider=provider,
+        evidence=evidence, task_context_path=task_path,
+    )
+    assert first["owner_acceptance_ready"] and later["owner_acceptance_ready"]
+    assert first["verification_input_hash"] == later["verification_input_hash"]
+    sections = _owner_comment_case()[4]["sections"]
+    assert engine.build_owner_acceptance_summary(first, sections) == engine.build_owner_acceptance_summary(later, sections)
+    assert first["decision"] == later["decision"] == "HOLD"
+    assert first["blockers"] == later["blockers"] == ["OWNER_ACCEPTANCE_REQUIRED"]
+
+
+@pytest.mark.parametrize("refresh", ["ci_execution_time", "ci_rerun", "provider_observation"])
+def test_gv2_technical_refresh_owner_binding_characterization(trusted, tmp_path, monkeypatch, refresh) -> None:
+    # Characterization only: retain the current exact-binding contract, including
+    # its cost when a successful CI record or provider observation is refreshed.
+    provider = {"repository_id": "1296080967"}
+    context = formal_context(tmp_path, provider)
+    evidence = formal_evidence(engine.load_bundle(ROOT), context)
+    ci_environment(monkeypatch, "governance.validate")
+    evidence[0] = engine.generate_ci_evidence(ROOT, "governance.validate")[1]
+    kwargs = dict(profile_id="formal-acceptance", task_context_path=tmp_path / "task-context.json")
+    before = engine.verify_context(ROOT, context, evidence=evidence, provider=provider, **kwargs)
+    sections = _owner_comment_case()[4]["sections"]
+    approved_summary = engine.build_owner_acceptance_summary(before, sections)
+    if refresh == "ci_execution_time":
+        evidence[0]["executed_at"] = "2026-10-25T00:00:00Z"
+    elif refresh == "ci_rerun":
+        monkeypatch.setenv("GITHUB_RUN_ATTEMPT", "2")
+        evidence[0] = engine.generate_ci_evidence(ROOT, "governance.validate")[1]
+    else:
+        provider["observed_at"] = "2026-10-25T00:00:00Z"
+    after = engine.verify_context(ROOT, context, evidence=evidence, provider=provider, **kwargs)
+    assert before["owner_acceptance_ready"] and after["owner_acceptance_ready"]
+    assert all(r["observation"] == "PASS" for r in after["requirements"])
+    if refresh == "ci_execution_time":
+        assert before["verification_input_hash"] == after["verification_input_hash"]
+        assert engine._expected_owner_summary_binding(approved_summary, after["verification_input_hash"]) == approved_summary["summary_binding"]
+    else:
+        assert before["verification_input_hash"] != after["verification_input_hash"]
+        assert engine._expected_owner_summary_binding(approved_summary, after["verification_input_hash"]) is None
+    assert after["decision"] == "HOLD"
+
+
+def test_gv2_owner_receipt_refresh_reuses_same_approval_only_for_same_binding() -> None:
+    key, anchor, context, verification, summary, repository, pull, comments, now = _owner_comment_case()
+    first = owner_comment_provider.build_evidence(
+        context, verification, summary, anchor, repository, pull, comments, key, observed_at=now,
+    )
+    later = now + timedelta(minutes=6)
+    binding_args = (verification["verification_input_hash"], anchor, summary["summary_binding"], "d" * 40, 95, later)
+    assert engine._owner_evidence_matches([first], *binding_args)[0] is False
+    refreshed = owner_comment_provider.build_evidence(
+        context, verification, summary, anchor, repository, pull, comments, key, observed_at=later,
+    )
+    assert refreshed["source"]["receipt"]["comment_id"] == first["source"]["receipt"]["comment_id"]
+    assert engine._owner_evidence_matches([refreshed], *binding_args)[0] is True
+    changed = copy.deepcopy(verification)
+    changed["verification_input_hash"] = "c" * 64
+    with pytest.raises(engine.GovernanceError, match="Summary"):
+        owner_comment_provider.build_evidence(
+            context, changed, summary, anchor, repository, pull, comments, key, observed_at=later,
+        )

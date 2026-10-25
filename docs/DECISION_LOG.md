@@ -1826,3 +1826,16 @@
 - 互換・保護: P5Scopeのschema・digest方式、prefixのない旧process target契約、既存scope／claim／ledgerを変更しない。同じ新規scopeでstore ID・累積予約／消費・UNKNOWN・候補／選択・資料世代・P2履歴・投入進行を維持し、旧台帳のmigration・編集・再初期化・新scopeでの枠復活を行わない。PRIMARY_SOURCE_UNVERIFIED、現在API権限・料金・有限枠、Safety／Battery／SLS、P1〜P4／F1/F2、PH／SG保護を維持する。
 - 検証: 合成storeとtyped authority、実際に別々に起動するPython processを使い、同一永続scopeと消費・履歴の維持、旧観測拒否、UNKNOWN停止、machine／SID／code path／port／listener不一致、旧方式互換をoffline検証する。Hostのread-only観測と合成OS観測を実App起動・実設置・live成功へ昇格しない。
 - 後続／rollback: 候補のformal採用後に、採用済みreleaseとexact installer・実対象の設置票を固定し、Ownerの別承認でrelease反映・設置を行う。実API条件の未確認と問い合わせ保留は維持する。候補は通常revertできるが、新profileで作られたstoreを旧コードで再開・再初期化せず保全して停止する。既存データ・旧process scope・予算・履歴・署名鍵・Trust Anchorは変更しない。
+
+## DEC-0152 — 通常調査・offline開発と正式受入の手順を分離する
+
+- 日付: 2026-10-25
+- authority／目的: OwnerはGovernance合理化①〜④の調査・設計・実装・offline tests・commit／push／Draft PR／CIを承認した。既存dirty変更を保持して指定formal mainから独立して作業し、未承認差分を取り込まない。候補規則はformal採用前のgate迂回根拠にしない。
+- 開始条件: 通常read-only調査はGit・AGENTS・再開案内・対象scope確認から開始し、Validate／snapshot／実Anchorに依存しない。通常編集は承認scopeとユーザー差分・現行契約を確認し、offline検証は関連testsと必要な設定Validateを行う。正式なsnapshotのread-only Verifyと通常調査を区別し、既存Verifyの全profileは変更しない。正式受入・既存契約で要求する設置・merge後確認のValidate／snapshot／fresh Verifyは維持する。
+- 停止範囲: HOLD／HARD_STOPは当該操作とその結果・信頼前提に依存する操作を止める。独立性を確認した承認済み原因調査・安全な修正・合成検証・準備まで一律停止しない。不明な信頼・外部影響・復元不能性、Owner明示の全停止は停止側に保つ。失敗をPASSへ変換せず、別task／profileによる同じ保護操作の再開を許可しない。
+- 現行手順と履歴: AGENTS／Runbookを手順の入口、Decision Logをappend-onlyの判断理由・変更履歴とする。通常作業は対象に関係するRequired Decisions・契約本文を選び、契約変更時に根拠・前提・後続置換を追跡する。疑義・矛盾・参照不足時だけ全見出し・本文検索・必要なら全文へ広げる。再開案内は次工程に必要な参照へ絞り、過去Decision本文・重要制約を削除しない。
+- 置換範囲: DEC-0087／DEC-0088の一律開始検証と全見出し・Required Decisions全本文の毎タスク読込運用を上記へ置換する。DEC-0114の通常編集時のsnapshot一律再生成だけを操作別にし、formal受入とpost-merge検証・正本化連鎖防止を維持する。DEC-0072／DEC-0073のgate・最終承認、DEC-0091／DEC-0106／DEC-0107の署名・搬送、DEC-0150の正式Anchor・fresh bindingは変更しない。過去の個別実行条件を未承認操作の恒久許可にしない。
+- Owner Acceptance: Runbookに現在環境・Owner指定の保護鍵参照・Anchor・公開鍵一致・限定process利用・fresh Provider／Verifyの通常手順を置く。PR #96 bootstrapは歴史資料として区別する。採用承認に既存鍵利用を含める案は権限境界・リスクを記した未採択提案に限り、その権限変更自体の別明示決裁まで個別許可を維持する。
+- 再検証と再承認: 現行bindingの限定offline再現で、同一入力の再検証・Owner receipt更新と、CI Evidence／対象の変更を区別する。binding計算・再承認条件を今回変更しない。Codexは理由のない重複test・全ログ再報告を避けるがmandatory checksを減らさない。
+- 保護・非対象: Owner事業判断・最終決裁、secret保護、無承認実API／費用／実商品／外部書込み／復元困難操作の禁止、PH／SG Safetyとprotected capability、正式VerifyのHOLD／HARD_STOPを維持する。製品機能、P5実装、State／gate／schema／検証engine、CI、実鍵／Anchor、実運用データを変更しない。新管理基盤・承認制度・定期監査を作らない。
+- 後続／rollback: 次の独立工程は既定のP5実務受入準備のまま。合理化の採用をP5設置・live許可にしない。文書とoffline回帰の通常revert／新Decision追記で戻し、既存差分・履歴・Evidence・鍵・Anchorを削除・上書きしない。
