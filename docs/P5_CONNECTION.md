@@ -167,7 +167,8 @@ Windows callbackの合成検証は実ACL／volume／probe／listenerの実証で
 未使用サービスのrequests／商品数／tokens／USD枠は0、対応操作はallowlist外とする。
 Category限定でもBridge/authを0にして通すことはできない。余り枠は未承認操作を許可しない。
 OpenAI未使用時は価格検証を要求せず、Keepa/OpenAIだけの操作はShopee/Googleのcredential本文を読まない。
-productionのKeepa/OpenAI key参照は未結合のまま、必要時は停止し、Shopee resolverへfallbackしない。
+Keepaは上記の明示service参照を実装済みだが、今回の実参照recordと利用承認は別に結合する。
+OpenAI keyのproduction参照は未接続で、必要時は停止し、Shopee resolverへfallbackしない。
 取得限定scopeでは起動・catalog更新時にP2再評価を書き込まず履歴を読むだけとし、保存・pool・出力の権限を迂回しない。
 旧直接注入permitの3資料契約は互換維持するが、production Attribute送信は禁止する。
 

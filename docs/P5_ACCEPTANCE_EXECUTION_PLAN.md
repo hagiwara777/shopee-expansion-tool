@@ -72,6 +72,11 @@ Chrome用操作ファイルは`Documents/ShopeeE2E`配下のみ。取得出力�
 Product statsと有料Finder Search Insightsを区別し、Finder stats、offers、buybox、stock、強制updateを使わない。
 ratingは既存値を返すもので強制鮮度更新ではない。現在画面との差は時刻差を含め記録する。
 
+2026-10-25の公開一次資料確認では、[Making Requests](https://keepa.com/api-docs/request-basics.html)の
+共通応答仕様で`tokensConsumed`が当該requestの消費量、`tokensLeft`が残高であることを確認した。
+ただし個別`/token`操作の現在仕様・無課金性・request/response全体は未確認であり、
+この共通仕様だけで`keepa.token`のprimary sourceをverifiedにしない。実APIや契約残高は照会していない。
+
 | 呼出し目的（各市場） | 許容量 | 商品基本token | F1追加 | F2追加上限 | 合計上限 |
 |---|---:|---:|---:|---:|---:|
 | A seed基本取得 | 1 ASIN・1回 | 1 | 0 | 0 | 1 |
@@ -151,7 +156,7 @@ Brandが少ページで終了した余裕を対象Category拡大へ使わない�
 
 公開公式reference（[Category](https://open.shopee.com/documents/v2/v2.product.get_category?module=89&type=1)、
 [Brand](https://open.shopee.com/documents/v2/v2.product.get_brand_list?module=89&type=1)、
-[Attribute](https://open.shopee.com/documents/v2/v2.product.get_attribute_tree?module=89&type=1)）の本文は公開取得で確認できなかった。
+[Attribute](https://open.shopee.com/documents/v2/v2.product.get_attribute_tree?module=89&type=1)）の本文は公開取得で確認できなかった（2026-10-25の再確認も両操作ともHTTP 403）。
 現在の仕様・paging・shop権限・rate limitは、Ownerが閲覧可能な公式資料で実行前に確認する。
 DEC-0148により[P5操作別preflight](P5_CONNECTION.md)を適用する。未使用Attribute仕様は要求せずproduction操作は禁止する。
 未使用OpenAIはallowlist外・requests/USD=0とし料金検証を要求しない。必要な画像検査は別に維持し、
@@ -191,15 +196,15 @@ P5のscope表示引数はP5_CONNECTIONに記載する。live許可loaderは提�
 
 | 最小差分候補 | 現行根拠・不足 | 保護・受入条件 |
 |---|---|---|
-| 明示P5接続adapter | trusted operatorの原承認・現在観測・参照解決を注入するoffline組成境界を提供。production loaderは未提供。P4は模擬専用 | 承認実施票と実コード/市場/shop/run/保存/予算を照合し注入。UIフラグ反転や設定だけの許可は禁止 |
-| 現在の公式資料搬送 | strict receiptとtrusted経路の各Shopee物理page前Bridge再取得をoffline接続。一次仕様・liveは未確認 | 現行一次仕様確認とdefault transport、有限Bridge/auth予約を接続。fake/保存JSONを公式扱いしない |
+| 明示P5接続adapter | typed authority・operator・同process initializerをoffline実装済み。実原承認sourceと起動担当の実登録は未結合。P4は模擬専用 | 承認実施票と実コード/市場/shop/run/保存/予算を照合し注入。UIフラグ反転や設定だけの許可は禁止 |
+| 現在の公式資料搬送 | strict receipt、default transport、各Shopee物理page前Bridge再取得と有限Bridge/auth予約をoffline接続済み。一次仕様・liveは未確認 | 現行一次仕様と実参照を照合してから使用。fake/保存JSONを公式扱いしない |
 | 両市場のAPI予約と実消費 | P5Ledger/P5KeepaBudgetのtoken予約・actual/UNKNOWN・送信前永続化は既に実装済み | 重複実装せず、trusted組成と明示再取得も同じledgerへ計上。F08 live実測は未実施 |
 | 選択後の商品資料更新 | 新規formatでjournal・P2先行失効・世代/revision照合・明示fresh取得をoffline接続。旧formatは資料変更停止 | 元selectionとscopeを保つ。旧run自動移行なし。半端な世代やUNKNOWNでは出力・再送を拒否 |
 | 画像live根拠 | P4は模擬検査だけ。既存画像providerに再送経路あり | 既存selector・疑義判断を共用し、全sendを制限。模擬検査のsource変更で代用しない |
-| 運用出力/予約 | P5からP1/P2 operational出力・commit前/bytes前検査はoffline接続済み。実行許可は未注入 | 世代/許可の再検査を追加し、永続commit・UNKNOWNを維持。準備出力と外部投入・出品は別承認 |
+| 運用出力/予約 | P5からP1/P2 operational出力・commit前/bytes前の世代/許可再検査・checkpointをoffline接続済み。実原承認は未結合 | 現在対象への許可とbackup容量計画を実設置票で固定し、永続commit・UNKNOWNを維持。準備出力と外部投入・出品は別承認 |
 | 限定AUTO_RULE | 現adapterは個別運用permitを注入しない | rule/alias全体hash、market/shop/session/catalog、承認参照の完全一致。未承認ruleは拒否したまま |
 
-この表は接続不足の設計記録。案Bのoffline開発範囲と停止境界はP5_CONNECTIONに固定し、
+この表は実装済み部品と実環境への未結合を区別する。案Bのoffline開発範囲と停止境界はP5_CONNECTIONに固定し、
 実行票の対象・予算・保存先・release・live操作の承認は別途求める。
 HUMAN経路だけでC04全体をPASSとしない。AUTO_RULEの実商品適用が必要なら対象定義と個別承認を別に提示する。
 rollbackは受入processのPID/開始時刻/portを照合してそのprocessだけ停止し、受入入口を使用停止する。
@@ -337,3 +342,37 @@ Owner原指示を直接確認できた指定は`MISSING`に戻さず、最新資
 未完了更新intent、PENDING/UNKNOWN投入lock、未承認AUTO_RULE、secret露出である。
 対応は対象process停止・現在出力失効・予約/履歴保持とし、retry・枠reset・資料の推測補完で継続しない。
 承認票version/対象/上限/主要リスク/releaseが変われば現在対象への承認を取り直す。
+
+
+## 11. 実行前の合成一連リハーサル
+
+`tests/test_p5_acceptance_rehearsal.py`をPH/SGそれぞれで実行し、部品単独試験に加えて
+固定A/B選択の台帳を原承認再照合付きoperatorで再開し、現在資料→HUMAN確認→P2保存→運用形式出力→checkpointの連鎖を検証する。
+探索と対象固定の準備は既存SDK・合成HTTP・offline permitを使い、trusted許可による探索送信の検査は既存adapter/transport試験で補う。
+合成原承認・OS観測・商品・HTTP・credential解決を使用し、実秘密・実API・実商品を使用しない。
+合成経路のTRUEは出力契約を試す値であり、実商品の準備許可ではない。
+
+| 合成シナリオ | 一連試験の確認範囲 | 対応する実受入の残件 |
+|---|---|---|
+| 3 sessionのA/B反復 | Aの2件中1件を確認、他方保留。新sessionでは旧pool/receiptを復元せず、現在資料と再確認後にBを追加。固定選択・消費予約・履歴を保持し、完成分だけ出力。各出力前と終了時に整合backupを作る | A03/A04/A05/A07の実画面・実資料・実操作者による反復とOwner受入 |
+| 原承認の撤回 | 準備後の撤回で出力を拒否。追加送信・消費・履歴変更を起こさず、現在poolを失効 | 実原承認sourceと撤回検出の結合 |
+| UNKNOWN後の再開 | 合成投入結果UNKNOWNとlockを再起動後も保持し、現在資料を再確認しても二重予約・出力を拒否 | 実投入は初回0。実際の外部結果照合は対象操作への別承認がある場合だけ |
+
+この試験のBridge読取とcredential解決は合成seamであり、物理Bridge/OAuth予約・secret遅延読込の
+証拠は既存transport/service試験で別に確認する。Windows/code観測も合成で、実端末のACL・
+volume・probe・listener検査、Streamlit実ブラウザ、画像/API品質、F08実消費、C04/C12を証明しない。
+試験のバックアップ容量値は合成fixture用で、実設置の容量承認へ転用しない。
+
+次の単一作業は10節の非公開票に、使用操作の一次仕様と現在の実行資料を結合し、最小設置票を固定すること。
+既存の最小設置票、I1/API0調査、固定Python/配布物manifestを読取照合し、使用releaseとの差分と残件だけを更新する。
+storage-onlyの親/root・ACL/probe準備と完全scopeを要求する`P5Setup.install()`を混同せず、仮store IDで後者を通さない。
+API0票では使用しないAPI・credential・商品scopeの未結合を後工程の停止条件として保持し、先行準備をlive開始の許可にしない。
+既指定のshop/seed/Resolver入力/既出品状況は再選定せず、次の未結合だけを埋める。
+
+1. 使用するCategory/Brand/Keepa token等の一次本文・版・権限・payload/応答・pagingを照合する。未使用操作は要求しない。
+2. 全shop実CSVの参照・取得時刻・SHA、商品同一性、操作者/確認者、再取得回数と有限枠を固定する。
+3. trusted起動担当の実コード・原承認source・現在票の読取契約と、固定release/entrypoint/port/新規root/ACL/probe/backup容量・復旧先を票へ結合する。
+4. 空欄やUNVERIFIEDが残る票はBLOCKEDを維持する。補完後に9節の具体操作について設置と実行の承認を求める。
+
+Owner指定、offline検証、formal採用、実設置、live実行、実務受入を別々に記録し、
+このリハーサルの成立だけで後段を完了扱いにしない。
