@@ -372,7 +372,8 @@ volume・probe・listener検査、Streamlit実ブラウザ、画像/API品質、
 
 次の単一作業は10節の非公開票に、使用操作の一次仕様と現在の実行資料を結合し、最小設置票を固定すること。
 既存の最小設置票、I1/API0調査、固定Python/配布物manifestを読取照合し、使用releaseとの差分と残件だけを更新する。
-storage-onlyの親/root・ACL/probe準備と完全scopeを要求する`P5Setup.install()`を混同せず、仮store IDで後者を通さない。
+storage-onlyの親/root・ACL/probe準備と`P5Setup.install()`を混同せず、取得専用または完全商品scopeの
+[契約](P5_CONNECTION.md#leaf未確定時のcategory取得専用scope)を満たす。仮store ID・仮leafで通さない。
 API0票では使用しないAPI・credential・商品scopeの未結合を後工程の停止条件として保持し、先行準備をlive開始の許可にしない。
 既指定のshop/seed/Resolver入力/既出品状況は再選定せず、次の未結合だけを埋める。
 

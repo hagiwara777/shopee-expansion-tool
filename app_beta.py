@@ -56,6 +56,10 @@ def render_beta(*, sg_config_path=None, ph_runtime_root=None, ph_api_env_path=No
         st.session_state['p4_diagnostics'] = False
         if not render_p5_start(runtime):
             return
+        if runtime.scope.category_acquisition_only:
+            from modules.p5_ui import render_p5_workspace
+            render_p5_workspace(runtime)
+            return
         render_application(marketplace, enable_expansion_handoff=True,
             practical_workspace={'db_path': runtime.scope.db_path, 'shop_id': runtime.scope.shop_id},
             p5_runtime=runtime)

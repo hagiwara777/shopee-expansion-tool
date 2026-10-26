@@ -175,6 +175,26 @@ OpenAI keyのproduction参照は未接続で、必要時は停止し、Shopee re
 取得限定scopeでは起動・catalog更新時にP2再評価を書き込まず履歴を読むだけとし、保存・pool・出力の権限を迂回しない。
 旧直接注入permitの3資料契約は互換維持するが、production Attribute送信は禁止する。
 
+### leaf未確定時のCategory取得専用scope
+
+DEC-0154。leafを知るための取得に、取得済みleafを先に要求しない。新規の`category_ids=()`は
+Category全件取得だけに限定する。明示operationsは`shopee.category`・`bridge`・`auth`の3つだけ、
+各物理send枠は1。Keepa・画像・OpenAIの全枠とmodel指定は0／空、Finder query・Resolver入力・
+preparation_limitも空／0とする。既指定ASINのbindingは保つが商品取得の許可にはしない。
+他の空scope、操作追加、legacyの全操作permitは拒否する。通常の商品準備scopeのleaf必須条件は維持する。
+
+設置は従来の別承認・排他作成・ACL／probe・作成後の実store ID・claim／ledger検証を使う。
+取得専用では商品探索と資料更新journalを初期化せず、設定だけではpermit・credential・通信を作らない。
+原Owner承認、Category一次仕様／App・shop権限／rate等、実コード・起動観測・サービス別参照、
+送信前予約、失敗／UNKNOWN停止とcheckpointの検査を省略しない。
+
+専用画面は明示した1回の取得と検証済み一覧のleaf表示だけを扱い、商品探索・Brand・準備出力へ接続しない。
+初期表示／再描画は0送信、予約後は再実行buttonを閉じる。合成応答は合成と表示し、公式根拠に昇格しない。
+取得後もscopeのleaf追加・claim／ledgerの書換えによる商品準備への転用は不可。
+後続の商品準備は用途・現在資料・完全scope・別承認を結合し、先行取得の予約／消費を累積上限へ含める。
+新sessionの公式receiptや未使用枠として先行scopeを再利用せず、既存データ・予約・履歴を保持する。
+コード採用・offline成立は、実設置・実API・実商品受入の許可／成功ではない。
+
 ## 探索と対象固定の二段階（offline接続）
 
 DEC-0145。`preparation_limit > 0`の明示scopeでは、`asins`は探索前の承認商品（Expansion seed等）のまま変更しない。

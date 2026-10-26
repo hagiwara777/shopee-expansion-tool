@@ -33,6 +33,7 @@ class P5Stopped(LiveValidationStopped):
 P5_OPERATIONS = frozenset({'keepa.token', 'keepa.product', 'keepa.query', 'shopee.category',
     'shopee.brand', 'shopee.attribute', 'bridge', 'auth', 'image', 'openai',
     'material.update', 'p2.save', 'output'})
+P5_CATEGORY_ACQUISITION_OPERATIONS = frozenset({'shopee.category', 'bridge', 'auth'})
 
 
 def required_primary_sources(operations):
@@ -102,7 +103,7 @@ class P5Scope:
                 or any(type(v) is not tuple for v in (self.asins, self.category_ids, self.finder_queries, self.openai_models))
                 or not self.asins or len(self.asins) != len(set(self.asins))
                 or any(not re.fullmatch(r'[A-Z0-9]{10}', a) for a in self.asins)
-                or not self.category_ids or len(set(self.category_ids)) != len(self.category_ids)
+                or len(set(self.category_ids)) != len(self.category_ids)
                 or any(type(c) is not int or c <= 0 for c in self.category_ids)):
             raise P5Stopped('P5_SCOPE_BINDING_INVALID')
         for name in ('keepa_requests', 'keepa_products', 'keepa_tokens', 'shopee_requests',
@@ -119,11 +120,29 @@ class P5Scope:
                 or self.openai_images > 3 or self.openai_output_tokens > 1200
                 or self.openai_input_bound > 272000):
             raise P5Stopped('P5_PAID_PROFILE_INVALID')
+        if self.category_acquisition_only and (
+                self.preparation_limit or self.resolver_inputs or self.finder_queries
+                or any(getattr(self, name) for name in ('keepa_requests', 'keepa_products', 'keepa_tokens',
+                    'image_requests', 'openai_requests', 'openai_models', 'openai_input_bound',
+                    'openai_output_tokens', 'openai_images')) or money != 0
+                or any(getattr(self, name) != 1 for name in ('shopee_requests', 'bridge_requests', 'auth_requests'))
+                or not isinstance(self.bridge_spreadsheet_id, str) or not self.bridge_spreadsheet_id.strip()):
+            raise P5Stopped('P5_SCOPE_BINDING_INVALID')
         for raw in self.finder_queries:
             query = json.loads(raw)
             if (not isinstance(query, dict) or type(query.get('page')) is not int or query['page'] != 0
                     or type(query.get('perPage')) is not int or not 1 <= query['perPage'] <= 50):
                 raise P5Stopped('P5_FINDER_PLAN_INVALID')
+
+    @property
+    def category_acquisition_only(self):
+        # An empty target list grants no leaf-dependent action. It is limited
+        # to a separately approved single whole-catalog acquisition per market.
+        return self.category_ids == ()
+
+    def require_operations(self, operations):
+        if self.category_acquisition_only and operations != P5_CATEGORY_ACQUISITION_OPERATIONS:
+            raise P5Stopped('P5_CATEGORY_ACQUISITION_ONLY')
 
     @property
     def digest(self):
@@ -170,6 +189,7 @@ class P5ExecutionPermit:
         if self.operations is not None and (type(self.operations) is not frozenset
                 or not self.operations or not self.operations <= P5_OPERATIONS):
             raise P5Stopped('P5_OPERATION_NOT_APPROVED')
+        scope.require_operations(self.operations)
         if self.operations is not None and operation is not None and operation not in self.operations:
             raise P5Stopped('P5_OPERATION_NOT_APPROVED')
         count = 3 if self.operations is None else len(required_primary_sources(self.operations))
@@ -556,6 +576,10 @@ class P5Runtime:
         self.permit.require(self.scope, operation=operation)
         if self.authorization_guard is not None:
             self.authorization_guard(operation)
+        if self.scope.category_acquisition_only:
+            kind = {'shopee.category': 'shopee', 'bridge': 'bridge', 'auth': 'auth'}.get(operation)
+            if kind is not None and any(r['kind'] == kind for r in self.ledger.data['reservations']):
+                raise P5Stopped('P5_CATEGORY_ACQUISITION_ALREADY_RESERVED')
         if self._material_action is not None:
             from modules.p5_material_updates import require_update_send
             require_update_send(self, operation)
@@ -665,7 +689,7 @@ class P5Runtime:
         self.workflow.supply_catalog(catalog, reference=uuid4().hex, revision=uuid4().hex)
         self.category_receipt = {'session': self.workflow.session.scope,
             'binding': self.workflow.session.current_classification_binding(),
-            'client': client,
+            'client': client, 'catalog': catalog,
             'official': client.uses_default_transport and not self.permit.offline_test}
         return catalog
 

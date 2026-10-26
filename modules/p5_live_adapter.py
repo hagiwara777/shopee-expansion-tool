@@ -28,6 +28,7 @@ BUDGETS = ('keepa_requests', 'keepa_products', 'keepa_tokens', 'shopee_requests'
 
 def _require_operation_budgets(scope, operations):
     """Unused services get zero; related physical sends need their own grants."""
+    scope.require_operations(operations)
     dependencies = {'shopee.category': {'bridge', 'auth'}, 'shopee.brand': {'bridge', 'auth'},
         'shopee.attribute': {'bridge', 'auth'}, 'bridge': {'auth'},
         'keepa.product': {'keepa.token'}, 'keepa.query': {'keepa.token'},
