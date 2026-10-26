@@ -47,6 +47,8 @@ P5のtrusted process起動接続は、既存の型付き部品からoperatorを�
 正規`app_beta.py`を起動する最小initializerを備える（[接続契約](P5_CONNECTION.md)）。
 initializer自体の実コード検査を含め、未登録・原承認／票／対象不一致は停止する。
 合成AppTestの成立を実原承認source・Windows実設置・live成功へ昇格しない。
+新規P5設置templateはstore ID未結合の`None`から始め、実作成後のIDで通常検証してclaim／ledgerを結合する。
+仮ID・既存store IDを設置templateへ流用せず、未結合templateのruntime／ledger利用は拒否する。
 新規P5 scopeは[再起動profile](P5_CONNECTION.md)で端末／SID／固定interpreter・entrypoint／portを
 永続targetへ結合し、PID／開始時刻は毎startの原承認review・実観測へ結合する（DEC-0151）。
 同じstore／claim／台帳・累積消費・履歴を維持し、旧process reviewの再利用とUNKNOWN再開を拒否する。
