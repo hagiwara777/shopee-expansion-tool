@@ -1839,3 +1839,15 @@
 - 再検証と再承認: 現行bindingの限定offline再現で、同一入力の再検証・Owner receipt更新と、CI Evidence／対象の変更を区別する。binding計算・再承認条件を今回変更しない。Codexは理由のない重複test・全ログ再報告を避けるがmandatory checksを減らさない。
 - 保護・非対象: Owner事業判断・最終決裁、secret保護、無承認実API／費用／実商品／外部書込み／復元困難操作の禁止、PH／SG Safetyとprotected capability、正式VerifyのHOLD／HARD_STOPを維持する。製品機能、P5実装、State／gate／schema／検証engine、CI、実鍵／Anchor、実運用データを変更しない。新管理基盤・承認制度・定期監査を作らない。
 - 後続／rollback: 次の独立工程は既定のP5実務受入準備のまま。合理化の採用をP5設置・live許可にしない。文書とoffline回帰の通常revert／新Decision追記で戻し、既存差分・履歴・Evidence・鍵・Anchorを削除・上書きしない。
+
+## DEC-0153 — 承認集約・自律継続ルール v1を恒久運用へ統合する
+
+- 日付: 2026-10-26
+- authority／目的: Ownerは同一目的・同一承認範囲での重複質問と不要な全体停止を減らす独立タスクの調査・設計・文書修正・offline tests・通常技術修正・commit／push／Draft PR／CI・read-only reviewを承認した。候補PRのmerge・署名鍵利用は別の明示承認であり、候補規則を採用前の自己権限拡張へ使わない。
+- 決定: 同じ目的・リスク境界・固定対象の連続技術工程を既存承認単位へ集約する。実行可能なoffline事前確認を承認要求前に完了し、既存WORK_BRIEF／P5票へ許可操作・固定対象・期限／終了・累積上限・事前許可する再試行条件／回数・停止／保全を具体化する。通常局所開発へ票作成を一律追加せず、新承認制度・台帳・汎用認可engineは設けない。
+- 再試行: 副作用ゼロと部分実行／結果不明を区別し、HTTP0だけで鍵参照・予約・作成までゼロとしない。有効な票の明示条件と現行契約の共通範囲だけで再試行する。初回停止で許可終了なら副作用ゼロでも復活しない。部分／不明結果は保全と照合を先行し、P5の自動retry=0・sticky stop・予約／UNKNOWN lock・部分設置保全を解除しない。
+- 継続と終了: 技術障害では同じ承認目的の調査・最小修正・offline再検証を自律継続し、停止を当該承認操作と依存工程へ限定する。独立性不明・Owner全停止は停止側へ保つ。独立タスク完了、個別許可失効、次工程を区別し、CLOSED・失効済み許可や未使用枠を別タスクへ転用しない。過去private票・Evidenceを改訂せず遡及適用しない。
+- 別決裁: PR正式採用と既存鍵／Anchor限定利用等を同時提示できるが、各項目への明示意思を必要とする。一方から他方を推定せず、DEC-0152の未採択鍵利用案を恒久許可へ昇格しない。本ルール採用自体も今回・将来の鍵利用許可ではない。
+- 置換・維持: DEC-0073の通常開発集約とDEC-0152の操作別開始・停止範囲を具体化する。DEC-0072／DEC-0091／DEC-0106／DEC-0114／DEC-0150の最終決裁、fresh Evidence・exact binding・正式Verify、mandatory gates・HOLD／HARD_STOP、PH／SG protected capabilityを維持する。P5空欄停止は今回操作の依存項目に適用し、未使用後工程禁止と作成後実ID結合を維持する。
+- 理由・代表例: PR151型の採用と鍵利用は別決裁を一度に提示できる。seed取得型のHTTP前停止でも予約等を消さず、終了票の再利用を防ぐ。R2型の固定source-only配置は許可工程内で配置・保全・fresh Verify・CLOSEDまで進め、実設置／APIを追加しない。API不明結果・部分作成では二重実行防止を優先し、技術修正まで止めない。完了記録だけを本Decisionの目的にしない。
+- 範囲／rollback: AGENTSは短い原則、Runbookは運用、Decisionは理由、既存WORK_BRIEF／P5票は最小整合とする。製品コード、State／Config／schema／engine／CI、実Anchor／鍵、実API・費用・実商品・配置・既存データ／予約／履歴は変更しない。通常revertまたは新Decisionで修正し、成功記録だけの追加PR・Decisionを作らない。
