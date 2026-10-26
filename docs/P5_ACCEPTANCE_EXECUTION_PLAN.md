@@ -270,7 +270,11 @@ Keepa観測との時刻差/丸め/販売なし/評価欠損を分け、異なる
 
 ## 9. Ownerに提示する具体的操作の承認票
 
-次の9項目を非公開の実対象・release・保存先と対応させて提示する。空欄があれば実行承認を求めず先に補完する。
+次の9項目を非公開の実対象・release・保存先と対応させて提示する。今回許可を求める操作の依存項目に
+空欄があれば先に補完する。API0等の先行準備では未使用操作の未結合を後工程の停止条件として残せる。
+実store IDは排他作成後に結合し、仮値を入れない。11節のstorage-only準備と完全scopeの設置を区別する。
+[RUNBOOK「承認集約・自律継続ルール v1」](RUNBOOK_CHATGPT_CODEX.md#承認集約自律継続ルール-v1)を適用し、
+実行可能なoffline事前確認を終えて提示する。一般ルールで本書の再送禁止・UNKNOWN停止を緩和しない。
 
 1. **商品・件数**：PH/SG各A/B 1〜3商品、seed/title/source_id/選定ASIN/leaf/shop、全shop CSV一覧、担当者。
 2. **API操作**：上表のKeepa JP取得、Shopee Category/Brand GET（Attributeは0）、Bridge read、必要画像GET/OpenAIのみ。対象外endpointは0。
@@ -279,17 +283,20 @@ Keepa観測との時刻差/丸め/販売なし/評価欠損を分け、異なる
 5. **release・環境**：接続差分の採用済み固定release、専用起動設定/port/端末、offline保護回帰の証拠。旧設定への書込みなし。
 6. **実出品**：初回0。必要になった場合だけASIN/shop/価格/属性/数量/具体操作/取消方法を別票で承認。
 7. **停止・戻し方**：失敗時停止、予約消費維持、受入processだけ停止、DBとUNKNOWN lockを保存。枠reset禁止。
+   再試行なしを明記し、期限・初回停止等の許可終了条件を固定。HTTP0でも鍵参照・予約・部分作成を確認し、結果不明と区別する。
 8. **受入手順**：A01〜A07/F08、3 session、証拠層と未実施の区分、C01〜C12の残件。
 9. **承認する操作**：対象票の初回保存先作成・固定受入release設置・列挙read-only/有料API・実商品準備保存・実画面確認を個別に明示。AUTO_RULE適用、実出品、formal merge、通常運用開始は別境界。
 
 承認の引用・日時・対象票digest・承認操作・上限・期限/終了条件をTask Contextに結合する。
 実行前に未解決blockerが0、technical gatesが対象releaseに一致、Owner承認が現在対象に一致することを確認する。
 承認待ちは`WAITING_APPROVAL`、Task Context lifecycleは`OPEN`。同じタスクで明示承認された操作だけ続ける。
+同じ目的・リスク境界の許可済み工程は逐次再質問せず進める。技術障害では独立した原因調査・修正・offline検証を継続する。
+別操作・失効・CLOSED後は旧許可を転用しない。新承認でも停止済みledgerのreset・再初期化は許可しない。
 
 ## 10. 初回実行票の固定欄と再利用審査
 
 この節は非公開実施票の必須schemaとする。値・一次資料の所在・確認者・確認日時・SHAを
-各欄へ対応させ、空欄/UNVERIFIEDが残る票は`BLOCKED`として最終実行承認を求めない。
+各欄へ対応させ、今回要求する操作の依存欄に空欄/UNVERIFIEDが残る票は`BLOCKED`として最終実行承認を求めない。
 技術方式はP5_LIVE_DESIGNに固定し、Ownerへhash計算や実装方式の選択を求めない。
 以下の状態を分離する：`Owner指定済み／実行Evidence未結合`、`実行Evidence照合済み`、
 `実行未承認／承認済み`。原指示確認はlive許可や現在商品の証明ではない。
@@ -297,14 +304,14 @@ Keepa観測との時刻差/丸め/販売なし/評価欠損を分け、異なる
 
 | 欄 | 必須の具体値と一致検査 |
 |---|---|
-| 票identity | 票ID/version/digest、目的、Owner承認原文/日時、許可操作、期限/終了条件、操作者・確認者 |
+| 票identity | 票ID/version/digest、目的、Owner承認原文/日時、許可操作と工程列、期限/timezone・初回停止等の終了条件、操作者・確認者 |
 | 市場/shop | PH/SG各初回1shopの実ID・識別名、全shop一覧と各CSV参照。Owner一覧・資料shop対応・expected shopを三者照合 |
 | A探索 | 各市場seed ASIN、用途、strict query全体、page=0/perPage、詳細最大数、準備上限、選択担当。探索承認と取得後選択を別記 |
 | B入力 | 各市場source_id/元title/originと手動Resolverサービス、候補ASIN、詳細取得対象確認、取得後の同一性根拠・確認者 |
 | 固定選択 | 探索後の選択ASIN集合・selection/batch digest、同一性、候補/文章/sidecar SHA、更新可能な同じASIN部分集合。追加・差替え不可 |
 | 公式資料 | 当該市場/shop Category全件・leaf ID/path、Brand strict終端/ID/name/区分、Seller Centerまたは既存出品ツールでの商品別属性確認担当。承認操作の一次本文・版・権限・形式一致が必要 |
 | 全shop CSV | 実際に全shopであるOwner確認、各CSVの取得日時/市場/shop/SHA/行数、正当な0件資料、既存出品照合ASINを準備対象と区別 |
-| API/費用 | 操作別回数・payload上限・物理send・tokens/USD・両市場合計、再取得回数、現在公式単価参照、実測方法、失敗消費保持 |
+| API/費用 | 操作別回数・payload上限・物理send・tokens/USD・両市場合計、既予約/消費・追加上限、計画した再取得回数、再試行なし、現在公式単価参照、実測方法、失敗消費保持 |
 | release | 最小差分を正式採用した固定full commit/実ソースdigest、端末/実entrypoint/port、technical gates。PR #135の採用だけではlive adapter未提供 |
 | 保存 | Dの正確なroot/run/市場/shop path、volume identity/非重複/専用ACL/probe、作成後のstore ID/schema、cache/ledger/claim、backup/復旧path、容量計画 |
 | 操作境界 | 設置、既存credential参照利用、列挙API、商品準備保存/出力、再起動反復を別チェック。外部投入0・実出品0・AUTO_RULE0 |
@@ -372,7 +379,7 @@ API0票では使用しないAPI・credential・商品scopeの未結合を後工�
 1. 使用するCategory/Brand/Keepa token等の一次本文・版・権限・payload/応答・pagingを照合する。未使用操作は要求しない。
 2. 全shop実CSVの参照・取得時刻・SHA、商品同一性、操作者/確認者、再取得回数と有限枠を固定する。
 3. trusted起動担当の実コード・原承認source・現在票の読取契約と、固定release/entrypoint/port/新規root/ACL/probe/backup容量・復旧先を票へ結合する。
-4. 空欄やUNVERIFIEDが残る票はBLOCKEDを維持する。補完後に9節の具体操作について設置と実行の承認を求める。
+4. 今回要求する操作の依存欄に空欄やUNVERIFIEDが残る票はBLOCKEDを維持する。補完後に9節の具体操作について設置と実行の承認を求める。
 
 Owner指定、offline検証、formal採用、実設置、live実行、実務受入を別々に記録し、
 このリハーサルの成立だけで後段を完了扱いにしない。

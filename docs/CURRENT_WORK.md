@@ -111,6 +111,8 @@ SG通常継続利用はDEC-0134の有限Policy＋画面商品群受付を使う�
 正本化連鎖防止ルールを採用済み（DEC-0114）。Git管理文書の現在状態をmerge後にも正しい形で
 同一PRへ含め、post-merge確認成功後はTask ContextをCLOSEDにして終了する。
 詳細手順はRUNBOOK「Post-Merge Stability」を適用する。
+承認集約・自律継続はRUNBOOK「承認集約・自律継続ルール v1」を適用する（DEC-0153）。
+通常開発と個別の別決裁、部分実行／結果不明、許可失効とCLOSED後の次工程を区別する。
 
 SG Minimum Beta完成判定（Roadmap Step 8）は正式採用済みでCLOSED。
 半自動完成線はDEC-0111 / DEC-0112、Step 8終了はDEC-0113を参照する。
@@ -263,3 +265,4 @@ SG Brand responseにmarketplace / Category echoがないため、server内部の
 - DEC-0148 / DEC-0149 — 操作別一次仕様、Attribute禁止、原承認・OS観測・service別参照とcheckpoint。
 - DEC-0150 / DEC-0151 — 正式Anchor・fresh Verify、P5永続scopeと起動ごとの実観測。
 - DEC-0152 — 通常調査・offline開発と正式受入の分離、停止範囲、現行手順の入口。
+- DEC-0153 — 承認集約・自律継続、具体票・再試行・副作用／失効境界、P5の個別禁止優先。
