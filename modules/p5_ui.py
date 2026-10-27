@@ -92,6 +92,8 @@ def render_p5_start(runtime):
 
 
 def render_p5_workspace(runtime):
+    if runtime.scope.category_acquisition_only:
+        return render_category_acquisition(runtime)
     from modules.classification_workflow_ui import render_current_batch
     from modules.practical_beta_ui import render_practical_controls, _action
     workflow = runtime.workflow
@@ -138,6 +140,21 @@ def render_p5_workspace(runtime):
         return
     render_current_batch(workflow, runtime.scope.marketplace, key='p5_intake_')
     render_practical_controls(workflow, key='p5_work_', runtime=runtime)
+
+
+def render_category_acquisition(runtime):
+    from modules.practical_beta_ui import _action
+    st.subheader('対象leafの確認用Category取得')
+    st.caption('この市場・shopのCategory一覧を1回取得します。商品処理・Brand取得・準備出力は行いません。')
+    if runtime.permit.offline_test:
+        st.warning('synthetic接続検証です。模擬応答を実運用の根拠には使えません。')
+    if st.button('Category一覧を1回取得', key='p5_catalog', disabled=bool(runtime.ledger.data['reservations'])):
+        _action(lambda: runtime.acquire_catalog(runtime.catalog_client()))
+    if runtime.category_receipt is not None:
+        catalog = runtime.category_receipt['catalog']
+        st.caption(f'取得一覧 {len(catalog.nodes)} 分類。商品との適合確認と、後続の実行承認は別に必要です。')
+        st.dataframe([{'Category ID': n.category_id, '分類名': n.category_name, '分類パス': n.category_path}
+            for n in catalog.nodes if n.is_leaf], hide_index=True, alt='取得した対象市場のleaf Category一覧')
 
 
 def render_material_update(runtime):

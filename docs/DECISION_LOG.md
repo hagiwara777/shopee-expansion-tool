@@ -1851,3 +1851,13 @@
 - 置換・維持: DEC-0073の通常開発集約とDEC-0152の操作別開始・停止範囲を具体化する。DEC-0072／DEC-0091／DEC-0106／DEC-0114／DEC-0150の最終決裁、fresh Evidence・exact binding・正式Verify、mandatory gates・HOLD／HARD_STOP、PH／SG protected capabilityを維持する。P5空欄停止は今回操作の依存項目に適用し、未使用後工程禁止と作成後実ID結合を維持する。
 - 理由・代表例: PR151型の採用と鍵利用は別決裁を一度に提示できる。seed取得型のHTTP前停止でも予約等を消さず、終了票の再利用を防ぐ。R2型の固定source-only配置は許可工程内で配置・保全・fresh Verify・CLOSEDまで進め、実設置／APIを追加しない。API不明結果・部分作成では二重実行防止を優先し、技術修正まで止めない。完了記録だけを本Decisionの目的にしない。
 - 範囲／rollback: AGENTSは短い原則、Runbookは運用、Decisionは理由、既存WORK_BRIEF／P5票は最小整合とする。製品コード、State／Config／schema／engine／CI、実Anchor／鍵、実API・費用・実商品・配置・既存データ／予約／履歴は変更しない。通常revertまたは新Decisionで修正し、成功記録だけの追加PR・Decisionを作らない。
+
+## DEC-0154 — leaf未確定時のCategory取得を既存P5の取得専用scopeへ限定する
+
+- 日付: 2026-10-27
+- authority／目的: Ownerは現在のleaf取得に必要なoffline接続の実装と関連検証を依頼した。実API・credential・実設置は行わず、正式採用は現行のtechnical gatesとOwner最終決裁に従う。
+- 判断: 既存のCategory限定操作でも設置前にleafと商品探索計画を必須にすると、leafを知るための全件取得が循環する。DEC-0148の操作別依存を新規取得専用scopeにも適用し、category_ids空集合をCategory／Bridge／auth各1送信・他サービス枠0・商品探索計画なしに限る。空集合の全操作permitや追加操作は拒否し、通常の商品準備scopeのleaf必須を維持する。詳細はP5_CONNECTIONとする。
+- 接続: 同じP5Scope／trusted authority／Setup／ledger／Catalog Clientと統一入口を使い、別の認可engineや汎用loaderを追加しない。専用画面は明示1回取得とleaf一覧だけで、商品探索・Brand・保存／出力へ接続しない。初期化・再描画で送信やsecret読込を行わない。
+- 保護: 元Owner承認・現在の一次仕様とApp/shop権限・有限枠・実コード/起動対象・保存identity・実作成store ID、送信前予約・retry/redirect禁止・失敗/UNKNOWN停止・checkpoint、PH/SG Safetyとprotected capabilityを維持する。既存scope digest方式・schema・claim・消費・履歴は変更／移行しない。
+- 後続: 取得した一覧は用途確認の材料であり、商品準備の許可・新session公式receiptを生成しない。先行scopeのleaf追加や台帳書換えで商品準備へ昇格せず、後続票の完全scope・別承認と累積予約／消費の計上を要求する。offline成功を実設置・実API・F08/C12・実務Beta完成へ昇格しない。
+- 検証／rollback: PH/SG合成設置・typed authority・HTTPと実SDKのoffline trace、AppTestで単発取得・表示・未承認/余分な操作・不明結果・scope転用の拒否を検証する。通常revertで戻せるが、取得専用storeを旧コードで再初期化せず保全し、既存の予約・UNKNOWN・履歴・Owner指定を消さない。

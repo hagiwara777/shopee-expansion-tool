@@ -59,6 +59,10 @@ FAILED停止・FETCHED空の未推定・Seller Center最終確認を維持し、
 P5の[操作別preflight](P5_CONNECTION.md)は、承認allowlistに応じた必要一次資料・料金・有限枠をoffline検証する（DEC-0148）。
 Category限定はCategory、Brand取得と保存／準備出力はCategory＋Brandの現在根拠を要求する。
 未使用Attribute資料と未使用OpenAI価格を必須にせず、対応枠0・未承認操作の送信前拒否を維持する。
+leaf未確定時は、[Category取得専用scope](P5_CONNECTION.md#leaf未確定時のcategory取得専用scope)で
+Category／Bridge／auth各1送信、他枠0・商品探索なしの新規offline接続を使える（DEC-0154）。
+通常の商品準備scopeのleaf必須、Owner原承認と公式仕様・実設置・実APIの別承認は維持する。
+先行scopeを商品準備へ書換えず、後続票に取得の予約／消費を含める。合成結果は現在shopの公式根拠ではない。
 関連Shopee／Bridge／OAuth枠、原承認・実コード・保存identity・Safety・UNKNOWN停止は省略しない。
 準備CSV／TXTのTRUEは外部一括出品の無条件許可ではない。ASINを手動で既存出品ツールへ渡し、
 同Category／Brandでも商品ごとの属性値・適用可否はユーザーが確認する。属性自動入力・DB追加・ツール間自動連携は行わない。
@@ -266,3 +270,4 @@ SG Brand responseにmarketplace / Category echoがないため、server内部の
 - DEC-0150 / DEC-0151 — 正式Anchor・fresh Verify、P5永続scopeと起動ごとの実観測。
 - DEC-0152 — 通常調査・offline開発と正式受入の分離、停止範囲、現行手順の入口。
 - DEC-0153 — 承認集約・自律継続、具体票・再試行・副作用／失効境界、P5の個別禁止優先。
+- DEC-0154 — leaf未確定時のCategory取得専用scope、単発枠・商品準備との分離と累積計上。

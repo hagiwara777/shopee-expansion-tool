@@ -90,7 +90,7 @@ class P5Setup:
 
     def install(self, template, *, required_bytes):
         template.validate_new_install()
-        if not template.preparation_limit:
+        if not template.preparation_limit and not template.category_acquisition_only:
             raise P5Stopped('P5_TWO_STAGE_SCOPE_REQUIRED')
         directory = template.directory
         self.create_new(directory, required_bytes=required_bytes)
@@ -104,7 +104,7 @@ class P5Setup:
         scope = replace(template, store_id=store.store_id)
         scope.validate()
         KeepaCache(directory / 'keepa.sqlite3')
-        initialize_p5_ledger(scope, material_updates=True)
+        initialize_p5_ledger(scope, material_updates=bool(scope.preparation_limit))
         for name in ('inputs', 'evidence', 'exports', 'backups'):
             (directory / name).mkdir()
         self.check(directory, required_bytes=required_bytes)
