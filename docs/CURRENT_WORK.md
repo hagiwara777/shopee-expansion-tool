@@ -257,6 +257,10 @@ MY / THは画像対象設定・共通選択契約だけを準備する。市場r
 Source明示ON時のsilent fallbackを許さない。Bridge全面書込み障害時の旧token無効化は保証しない。
 SG Brand responseにmarketplace / Category echoがないため、server内部の別Category誤応答の独立検出は保証しない。
 
+正式統合のA1準備は[Runbook](RUNBOOK_CHATGPT_CODEX.md#統合準備a1参照権限失敗診断)に従う（DEC-0156）。
+現行の参照と今回の許可の不足を事前に整理し、offline成立・実鍵確認・実運用効果を分ける。
+A2の承認binding変更はA1の効果確認後、Bの署名範囲変更はA2後も負担が残る場合に必要性を別判断する。
+
 ## Required Decisions
 
 現行のGovernance手順はAGENTSとRUNBOOKを入口とする（DEC-0152）。
@@ -271,3 +275,4 @@ SG Brand responseにmarketplace / Category echoがないため、server内部の
 - DEC-0152 — 通常調査・offline開発と正式受入の分離、停止範囲、現行手順の入口。
 - DEC-0153 — 承認集約・自律継続、具体票・再試行・副作用／失効境界、P5の個別禁止優先。
 - DEC-0154 — leaf未確定時のCategory取得専用scope、単発枠・商品準備との分離と累積計上。
+- DEC-0156 — A1の統合準備、参照・許可の分離、失敗診断、追加gateの理由とcoverageの維持。

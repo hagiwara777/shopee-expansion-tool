@@ -162,6 +162,40 @@ Owner Acceptance Summaryは、採用対象、変更、非対象、既存運用�
 ディスク全体・過去backupを総当たりしない。参照が一度固定できれば既存Task Contextに非秘密の参照だけを保持できる。
 実鍵／Anchorの確認を行っていないoffline作業では「現在有効な鍵を確認済み」と報告しない。
 
+#### 統合準備A1：参照・権限・失敗診断
+
+DEC-0156を適用する。統合予定のPRについてCIと並行して準備し、通常開発の開始条件にはしない。
+Codexは現在のOwner原指定に結び付く鍵の非秘密参照と、今回PRの利用許可を別々に確認する。
+過去の成功スクリプトは手掛かりであり、現在指定の証明ではない。CLOSED taskの利用許可を転用しない。
+指定元を特定できなければ、最終採用承認を求める前に不足する非秘密記録を具体化して報告し、
+実鍵操作を停止する。鍵本体・backupを探索せず、秘密本文の提示をOwnerへ求めない。
+既存Task Contextのauthorization_refsは原指定・許可の索引であり、自由文や参照の一致だけで権限を認定しない。
+`owner_acceptance_ready`は技術gateの成立を示し、現行鍵指定・利用許可まで揃った証明ではない。
+
+`Test-OwnerEvidencePreparation.ps1`は`owner_evidence_preparation`による非秘密の入力整理だけを行う。
+TaskContext・PythonPath・KeyPath・ReferenceSource・KeyUseAuthorizationRefを明示する。
+KeyPathは参照文字列としてだけ扱い、現物の存在確認・読取・復号をしない。Anchor・Provider・GitHub・署名にも接続しない。
+OPENの今回PR向けContextと、原指定・利用許可参照のauthorization_refsへの結合を確認し、不足をまとめて報告する。
+追加gateがある場合はAdditionalGateReasonRefの入力と同じ索引への結合も要求する。参照一致は理由の妥当性を証明しない。
+入力整理がCONTINUEでも`formal_acceptance_ready=false`、`key_checked=false`、
+`requires_current_designation_review=true`を維持し、CodexによるOwner原指定の現在性確認を省略しない。
+新たな承認制度・台帳・鍵解決機能・署名入口を設けない。
+
+実際の照合は、別途許可された既存実行環境から通常Providerの`--check-key-only`を使う。
+このmodeはformal-main起動制限と公開鍵比較を維持し、GitHub取得・署名・Owner Evidence生成を行わない。
+通常の署名経路とV1 bindingは維持する。`--diagnostic-json`は安全な診断だけを追加し、
+実鍵の解決や一時環境への注入を今回の準備補助へ移さない。
+
+事前確認と、最終採用承認後の署名・同一bindingのreceipt更新・統合後Anchor確認を一度の説明に並べ、
+各操作の許可、回数・期限・終了、停止・保全条件を既存票へ固定する。未許可操作を条件付き許可へ推定せず、
+技術失敗を自動retryへ変換しない。許可内のoffline修正は継続する。
+失敗時は安全なreason code・実行段階と、署名前の拒否／署名済み／成否不明を分けて保持する。
+Evidenceの欠落だけで未署名と判断せず、秘密・raw exception・子process出力本文を共有しない。
+
+A1のoffline検証・候補公開は、実鍵成功・実運用での中断削減の実測とは別である。
+初回採用も現行方式の別承認と署名を要し、鍵参照が未解決なら正式統合は停止する。
+A2のbinding／再承認条件変更、Bの署名省略経路、GitHub設定変更をA1完了から自動着手しない。
+
 #### 別個の決裁をまとめて提示する
 
 PR正式採用と、指定済み保護鍵・実Anchorの限定利用は別の明示決裁として、一度の説明に並べて提示できる。
@@ -328,6 +362,9 @@ Codexは実行可能なoffline事前確認を先に終える。対象／依存�
 Ownerへ技術方式や毎回の次作業を選ばせず、目的内の調査・最小修正・再検証を自律的に進める。
 実Anchor・鍵・実API・実設置が必要な確認は未実施として分離し、その未実施をPASSにしない。
 formal採用の承認要求はmandatory technical gatesとPost-Merge Stability成立後だけとする。
+追加gateを指定する前に、変更分類・component・影響capabilityから現在の必須集合を確認する。
+追加する場合は対象リスク・coverageとの対応理由をTask Contextまたは既存報告へ残し、一律に全件を追加しない。
+Governanceの意味的な回帰やPH/SG保護を失う削減は行わず、CIで動くjobと正式な必須gateを区別する。
 
 個別の別承認を求める場合、以下を具体化し、Ownerへ事業上の意味と残るリスクを示す。
 実対象・秘密の参照情報は非公開票へ置き、既存Task Contextのauthorization_refsで現在の承認に結合する。

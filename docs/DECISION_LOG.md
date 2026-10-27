@@ -1861,3 +1861,14 @@
 - 保護: 元Owner承認・現在の一次仕様とApp/shop権限・有限枠・実コード/起動対象・保存identity・実作成store ID、送信前予約・retry/redirect禁止・失敗/UNKNOWN停止・checkpoint、PH/SG Safetyとprotected capabilityを維持する。既存scope digest方式・schema・claim・消費・履歴は変更／移行しない。
 - 後続: 取得した一覧は用途確認の材料であり、商品準備の許可・新session公式receiptを生成しない。先行scopeのleaf追加や台帳書換えで商品準備へ昇格せず、後続票の完全scope・別承認と累積予約／消費の計上を要求する。offline成功を実設置・実API・F08/C12・実務Beta完成へ昇格しない。
 - 検証／rollback: PH/SG合成設置・typed authority・HTTPと実SDKのoffline trace、AppTestで単発取得・表示・未承認/余分な操作・不明結果・scope転用の拒否を検証する。通常revertで戻せるが、取得専用storeを旧コードで再初期化せず保全し、既存の予約・UNKNOWN・履歴・Owner指定を消さない。
+
+## DEC-0156 — A1で統合準備と失敗診断を改善し、署名・bindingの契約は維持する
+
+- 日付: 2026-10-27
+- authority／目的: OwnerはA1のoffline設計・実装・検証・候補公開とGitHub保護のread-only評価を進める方針を採用した。目的は技術管理の仲介と不要な中断を減らすことであり、新しい管理制度の構築ではない。実鍵・実Anchor利用、設定変更、正式統合は別承認とする。
+- 参照と準備: 現在のOwner原指定による非秘密の鍵参照と、今回PRの利用許可を別々に確認する。過去スクリプトの成功・CLOSED taskの許可から現在性を推定しない。不足は最終採用承認前に具体化し、鍵本体を探索せず該当操作を止める。既存Task Contextは原記録への索引とし、自由文の権限parser・新台帳を作らない。
+- 実行補助: Test-OwnerEvidencePreparationは非秘密のTask Context・参照索引と追加gate理由参照の不足をまとめる。KeyPathは文字列だけとし、鍵の現物・Anchor・Provider・通信・署名を呼ばない。入力整理成立は現行指定・許可・公開鍵一致・正式受入の成立ではない。実鍵を使う照合は別承認の既存実行環境から通常Providerのcheck-only拡張へ渡し、新しい鍵解決・署名入口を設けない。通常署名、formal-main起動制限、公開鍵照合、秘密非出力・一時利用・清掃、retryなしを維持する。詳細はRunbookとする。
+- 承認と失敗: 必要な別権限を個別判別可能な一括説明へまとめ、回数・終了・停止・保全を先に固定する。診断は安全なreason codeと段階、署名前拒否／署名済み／成否不明を保持する。Evidenceなしを署名0と推定せず、HOLD・UNKNOWNから自動再実行しない。技術gate成立を現行参照・許可の成立へ読み替えない。
+- 追加gate: 現行の分類・component・capabilityによる必須集合を先に確認する。追加はリスク・coverageに対応する理由を既存記録へ残し、説明なく全件を足さない。Governance・PH/SGの必要回帰を失う削減や、CI jobと必須gateの混同を避ける。gate定義・CI・分類を本判断で変更しない。
+- 完成と後続: offline検証・候補公開の成立と、正式採用・実鍵成功・実際の中断削減を分ける。初回採用は変更前formal mainの手順を用い、候補が自身のgateを緩めない。現在参照の不整合が残れば正式統合は停止する。A1効果を確認し、十分なら終了する。A2のbinding／再承認条件とBの署名範囲再設計へ自動着手しない。
+- 維持／rollback: DEC-0072／0073、DEC-0091／0106、DEC-0150、DEC-0152／0153のOwner最終判断、署名・fresh Verify・exact binding・mandatory gates、HOLD／HARD_STOPとPH/SG protected capabilityを維持する。製品・State／Config／schema／engine、実鍵／Anchor、実API・実設置・既存データを変更しない。実行補助・Provider・関連testsと必要文書の通常revertで戻し、過去Decision・非公開Context・Evidence・停止履歴は保全する。

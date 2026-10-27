@@ -885,6 +885,173 @@ def test_owner_provider_github_spawn_error_is_safe_hold(monkeypatch) -> None:
     assert exc.value.reason_code == "GITHUB_OWNER_PROVIDER_UNAVAILABLE"
 
 
+def test_owner_provider_check_key_only_never_fetches_signs_or_writes(monkeypatch, capsys) -> None:
+    key, anchor, *_rest = _owner_comment_case()
+    encoded_key = _owner_key_env_value(key)
+
+    class CheckOnlyKey:
+        def public_key(self):
+            return key.public_key()
+
+        def sign(self, _payload):
+            pytest.fail("CheckKey must not sign")
+
+    class CheckOnlyDecoder:
+        @staticmethod
+        def from_private_bytes(raw):
+            assert len(raw) == 32
+            return CheckOnlyKey()
+
+    monkeypatch.setattr(owner_comment_provider, "Ed25519PrivateKey", CheckOnlyDecoder)
+    monkeypatch.setattr(owner_comment_provider, "_require_formal_main_activation", lambda _root: None)
+    monkeypatch.setattr(engine, "_load_anchor", lambda: (anchor, "synthetic-anchor"))
+    monkeypatch.setattr(owner_comment_provider, "_github_api", lambda *_a: pytest.fail("No GitHub"))
+    monkeypatch.setattr(engine, "load_json", lambda *_a: pytest.fail("No signing inputs"))
+    monkeypatch.setattr(engine, "_write_output", lambda *_a: pytest.fail("No Evidence"))
+    monkeypatch.setenv(owner_comment_provider.PRIVATE_KEY_ENV, encoded_key)
+    monkeypatch.setattr(sys, "argv", ["owner-comment-provider", "--check-key-only", "--diagnostic-json"])
+
+    assert owner_comment_provider.main() == engine.EXIT_CONTINUE
+    assert owner_comment_provider.PRIVATE_KEY_ENV not in os.environ
+    captured = capsys.readouterr()
+    assert captured.err == ""
+    assert encoded_key not in captured.out
+    assert json.loads(captured.out) == {
+        "decision": "CONTINUE", "reason_code": "OWNER_KEY_CHECK_OK",
+        "stage": "KEY_CHECK", "signing_state": "NOT_SIGNED",
+    }
+
+
+@pytest.mark.parametrize("key_kind", ["missing", "invalid", "mismatch"])
+def test_owner_provider_check_key_only_failure_is_safe(monkeypatch, capsys, key_kind) -> None:
+    key, anchor, *_rest = _owner_comment_case()
+    encoded_key = "not-base64" if key_kind == "invalid" else _owner_key_env_value(key)
+    if key_kind == "missing":
+        monkeypatch.delenv(owner_comment_provider.PRIVATE_KEY_ENV, raising=False)
+    else:
+        monkeypatch.setenv(owner_comment_provider.PRIVATE_KEY_ENV, encoded_key)
+    if key_kind == "mismatch":
+        anchor["owner_evidence_public_key"] = base64.b64encode(b"x" * 32).decode("ascii")
+    monkeypatch.setattr(owner_comment_provider, "_require_formal_main_activation", lambda _root: None)
+    monkeypatch.setattr(engine, "_load_anchor", lambda: (anchor, "synthetic-anchor"))
+    monkeypatch.setattr(owner_comment_provider, "_github_api", lambda *_a: pytest.fail("No GitHub"))
+    monkeypatch.setattr(engine, "_write_output", lambda *_a: pytest.fail("No Evidence"))
+    monkeypatch.setattr(sys, "argv", ["owner-comment-provider", "--check-key-only", "--diagnostic-json"])
+
+    assert owner_comment_provider.main() == engine.EXIT_HOLD
+    assert owner_comment_provider.PRIVATE_KEY_ENV not in os.environ
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+    expected = "OWNER_PROVIDER_KEY_MISMATCH" if key_kind == "mismatch" else "OWNER_PROVIDER_KEY_REQUIRED"
+    assert result == {
+        "decision": "HOLD", "reason_code": expected,
+        "stage": "KEY_CHECK", "signing_state": "NOT_SIGNED",
+    }
+    assert captured.err == "" and encoded_key not in captured.out
+
+
+def test_owner_provider_check_key_only_preserves_formal_activation_guard(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(owner_comment_provider, "_governance_matches_formal_main", lambda _root: False)
+    monkeypatch.setattr(engine, "_load_anchor", lambda: pytest.fail("Must stop before Anchor read"))
+    monkeypatch.setenv(owner_comment_provider.PRIVATE_KEY_ENV, "synthetic-unused-key")
+    monkeypatch.setattr(sys, "argv", ["owner-comment-provider", "--check-key-only", "--diagnostic-json"])
+    assert owner_comment_provider.main() == engine.EXIT_HOLD
+    assert owner_comment_provider.PRIVATE_KEY_ENV not in os.environ
+    result = json.loads(capsys.readouterr().out)
+    assert result == {
+        "decision": "HOLD", "reason_code": "OWNER_PROVIDER_NOT_FORMAL",
+        "stage": "PRECONDITIONS", "signing_state": "NOT_SIGNED",
+    }
+
+
+def _diagnostic_provider_case(tmp_path, monkeypatch):
+    case = _owner_comment_case()
+    key, _anchor, _context, _verification, _summary, _repository, _pull, comments, _now = case
+    anchor, repository, pull, _comments, argv = _owner_provider_main_inputs(tmp_path, case)
+    encoded_key = _owner_key_env_value(key)
+    monkeypatch.setenv(owner_comment_provider.PRIVATE_KEY_ENV, encoded_key)
+    monkeypatch.setattr(sys, "argv", argv + ["--diagnostic-json"])
+    monkeypatch.setattr(owner_comment_provider, "_require_formal_main_activation", lambda _root: None)
+    monkeypatch.setattr(engine, "_load_anchor", lambda: (anchor, "synthetic-anchor"))
+    responses = iter((repository, pull))
+    monkeypatch.setattr(owner_comment_provider, "_github_api", lambda _path: next(responses))
+    monkeypatch.setattr(owner_comment_provider, "_comments", lambda *_args: comments)
+    return encoded_key, case
+
+
+def test_owner_provider_signing_json_success_is_bound(tmp_path, monkeypatch, capsys) -> None:
+    encoded_key, case = _diagnostic_provider_case(tmp_path, monkeypatch)
+    _key, anchor, _context, verification, summary, _repository, _pull, _comments, _now = case
+    assert owner_comment_provider.main() == engine.EXIT_CONTINUE
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+    assert result["decision"] == "CONTINUE"
+    assert result["reason_code"] == "OWNER_EVIDENCE_CREATED"
+    assert result["stage"] == "COMPLETE" and result["signing_state"] == "SIGNED"
+    files = list((tmp_path / "owner-evidence").glob("*.json"))
+    assert len(files) == 1 and result["evidence_file"] == files[0].name
+    records = [json.loads(files[0].read_text(encoding="utf-8"))]
+    assert engine._owner_evidence_matches(
+        records, verification["verification_input_hash"], anchor, summary["summary_binding"],
+        "d" * 40, 95, datetime.now(UTC),
+    ) == (True, "OWNER_ACCEPTANCE_BOUND")
+    assert captured.err == "" and encoded_key not in captured.out
+    assert owner_comment_provider.PRIVATE_KEY_ENV not in os.environ
+
+
+@pytest.mark.parametrize(
+    ("failure", "expected_stage", "expected_state", "expected_reason"),
+    [
+        ("github", "GITHUB_OBSERVE", "NOT_SIGNED", "OWNER_PROVIDER_INTERNAL_HOLD"),
+        ("validation", "RECEIPT_VALIDATION", "NOT_SIGNED", "OWNER_ACCEPTANCE_REQUIRED"),
+        ("sign", "SIGN", "UNKNOWN", "OWNER_PROVIDER_INTERNAL_HOLD"),
+        ("write", "WRITE_EVIDENCE", "SIGNED", "OWNER_PROVIDER_INTERNAL_HOLD"),
+    ],
+)
+def test_owner_provider_json_distinguishes_signing_failure_boundaries(
+    tmp_path, monkeypatch, capsys, failure, expected_stage, expected_state, expected_reason,
+) -> None:
+    encoded_key, case = _diagnostic_provider_case(tmp_path, monkeypatch)
+    *_, comments, _now = case
+
+    def fail(*_args, **_kwargs):
+        raise RuntimeError("synthetic sensitive error " + encoded_key)
+
+    if failure == "github":
+        monkeypatch.setattr(owner_comment_provider, "_github_api", fail)
+    elif failure == "validation":
+        comments[0]["body"] = "OWNER_ACCEPTANCE: REVOKED"
+    elif failure == "sign":
+        class FailingSigner:
+            sign = staticmethod(fail)
+        monkeypatch.setattr(owner_comment_provider, "_checked_private_key", lambda *_a: FailingSigner())
+    else:
+        monkeypatch.setattr(engine, "_write_output", fail)
+
+    assert owner_comment_provider.main() == engine.EXIT_HOLD
+    captured = capsys.readouterr()
+    assert json.loads(captured.out) == {
+        "decision": "HOLD", "reason_code": expected_reason,
+        "stage": expected_stage, "signing_state": expected_state,
+    }
+    assert captured.err == "" and encoded_key not in captured.out
+    assert "synthetic sensitive error" not in captured.out
+    assert owner_comment_provider.PRIVATE_KEY_ENV not in os.environ
+    assert not (tmp_path / "owner-evidence").exists()
+
+
+def test_owner_provider_json_missing_signing_inputs_stops_before_anchor(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(engine, "_load_anchor", lambda: pytest.fail("No input means no Anchor read"))
+    monkeypatch.setenv(owner_comment_provider.PRIVATE_KEY_ENV, "synthetic-unused-key")
+    monkeypatch.setattr(sys, "argv", ["owner-comment-provider", "--diagnostic-json"])
+    assert owner_comment_provider.main() == engine.EXIT_HOLD
+    assert json.loads(capsys.readouterr().out) == {
+        "decision": "HOLD", "reason_code": "OWNER_PROVIDER_ARGUMENTS_REQUIRED",
+        "stage": "PRECONDITIONS", "signing_state": "NOT_SIGNED",
+    }
+    assert owner_comment_provider.PRIVATE_KEY_ENV not in os.environ
+
+
 @pytest.mark.parametrize("newline", ["\n", "\r\n"], ids=["LF", "CRLF"])
 def test_gv2_owner_comment_provider_and_offline_verifier(newline: str) -> None:
     key, anchor, context, verification, summary, repository, pull, comments, now = _owner_comment_case()
