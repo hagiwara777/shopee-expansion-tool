@@ -62,6 +62,11 @@ Category限定はCategory、Brand取得と保存／準備出力はCategory＋Bra
 leaf未確定時は、[Category取得専用scope](P5_CONNECTION.md#leaf未確定時のcategory取得専用scope)で
 Category／Bridge／auth各1送信、他枠0・商品探索なしの新規offline接続を使える（DEC-0154）。
 通常の商品準備scopeのleaf必須、Owner原承認と公式仕様・実設置・実APIの別承認は維持する。
+Ownerの2026-10-27判断によりShopee公式問い合わせは実施せず、同じ問い合わせの再承認を求めない（DEC-0155）。
+公式回答待ちを開発工程・Beta完成条件にせず、公式公開資料・Developer Console・既存資料を優先する。
+[P5実施設計](P5_ACCEPTANCE_EXECUTION_PLAN.md#5-shopee認証の有限計画案)に従い、PRIMARY_SOURCE_UNVERIFIEDとPH Category実API HOLDを維持する。
+問い合わせ不実施はHOLD解除条件にも新しいBeta blockerにもしない。独立したoffline開発・検証は継続できる。
+必要な一次資料と既存条件が別の方法で成立すれば、既存gateを維持した実API試験のOwner判断を改めて求められる。
 先行scopeを商品準備へ書換えず、後続票に取得の予約／消費を含める。合成結果は現在shopの公式根拠ではない。
 関連Shopee／Bridge／OAuth枠、原承認・実コード・保存identity・Safety・UNKNOWN停止は省略しない。
 準備CSV／TXTのTRUEは外部一括出品の無条件許可ではない。ASINを手動で既存出品ツールへ渡し、
@@ -259,7 +264,7 @@ SG Brand responseにmarketplace / Category echoがないため、server内部の
 
 正式統合のA1準備は[Runbook](RUNBOOK_CHATGPT_CODEX.md#統合準備a1参照権限失敗診断)に従う（DEC-0156）。
 現行の参照と今回の許可の不足を事前に整理し、offline成立・実鍵確認・実運用効果を分ける。
-A2の承認binding変更はA1の効果確認後、Bの署名範囲変更はA2後も負担が残る場合に必要性を別判断する。
+A1の正式採用と効果評価が終わるまでA2・Bを保留し、その後も別のOwner判断なく追加開発へ着手しない。
 
 ## Required Decisions
 
@@ -275,4 +280,5 @@ A2の承認binding変更はA1の効果確認後、Bの署名範囲変更はA2後
 - DEC-0152 — 通常調査・offline開発と正式受入の分離、停止範囲、現行手順の入口。
 - DEC-0153 — 承認集約・自律継続、具体票・再試行・副作用／失効境界、P5の個別禁止優先。
 - DEC-0154 — leaf未確定時のCategory取得専用scope、単発枠・商品準備との分離と累積計上。
+- DEC-0155 — Shopee公式問い合わせの不実施、却下済み手段の再要求防止、一次資料と実API HOLDの維持。
 - DEC-0156 — A1の統合準備、参照・許可の分離、失敗診断、追加gateの理由とcoverageの維持。

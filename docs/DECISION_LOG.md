@@ -1862,6 +1862,16 @@
 - 後続: 取得した一覧は用途確認の材料であり、商品準備の許可・新session公式receiptを生成しない。先行scopeのleaf追加や台帳書換えで商品準備へ昇格せず、後続票の完全scope・別承認と累積予約／消費の計上を要求する。offline成功を実設置・実API・F08/C12・実務Beta完成へ昇格しない。
 - 検証／rollback: PH/SG合成設置・typed authority・HTTPと実SDKのoffline trace、AppTestで単発取得・表示・未承認/余分な操作・不明結果・scope転用の拒否を検証する。通常revertで戻せるが、取得専用storeを旧コードで再初期化せず保全し、既存の予約・UNKNOWN・履歴・Owner指定を消さない。
 
+## DEC-0155 — Shopee公式問い合わせを行わず、却下済み手段の再要求を防ぐ
+
+- 日付: 2026-10-27
+- authority／目的: OwnerはShopee Support Center等への問い合わせを実施せず、同じ問い合わせの再承認依頼や公式回答待ちを開発工程・Beta完成条件へ組み込まないと明示した。この手段に関する恒久判断を正式文書へ反映し、将来タスクでの重複要求を防ぐ。実API試験そのものの永久禁止ではない。
+- 決定: 公式公開資料・Developer Console・既存資料を優先し、許可済み参照範囲で問い合わせを使わず既存安全条件を満たす方法を検討する。問い合わせ不実施をHOLD解除条件にも新しいBeta blockerにも設定しない。未確認情報を確認済みへ昇格せず、PRIMARY_SOURCE_UNVERIFIEDとPH Category実API HOLDを維持する。
+- 共通運用: 関連する正式文書と現在有効なOwner判断を確認し、却下された手段を実質的な条件不変のまま再提案・再承認依頼しない。タスク名や票の変更を新条件にしない。新事実・条件変更は差分を明示するが、継続的な不実施方針はOwner自身の明示変更まで維持し、その変更を促す反復依頼を行わない。詳細はRunbookとする。
+- 停止範囲／後続: 一次資料を確認できない場合は影響する実API操作とその依存工程を停止し、独立したoffline開発・検証は継続できる。別の方法で必要な一次資料・権限・有限枠等の既存条件が成立すれば、具体票に基づく実API試験のOwner判断を改めて求められる。これは問い合わせの再承認依頼ではなく、別操作の明示判断である。
+- 維持する契約: DEC-0072／DEC-0073のmandatory gates・最終承認、DEC-0148の操作別一次資料、DEC-0150の正式Anchor・fresh binding、DEC-0152の操作別停止、DEC-0153の承認集約・再試行制限、DEC-0154の取得専用scopeを緩和しない。PH/SG protected capability、Safety・予算・credential保護、送信前予約・UNKNOWN／HOLD／HARD_STOPを維持する。過去の個別承認・非公開Task Context・Evidence・履歴を改訂・削除せず、新判断の適用と過去記録を区別する。
+- 範囲／rollback: CURRENT_WORK、Runbook、P5実施設計と本Decisionだけを最小修正し、新制度・台帳・定期監査を追加しない。製品コード、Governance engine／State／設定、実API・credential・有料処理・実商品・実設置・既存データは変更しない。通常revertまたはOwnerの新判断を新Decisionへ追記して修正し、既存Decision本文を書き換えない。
+
 ## DEC-0156 — A1で統合準備と失敗診断を改善し、署名・bindingの契約は維持する
 
 - 日付: 2026-10-27

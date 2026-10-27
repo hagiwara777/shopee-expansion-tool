@@ -164,6 +164,16 @@ DEC-0148により[P5操作別preflight](P5_CONNECTION.md)を適用する。未�
 過去DEC/現clientのpage_size=100・10ページ契約は実装根拠であって最新外部仕様の確認済み宣言ではない。
 部分取得や第三者SDKを公式完全取得の根拠へ昇格しない。
 
+2026-10-27のOwner明示判断（DEC-0155）により、Shopee Support Center等への公式問い合わせは実施せず、
+同じ問い合わせの再承認依頼も行わない。公式回答待ちを開発工程・Beta完成条件へ組み込まない。
+公式公開資料・Developer Console・既存資料を優先し、許可済みの参照範囲で必要な一次資料を確認する。
+問い合わせを使わず既存安全条件を満たす方法を検討し、問い合わせ不実施をHOLD解除条件にも新しいBeta blockerにもしない。
+PRIMARY_SOURCE_UNVERIFIEDとPH Category実API HOLDは維持する。一次資料を確認できなければ影響する実API操作と
+その依存工程を停止し、独立したoffline開発・検証は継続できる。未確認情報を確認済みにはしない。
+これは実API試験の永久禁止ではない。別の方法で必要な一次資料・権限・有限枠等の既存条件を満たせれば、
+実API試験の具体票について改めてOwner判断を求められる。既存承認境界・mandatory gates・PH/SG protected capability、
+Safety・予算・credential保護・公式一次資料の確認要件を緩和しない。
+
 認証は既存Google Sheet Access Token Sourceの市場別Bridge Viewer読み取りを提案する。
 expected shop照合、操作ごと最新token取得、Source失敗時silent fallback禁止、Mapper refresh禁止を維持する。
 Bridge readはShopee requestと別集計で最大63/市場を提案。Google認証refresh等の必要通信も事前に列挙し、
