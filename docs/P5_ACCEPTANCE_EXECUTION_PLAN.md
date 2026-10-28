@@ -180,6 +180,61 @@ Bridge readはShopee requestと別集計で最大63/市場を提案。Google認�
 credential作成/変更・Google側同期変更・権限付与は本計画のAPI承認に含めない。
 既存Keepa key/OpenAI key/Partner設定/Service Accountは非公開参照だけを記録し、本文を表示・複製しない。
 
+### 5.1 Category単発試験の事前条件と実測
+
+leaf取得が必要な場合は、DEC-0148 / DEC-0154の取得専用scopeを使い、必要な事前条件を揃えた後、
+別承認したCategory単発試験を商品準備・P5実務受入より先に行う。接続は既存P5経路とし、
+commerce-api-coreへの移行・全面修正や、未使用Brand / Attribute / Keepa / OpenAIの受入を先行条件にしない。
+本節は9・10節の既存非公開票へ適用する操作別の具体化であり、新しい票・認可engine・live例外を作らない。
+
+| 段階 | 既存票で固定・記録する内容 | 扱い |
+|---|---|---|
+| 送信前 | 対象市場・App/shopと根拠、原Owner承認・操作集合・期限/初回停止等の終了、固定release/実行対象、承認済み参照、保存identity/backupと停止方法 | 実値・原文・所在は非公開票。実設置・参照利用・API操作の許可を相互推定しない。作成後store IDは実作成後に結合し仮値を使わない |
+| 一次資料の事前照合 | Category本文・資料版/取得日/body digest、当該App/shopの権限根拠、request/response・全件/paging・rate limitの根拠と確認範囲 | 一般的な対応App種別と当該App/shopの権限を区別する。未確認項目があればPRIMARY_SOURCE_UNVERIFIEDのまま。単発・枠1を公式rate limitの根拠にしない |
+| 操作と上限 | `shopee.category` / `bridge` / `auth`だけをallowlistとし各物理send枠1。CategoryはGET・production host・language=en。leaf空集合、商品探索なし、他サービス枠0 | 枠は上限であり必ず3送信する指示ではない。実token・署名・認証付きURLを票や結果へ保存しない。初期表示/再描画は通信0・secret本文未読を維持 |
+| 試験で実測 | 当該shopの認証・Bridge照合とCategory取得の実成否、実応答のraw/normalized件数・ID/parent/name/leaf/path整合、送信数と送信前予約・結果 | 実接続の成功を試験前の完了条件へ戻さない。事前の仕様/権限根拠は省略せず、合成応答・過去成功・一般権限資料を今回の実成功にしない |
+| 試験終了後 | 一覧と結果を保全し、後続商品票で用途・leaf・現在資料・完全scopeを固定する | 先行scopeを書き換えず、先行予約/消費を累積上限へ含める。別承認前はBrand・商品準備・出力へ進めない |
+
+送信前の依存項目に空欄/UNVERIFIEDがあれば、10節どおりBLOCKEDとして実APIの最終承認を求めない。
+当該shopでの実認証・取得成功は試験結果で確認するため、これ自体を事前に証明する試験の追加は要求しない。
+公式問い合わせはDEC-0155どおり実施せず、閲覧可能な公式資料・Developer Console・既存資料の根拠を使う。
+
+#### 保管済みCategory一次資料の照合範囲
+
+2026-10-28のoffline読取では、次の保存PDFを本文・該当ページ画像・ファイルSHA-256で照合した。
+資料identityはこの記録、実ファイルの所在/参照・照合者/日時と今回scopeへの結合は非公開票で保持する。
+ローカル配置やファイル名だけで真正性・現在性・実行許可を判定せず、自動探索・credential読込を追加しない。
+
+- 資料: `v2.product.get_category.pdf`（7ページ）。[公式元URL](https://open.shopee.com/documents/v2/v2.product.get_category?module=89&type=1)。
+- 資料上の印刷日時: 2026-10-24 07:22。公式APIの改訂日や現在も変更がないことの証明とは区別する。
+- ファイルSHA-256: `594cadda9de3f1f9bd0dd20847462f2ebe294005c8109c5ddc7f361abeac20e7`。
+
+| 参照箇所 | 読取で確認した内容 | 今回の実行前に残る照合 |
+|---|---|---|
+| p.1–2 | GET path/production host、partner_id/timestamp/access_token/shop_id/sign、署名の入力とHMAC-SHA256、language（PH/SGはen） | 現在使用する仕様・署名実装・対象市場との一致。印刷済み本文だけで現在性をverifiedにしない |
+| p.3 | `response.category_list`、ID/parent・名称・`has_children`、error/message/warning/request_id | 実応答と全raw行の検査・leaf/path整合は試験結果。記載のない独立したmarket/shop echoを仮定しない |
+| p.2–3 | 掲載された要求/応答にページ指定・継続fieldはない | 現行の全件/paging契約の根拠との照合。field不掲載だけで全件保証を確定しない |
+| p.6 | API Permissionsに一般的な対応App種別が掲載される | 今回の個別App/shopの権限・有効な認可との結合。一般一覧を個別権限の証明にしない |
+| p.1–7 | この保存資料では数値rate limitの記載を確認できない | 閲覧可能な公式制限根拠の照合。未確認の数値や「1回だから制限なし」を補わない |
+
+この部分照合だけで`primary_sources.category.verified=True`にせず、現在の必要項目が揃うまで
+PRIMARY_SOURCE_UNVERIFIEDとPH Category実API HOLDを維持する。実資料の未結合と、試験未実施を区別する。
+PDF本文・token・個別shop情報はGitへ複製しない。未使用Brand資料は本単発試験の必須資料に追加しない。
+
+#### 単発試験の結果と合否
+
+結果は10節の既存結果欄へ、対象scope・market/shop参照・release・session・時刻・資料参照と結合して記録する。
+
+| 結果 | 記録・判断 |
+|---|---|
+| NOT_RUN / BLOCKED | 試験未実施、または事前条件が未成立。試験成功へ置換しない。送信0だけで参照読込・予約・部分作成も0だったと推定しない |
+| PASS（Category単発のみ） | 現在承認された経路でBridgeのmarket/shop照合とCategory取得が成功。HTTP/application応答・全raw行・件数・重複/欠損/循環・親子/leaf/pathが現行validatorに適合し、leaf一覧を取得。Category実送信1、Bridge実送信1、Google auth実送信0または1、他API0、全送信が事前予約と対応し結果が保存される |
+| FAIL / 結果不明 | auth/Bridge失敗、HTTP/application error、timeout、parse/階層不整合、枠/保存/checkpoint障害等では停止・予約/UNKNOWN/履歴保全。自動再送・診断API・枠resetを行わず、受信済み部分を成功へ昇格しない |
+
+失敗・429・timeoutを意図的に発生させる追加live試験は含めず、異常系はofflineで検証する。
+単発PASSは当該scopeの接続/取得確認に限る。サービスの数値rate limit、他市場/shop、Brand完全性、
+商品Safety・準備許可、F08/C04/C12・P5全体の実務受入を証明しない。
+
 ## 6. 保存先・releaseと最小接続差分
 
 新規P2 rootはD固定ドライブ上のコード外`P5_DATA_ROOT`を第一候補とする。
