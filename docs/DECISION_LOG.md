@@ -1882,3 +1882,14 @@
 - 追加gate: 現行の分類・component・capabilityによる必須集合を先に確認する。追加はリスク・coverageに対応する理由を既存記録へ残し、説明なく全件を足さない。Governance・PH/SGの必要回帰を失う削減や、CI jobと必須gateの混同を避ける。gate定義・CI・分類を本判断で変更しない。
 - 完成と後続: offline検証・候補公開の成立と、正式採用・実鍵成功・実際の中断削減を分ける。初回採用は変更前formal mainの手順を用い、候補が自身のgateを緩めない。現在参照の不整合が残れば正式統合は停止する。A1効果を確認し、十分なら終了する。A2のbinding／再承認条件とBの署名範囲再設計へ自動着手しない。
 - 維持／rollback: DEC-0072／0073、DEC-0091／0106、DEC-0150、DEC-0152／0153のOwner最終判断、署名・fresh Verify・exact binding・mandatory gates、HOLD／HARD_STOPとPH/SG protected capabilityを維持する。製品・State／Config／schema／engine、実鍵／Anchor、実API・実設置・既存データを変更しない。実行補助・Provider・関連testsと必要文書の通常revertで戻し、過去Decision・非公開Context・Evidence・停止履歴は保全する。
+
+
+## DEC-0157 — PH既指定1shopの個別App権限の実効性をCategory単発試験で確認する
+
+- 日付: 2026-10-28
+- authority／目的: Ownerは、PHの既指定1shopに限るCategory単発試験の契約修正・事前検査・関連tests・既存PRでのoffline検証とレビューを依頼した。実API・設置・秘密情報利用・main統合は実施しない。
+- 判断: 個別App権限の事前資料を特定できない状態と、Appが当該操作を実際に実行できるかを区別する。Category公式本文・版・要求応答・全件/paging・rateの根拠は事前確認を維持し、個別権限の実効性だけを当該単発試験の成否で確認できる。未確認をverifiedへ補完せず、数値rate limit非掲載を無制限とも新しい独立gateとも扱わない。
+- 限定条件: 詳細はP5_CONNECTIONとP5実施設計5.1節。既存の型付き原承認にP5CategoryPermissionTrialを結合し、trusted operatorが元の指定記録・PH・実shop・credential参照と現在票／scopeを照合する。取得専用scope・当該1件のallocationだけとし、Category／Bridge／auth各累積1、全体上限も一致、他枠0・商品探索なし・再送0を要求する。設定だけのflag、SG・他shop／参照、通常商品scope、複数allocation・枠拡大は拒否する。
+- 停止条件の置換範囲: DEC-0148／0154／0155とP5実施計画のうち、個別App権限の事前証明がないことによるadapter停止だけを上記条件へ限定して置換する。資料のverified=False、spec_verified=True、個別権限UNVERIFIED／根拠空欄を同時に保持し、成功後も元の欄を自動昇格しない。それ以外の仕様不足、原承認撤回／期限／binding不一致、実コード・起動・認証/shop・保存／backup・有限枠・送信前予約・失敗／UNKNOWN停止は変更しない。権限拒否・429・timeout・不正応答等では終了し、追加診断API・retry・枠resetをしない。
+- 保護・承認: Global StateのHOLD／HARD_STOP、mandatory gates、PH/SG protected、Safety、既存scope／claim／ledger／履歴と通常P5の事前権限検査を維持する。限定条件を使わない原承認recordのdigestは互換維持する。新しい認可engine・汎用loader・core移行は追加しない。本判断の採用だけではPH Category実API HOLDを解除せず、具体票・正式検証と実設置／既存秘密参照利用／APIの各明示承認を別に要求する。
+- 検証／後続／rollback: 合成原承認・保存先・HTTP／SDK traceで、限定経路・非適用条件・原承認再照合・追加送信拒否・予約保全・旧record digestを検証する。offline成功を実API・実設置・Owner実務受入にしない。後続の商品準備は完全scope・別承認・先行予約／消費の累積計上を必要とする。通常revertで戻すが、試験用recordやstoreを旧コードの通常承認へ読み替えず、予約・UNKNOWN・原指定・履歴を保全する。

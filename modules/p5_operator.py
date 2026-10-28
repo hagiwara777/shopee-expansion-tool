@@ -25,6 +25,8 @@ class OriginalOwnerRecord:
     @property
     def digest(self):
         approval = asdict(self.approval)
+        if self.approval.category_permission_trial is None:
+            approval.pop('category_permission_trial')  # Preserve existing reviewed record digests.
         approval['approved_at'] = self.approval.approved_at.isoformat()
         approval['expires_at'] = self.approval.expires_at.isoformat()
         approval['operations'] = sorted(self.approval.operations)
@@ -36,6 +38,8 @@ class P5OwnerAuthority:
                  clock=None):
         # Only the trusted operator supplies these after comparing the original
         # instruction's target, operations, limits, expiry/end and revocation.
+        # A Category permission trial also needs the original shop designation
+        # and explicit permission to test its still-unverified effective rights.
         # A deserialized APPROVED field is deliberately not accepted here.
         if type(reviewed_record) is not OriginalOwnerRecord or not callable(read_original) or not callable(read_ticket):
             raise P5Stopped('P5_OWNER_APPROVAL_UNVERIFIED')

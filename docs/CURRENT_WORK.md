@@ -62,11 +62,17 @@ Category限定はCategory、Brand取得と保存／準備出力はCategory＋Bra
 leaf未確定時は、[Category取得専用scope](P5_CONNECTION.md#leaf未確定時のcategory取得専用scope)で
 Category／Bridge／auth各1送信、他枠0・商品探索なしの新規offline接続を使える（DEC-0154）。
 通常の商品準備scopeのleaf必須、Owner原承認と公式仕様・実設置・実APIの別承認は維持する。
+PHの既指定1shopだけは、[個別App権限の単発確認契約](P5_CONNECTION.md#ph既指定1shopの個別app権限を単発試験で確認する契約)
+で権限の実効性を試験結果へ分離できる（DEC-0157）。型付き原承認・指定記録・対象/参照・単一allocationを結合し、
+Category／Bridge／auth各1・他0・再送0を要求する。権限UNVERIFIEDと仕様確認を分け、SG・通常商品scopeへ適用しない。
+他の一次資料不足・認証/shop・予算・保存等の停止とGlobal HOLD/HARD_STOPは維持する。採用だけでは実API HOLDを解除しない。
 Ownerの2026-10-27判断によりShopee公式問い合わせは実施せず、同じ問い合わせの再承認を求めない（DEC-0155）。
 公式回答待ちを開発工程・Beta完成条件にせず、公式公開資料・Developer Console・既存資料を優先する。
 [P5実施設計](P5_ACCEPTANCE_EXECUTION_PLAN.md#5-shopee認証の有限計画案)に従い、PRIMARY_SOURCE_UNVERIFIEDとPH Category実API HOLDを維持する。
 問い合わせ不実施はHOLD解除条件にも新しいBeta blockerにもしない。独立したoffline開発・検証は継続できる。
 必要な一次資料と既存条件が別の方法で成立すれば、既存gateを維持した実API試験のOwner判断を改めて求められる。
+Category単発試験の事前条件・保存済み資料と公開公式本文の照合範囲・実測合否は[P5実施設計5.1節](P5_ACCEPTANCE_EXECUTION_PLAN.md#51-category単発試験の事前条件と実測)に従う。
+必要条件の結合後に別承認の1回取得を商品準備・P5実務受入より先に行い、実接続成功は試験結果で確認する。共通API基盤への移行を先行条件にしない。
 先行scopeを商品準備へ書換えず、後続票に取得の予約／消費を含める。合成結果は現在shopの公式根拠ではない。
 関連Shopee／Bridge／OAuth枠、原承認・実コード・保存identity・Safety・UNKNOWN停止は省略しない。
 準備CSV／TXTのTRUEは外部一括出品の無条件許可ではない。ASINを手動で既存出品ツールへ渡し、
@@ -282,3 +288,4 @@ A1の正式採用と効果評価が終わるまでA2・Bを保留し、その後
 - DEC-0154 — leaf未確定時のCategory取得専用scope、単発枠・商品準備との分離と累積計上。
 - DEC-0155 — Shopee公式問い合わせの不実施、却下済み手段の再要求防止、一次資料と実API HOLDの維持。
 - DEC-0156 — A1の統合準備、参照・許可の分離、失敗診断、追加gateの理由とcoverageの維持。
+- DEC-0157 — PH既指定1shopの個別App権限を未確認のまま単発試験へ結合する限定条件、その他の停止・別承認の維持。
