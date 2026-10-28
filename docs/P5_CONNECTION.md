@@ -158,7 +158,7 @@ Windows callbackの合成検証は実ACL／volume／probe／listenerの実証で
 
 | 承認操作 | 必要な検査・関連操作 |
 |---|---|
-| `shopee.category` | Category公式本文・版・App/shop権限・全件/paging・request/response・rate limit。Shopee、Bridge、authの個別承認と正の有限枠 |
+| `shopee.category` | Category公式本文・版・App/shop権限・全件/paging・request/response・rate limit。個別権限の実効性だけは後述のPH単発限定契約（DEC-0157）を適用できる。Shopee、Bridge、authの個別承認と正の有限枠 |
 | `shopee.brand` | Category＋Brand公式資料、今回sessionのCategory取得binding・対象leaf、strict終端取得（最大10ページ）。Bridge/authを含む個別枠 |
 | `keepa.token/product/query` | 必要な操作だけ承認。Product/queryにはtoken承認も必要。承認ASIN／strict検索条件・JP・認証・requests／商品数／tokensと残高を送信前検査 |
 | `openai` | 現在価格のverified/reference/body digest、承認model・入力／出力bound・requests／USD。必要なkeyがなければclient生成前停止 |
@@ -186,7 +186,8 @@ preparation_limitも空／0とする。既指定ASINのbindingは保つが商品
 設置は従来の別承認・排他作成・ACL／probe・作成後の実store ID・claim／ledger検証を使う。
 取得専用では商品探索と資料更新journalを初期化せず、設定だけではpermit・credential・通信を作らない。
 原Owner承認、Category一次仕様／App・shop権限／rate等、実コード・起動観測・サービス別参照、
-送信前予約、失敗／UNKNOWN停止とcheckpointの検査を省略しない。
+送信前予約、失敗／UNKNOWN停止とcheckpointの検査を省略しない。個別App権限の実効性の事前証明だけは
+次節のPH既指定1shopに限って試験結果へ分離でき、未確認をverifiedにはしない。
 
 専用画面は明示した1回の取得と検証済み一覧のleaf表示だけを扱い、商品探索・Brand・準備出力へ接続しない。
 初期表示／再描画は0送信、予約後は再実行buttonを閉じる。合成応答は合成と表示し、公式根拠に昇格しない。
@@ -194,6 +195,27 @@ preparation_limitも空／0とする。既指定ASINのbindingは保つが商品
 後続の商品準備は用途・現在資料・完全scope・別承認を結合し、先行取得の予約／消費を累積上限へ含める。
 新sessionの公式receiptや未使用枠として先行scopeを再利用せず、既存データ・予約・履歴を保持する。
 コード採用・offline成立は、実設置・実API・実商品受入の許可／成功ではない。
+
+### PH既指定1shopの個別App権限を単発試験で確認する契約
+
+DEC-0157。`OperatorApproval.category_permission_trial`へ型付き`P5CategoryPermissionTrial`を明示する。
+trusted operatorは、原Owner指示と既存の指定記録を照合し、指定参照・PH・shop ID・credential参照を
+現在票／scopeへ一致させる。原承認のdigestと各操作前の再照合に含め、設定・JSONの自己申告だけでは有効化しない。
+
+- 対象はそのPH 1shop・取得専用scopeだけ。allocationは当該scopeの1件、操作はCategory／Bridge／authの3つだけ、
+  各累積枠は1で全体上限も一致させる。他サービス枠0・商品探索なし、再送0。SG・他shop／参照・通常商品scope・枠拡大は拒否する。
+- Category資料の`verified=False`、`spec_verified=True`、`app_shop_permission_status=UNVERIFIED`、
+  `app_shop_permission`空欄を同時に要求する。本文digest・版・全件/paging・要求応答・rateの根拠は従来どおり必須。
+  仕様の確認済みと個別権限の未確認を分け、正常応答後も元の未確認欄を自動更新しない。
+- この組合せに限り、個別API権限が未確認という理由だけのadapter停止を試験結果の確認へ分離する。
+  原承認・対象・認証/shop・実コード／起動・保存／backup・予算・送信前予約・失敗／UNKNOWN停止は維持する。
+  不正な限定記録は`P5_CATEGORY_PERMISSION_TRIAL_INVALID`、その他の必要資料不足は`PRIMARY_SOURCE_UNVERIFIED`で停止する。
+- 403／429／不正応答／timeout・認証不一致等では終了し、予約・不明結果・履歴を保全する。追加診断API・retry・枠resetは行わない。
+  成功は当該App/shop・操作・sessionの実効性の結果であり、数値rate limit・他API権限・通常運用の証明ではない。
+
+限定記録のない通常P5は事前の権限根拠を要求する。既存scope／ledger／claimと既存原承認recordのdigestは変更しない。
+Global StateのHOLD／HARD_STOP、PH/SG protected、実設置・秘密参照利用・実API・main採用の別承認は変更しない。
+本契約の採用だけではPH Category実API HOLDを解除せず、具体票・正式検証・各操作の明示承認を別に満たす。
 
 ## 探索と対象固定の二段階（offline接続）
 
@@ -291,8 +313,10 @@ P1/P2/P3/P4、F1/F2、Catalog、Keepa、画像、PH/SG protected回帰とmandato
 default HTTP関数をmockする正常出力testsは契約のsimulationであり、公式/live証拠ではない。
 実行結果・Git/PR/head・Owner判断はGit外Evidence/Task Context/GitHubに置く。
 
-Shopee現行公式API仕様はPRIMARY_SOURCE_UNVERIFIED。現行clientとfixtureの契約を実装しただけで、
-現行公式の全件取得・paging・権限・制限が確認済みとはしない。permit注入前に上表の承認操作が必要とする一次資料を確認する。
+現行clientとfixtureの契約を実装しただけで、Shopeeの全件取得・paging・権限・制限を確認済みとはしない。
+permit注入前に上表の承認操作が必要とする一次資料を確認し、不足はPRIMARY_SOURCE_UNVERIFIEDで停止する。
+公開本文の照合範囲は[P5実施設計5.1節](P5_ACCEPTANCE_EXECUTION_PLAN.md#51-category単発試験の事前条件と実測)、
+個別権限の未確認を残せる唯一の限定経路は上記DEC-0157とする。
 OpenAIの価格表は既存計算表を使う。paid送信は別途現在価格の確認参照を要求し、価格差があれば再見積り・最小修正する。
 対象shop/ASIN/leaf、認証参照、専用保存先/権限/backup/復旧、観測release/実行対象、有限枠、
 実API操作のOwner明示承認が揃うまでliveへ進まない。

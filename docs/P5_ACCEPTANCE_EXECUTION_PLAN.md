@@ -192,12 +192,18 @@ commerce-api-coreへの移行・全面修正や、未使用Brand / Attribute / K
 | 段階 | 既存票で固定・記録する内容 | 扱い |
 |---|---|---|
 | 送信前 | 対象市場・App/shopと根拠、原Owner承認・操作集合・期限/初回停止等の終了、固定release/実行対象、承認済み参照、保存identity/backupと停止方法 | 実値・原文・所在は非公開票。実設置・参照利用・API操作の許可を相互推定しない。作成後store IDは実作成後に結合し仮値を使わない |
-| 一次資料の事前照合 | Category本文・資料版/取得日/body digest、当該App/shopの権限根拠、request/response・全件/paging・rate limitの根拠と確認範囲 | 一般的な対応App種別と当該App/shopの権限を区別する。未確認項目があればPRIMARY_SOURCE_UNVERIFIEDのまま。単発・枠1を公式rate limitの根拠にしない |
+| 一次資料の事前照合 | Category本文・資料版/取得日/body digest、当該App/shopの権限根拠、request/response・全件/paging・rate limitの根拠と確認範囲 | 原則は事前確認。個別権限の実効性だけはDEC-0157のPH既指定1shop・型付き原承認を使う場合に限り未確認を残せる。一般的な対応App種別・内部枠1を個別権限や公式rate limitの根拠にしない |
 | 操作と上限 | `shopee.category` / `bridge` / `auth`だけをallowlistとし各物理send枠1。CategoryはGET・production host・language=en。leaf空集合、商品探索なし、他サービス枠0 | 枠は上限であり必ず3送信する指示ではない。実token・署名・認証付きURLを票や結果へ保存しない。初期表示/再描画は通信0・secret本文未読を維持 |
-| 試験で実測 | 当該shopの認証・Bridge照合とCategory取得の実成否、実応答のraw/normalized件数・ID/parent/name/leaf/path整合、送信数と送信前予約・結果 | 実接続の成功を試験前の完了条件へ戻さない。事前の仕様/権限根拠は省略せず、合成応答・過去成功・一般権限資料を今回の実成功にしない |
+| 試験で実測 | 当該shopの認証・Bridge照合とCategory取得の実成否、実応答のraw/normalized件数・ID/parent/name/leaf/path整合、送信数と送信前予約・結果。DEC-0157では個別API権限の実効性もこの成否で確認 | 実接続の成功を事前条件へ戻さない。事前の公式仕様・対象/認証参照・shop照合は維持し、合成応答・過去成功・一般権限資料を今回の実成功にしない |
 | 試験終了後 | 一覧と結果を保全し、後続商品票で用途・leaf・現在資料・完全scopeを固定する | 先行scopeを書き換えず、先行予約/消費を累積上限へ含める。別承認前はBrand・商品準備・出力へ進めない |
 
-送信前の依存項目に空欄/UNVERIFIEDがあれば、10節どおりBLOCKEDとして実APIの最終承認を求めない。
+送信前の依存項目に空欄/UNVERIFIEDがあれば、原則10節どおりBLOCKEDとして実APIの最終承認を求めない。
+唯一の例外は、[P5接続契約のPH個別権限単発確認](P5_CONNECTION.md#ph既指定1shopの個別app権限を単発試験で確認する契約)
+を満たす個別App権限の実効性欄だけである（DEC-0157）。`verified=False`と権限`UNVERIFIED`を保持し、
+仕様だけを別に確認済みとして結合する。既存の指定参照・shop・credential参照、単一allocationと累積上限を
+原Owner承認へ結合し、Category／Bridge／auth各1・他0・再送0を要求する。通常scopeやSGへ転用しない。
+これは当該adapter停止理由の限定変更であり、Global StateのHOLD/HARD_STOP・既存Safety・protected gate、
+実設置・秘密参照利用・実API・main採用の別承認を変更しない。本書の採用だけではPH Category実API HOLDを解除しない。
 当該shopでの実認証・取得成功は試験結果で確認するため、これ自体を事前に証明する試験の追加は要求しない。
 公式問い合わせはDEC-0155どおり実施せず、閲覧可能な公式資料・Developer Console・既存資料の根拠を使う。
 
@@ -219,8 +225,9 @@ commerce-api-coreへの移行・全面修正や、未使用Brand / Attribute / K
 | p.6 | API Permissionsに一般的な対応App種別が掲載される | 今回の個別App/shopの権限・有効な認可との結合。一般一覧を個別権限の証明にしない |
 | p.1–7 | この保存資料では数値rate limitの記載を確認できない | 閲覧可能な公式制限根拠の照合。未確認の数値や「1回だから制限なし」を補わない |
 
-この部分照合だけで`primary_sources.category.verified=True`にせず、現在の必要項目が揃うまで
-PRIMARY_SOURCE_UNVERIFIEDとPH Category実API HOLDを維持する。実資料の未結合と、試験未実施を区別する。
+この部分照合だけで`primary_sources.category.verified=True`にしない。DEC-0157でも権限未確認のまま
+仕様確認を分離し、それ以外の必要項目不足はPRIMARY_SOURCE_UNVERIFIEDで停止する。
+PH Category実API HOLDは別承認・正式検証まで維持し、実資料の未結合と試験未実施を区別する。
 PDF本文・token・個別shop情報はGitへ複製しない。未使用Brand資料は本単発試験の必須資料に追加しない。
 
 #### 公開公式本文による追加照合
@@ -237,7 +244,7 @@ PDF本文・token・個別shop情報はGitへ複製しない。未使用Brand資
 
 全件/pagingと429時の挙動の根拠は上記の範囲で確認済みとし、個別権限・数値閾値の未確認と混同しない。
 数値非掲載を新しい独立gateにはせず、制限根拠の確認範囲と不明値を記録する。未確認値をverifiedへ補完しない。
-必要項目が未結合の間は既存のPRIMARY_SOURCE_UNVERIFIEDとPH Category実API HOLDを維持する。
+DEC-0157の限定欄以外の必要項目が未結合ならPRIMARY_SOURCE_UNVERIFIEDで停止する。PH Category実API HOLDの別境界も維持する。
 
 #### 単発試験の結果と合否
 
@@ -280,7 +287,7 @@ P5のscope表示引数はP5_CONNECTIONに記載する。live許可loaderは提�
 | 最小差分候補 | 現行根拠・不足 | 保護・受入条件 |
 |---|---|---|
 | 明示P5接続adapter | typed authority・operator・同process initializerをoffline実装済み。実原承認sourceと起動担当の実登録は未結合。P4は模擬専用 | 承認実施票と実コード/市場/shop/run/保存/予算を照合し注入。UIフラグ反転や設定だけの許可は禁止 |
-| 現在の公式資料搬送 | strict receipt、default transport、各Shopee物理page前Bridge再取得と有限Bridge/auth予約をoffline接続済み。一次仕様・liveは未確認 | 現行一次仕様と実参照を照合してから使用。fake/保存JSONを公式扱いしない |
+| 現在の公式資料搬送 | strict receipt、default transport、各Shopee物理page前Bridge再取得と有限Bridge/auth予約をoffline接続済み。公開Category仕様の照合範囲は5.1節、liveは未実施 | 使用操作の現行一次仕様・実参照を照合。個別権限はDEC-0157の限定経路だけ試験で確認し、fake/保存JSONを公式扱いしない |
 | 両市場のAPI予約と実消費 | P5Ledger/P5KeepaBudgetのtoken予約・actual/UNKNOWN・送信前永続化は既に実装済み | 重複実装せず、trusted組成と明示再取得も同じledgerへ計上。F08 live実測は未実施 |
 | 選択後の商品資料更新 | 新規formatでjournal・P2先行失効・世代/revision照合・明示fresh取得をoffline接続。旧formatは資料変更停止 | 元selectionとscopeを保つ。旧run自動移行なし。半端な世代やUNKNOWNでは出力・再送を拒否 |
 | 画像live根拠 | P4は模擬検査だけ。既存画像providerに再送経路あり | 既存selector・疑義判断を共用し、全sendを制限。模擬検査のsource変更で代用しない |
@@ -379,7 +386,8 @@ Keepa観測との時刻差/丸め/販売なし/評価欠損を分け、異なる
 ## 10. 初回実行票の固定欄と再利用審査
 
 この節は非公開実施票の必須schemaとする。値・一次資料の所在・確認者・確認日時・SHAを
-各欄へ対応させ、今回要求する操作の依存欄に空欄/UNVERIFIEDが残る票は`BLOCKED`として最終実行承認を求めない。
+各欄へ対応させ、今回要求する操作の依存欄に空欄/UNVERIFIEDが残る票は原則`BLOCKED`として最終実行承認を求めない。
+例外は5.1節／DEC-0157のPH既指定1shop・Category単発試験の個別App権限欄だけとし、未確認を明記して型付き原承認へ結合する。
 技術方式はP5_LIVE_DESIGNに固定し、Ownerへhash計算や実装方式の選択を求めない。
 以下の状態を分離する：`Owner指定済み／実行Evidence未結合`、`実行Evidence照合済み`、
 `実行未承認／承認済み`。原指示確認はlive許可や現在商品の証明ではない。
@@ -428,6 +436,7 @@ Owner原指示を直接確認できた指定は`MISSING`に戻さず、最新資
 過去P5 Contextの設計承認・offline採用は今回の実行承認ではない。
 
 即停止は、Governance HOLD/HARD_STOP、票/実コード/scope/shop/credential/保存不一致、一次仕様未確認、
+DEC-0157の限定記録のない個別権限未確認、
 対象/資料/selection世代不一致、Safety停止、公式部分取得、有限枠不足/不明消費、保存/backup/容量検査失敗、
 未完了更新intent、PENDING/UNKNOWN投入lock、未承認AUTO_RULE、secret露出である。
 対応は対象process停止・現在出力失効・予約/履歴保持とし、retry・枠reset・資料の推測補完で継続しない。
@@ -463,7 +472,7 @@ API0票では使用しないAPI・credential・商品scopeの未結合を後工�
 1. 使用するCategory/Brand/Keepa token等の一次本文・版・権限・payload/応答・pagingを照合する。未使用操作は要求しない。
 2. 全shop実CSVの参照・取得時刻・SHA、商品同一性、操作者/確認者、再取得回数と有限枠を固定する。
 3. trusted起動担当の実コード・原承認source・現在票の読取契約と、固定release/entrypoint/port/新規root/ACL/probe/backup容量・復旧先を票へ結合する。
-4. 今回要求する操作の依存欄に空欄やUNVERIFIEDが残る票はBLOCKEDを維持する。補完後に9節の具体操作について設置と実行の承認を求める。
+4. DEC-0157の個別App権限欄以外で、今回要求する操作の依存欄に空欄やUNVERIFIEDが残る票はBLOCKEDを維持する。補完後に9節の具体操作について設置と実行の承認を求める。
 
 Owner指定、offline検証、formal採用、実設置、live実行、実務受入を別々に記録し、
 このリハーサルの成立だけで後段を完了扱いにしない。

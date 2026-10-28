@@ -15,7 +15,7 @@ import inspect
 from types import CodeType, FunctionType
 
 from modules.p5_runtime import (P5ExecutionPermit, P5Runtime, P5Stopped,
-    P5_OPERATIONS, required_primary_sources)
+    P5_OPERATIONS, P5_CATEGORY_ACQUISITION_OPERATIONS, required_primary_sources)
 from modules.sg_continuous_runtime import _digest
 
 
@@ -233,6 +233,15 @@ class P5ServiceCredentials:
 
 
 @dataclass(frozen=True, repr=False)
+class P5CategoryPermissionTrial:
+    """Original-Owner-reviewed designation, never a UI/config permission flag."""
+    owner_designation_ref: str
+    marketplace: str
+    shop_id: str
+    credential_ref: str
+
+
+@dataclass(frozen=True, repr=False)
 class OperatorApproval:
     owner_ref: str
     original_instruction_ref: str
@@ -246,6 +255,41 @@ class OperatorApproval:
     allocations: tuple  # immutable complete P5Scopes, PH/SG fixed allocation
     total_limits: tuple  # (budget name, ceiling), no market borrowing
     revoked: bool = False
+    category_permission_trial: P5CategoryPermissionTrial | None = None
+
+
+def _require_primary_sources(scope, approval, sources):
+    trial = approval.category_permission_trial
+    if trial is not None and (
+            type(trial) is not P5CategoryPermissionTrial
+            or not isinstance(trial.owner_designation_ref, str) or not trial.owner_designation_ref.strip()
+            or trial.marketplace != 'PH' or scope.marketplace != 'PH'
+            or trial.shop_id != scope.shop_id or trial.credential_ref != scope.credential_ref
+            or not scope.category_acquisition_only
+            or approval.operations != P5_CATEGORY_ACQUISITION_OPERATIONS
+            or approval.allocations != (scope,)
+            or any(Decimal(str(value)) != Decimal(str(getattr(scope, name)))
+                   for name, value in approval.total_limits)):
+        raise P5Stopped('P5_CATEGORY_PERMISSION_TRIAL_INVALID')
+    required = required_primary_sources(approval.operations)
+    if not isinstance(sources, dict) or not set(required) <= set(sources):
+        raise P5Stopped('PRIMARY_SOURCE_UNVERIFIED')
+    for name in required:
+        source = sources[name]
+        if (not isinstance(source, dict) or any(not source.get(key) for key in
+                ('body_digest', 'version', 'paging', 'request_response', 'rate_limit'))):
+            raise P5Stopped('PRIMARY_SOURCE_UNVERIFIED')
+        if trial is not None:
+            # Only effective App permission is deferred. The spec stays verified
+            # separately; neither this record nor a successful call flips it.
+            if (name != 'category' or source.get('verified') is not False
+                    or source.get('spec_verified') is not True
+                    or source.get('app_shop_permission_status') != 'UNVERIFIED'
+                    or source.get('app_shop_permission') not in (None, '')):
+                raise P5Stopped('PRIMARY_SOURCE_UNVERIFIED')
+        elif (source.get('verified') is not True or not source.get('app_shop_permission')
+                or source.get('app_shop_permission_status') == 'UNVERIFIED'):
+            raise P5Stopped('PRIMARY_SOURCE_UNVERIFIED')
 
 
 class P5TrustedAdapter:
@@ -327,13 +371,7 @@ class P5TrustedAdapter:
                            ('volume', 'acl', 'identities', 'capacity_ok'))):
             raise P5Stopped('P5_EXECUTION_TARGET_MISMATCH')
         sources = observed['primary_sources']
-        required = required_primary_sources(approval.operations)
-        if (not isinstance(sources, dict) or not set(required) <= set(sources)
-                or any(not isinstance(s, dict) or s.get('verified') is not True
-                    or any(not s.get(k) for k in ('body_digest', 'version', 'app_shop_permission',
-                                                 'paging', 'request_response', 'rate_limit'))
-                    for s in (sources[k] for k in required))):
-            raise P5Stopped('PRIMARY_SOURCE_UNVERIFIED')
+        _require_primary_sources(scope, approval, sources)
         # The Attribute request contract remains unresolved in this release.
         # Even a self-declared verified flag cannot enable its live operation.
         if not self.synthetic and 'shopee.attribute' in approval.operations:
