@@ -15,7 +15,7 @@ import subprocess
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
@@ -95,6 +95,7 @@ def build_evidence(
     anchor: dict[str, Any], repository: dict[str, Any], pull: dict[str, Any],
     comments: list[dict[str, Any]], private_key: Ed25519PrivateKey,
     *, observed_at: datetime | None = None,
+    signing_observer: Callable[[str], None] | None = None,
 ) -> dict[str, Any]:
     if verification.get("verification_mode") != "fresh":
         raise engine.GovernanceError(
@@ -148,7 +149,12 @@ def build_evidence(
         "scope": match[5].strip(),
         "observed_at": (observed_at or datetime.now(UTC)).astimezone(UTC).isoformat().replace("+00:00", "Z"),
     }
-    signature = base64.b64encode(private_key.sign(engine.canonical_bytes(receipt))).decode("ascii")
+    if signing_observer is not None:
+        signing_observer("UNKNOWN")
+    signature_bytes = private_key.sign(engine.canonical_bytes(receipt))
+    if signing_observer is not None:
+        signing_observer("SIGNED")
+    signature = base64.b64encode(signature_bytes).decode("ascii")
     record = {
         "evidence_id": f"owner-pr-{number}-comment-{comment['id']}", "schema_version": engine.SCHEMA_VERSION,
         "kind": "OWNER_ACCEPTANCE", "repository_id": str(repository["id"]),
@@ -172,19 +178,80 @@ def build_evidence(
     return record
 
 
+def _checked_private_key(raw_key: str, anchor: dict[str, Any]) -> Ed25519PrivateKey:
+    """Check the existing in-memory key before any network access or signing."""
+    try:
+        private_key = Ed25519PrivateKey.from_private_bytes(base64.b64decode(raw_key, validate=True))
+    except (ValueError, TypeError) as exc:
+        raise engine.GovernanceError(
+            "OWNER_PROVIDER_KEY_REQUIRED", "Provider署名鍵がありません。", engine.EXIT_HOLD,
+        ) from exc
+    public_key = private_key.public_key().public_bytes_raw()
+    if base64.b64encode(public_key).decode("ascii") != anchor.get("owner_evidence_public_key"):
+        raise engine.GovernanceError(
+            "OWNER_PROVIDER_KEY_MISMATCH", "Provider署名鍵がTrust Anchorと一致しません。", engine.EXIT_HOLD,
+        )
+    return private_key
+
+
+def _diagnostic(
+    decision: str, reason_code: str, stage: str, signing_state: str,
+    evidence_file: str | None = None,
+) -> None:
+    """Emit only controlled status fields, never exceptions, paths or key text."""
+    if re.fullmatch(r"[A-Z][A-Z0-9_]{0,79}", reason_code) is None:
+        reason_code = "OWNER_PROVIDER_INTERNAL_HOLD"
+    value = {
+        "decision": decision, "reason_code": reason_code, "stage": stage,
+        "signing_state": signing_state,
+    }
+    if evidence_file is not None:
+        value["evidence_file"] = evidence_file
+    print(json.dumps(value, ensure_ascii=True, separators=(",", ":")))
+
+
 def main() -> int:
     raw_key = os.environ.pop(PRIVATE_KEY_ENV, "")
     parser = argparse.ArgumentParser(prog="owner-comment-provider")
-    parser.add_argument("--context", required=True)
-    parser.add_argument("--verification", required=True)
-    parser.add_argument("--summary", required=True)
-    parser.add_argument("--output-dir", required=True)
+    parser.add_argument("--context")
+    parser.add_argument("--verification")
+    parser.add_argument("--summary")
+    parser.add_argument("--output-dir")
+    parser.add_argument("--check-key-only", action="store_true")
+    parser.add_argument("--diagnostic-json", action="store_true")
     args = parser.parse_args()
+    stage = "PRECONDITIONS"
+    signing_state = "NOT_SIGNED"
+
+    def observe_signing(state: str) -> None:
+        nonlocal stage, signing_state
+        signing_state = state
+        stage = "SIGN" if state == "UNKNOWN" else "SIGN_COMPLETE"
+
     try:
+        if not args.check_key_only:
+            missing = [name for name in ("context", "verification", "summary", "output_dir")
+                       if not getattr(args, name)]
+            if missing:
+                if not args.diagnostic_json:
+                    parser.error("signing requires --context, --verification, --summary and --output-dir")
+                raise engine.GovernanceError(
+                    "OWNER_PROVIDER_ARGUMENTS_REQUIRED", "署名に必要な入力がありません。", engine.EXIT_HOLD,
+                )
         _require_formal_main_activation(Path(__file__).resolve().parents[1])
+        stage = "ANCHOR_LOAD"
         anchor, _ = engine._load_anchor()
         if anchor is None:
             raise engine.GovernanceError("TRUST_ANCHOR_MISSING", "Trust Anchorがありません。", engine.EXIT_HOLD)
+        if args.check_key_only:
+            stage = "KEY_CHECK"
+            _checked_private_key(raw_key, anchor)
+            if args.diagnostic_json:
+                _diagnostic("CONTINUE", "OWNER_KEY_CHECK_OK", stage, signing_state)
+            else:
+                print("PASS: Provider key check completed (no GitHub, signature or Evidence)")
+            return engine.EXIT_CONTINUE
+        stage = "INPUT_VALIDATION"
         context = engine.load_json(Path(args.context))
         verification = engine.load_json(Path(args.verification))
         summary = engine.load_json(Path(args.summary))
@@ -192,27 +259,39 @@ def main() -> int:
             raise engine.GovernanceError(
                 "OWNER_VERIFICATION_NOT_FRESH", "fresh Verify結果だけをOwner Evidenceへ渡せます。", engine.EXIT_HOLD
             )
-        try:
-            private_key = Ed25519PrivateKey.from_private_bytes(base64.b64decode(raw_key, validate=True))
-        except (ValueError, TypeError) as exc:
-            raise engine.GovernanceError("OWNER_PROVIDER_KEY_REQUIRED", "Provider署名鍵がありません。", engine.EXIT_HOLD) from exc
-        public_key = private_key.public_key().public_bytes_raw()
-        if base64.b64encode(public_key).decode("ascii") != anchor.get("owner_evidence_public_key"):
-            raise engine.GovernanceError("OWNER_PROVIDER_KEY_MISMATCH", "Provider署名鍵がTrust Anchorと一致しません。", engine.EXIT_HOLD)
+        stage = "KEY_CHECK"
+        private_key = _checked_private_key(raw_key, anchor)
+        stage = "GITHUB_OBSERVE"
         subject = context["canonical"]["task"]["subject"]
         full_name = anchor["repository_full_name"]
         repository = _github_api(f"repos/{full_name}")
         pull = _github_api(f"repos/{full_name}/pulls/{subject['number']}")
+        comments = _comments(full_name, subject["number"])
+        stage = "RECEIPT_VALIDATION"
         record = build_evidence(context, verification, summary, anchor, repository, pull,
-                                _comments(full_name, subject["number"]), private_key)
+                                comments, private_key, signing_observer=observe_signing)
+        stage = "WRITE_EVIDENCE"
         digest = engine.evidence_digest(record)
         output = Path(args.output_dir) / f"{digest}.json"
         engine._write_output(output, engine.canonical_bytes(record))
-        print(f"PASS: GitHub Owner comment evidence generated: {output.name}")
+        if args.diagnostic_json:
+            _diagnostic("CONTINUE", "OWNER_EVIDENCE_CREATED", "COMPLETE", signing_state, output.name)
+        else:
+            print(f"PASS: GitHub Owner comment evidence generated: {output.name}")
         return engine.EXIT_CONTINUE
     except engine.GovernanceError as exc:
-        print(f"{exc.reason_code}: {exc.safe_message}", file=sys.stderr)
+        if args.diagnostic_json:
+            decision = "HARD_STOP" if exc.exit_code == engine.EXIT_HARD_STOP else "HOLD"
+            _diagnostic(decision, exc.reason_code, stage, signing_state)
+        else:
+            print(f"{exc.reason_code}: {exc.safe_message}", file=sys.stderr)
         return exc.exit_code
+    except Exception:
+        if args.diagnostic_json:
+            _diagnostic("HOLD", "OWNER_PROVIDER_INTERNAL_HOLD", stage, signing_state)
+        else:
+            print("OWNER_PROVIDER_INTERNAL_HOLD: Provider処理が停止しました。", file=sys.stderr)
+        return engine.EXIT_HOLD
 
 
 if __name__ == "__main__":

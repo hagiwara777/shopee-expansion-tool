@@ -1871,3 +1871,14 @@
 - 停止範囲／後続: 一次資料を確認できない場合は影響する実API操作とその依存工程を停止し、独立したoffline開発・検証は継続できる。別の方法で必要な一次資料・権限・有限枠等の既存条件が成立すれば、具体票に基づく実API試験のOwner判断を改めて求められる。これは問い合わせの再承認依頼ではなく、別操作の明示判断である。
 - 維持する契約: DEC-0072／DEC-0073のmandatory gates・最終承認、DEC-0148の操作別一次資料、DEC-0150の正式Anchor・fresh binding、DEC-0152の操作別停止、DEC-0153の承認集約・再試行制限、DEC-0154の取得専用scopeを緩和しない。PH/SG protected capability、Safety・予算・credential保護、送信前予約・UNKNOWN／HOLD／HARD_STOPを維持する。過去の個別承認・非公開Task Context・Evidence・履歴を改訂・削除せず、新判断の適用と過去記録を区別する。
 - 範囲／rollback: CURRENT_WORK、Runbook、P5実施設計と本Decisionだけを最小修正し、新制度・台帳・定期監査を追加しない。製品コード、Governance engine／State／設定、実API・credential・有料処理・実商品・実設置・既存データは変更しない。通常revertまたはOwnerの新判断を新Decisionへ追記して修正し、既存Decision本文を書き換えない。
+
+## DEC-0156 — A1で統合準備と失敗診断を改善し、署名・bindingの契約は維持する
+
+- 日付: 2026-10-27
+- authority／目的: OwnerはA1のoffline設計・実装・検証・候補公開とGitHub保護のread-only評価を進める方針を採用した。目的は技術管理の仲介と不要な中断を減らすことであり、新しい管理制度の構築ではない。実鍵・実Anchor利用、設定変更、正式統合は別承認とする。
+- 参照と準備: 現在のOwner原指定による非秘密の鍵参照と、今回PRの利用許可を別々に確認する。過去スクリプトの成功・CLOSED taskの許可から現在性を推定しない。不足は最終採用承認前に具体化し、鍵本体を探索せず該当操作を止める。既存Task Contextは原記録への索引とし、自由文の権限parser・新台帳を作らない。
+- 実行補助: Test-OwnerEvidencePreparationは非秘密のTask Context・参照索引と追加gate理由参照の不足をまとめる。KeyPathは文字列だけとし、鍵の現物・Anchor・Provider・通信・署名を呼ばない。入力整理成立は現行指定・許可・公開鍵一致・正式受入の成立ではない。実鍵を使う照合は別承認の既存実行環境から通常Providerのcheck-only拡張へ渡し、新しい鍵解決・署名入口を設けない。通常署名、formal-main起動制限、公開鍵照合、秘密非出力・一時利用・清掃、retryなしを維持する。詳細はRunbookとする。
+- 承認と失敗: 必要な別権限を個別判別可能な一括説明へまとめ、回数・終了・停止・保全を先に固定する。診断は安全なreason codeと段階、署名前拒否／署名済み／成否不明を保持する。Evidenceなしを署名0と推定せず、HOLD・UNKNOWNから自動再実行しない。技術gate成立を現行参照・許可の成立へ読み替えない。
+- 追加gate: 現行の分類・component・capabilityによる必須集合を先に確認する。追加はリスク・coverageに対応する理由を既存記録へ残し、説明なく全件を足さない。Governance・PH/SGの必要回帰を失う削減や、CI jobと必須gateの混同を避ける。gate定義・CI・分類を本判断で変更しない。
+- 完成と後続: offline検証・候補公開の成立と、正式採用・実鍵成功・実際の中断削減を分ける。初回採用は変更前formal mainの手順を用い、候補が自身のgateを緩めない。現在参照の不整合が残れば正式統合は停止する。A1効果を確認し、十分なら終了する。A2のbinding／再承認条件とBの署名範囲再設計へ自動着手しない。
+- 維持／rollback: DEC-0072／0073、DEC-0091／0106、DEC-0150、DEC-0152／0153のOwner最終判断、署名・fresh Verify・exact binding・mandatory gates、HOLD／HARD_STOPとPH/SG protected capabilityを維持する。製品・State／Config／schema／engine、実鍵／Anchor、実API・実設置・既存データを変更しない。実行補助・Provider・関連testsと必要文書の通常revertで戻し、過去Decision・非公開Context・Evidence・停止履歴は保全する。
