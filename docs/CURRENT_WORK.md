@@ -67,7 +67,7 @@ Ownerの2026-10-27判断によりShopee公式問い合わせは実施せず、�
 [P5実施設計](P5_ACCEPTANCE_EXECUTION_PLAN.md#5-shopee認証の有限計画案)に従い、PRIMARY_SOURCE_UNVERIFIEDとPH Category実API HOLDを維持する。
 問い合わせ不実施はHOLD解除条件にも新しいBeta blockerにもしない。独立したoffline開発・検証は継続できる。
 必要な一次資料と既存条件が別の方法で成立すれば、既存gateを維持した実API試験のOwner判断を改めて求められる。
-Category単発試験の事前条件・保存済み公式資料の部分照合・実測合否は[P5実施設計5.1節](P5_ACCEPTANCE_EXECUTION_PLAN.md#51-category単発試験の事前条件と実測)に従う。
+Category単発試験の事前条件・保存済み資料と公開公式本文の照合範囲・実測合否は[P5実施設計5.1節](P5_ACCEPTANCE_EXECUTION_PLAN.md#51-category単発試験の事前条件と実測)に従う。
 必要条件の結合後に別承認の1回取得を商品準備・P5実務受入より先に行い、実接続成功は試験結果で確認する。共通API基盤への移行を先行条件にしない。
 先行scopeを商品準備へ書換えず、後続票に取得の予約／消費を含める。合成結果は現在shopの公式根拠ではない。
 関連Shopee／Bridge／OAuth枠、原承認・実コード・保存identity・Safety・UNKNOWN停止は省略しない。

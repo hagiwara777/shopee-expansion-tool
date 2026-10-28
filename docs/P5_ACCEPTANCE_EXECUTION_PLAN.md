@@ -22,7 +22,7 @@ trusted adapter・資料世代更新・D保存先の設計契約は[P5 live設�
 | B：Resolver | 1商品URL・title指定済み／同一性・Amazon ASIN未結合 | 同左 | 原文・出所・source_id案を非公開票で保持。案のIDをP5形式へ暗黙変換せず、実行前に対応を固定 |
 | 既出品照合標本 | 0件とOwner確認済み。正例はNOT_RUN | 既存の正当な出品ASINがあれば別枠1件 | 最新全ショップCSVとの一致確認専用。架空の正例や新規準備poolへの二重投入を作らない |
 | 全ショップ資料 | 1shop・0件はOwner確認済み／最新0件資料・日時・SHA未結合 | 1shop・提供CSV全件包含はOwner確認済み／現物・日時・SHA未結合 | 事業上の指定を再質問せず、今回の実行資料と実shopを照合。PHもshop数0・CSV不要にしない |
-| 操作者／確認担当 | Owner指定待ち | Owner指定待ち | 同一人兼務可。Category・Brand・画像疑義の判断者を明記 |
+| 操作者／確認担当 | Owner指定済み／今回票への結合待ち | 同左 | 過去の原指定を回収し、今回の対象・実行Evidenceへ結合する。Category・Brand・画像疑義の判断者を再指定させない |
 
 一般計画は標準8商品（PH 4＋SG 4）、許容4〜12商品。指定URL各1件へ具体化した初回案は
 A2＋B1の各市場3商品・合計6商品であり、件数・枠は非公開票で再計算して別承認する。
@@ -156,8 +156,10 @@ Brandが少ページで終了した余裕を対象Category拡大へ使わない�
 
 公開公式reference（[Category](https://open.shopee.com/documents/v2/v2.product.get_category?module=89&type=1)、
 [Brand](https://open.shopee.com/documents/v2/v2.product.get_brand_list?module=89&type=1)、
-[Attribute](https://open.shopee.com/documents/v2/v2.product.get_attribute_tree?module=89&type=1)）の本文は公開取得で確認できなかった（2026-10-25の再確認も両操作ともHTTP 403）。
-現在の仕様・paging・shop権限・rate limitは、Ownerが閲覧可能な公式資料で実行前に確認する。
+[Attribute](https://open.shopee.com/documents/v2/v2.product.get_attribute_tree?module=89&type=1)）は、2026-10-25時点の公開取得では本文未確認だった（Category / Brandの再確認もHTTP 403）。
+2026-10-28には公開browserでCategory reference・関連guide・429のFAQ本文を確認した（5.1節）。
+Brand / Attributeの現行本文、当該App/shopの個別権限、数値の呼出制限はこの確認に含めない。
+使用操作の現在仕様・paging・shop権限・rate limitは、閲覧可能な公式資料と今回票を実行前に照合する。
 DEC-0148により[P5操作別preflight](P5_CONNECTION.md)を適用する。未使用Attribute仕様は要求せずproduction操作は禁止する。
 未使用OpenAIはallowlist外・requests/USD=0とし料金検証を要求しない。必要な画像検査は別に維持し、
 使用するShopee/Bridge/OAuthの個別枠を0にしない。上表は複数操作を含む提案であり、承認操作ごとに再見積りする。
@@ -220,6 +222,22 @@ commerce-api-coreへの移行・全面修正や、未使用Brand / Attribute / K
 この部分照合だけで`primary_sources.category.verified=True`にせず、現在の必要項目が揃うまで
 PRIMARY_SOURCE_UNVERIFIEDとPH Category実API HOLDを維持する。実資料の未結合と、試験未実施を区別する。
 PDF本文・token・個別shop情報はGitへ複製しない。未使用Brand資料は本単発試験の必須資料に追加しない。
+
+#### 公開公式本文による追加照合
+
+2026-10-28に、認証を行わず公開browserで次の本文を読取確認した。業務APIの試行ではない。
+取得本文・URL・観測日時・digestはGit外Evidenceへ保持し、APIの改訂日と閲覧日を区別する。
+
+| 公式資料 | 確認できた根拠 | 確認できない範囲 |
+|---|---|---|
+| [Category reference](https://open.shopee.com/documents/v2/v2.product.get_category?module=89&type=1) | GET / production host、署名・共通parameter、PH/SGのlanguage=en、要求にページ指定なし、`category_list`のID/parent/name/`has_children` | 対応App種別の一般一覧は個別App/shopの権限を証明しない。実認証・実応答は未実施 |
+| [商品作成前の準備guide](https://open.shopee.com/developer-guide/209)（表示更新日2025-09-19） | 当該shopで利用可能な全Categoryを返す。市場・販売者種別等で一覧が異なる。parent=0がroot、`has_children=false`がleafで、作成/更新にはleafを使う | 仕様の全件契約を確認したもので、今回取得のraw行・件数・階層整合の実測ではない |
+| [API呼出guide](https://open.shopee.com/developer-guide/16)（表示更新日2025-11-21） | Shop APIには認可されたshopの共通parameter・署名を使う | 当該Appの個別API権限・現在tokenの有効性は証明しない |
+| [Debugging FAQのHTTP 429項目](https://open.shopee.com/faq?categoryId=2054)（表示更新日時2025-05-16 11:58） | 制限到達時は429。頻度を下げ、頻繁な再試行を避ける。継続的な負荷で呼出しを制限され得る | 数値閾値は掲載を確認できない。内部枠1を公式上限・無制限の証明にしない |
+
+全件/pagingと429時の挙動の根拠は上記の範囲で確認済みとし、個別権限・数値閾値の未確認と混同しない。
+数値非掲載を新しい独立gateにはせず、制限根拠の確認範囲と不明値を記録する。未確認値をverifiedへ補完しない。
+必要項目が未結合の間は既存のPRIMARY_SOURCE_UNVERIFIEDとPH Category実API HOLDを維持する。
 
 #### 単発試験の結果と合否
 
