@@ -80,7 +80,7 @@ def test_shadow_does_not_mutate_facts_or_release_ph_sg_safety():
     assert [asdict(f) for f in facts] == original
     assert {m: apply_guardrails(rows, marketplace=m) for m in baseline} == baseline
     assert baseline["PH"][1]["guardrail_status"] == "BLOCK"
-    assert baseline["SG"][15]["guardrail_status"] == "REVIEW"
+    assert baseline["SG"][15]["guardrail_status"] == "BLOCK"
     assert baseline["PH"][14]["guardrail_status"] == "SAFE"
 
 
@@ -247,10 +247,11 @@ def test_investigation_groups_explain_existing_stops_without_new_review(tmp_path
     report = build_report([source], evidence_kind="SYNTHETIC", source_format="keepa_response")
     expected = {
         ("PH","KNIFE","BLOCK_WITH_ACCESSORY_SIGNAL","kitchen knife","internal_rule"):2,
-        ("PH","CONTACT_LENS","REVIEW_WITH_ACCESSORY_SIGNAL","contact lenses","shopee_policy"):1,
+        ("PH","CONTACT_LENS","BLOCK_WITH_ACCESSORY_SIGNAL","contact lenses","shopee_policy"):1,
         ("PH","CONTACT_LENS","SAFE_WITH_BODY_SIGNAL","",""):1,
-        ("SG","CONTACT_LENS","REVIEW_WITH_ACCESSORY_SIGNAL","contact lenses","shopee_policy"):1,
-        ("SG","CONTACT_LENS","REVIEW_WITH_BODY_SIGNAL","contact lens","shopee_policy"):1,
+        ("SG","CONTACT_LENS","BLOCK_WITH_ACCESSORY_SIGNAL","contact lenses","shopee_policy"):1,
+        # SG now BLOCKs this confirmed medical term, so it is no longer an
+        # unresolved SAFE/REVIEW body signal to investigate (DEC-0159).
     }
     for product in report["products"]:
         for observation in product["investigation_candidates"]:
@@ -334,7 +335,7 @@ def test_book_context_requires_own_jp_root_and_does_not_release_guardrail():
     before = apply_guardrails([own.guardrail_input()], marketplace="SG")
     classify_product(own)
     assert apply_guardrails([own.guardrail_input()], marketplace="SG") == before
-    assert before[0]["guardrail_status"] == "REVIEW"
+    assert before[0]["guardrail_status"] == "BLOCK"
 
 
 @pytest.mark.parametrize("family,body,accessory,paired_title", [

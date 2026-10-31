@@ -125,8 +125,8 @@ def test_manual_and_internal_whole_results_reasons_and_export_bytes_match(market
     assert internal.session_state["prelisting_gate_result"] == manual.session_state["prelisting_gate_result"]
     assert internal.session_state["prelisting_gate_exports"] == manual.session_state["prelisting_gate_exports"]
     gate = internal.session_state["prelisting_gate_result"]
-    expected = ("EXCLUDE" if title == "synthetic penalty product" or (description == "contains hemp" and market == "PH") else
-                "REVIEW" if "battery" in description or ("Contact lens" in title and market == "SG") or (root is None and market == "PH") else "ELIGIBLE")
+    expected = ("EXCLUDE" if title == "synthetic penalty product" or (description == "contains hemp" and market == "PH") or ("Contact lens" in title and market == "SG") else
+                "REVIEW" if "battery" in description or (root is None and market == "PH") else "ELIGIBLE")
     assert gate.rows[0].final_eligibility == expected
     before = internal.session_state["prelisting_gate_exports"]
     internal.run()

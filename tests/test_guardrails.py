@@ -807,6 +807,14 @@ SG_SAFETY_BASELINE_GROUPS = (
 )
 
 
+OWNER_MEDICAL_BLOCK_TERMS = {
+    "condom", "condoms", "コンドーム", "medical device", "medical devices", "医療機器",
+    "prescription medicine", "OTC medicine", "処方薬", "市販薬", "医薬品",
+    "prescription drug", "prescription drugs", "OTC drug", "OTC drugs",
+    "contact lens", "contact lenses", "コンタクトレンズ",
+}
+
+
 def sg_safety_baseline_rules():
     return [
         {
@@ -866,20 +874,27 @@ def test_v12_dictionary_rows_are_unique_complete_and_use_the_approved_contract()
 
     for row in v12_risk_rows():
         rule_id = row["note"].split(";", 1)[0]
-        assert row["action"] == "REVIEW"
+        assert row["action"] == ("BLOCK" if row["term"] in OWNER_MEDICAL_BLOCK_TERMS else "REVIEW")
         assert row["match_field"] == "title"
         assert row["match_type"] == "contains"
         assert row["source_type"] == "shopee_policy"
         assert row["enabled"] == "TRUE"
-        assert "title alone cannot determine" in row["note"]
+        if row["term"] not in OWNER_MEDICAL_BLOCK_TERMS:
+            assert "title alone cannot determine" in row["note"]
+        else:
+            assert "DEC-0159" in row["note"]
         if rule_id.startswith("CG-"):
             assert row["risk_category"] == "controlled_goods_unverified"
             assert "Official category:" in row["note"]
             assert "physical Controlled Goods main item is company-policy BLOCK" in row["note"]
         else:
-            assert row["risk_category"] == "license_or_certification_required"
-            assert "Category:" in row["note"]
-            assert "normal cross-border operations" in row["note"]
+            assert row["risk_category"] == (
+                "medical_or_therapeutic" if row["term"] in OWNER_MEDICAL_BLOCK_TERMS
+                else "license_or_certification_required"
+            )
+            if row["term"] not in OWNER_MEDICAL_BLOCK_TERMS:
+                assert "Category:" in row["note"]
+                assert "normal cross-border operations" in row["note"]
 
 
 def test_sg_safety_baseline_contains_exactly_the_approved_40_rules_and_metadata():
@@ -891,14 +906,24 @@ def test_sg_safety_baseline_contains_exactly_the_approved_40_rules_and_metadata(
 
     assert len(expected_rows) == 40
     assert len(expected_terms) == 40
-    assert actual_rows == expected_rows
-    assert len(all_rows) == 184
-    assert sum(row["enabled"] == "TRUE" for row in all_rows) == 184
+    assert len(actual_rows) == 40
+    for actual, expected in zip(actual_rows, expected_rows):
+        if actual["term"] in OWNER_MEDICAL_BLOCK_TERMS:
+            assert actual["action"] == "BLOCK"
+            assert actual["risk_category"] == "medical_or_therapeutic"
+            assert "DEC-0159" in actual["note"]
+            assert {k: v for k, v in actual.items() if k not in {"action", "note", "risk_category"}} == {
+                k: v for k, v in expected.items() if k not in {"action", "note", "risk_category"}
+            }
+        else:
+            assert actual == expected
+    assert len(all_rows) == 188
+    assert sum(row["enabled"] == "TRUE" for row in all_rows) == 188
     assert len({normalize_text(row["term"]) for row in all_rows}) == len(all_rows)
 
 
 @pytest.mark.parametrize("rule", sg_safety_baseline_rules(), ids=lambda rule: rule["term"])
-def test_every_sg_safety_baseline_term_is_title_only_review(rule):
+def test_every_sg_safety_baseline_term_preserves_scope_and_current_owner_action(rule):
     title_row = apply_guardrails([candidate(title=rule["term"])], marketplace="SG")[0]
     brand_row = apply_guardrails(
         [candidate(brand=rule["term"], title="ordinary household item")],
@@ -909,8 +934,9 @@ def test_every_sg_safety_baseline_term_is_title_only_review(rule):
         marketplace="SG",
     )[0]
 
-    assert title_row["guardrail_status"] == "REVIEW"
-    assert title_row["guardrail_status"] != "BLOCK"
+    assert title_row["guardrail_status"] == (
+        "BLOCK" if rule["term"] in OWNER_MEDICAL_BLOCK_TERMS else "REVIEW"
+    )
     assert rule["term"] in title_row["guardrail_matched_terms"].split("|")
     assert brand_row["guardrail_status"] == "SAFE"
     assert category_row["guardrail_status"] == "SAFE"
@@ -951,10 +977,10 @@ def test_sg_safety_baseline_does_not_leak_water_beads_rule_into_ph():
 
 
 @pytest.mark.parametrize("term", [row["term"] for row in v12_risk_rows()])
-def test_every_v12_title_rule_routes_its_own_term_to_review(term):
+def test_every_v12_title_rule_routes_its_own_term_to_current_owner_action(term):
     row = apply_guardrails([candidate(title=f"Featured {term} product")])[0]
 
-    assert row["guardrail_status"] == "REVIEW"
+    assert row["guardrail_status"] == ("BLOCK" if term in OWNER_MEDICAL_BLOCK_TERMS else "REVIEW")
     assert term in row["guardrail_matched_terms"].split("|")
 
 
@@ -1055,6 +1081,10 @@ PH_BLOCK_RULE_IDS = {
     *(f"PH-D{number:03d}" for number in range(59, 64)),
     *(f"PH-D{number:03d}" for number in range(66, 73)),
     *(f"PH-D{number:03d}" for number in range(73, 76)),
+    *(f"PH-D{number:03d}" for number in range(21, 26)),
+    *(f"PH-D{number:03d}" for number in range(28, 32)),
+    "PH-D051", "PH-D052",
+    *(f"PH-D{number:03d}" for number in range(90, 96)),
 }
 
 
@@ -1097,8 +1127,8 @@ def test_marketplace_defaults_to_existing_sg_dictionaries_and_normalizes_marketp
         sg_keyword_rows = list(csv.DictReader(csv_file))
 
     assert len(default_dictionaries.brand_rules) == 13
-    assert len(sg_keyword_rows) == 184
-    assert len(default_dictionaries.keyword_rules) == 184
+    assert len(sg_keyword_rows) == 188
+    assert len(default_dictionaries.keyword_rules) == 188
     assert default_dictionaries == explicit_sg_dictionaries == normalized_sg_dictionaries
     assert {rule.file_name for rule in default_dictionaries.brand_rules} == {"prohibited_brands_sg.csv"}
     assert {rule.file_name for rule in default_dictionaries.keyword_rules} == {"risk_keywords_sg.csv"}
@@ -1108,7 +1138,7 @@ def test_marketplace_ph_loads_only_ph_dictionaries_and_allows_zero_brand_rules()
     dictionaries = load_guardrail_dictionaries(marketplace="  ｐｈ ")
 
     assert dictionaries.brand_rules == []
-    assert len(dictionaries.keyword_rules) == 89
+    assert len(dictionaries.keyword_rules) == 95
     assert {rule.file_name for rule in dictionaries.keyword_rules} == {"risk_keywords_ph.csv"}
 
 
@@ -1158,9 +1188,9 @@ def test_ph_dictionary_contains_exactly_the_approved_rules_and_metadata():
     block_rows = ph_rules_with_action("BLOCK")
     review_rows = ph_rules_with_action("REVIEW")
 
-    assert len(rows) == 89
-    assert len(block_rows) == 31
-    assert len(review_rows) == 58
+    assert len(rows) == 95
+    assert len(block_rows) == 48
+    assert len(review_rows) == 47
     assert len(terms) == len(set(terms))
     assert {ph_rule_id(row) for row in block_rows} == PH_BLOCK_RULE_IDS
     assert {ph_rule_id(row) for row in review_rows}.isdisjoint(PH_BLOCK_RULE_IDS)
@@ -1653,3 +1683,77 @@ def test_new_ingredient_can_be_added_by_rule_v2_data_without_source_change(tmp_p
     assert guarded["guardrail_status"] == "BLOCK"
     assert guarded["guardrail_matched_terms"] == "Synthetic Ingredient"
     assert "ART-SYNTHETIC-INGREDIENT-V1" in guarded["guardrail_note"]
+
+
+@pytest.mark.parametrize("marketplace", ["SG", "PH"])
+@pytest.mark.parametrize("title", [
+    "第１類医薬品", "第2類医薬品", "第3類医薬品", "一般用医薬品", "市販薬",
+    "OTC tablets", "OTC medicine case", "prescription drug",
+    "医療機器", "medical device", "medical devices",
+])
+def test_owner_medicines_and_devices_are_excluded_in_both_active_markets(marketplace, title):
+    # Accessory overblocking is deliberate; no inferred exception is introduced.
+    row = apply_guardrails([candidate(title=title)], marketplace=marketplace)[0]
+    assert row["guardrail_status"] == "BLOCK"
+
+
+@pytest.mark.parametrize("marketplace", ["SG", "PH"])
+@pytest.mark.parametrize("title", ["医薬部外品", "薬用", "quasi-drug", "medicated cleanser"])
+def test_quasi_drug_wording_alone_requires_review_in_both_active_markets(marketplace, title):
+    row = apply_guardrails([candidate(title=title)], marketplace=marketplace)[0]
+    assert row["guardrail_status"] == "REVIEW"
+
+
+@pytest.mark.parametrize("title", ["育毛", "発毛促進", "hair growth", "hair loss", "diphenhydramine hydrochloride", "塩酸ジフェンヒドラミン"])
+def test_sg_specific_therapeutic_and_ingredient_blocks_survive_quasi_drug_relaxation(title):
+    row = apply_guardrails([candidate(title="薬用 " + title)], marketplace="SG")[0]
+    assert row["guardrail_status"] == "BLOCK"
+
+
+@pytest.mark.parametrize("field", ["ingredients", "activeIngredients", "specialIngredients", "description", "features", "shortDescription", "safetyWarning", "itemHighlights"])
+def test_sg_same_ingredient_is_blocked_outside_product_title(field):
+    row = {**candidate(title="ordinary soap"), field: ["塩酸ジフェンヒドラミン"]}
+    guarded = apply_guardrails([row], marketplace="SG")[0]
+    assert guarded["guardrail_status"] == "BLOCK"
+    assert f"fact_field={field}" in guarded["guardrail_note"]
+
+
+@pytest.mark.parametrize("field", ["description", "features", "shortDescription", "safetyWarning", "itemHighlights"])
+@pytest.mark.parametrize("text,status", [("管理医療機器", "BLOCK"), ("第2類医薬品", "BLOCK"), ("医薬部外品", "REVIEW"), ("薬用", "REVIEW"), ("hair growth", "BLOCK")])
+def test_sg_captured_medical_text_is_used_without_changing_ingredient_facts(field, text, status):
+    row = {**candidate(title="unlabelled product"), field: [text]}
+    guarded = apply_guardrails([row], marketplace="SG")[0]
+    assert guarded["guardrail_status"] == status
+    assert f"fact_field={field}" in guarded["guardrail_note"]
+
+
+def test_sg_fact_extension_does_not_widen_other_title_rules_or_missing_fact_decisions():
+    rows = [candidate(title="ordinary item"),
+            {**candidate(title="ordinary item"), "ingredients": [], "description": []},
+            {**candidate(title="ordinary item"), "description": ["pesticide electric kettle hemp"]}]
+    assert [r["guardrail_status"] for r in apply_guardrails(rows, marketplace="SG")] == ["SAFE"] * 3
+
+
+def test_sg_ingredient_matching_preserves_ascii_boundaries_and_full_width_normalization():
+    rows = [{**candidate(title="ordinary item"), "ingredients": ["ＤＩＰＨＥＮＨＹＤＲＡＭＩＮＥ"]},
+            {**candidate(title="ordinary item"), "ingredients": ["notdiphenhydramine"]}]
+    assert [r["guardrail_status"] for r in apply_guardrails(rows, marketplace="SG")] == ["BLOCK", "SAFE"]
+
+
+@pytest.mark.parametrize("row,status", [
+    (candidate(title="電子体温計 C232P"), "BLOCK"),
+    (candidate(title="体温計の収納ケース"), "BLOCK"),
+    ({**candidate(title="入浴剤"), "description": ["しっしんなどの肌にも効果があります。"]}, "REVIEW"),
+])
+def test_observed_unlabelled_device_and_medical_claim_holes_use_only_two_new_terms(row, status):
+    assert apply_guardrails([row], marketplace="SG")[0]["guardrail_status"] == status
+
+
+@pytest.mark.parametrize("field", ["ingredients", "activeIngredients", "specialIngredients", "description", "features"])
+@pytest.mark.parametrize("text", ["ジフェンヒドラミン", "ジフェンヒドラミン塩酸塩"])
+def test_observed_japanese_diphenhydramine_alias_matches_existing_ingredient_policy(field, text):
+    row = {**candidate(title="ordinary item"), field: [text]}
+    guarded = apply_guardrails([row], marketplace="SG")[0]
+    assert guarded["guardrail_status"] == "BLOCK"
+    assert "ジフェンヒドラミン" in guarded["guardrail_matched_terms"]
+    assert f"fact_field={field}" in guarded["guardrail_note"]

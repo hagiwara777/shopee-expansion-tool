@@ -256,7 +256,7 @@ def test_sg_rule_does_not_leak_into_ph_guardrails():
     assert sg_result.rows[0].guardrail_status == "REVIEW"
     assert ph_result.rows[0].guardrail_status == "SAFE"
     assert sg_ph_only_result.rows[0].guardrail_status == "SAFE"
-    assert ph_only_result.rows[0].guardrail_status == "REVIEW"
+    assert ph_only_result.rows[0].guardrail_status == "BLOCK"
 
 
 def test_empty_inventory_is_accepted_but_product_rows_without_evidence_fail_closed(monkeypatch):

@@ -415,6 +415,21 @@ def _prelisting_gate_test_app(monkeypatch) -> AppTest:
     return app.run()
 
 
+def _ingredient_sidecar(candidate_csv: bytes) -> bytes:
+    from modules.ingredient_safety import IngredientSafetyFact, rows_to_ingredient_safety_sidecar
+    candidates = parse_prelisting_candidate_csv(candidate_csv, filename="candidate.csv")
+    facts = tuple(IngredientSafetyFact(r.candidate_asin, "keepa", "NOT_CAPTURED", (), (), (), r.fetched_at)
+                  for r in candidates.rows)
+    return rows_to_ingredient_safety_sidecar(candidate_csv, candidates.rows, facts)
+
+
+def _upload_sg_safety_files(app, candidate_csv: bytes):
+    app.file_uploader(key="prelisting_gate_ingredient_safety_file").set_value(
+        ("ingredients.csv", _ingredient_sidecar(candidate_csv), "text/csv"))
+    app.file_uploader(key="prelisting_gate_product_text_safety_file").set_value(
+        ("product_text.csv", _product_text_sidecar(candidate_csv), "text/csv"))
+
+
 def _run_gate_button(app: AppTest):
     return next(
         button for button in app.button if button.label == "出品前チェックを実行"
@@ -497,6 +512,7 @@ def test_prelisting_gate_marketplace_switches_run_ph_empty_inventory_and_clear_r
     app.file_uploader(key="prelisting_gate_inventory_files").set_value(
         [("Shopee 更新_SG.csv", _empty_inventory_csv("SG"), "text/csv")]
     )
+    _upload_sg_safety_files(app, candidate_csv)
     app.run()
     assert len(app.exception) == 0
     assert _run_gate_button(app).disabled is False
