@@ -8,7 +8,7 @@ import pytest
 
 from modules.prelisting_candidate_csv import rows_to_prelisting_candidate_csv
 from modules.product_text_safety import rows_to_product_text_safety_sidecar
-from test_app_prelisting_gate import _prelisting_gate_test_app, _empty_inventory_csv, _run_gate_button
+from test_app_prelisting_gate import _prelisting_gate_test_app, _empty_inventory_csv, _run_gate_button, _ingredient_sidecar
 from test_safety_shadow_comparison import setup_case
 
 
@@ -66,6 +66,8 @@ def test_normal_gate_compares_accessory_without_releasing_review_and_rejects_sta
     candidates, raw, text, _, product = setup_case()
     app = _prelisting_gate_test_app(monkeypatch)
     app.file_uploader(key="prelisting_gate_candidate_file").set_value(("candidate.csv", raw, "text/csv"))
+    app.file_uploader(key="prelisting_gate_ingredient_safety_file").set_value(
+        ("ingredients.csv", _ingredient_sidecar(raw), "text/csv"))
     app.file_uploader(key="prelisting_gate_inventory_files").set_value(
         [("Shopee 更新_SG.csv", _empty_inventory_csv("SG"), "text/csv")])
     app.file_uploader(key="prelisting_gate_product_text_safety_file").set_value(

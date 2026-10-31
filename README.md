@@ -4,7 +4,12 @@
 Shopee調査CSV取込・ASIN Resolver・Expansionで候補を発見し、国別／共通の出品前保安ゲートで確認します。
 受け渡し対象はELIGIBLEになったASINだけで、FROMAXへ貼れる改行区切りを目標とします。
 役割の採用を、現行出口の対応完了や全商品の安全保証とは扱いません。
-カテゴリ・brand・価格・出品・在庫管理はFROMAXが担当します。
+カテゴリ・brand・属性・価格・出品・在庫管理はFROMAXが担当します。
+大量の候補収集はFROMAXのKeepaリサーチを主力とし、本ツールのリサーチはShopeeの商品からASINを特定するResolverに重心を置きます。
+Expansionは残し、新規開発の優先度を下げます。FROMAX CSV専用取込は追加しません（DEC-0160）。
+SGの手動入力では候補CSVと対応する成分・説明文の資料ファイルが必要です。個別商品の成分欠損だけではREVIEWにしません。
+保安ゲートの「FROMAX用NGキーワードの手動出力」から、国別の貼付用TXTと、短い英語・ブランド等の注意CSVを出せます。
+部分一致の注意点と操作は[FROMAX併用](docs/FROMAX_GATE_OPERATION.md)を参照してください。
 P5（v10を含む）は停止、PH Category単発取得は実施せず、カテゴリ・brand関連の新規開発は凍結します。
 既存の成果・記録・保存データは保全します。現在の優先順と停止条件は[CURRENT_WORK](docs/CURRENT_WORK.md)を参照してください。
 

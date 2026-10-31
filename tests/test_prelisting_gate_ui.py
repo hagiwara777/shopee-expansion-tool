@@ -19,7 +19,20 @@ from modules.prelisting_gate_ui import (
     summarize_prelisting_inventory,
     validate_inventory_file_duplicates,
     validate_shop_labels,
+    required_safety_file_errors,
 )
+
+
+@pytest.mark.parametrize("ingredient,text,errors", [
+    (False, False, 2), (True, False, 1), (False, True, 1), (True, True, 0),
+])
+def test_sg_requires_both_safety_files_not_nonempty_product_ingredients(ingredient, text, errors):
+    assert len(required_safety_file_errors("SG", ingredient_present=ingredient, product_text_present=text)) == errors
+
+
+def test_ph_existing_file_requirements_are_not_expanded_by_sg_change():
+    assert not required_safety_file_errors("PH", ingredient_present=False, product_text_present=True)
+    assert required_safety_file_errors("PH", ingredient_present=True, product_text_present=False)
 
 
 def _fingerprint(
