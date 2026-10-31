@@ -10,7 +10,11 @@ Expansionは残し、新規開発の優先度を下げます。FROMAX CSV専用�
 SGの手動入力では候補CSVと対応する成分・説明文の資料ファイルが必要です。個別商品の成分欠損だけではREVIEWにしません。
 保安ゲートの「FROMAX用NGキーワードの手動出力」から、国別の貼付用TXTと、短い英語・ブランド等の注意CSVを出せます。
 部分一致の注意点と操作は[FROMAX併用](docs/FROMAX_GATE_OPERATION.md)を参照してください。
+保安ゲートはShopee公式の監視ブランド一覧も照合します。IPRは全市場共通、Counterfeitは選択国だけをBLOCKにします。
+ブランド欄を正規化して一致を確認し、Kate SpadeでKATEを止めたり、親会社から別名の子ブランドを推測したりしません。
+電池を含むと資料から分かる商品は全市場でBLOCK、電動用替刃等で電池有無が不明な商品はREVIEWです（[ブランド・電池の判定](docs/BRAND_BATTERY_BLOCK.md)、DEC-0161）。
 P5（v10を含む）は停止、PH Category単発取得は実施せず、カテゴリ・brand関連の新規開発は凍結します。
+今回の監視ブランド照合だけを凍結の例外とし、カテゴリやBrand IDの取得・設定は再開しません。
 既存の成果・記録・保存データは保全します。現在の優先順と停止条件は[CURRENT_WORK](docs/CURRENT_WORK.md)を参照してください。
 
 以下は保全した既存機能・旧計画の説明です。旧P5／Catalog中心の完成条件・工程順を現在の着手指示には使用しません。
@@ -234,8 +238,9 @@ EXCLUDE` とします。
 Guardrailは、候補生成時に取得済みの `product_title`、`brand`、`category`、任意の
 Ingredient Safety Fact sidecarに含まれる `ingredients`、`activeIngredients`、
 `specialIngredients`、およびProduct Text Safety Fact sidecarの承認済み商品文章だけを使う
-CSV辞書ベースの確認です。AI判定、Web検索、Shopee API連携、Keepa APIの追加呼び出しは
+辞書・設定ベースの確認です。AI判定、Web検索、Shopee API連携、Keepa APIの追加呼び出しは
 行いません。
+監視ブランドの国別設定と電池同梱等の資料確認も、同じ取得済み情報へ適用します。
 
 Guardrail内部のステータスは次の3種類です。これらはGateの最終結果ではありません。
 
@@ -282,10 +287,15 @@ REVIEWはBLOCKと別管理し、具体的な追加確認・対応によって販
   - `title / brand / category / all` に対して、`exact / contains` で判定します。
 
 - `guardrails/prohibited_brands_ph.csv`
-  - Shopee PH向けブランド辞書です。現在は固定ヘッダーのみで、PHの有効ブランドルールはありません。
+  - Shopee PH向けの既存ブランド辞書です。CSVは固定ヘッダーのみで、公式監視ブランドは下記の共通・国別JSONで扱います。
 
 - `guardrails/risk_keywords_ph.csv`
   - Shopee PH向け禁止語・要確認語辞書です。
+
+- `guardrails/brand_monitoring/`
+  - Shopee公式のIPR共通一覧、CounterfeitのSG／PH一覧、承認済みの別表記を分離した設定です。
+  - ブランド欄だけを照合し、部分一致を使いません。設定の欠損・不正時は判定を停止します。
+  - 詳細と更新時の注意は[ブランド・電池の判定](docs/BRAND_BATTERY_BLOCK.md)を参照してください。
 
 各辞書CSVの列は以下に固定しています。
 
