@@ -145,7 +145,8 @@ Governance mandatory checksはbranch protectionと独立して評価します。
 skipped、neutral、古いheadはformal acceptanceを満たしません。mandatory technical gate完了前はOwner Acceptanceを要求しません。
 
 Owner Acceptance Summaryは、採用対象、変更、非対象、既存運用影響、主要リスク、確認済みEvidence、既知制約、
-承認後の意味、rollbackの9項目を事業用語で説明します。オーナーへhash、SHA、schema等の技術判断を要求しません。
+承認後の意味、rollbackの9項目を記録します。Ownerへの提示は「Ownerへの説明ルール」の4点・合計10行以内へまとめ、
+承認に必要な事業上の条件を本文に残します。9項目の記録・対象binding・検証方式は維持し、技術記録の読解やhash、SHA、schema等の評価をOwnerへ要求しません。
 
 ### 通常のOwner Acceptanceの入口
 
@@ -154,7 +155,7 @@ Owner Acceptance Summaryは、採用対象、変更、非対象、既存運用�
 
 1. **権限と環境を確定**：現在の対象PR・scope、実Anchorの読込許可、既存鍵の限定利用許可を既存Task Context／Owner指示で照合する。採用承認だけから秘密鍵利用を推定しない。使用するPythonのversion・依存と、formal main採用済みのGovernance一式・実import元を確認する。WindowsではUTF-8で起動し、既存の保護鍵を扱える許可済みユーザー／実行環境を用いる。環境の再構築・権限変更を自動実行しない。
 2. **現在のAnchorを確認**：許可された操作で「Trust Anchor」節の`local-file`（CI内だけ`ci-env-json`）を明示し、Owner管理元から指定された正本を解決する。欠落・二重指定・不一致時は停止する。履歴のbootstrap起点は現在HEADへ書き換えない。repo内の公開鍵・自己申告identityで代替しない。
-3. **技術条件と説明を固定**：現在Task Context・Validate・snapshot・fresh VerifyとCI Evidenceを照合し、mandatory technical gatesとPost-Merge Stability確認後に9項目Summaryを提示する。Ownerの現在対象への明示的最終承認を待つ。鍵利用許可が未成立なら、必要な権限もこの時点で具体的に説明する。
+3. **技術条件と説明を固定**：現在Task Context・Validate・snapshot・fresh VerifyとCI Evidenceを照合し、mandatory technical gatesとPost-Merge Stability確認後に9項目Summaryを固定する。Ownerへは「Ownerへの説明ルール」に従って提示し、現在対象への明示的最終承認を待つ。鍵利用許可が未成立なら、必要な権限もこの時点で具体的に説明する。
 4. **承認の搬送と署名**：下記方式Bを用いる。Owner指定の既存保護鍵だけを許可済みprocess内で一時解決する。DPAPI保護seedの場合はCurrentUserでメモリ内だけに復号し、Provider専用子processの`GOVERNANCE_OWNER_EVIDENCE_PRIVATE_KEY`へ渡す。親shellの恒久設定、コマンド引数、ログ、ファイルへ平文を置かない。Providerは入口で環境変数を除去し、派生公開鍵と現在Anchorの公開鍵を**GitHub取得・署名前**に照合する。不一致・鍵未設定はHOLD。子process終了とfinallyで一時環境を破棄する。子孫ghへ秘密鍵を渡さない。メモリの完全消去保証とは称さない。
 5. **採用直前と終了**：同じ現在対象のOwnerコメントをProviderで再観測し、5分以内の署名Evidenceとformal Verify CONTINUEを連続して確認する。mergeには別途その対象の最終承認が必要。merge後は「Post-Merge Stability」の検証とTask Context CLOSEDを行う。失敗時は当該操作を止め、鍵の新規生成・探索・交換・Anchor変更へ自動移行しない。
 
@@ -218,7 +219,7 @@ GitHubはPR author自身のApprove reviewを受け付けない。OwnerのPR Conv
 公開鍵をrepo内の自己申告から採用しない。秘密鍵をGit、Task Context、ログ、Evidence、コマンド引数へ
 書き出さない。鍵未設定・不一致ならHOLDとし、手製JSONや旧形式のOwner Evidenceで代替しない。
 
-technical gates完了後、下記「Post-Merge Stability」の反実仮想merge確認がPASSとなった場合だけOwner Acceptance Summaryを生成し、Ownerへ9項目と対象PR・事業scopeを提示して
+technical gates完了後、下記「Post-Merge Stability」の反実仮想merge確認がPASSとなった場合だけOwner Acceptance Summaryを生成し、「Ownerへの説明ルール」の4点・合計10行以内で対象PR・事業scopeと承認に必要な条件を提示して
 `WAITING_APPROVAL`で停止する。Ownerが現在対象のformal main採用を明示的に最終承認した場合だけ、
 Codexは承認された一行の事業scopeと現在のPR・head・Verify・Summaryから次のコメントを決定論的に生成・投稿する。
 OwnerへSHA・hash・bindingのコピーを要求しない。Owner silence、CI PASS、Codex判断、Summary生成だけでは承認しない。
@@ -348,6 +349,42 @@ WORK_BRIEFを使う条件は、目的が曖昧、複数module、責務変更、�
 `docs/templates/WORK_BRIEF.md`を使用し、すべての作業開始条件にはしない。
 pushまたはPRだけを理由に必須化しない。project名、chat名、worktree絶対pathを安全gateにしない。
 
+## Ownerへの説明ルール
+
+DEC-0158を適用する。Ownerは非エンジニアであり、技術方式や技術的な正当性の判断はCodexが担う。
+Ownerには事業上の違いを説明し、技術方式の選択を求めない。通常の報告も1行目を結論とし、
+確認済み・未確認・未実行を区別する。内部用語は避け、必要な場合は「今回の対象を特定する情報」等へ短く言い換える。
+
+### 承認依頼の4点・合計10行以内
+
+すべての承認依頼は、結論・リンクを含む依頼本文全体を合計10行以内の平易な日本語で書く。
+次の4点を必ず含め、詳細の別添を読むことや内部情報の転記をOwnerの承認条件にしない。
+承認対象・操作上限・主要リスク等、事業判断に必要な条件は本文に残す。
+
+```text
+結論：〈承認を求める具体的な操作と対象〉
+1. 何のためか：〈Shopee無在庫business用リサーチツールの完成にどう効くか〉
+2. 一番簡単な方法：〈最も簡単な実現可能な方法と、採らない場合の理由。採る場合は採用と明記〉
+3. 省いた場合の最悪の結果：〈依頼する作業・安全策を省いた場合のお金・アカウント・データへの具体的な影響〉
+4. いつ終わるか：〈見込み日数と、何回失敗したら方針を見直すか〉
+```
+
+影響がないと確認した部分は「影響なし」、分からない部分は「未確認」と書き、被害や完了日数を根拠なく断定しない。
+新しい安全策は、今回の目的に必要な理由、または後の工程で足りることを明記する。
+既存の必須安全条件と、今回追加を検討する対策を区別し、追加対策を自動的に着手条件へ積み増さない。
+
+### 同じ目的で2回続けて停止した場合
+
+目的達成を阻む停止が2回続いたら、追加修正より先に、より簡単な方法がないかを必ずOwnerへ提案する。
+既存機能の直接利用・工程の切分け等を比較し、Codexが推奨する最も簡単な実現可能な方法と、採らない場合の事業上の理由を示す。
+簡単にできる方法が見つからない場合も、その理由と次の最小作業を報告する。技術方式の選択をOwnerへ戻さない。
+停止回数は名前・版・チャットを変えてリセットせず、既存の作業報告に短く引き継ぐ。期待どおりの陰性テスト成功は停止に数えない。
+これは再試行の許可ではない。最初の停止で許可終了する操作はその時点で止め、既存の禁止・保全・別承認を維持する。
+承認範囲内の技術判断で進められる作業は自律継続し、事業条件や許可範囲が変わる場合だけ必要な判断を求める。
+
+本節は説明と方針見直しの手順である。9項目Summaryの内部記録、対象binding、mandatory technical gates、
+明示的最終承認、署名方式、HOLD／HARD_STOP、秘密保護、PH／SG保護を維持する。新しい承認台帳・検証engineは設けない。
+
 ## 承認集約・自律継続ルール v1
 
 DEC-0153を適用する。DEC-0073の通常開発承認を維持し、同一目的・同一リスク境界・同じ固定対象の
@@ -435,8 +472,8 @@ post-merge検証成功後のTask Context CLOSEDはそのタスクの終了であ
 - 同じ調査、ファイル読込、説明を繰り返し始めた。
 - Context Compaction等が発生し、長大なタスクになった。
 
-同一問題で修正・テストの反復が3回程度を超えたら、機械的に終了せず、
-タスク分割または原因分析への立返りを一度見直す。
+同じ目的で2回続けて停止した時点で「Ownerへの説明ルール」の簡単な方法の提案を先に行う。
+同一問題で修正・テストの反復が3回程度を超えた場合のタスク分割・原因分析の見直しも維持する。
 
 基本順序は下記「Post-Merge Stability」のNo Recursive Finalizationを適用する。
 終了・handoff時は今回の変更範囲に応じて次を実施する。
