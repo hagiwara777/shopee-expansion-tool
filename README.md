@@ -1,5 +1,16 @@
 # Shopee Expansion Tool Ver1
 
+現在の役割は**FROMAXへ入れる前のリサーチ・安全確認・ASIN受け渡し**です（[DEC-0159](docs/DECISION_LOG.md)）。
+Shopee調査CSV取込・ASIN Resolver・Expansionで候補を発見し、国別／共通の出品前保安ゲートで確認します。
+受け渡し対象はELIGIBLEになったASINだけで、FROMAXへ貼れる改行区切りを目標とします。
+役割の採用を、現行出口の対応完了や全商品の安全保証とは扱いません。
+カテゴリ・brand・価格・出品・在庫管理はFROMAXが担当します。
+P5（v10を含む）は停止、PH Category単発取得は実施せず、カテゴリ・brand関連の新規開発は凍結します。
+既存の成果・記録・保存データは保全します。現在の優先順と停止条件は[CURRENT_WORK](docs/CURRENT_WORK.md)を参照してください。
+
+以下は保全した既存機能・旧計画の説明です。旧P5／Catalog中心の完成条件・工程順を現在の着手指示には使用しません。
+新しい役割だけで既存のSafety停止や出力条件を解除せず、実出品・FROMAX自動投入は行いません。
+
 [PH・SG共通実務Betaの完成条件・差分・最小実装順](docs/PRACTICAL_BETA_COMPLETION.md)を設計正本とする（DEC-0137）。
 既存の共通入口やSG専用offline機能だけで完成とはせず、両国の通常操作・長期保存・出品状態・実商品受入を確認する。
 [P1の準備有効性契約](docs/PREPARATION_VALIDITY_P1.md)により、現在根拠が未搬送の商品は通常の準備出力を停止する。

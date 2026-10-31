@@ -58,7 +58,8 @@ def confirm(candidates, text=None, *, outcome="BODY_PRESENT", family="KNIFE", co
 def test_names_are_suspicion_never_confirmed_body(title, family):
     _, candidates, text = case(title)
     result = run(candidates, text)
-    assert result.rows[0].final_eligibility == "REVIEW"
+    expected = "EXCLUDE" if title in {"Contact lenses", "Contact lens case", "コンタクトレンズ保存ケース"} else "REVIEW"
+    assert result.rows[0].final_eligibility == expected
     assert "SG_BODY_REVIEW" in result.rows[0].reason_codes
     assert body_checks(candidates, text)[0]["outcome"] == "UNRESOLVED"
     assert family in body_suspicions(title)
@@ -94,8 +95,8 @@ def test_accessory_confirmation_only_resolves_our_new_question():
     _, candidates, text = case("Contact lens empty case")
     record = confirm(candidates, text, outcome="ACCESSORY_ONLY", family="CONTACT_LENS")
     result = run(candidates, text, record)
-    assert result.review_count == 1 and result.rows[0].guardrail_status == "REVIEW"
-    assert "GUARDRAIL_REVIEW" in result.rows[0].reason_codes
+    assert result.exclude_count == 1 and result.rows[0].guardrail_status == "BLOCK"
+    assert "GUARDRAIL_BLOCK" in result.rows[0].reason_codes
     assert "SG_BODY_REVIEW" not in result.rows[0].reason_codes
 
 
@@ -114,7 +115,7 @@ def test_accessory_cannot_release_other_stops(stop):
 
 def test_text_suspicion_and_unknown_do_not_require_category_or_extra_api():
     _, candidates, text = case("Ordinary boxed set", description="Contains contact lenses")
-    assert run(candidates, text).review_count == 1
+    assert run(candidates, text).exclude_count == 1
     _, ordinary, _ = case("Ordinary case", category="Kitchen knives", input_title="Contact lenses")
     assert run(ordinary).eligible_count == 1  # category/seed/input-title not Safety authority.
     assert body_suspicions("knife switch / camera lens / contact cleaner") == {}
@@ -159,7 +160,8 @@ def test_malformed_confirmation_never_passes(content):
 def test_both_families_are_independent_and_body_dominates():
     _, candidates, text = case("Kitchen knife and contact lens case set")
     record = confirm(candidates, text, outcome="ACCESSORY_ONLY")
-    assert run(candidates, text, record).review_count == 1
+    assert run(candidates, text, record).exclude_count == 1
+    assert run(candidates, text, record).rows[0].guardrail_status == "BLOCK"
     record = confirm(candidates, text, family="CONTACT_LENS", confirmations=record)
     assert run(candidates, text, record).exclude_count == 1
 
