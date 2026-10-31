@@ -1,5 +1,5 @@
 """Country-scoped official monitoring brands; exact primary-brand matching only."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import json
 from pathlib import Path
 import re
@@ -8,6 +8,7 @@ import unicodedata
 
 CONFIG_DIR = Path(__file__).resolve().parents[1] / "guardrails" / "brand_monitoring"
 COUNTRY_FILES = {"SG": "counterfeit_sg.json", "PH": "counterfeit_ph.json"}
+ALIAS_MARKETS = frozenset({"SG", "PH", "MY", "TH", "TW"})
 
 
 class BrandMonitoringError(ValueError):
@@ -26,7 +27,13 @@ def normalize_brand(value: str) -> str:
         else:
             latin_base = unicodedata.name(char, "").startswith("LATIN ")
             output.append(char)
-    return " ".join(unicodedata.normalize("NFC", "".join(output)).split())
+    value = "".join(unicodedata.normalize("NFC", "".join(output)).split())
+    value = value.replace("・", "").replace("·", "")
+    # Fold glyph variants next to Kana while keeping the long vowel itself:
+    # アリエール and アリエル must remain different complete brand names.
+    dash = r"[-‐‑‒–—―−]"
+    value = re.sub(rf"(?<=[ぁ-ゖァ-ヶー]){dash}|{dash}(?=[ぁ-ゖァ-ヶー])", "ー", value)
+    return value
 
 
 def primary_brand(value: str) -> str:
@@ -44,6 +51,13 @@ class MonitoringBrand:
 class BrandMonitoring:
     rules: tuple[MonitoringBrand, ...]
     aliases: dict[str, str]
+    _rule_keys: tuple[tuple[MonitoringBrand, frozenset[str]], ...] = field(init=False, repr=False)
+
+    def __post_init__(self):
+        # These official names are constant for the whole candidate batch.
+        object.__setattr__(self, "_rule_keys", tuple(
+            (rule, frozenset((normalize_brand(rule.term), primary_brand(rule.term))))
+            for rule in self.rules))
 
     def matches(self, value: str) -> tuple[MonitoringBrand, ...]:
         complete = normalize_brand(value)
@@ -52,8 +66,7 @@ class BrandMonitoring:
         primary = primary_brand(value)
         keys = {complete, primary} - {""}
         keys |= {self.aliases[key] for key in tuple(keys) if key in self.aliases}
-        return tuple(rule for rule in self.rules
-                     if {normalize_brand(rule.term), primary_brand(rule.term)} & keys)
+        return tuple(rule for rule, official_keys in self._rule_keys if official_keys & keys)
 
 
 def _read(path: Path) -> dict:
@@ -93,14 +106,26 @@ def load_brand_monitoring(marketplace: str, config_dir: str | Path | None = None
                 raise BrandMonitoringError(f"監視ブランド設定が不正です: {filename}")
             known.update(normalize_brand(v) for v in other)
     aliases = {}
+    seen_aliases = set()
     for item in raw_aliases:
-        if (not isinstance(item, dict) or set(item) != {"alias", "canonical"}
-                or any(not isinstance(v, str) or not v.strip() for v in item.values())):
+        if (not isinstance(item, dict) or not {"alias", "canonical"} <= set(item)
+                or set(item) - {"alias", "canonical", "markets"}
+                or any(not isinstance(item.get(k), str) or not item[k].strip() for k in ("alias", "canonical"))):
             raise BrandMonitoringError("監視ブランドの別表記設定が不正です。")
+        markets = item.get("markets")
+        if markets is not None and (
+                not isinstance(markets, list) or not markets
+                or any(not isinstance(m, str) or m not in ALIAS_MARKETS for m in markets)
+                or len(set(markets)) != len(markets)):
+            raise BrandMonitoringError("監視ブランドの別表記の対象市場が不正です。")
         key, canonical = normalize_brand(item["alias"]), normalize_brand(item["canonical"])
-        if key in aliases or key == canonical:
+        if not key or key in seen_aliases or key == canonical:
             raise BrandMonitoringError("監視ブランドの別表記が重複しています。")
+        seen_aliases.add(key)
         if canonical not in known:
             raise BrandMonitoringError("監視ブランドの別表記の参照先が公式設定にありません。")
-        aliases[key] = canonical
+        if key in known and key != canonical:
+            raise BrandMonitoringError("監視ブランドの別表記が別の公式ブランドと競合しています。")
+        if markets is None or marketplace in markets:
+            aliases[key] = canonical
     return BrandMonitoring(tuple(rules), aliases)
