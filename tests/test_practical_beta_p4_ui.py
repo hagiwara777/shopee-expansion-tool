@@ -17,7 +17,7 @@ from test_classification_p3 import wf, ingest, human
 from test_beta_workbench_p2 import product, selected
 from test_sg_initial_beta import inventory
 from test_expansion_gate_handoff import offline
-from test_app_prelisting_gate import _run_gate_button
+from test_app_prelisting_gate import _run_gate_button, _ingredient_sidecar
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT/'tests/fixtures/browser_e2e/ph_sg_practical_p4'
@@ -84,6 +84,10 @@ def accept_batch(app, market, group):
     upload(app, 'p4_producer', folder/(group+'_producer.json'))
     for field, suffix in [('candidate', 'candidate.csv'), ('product_text_safety', 'text.csv')]:
         upload(app, 'prelisting_gate_'+field+'_file', folder/(group+'_'+suffix))
+    if market == 'SG':
+        candidate_data = (folder/(group+'_candidate.csv')).read_bytes()
+        app.file_uploader(key='prelisting_gate_ingredient_safety_file').set_value(
+            ('ingredients.csv', _ingredient_sidecar(candidate_data), 'text/csv'))
     if market == 'PH':
         upload(app, 'prelisting_gate_image_safety_file', folder/(group+'_image.json'))
     app.file_uploader(key='prelisting_gate_inventory_files').set_value(
