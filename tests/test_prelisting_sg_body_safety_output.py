@@ -95,5 +95,5 @@ def test_accessory_confirmation_does_not_bypass_current_battery_or_other_guardra
     workflow.bind_product_evidence_files("synthetic-current-files")
     workflow.install_product_evidence_loader(loader)
     workflow.load_product_evidence(item)
-    assert workflow.product_review.current(item).guardrail_status == "REVIEW"
+    assert workflow.product_review.current(item).guardrail_status == "BLOCK"
     assert build_sg_beta_preparation_files((item,), workflow=workflow)[2] == 0

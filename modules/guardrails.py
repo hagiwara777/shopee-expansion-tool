@@ -8,6 +8,8 @@ import re
 from typing import Any, Iterable
 import unicodedata
 
+from modules.battery_presence import assess_battery_presence
+from modules.brand_monitoring import BrandMonitoringError, load_brand_monitoring
 from modules.community_ng import (
     CommunityNgAsinBlock,
     CommunityNgBrandBlock,
@@ -175,6 +177,10 @@ def apply_guardrails(
     marketplace: str = "SG",
 ) -> list[dict[str, str]]:
     normalized_marketplace = _normalize_marketplace(marketplace)
+    try:
+        monitoring = load_brand_monitoring(normalized_marketplace)
+    except BrandMonitoringError as exc:
+        raise GuardrailDictionaryError(str(exc)) from exc
     dictionaries = load_guardrail_dictionaries(
         dictionary_dir,
         marketplace=normalized_marketplace,
@@ -198,6 +204,14 @@ def apply_guardrails(
 
     for row in rows:
         matches = _find_matches(row, dictionaries)
+        for brand in monitoring.matches(str(row.get("brand") or "")):
+            matches.append(GuardrailMatch(GuardrailRule(
+                term=brand.term, normalized_term=normalize_text(brand.term), action="BLOCK",
+                risk_category="brand_ip", match_field="brand", match_type="exact",
+                source_type="shopee_brand_list",
+                note=f"公式監視ブランド（{brand.scope}）。親会社から子ブランドへの推定は行わない。",
+                file_name=f"brand_monitoring/{brand.file_name}", row_number=0,
+                dictionary_type="brand"), fact_field="brand"))
         if normalized_marketplace == "SG":
             matches.extend(_find_sg_medical_fact_matches(row, dictionaries.keyword_rules))
         matches.extend(_find_sls_shared_battery_matches(row, sls_shared_battery_rules))
@@ -884,14 +898,40 @@ def _find_sls_shared_battery_matches(
     row: dict[str, Any],
     rules: Iterable[GuardrailRule],
 ) -> list[GuardrailMatch]:
+    rules = list(rules)
+    text_values = _product_text_values(row)
     raw_values = [row.get("brand"), row.get("category")]
-    raw_values.extend(value for _, value in _product_text_values(row))
+    raw_values.extend(value for _, value in text_values)
     target_values = [normalize_text(value) for value in raw_values if value is not None]
-    return [
+    matches = [
         GuardrailMatch(rule=rule)
         for rule in rules
         if any(_contains_term(target, rule.normalized_term) for target in target_values)
     ]
+    evidence = assess_battery_presence(str(row.get("product_title") or ""), text_values)
+    if evidence is None:
+        return matches
+    # Keep all sixteen suspicion rules and their audit records unchanged.  The
+    # additional result is conditional evidence, not an unconditional BLOCK word.
+    matches.append(
+        GuardrailMatch(
+            rule=GuardrailRule(
+                term=evidence.term,
+                normalized_term=normalize_text(evidence.term),
+                action=evidence.action,
+                risk_category="shipping_restricted",
+                match_field="all",
+                match_type="contains",
+                source_type="internal_rule",
+                note=f"Battery presence evidence: {evidence.reason}; Owner battery exclusion policy",
+                file_name="battery_presence.py",
+                row_number=0,
+                dictionary_type="sls_shared",
+            ),
+            fact_field=evidence.fact_field,
+        )
+    )
+    return matches
 
 
 def _rule_matches(rule: GuardrailRule, target_values: dict[str, str]) -> bool:
@@ -1107,12 +1147,12 @@ def _apply_community_ng_matches_to_row(
         source_values: Iterable[str] = ("community_ng",)
         note_values: Iterable[str] = (_community_ng_match_note(match) for match in matches)
     else:
-        risk_values = (guarded_row.get("guardrail_risk_category", ""), "community_report")
+        risk_values = (*guarded_row.get("guardrail_risk_category", "").split("|"), "community_report")
         term_values = (
-            guarded_row.get("guardrail_matched_terms", ""),
+            *guarded_row.get("guardrail_matched_terms", "").split("|"),
             *(_community_ng_term(match) for match in matches),
         )
-        source_values = (guarded_row.get("guardrail_source", ""), "community_ng")
+        source_values = (*guarded_row.get("guardrail_source", "").split("|"), "community_ng")
         note_values = (
             guarded_row.get("guardrail_note", ""),
             *(_community_ng_match_note(match) for match in matches),

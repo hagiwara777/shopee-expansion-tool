@@ -64,7 +64,8 @@ def _digest(data: bytes) -> str:
 
 
 def _bindings() -> dict[str, str]:
-    paths = [ROOT / "modules/guardrails.py", ROOT / "modules/community_ng.py", ROOT / "modules/safety_shadow.py",
+    paths = [ROOT / "modules/guardrails.py", ROOT / "modules/brand_monitoring.py", ROOT / "modules/battery_presence.py",
+             ROOT / "modules/community_ng.py", ROOT / "modules/safety_shadow.py",
              ROOT / "modules/product_text_safety.py", ROOT / "scripts/safety_shadow_report.py"]
     paths += sorted(p for p in (ROOT / "guardrails").rglob("*") if p.is_file())
     return {p.relative_to(ROOT).as_posix(): _digest(p.read_bytes()) for p in paths}

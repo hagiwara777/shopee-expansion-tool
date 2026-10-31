@@ -133,7 +133,7 @@ def test_community_brand_aliases_are_normalized_exact_blocks(marketplace, brand)
     assert "Community NG matched" in row["guardrail_note"]
 
 
-def test_brand_partial_suntory_and_unscoped_legacy_terms_do_not_match():
+def test_community_non_matches_do_not_bypass_official_brand_monitoring():
     rows = apply_guardrails(
         [
             candidate(brand="Bose SoundLink"),
@@ -144,7 +144,9 @@ def test_brand_partial_suntory_and_unscoped_legacy_terms_do_not_match():
         marketplace="SG",
     )
 
-    assert [row["guardrail_status"] for row in rows] == ["SAFE", "SAFE", "SAFE", "SAFE"]
+    assert [row["guardrail_status"] for row in rows] == ["SAFE", "SAFE", "BLOCK", "SAFE"]
+    assert "shopee_brand_list" in rows[2]["guardrail_source"]
+    assert "community_ng" not in rows[2]["guardrail_source"]
 
 
 def test_non_runtime_market_data_does_not_leak_to_sg_or_ph():

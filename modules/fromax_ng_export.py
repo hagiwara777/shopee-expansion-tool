@@ -13,6 +13,7 @@ import unicodedata
 
 from modules.guardrails import load_guardrail_dictionaries, load_deterministic_block_rules_v2
 from modules.community_ng import load_community_ng_assets
+from modules.brand_monitoring import load_brand_monitoring, normalize_brand
 
 
 @dataclass(frozen=True)
@@ -114,6 +115,16 @@ def build_fromax_ng_export(
         if block.marketplace == marketplace:
             add(block.asin, f"Community NG:{block.source_id}:{block.source_row}",
                 "ASIN指定の除外です。商品名のNGキーワードでは再現できません。")
+    monitoring = load_brand_monitoring(marketplace)
+    brand_reason = "監視ブランドは完全一致で照合します。FROMAXの双方向部分一致へ一括貼付しないでください。"
+    for rule in monitoring.rules:
+        add(rule.term, f"brand_monitoring/{rule.file_name}", brand_reason)
+    active_normalized = {normalize_brand(rule.term) for rule in monitoring.rules}
+    for alias, canonical in monitoring.aliases.items():
+        if canonical in active_normalized:
+            add(alias, "brand_monitoring/aliases.json", brand_reason)
+    add("電池入り商品", "modules/battery_presence.py",
+        "電池の付属・内蔵等の資料で判定する条件付きBLOCKです。単独のNG語句では再現できません。")
     return FromaxNgExport(marketplace,
         tuple(sorted(keywords.values(), key=str.casefold)),
         tuple(sorted(cautions.values(), key=lambda c: (c.term.casefold(), c.reason, c.source))))
