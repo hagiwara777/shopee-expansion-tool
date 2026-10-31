@@ -184,7 +184,7 @@ def test_review_persistence_restart_and_human_note_cannot_clear_battery(bench):
     reopened=SGWorkBench(SGWorkStore(bench.store.path,shop_id='synthetic-shop'),bench.context)
     assert reopened.refresh()[0]['notes'][-1]['note']=='Synthetic review findings'
     assert reopened.refresh()[0]['assessment']['safety_reasons']
-    assert b'GUARDRAIL_REVIEW' in reopened.queue_csv()
+    assert b'GUARDRAIL_BLOCK' in reopened.queue_csv()
     with pytest.raises(SGWorkError):
         reopened.output(selected(reopened))
 

@@ -179,8 +179,7 @@ def test_every_sls_shared_battery_term_is_non_safe_in_runtime_markets(
 
     expected = (
         "BLOCK"
-        if marketplace == "PH"
-        and term in {"power bank", "powerbank", "モバイルバッテリー"}
+        if term in {"power bank", "powerbank", "モバイルバッテリー"}
         else "REVIEW"
     )
     assert row["guardrail_status"] == expected
@@ -197,7 +196,7 @@ def test_sls_shared_battery_searches_approved_product_text_fields(marketplace):
 
     guarded = apply_guardrails([row], marketplace=marketplace)[0]
 
-    assert guarded["guardrail_status"] == "REVIEW"
+    assert guarded["guardrail_status"] == "BLOCK"
     assert {"battery", "rechargeable"}.issubset(
         set(guarded["guardrail_matched_terms"].split("|"))
     )
@@ -272,13 +271,13 @@ def test_ph_existing_power_bank_block_wins_over_shared_battery_review():
     assert "SLS-BAT-006" in row["guardrail_note"]
 
 
-def test_sg_existing_mobile_battery_review_composes_with_shared_rule():
+def test_sg_existing_mobile_battery_review_composes_with_owner_block_policy():
     row = apply_guardrails(
         [candidate(title="モバイルバッテリー")],
         marketplace="SG",
     )[0]
 
-    assert row["guardrail_status"] == "REVIEW"
+    assert row["guardrail_status"] == "BLOCK"
     assert row["guardrail_source"].split("|") == ["internal_rule", "shopee_policy"]
     assert "Battery-powered item requires shipping and logistics review" in row["guardrail_note"]
     assert "SLS-BAT-003" in row["guardrail_note"]
@@ -297,10 +296,12 @@ def test_shared_battery_review_never_downgrades_market_block(tmp_path):
         "Biore",
         "battery",
         "rechargeable",
+        "rechargeable battery",
     ]
     assert row["guardrail_source"].split("|") == [
         "shopee_brand_list",
         "shopee_policy",
+        "internal_rule",
     ]
 
 
@@ -1215,10 +1216,13 @@ def test_every_ph_block_rule_routes_its_own_term_to_block(rule):
 
 
 @pytest.mark.parametrize("rule", ph_rules_with_action("REVIEW"), ids=ph_rule_id)
-def test_every_ph_review_rule_routes_its_own_term_to_review(rule):
+def test_ph_review_rules_remain_review_except_known_battery_products(rule):
     row = apply_guardrails([candidate(title=rule["term"])], marketplace="PH")[0]
 
-    assert row["guardrail_status"] == "REVIEW"
+    # Owner excludes included batteries; old dictionary suspicion rows remain
+    # REVIEW, but an actual battery product is no longer an uncertain signal.
+    expected = "BLOCK" if rule["term"] in {"lithium battery", "リチウム電池"} else "REVIEW"
+    assert row["guardrail_status"] == expected
     assert rule["term"] in row["guardrail_matched_terms"].split("|")
 
 
@@ -1275,7 +1279,7 @@ def test_marketplace_isolation_uses_only_the_requested_dictionary():
     assert ph_only_rows[0]["guardrail_status"] == "BLOCK"
     assert sg_rows[0]["guardrail_status"] == "SAFE"
     assert sg_brand_rows[0]["guardrail_status"] == "BLOCK"
-    assert ph_brand_rows[0]["guardrail_status"] == "SAFE"
+    assert ph_brand_rows[0]["guardrail_status"] == "BLOCK"  # IPR now applies globally.
 
 
 @pytest.mark.parametrize(
@@ -1408,9 +1412,12 @@ def test_every_migrated_brand_rule_blocks_ph_by_normalized_exact(_legacy_rule_id
     row = apply_guardrails([candidate(brand=brand)], marketplace="PH")[0]
 
     assert row["guardrail_status"] == "BLOCK"
-    assert row["guardrail_risk_category"] == "community_report"
-    assert row["guardrail_matched_terms"] == brand
-    assert row["guardrail_source"] == "community_ng"
+    assert "community_report" in row["guardrail_risk_category"].split("|")
+    assert brand in row["guardrail_matched_terms"].split("|")
+    assert "community_ng" in row["guardrail_source"].split("|")
+    if brand in {"nivea", "LEGO", "Shu Uemura"}:
+        assert "brand_ip" in row["guardrail_risk_category"].split("|")
+        assert "shopee_brand_list" in row["guardrail_source"].split("|")
     assert "Community NG matched: marketplace=PH" in row["guardrail_note"]
     assert "source_id=COMMUNITY_NG_BRAND_20260916" in row["guardrail_note"]
     assert "No guardrail dictionary match" not in row["guardrail_note"]
@@ -1479,12 +1486,12 @@ def test_community_ng_block_veto_composes_after_v1_without_losing_v1_audit_evide
     assert safe_v2["guardrail_matched_terms"] == "LEGO"
     assert review_v2["guardrail_status"] == "BLOCK"
     assert review_v2["guardrail_matched_terms"] == "medicated|LEGO"
-    assert review_v2["guardrail_source"] == "internal_rule|community_ng"
+    assert review_v2["guardrail_source"] == "internal_rule|shopee_brand_list|community_ng"
     assert "PH-D018" in review_v2["guardrail_note"]
     assert "source_id=COMMUNITY_NG_BRAND_20260916" in review_v2["guardrail_note"]
     assert block_v2["guardrail_status"] == "BLOCK"
     assert block_v2["guardrail_matched_terms"] == "処方薬|LEGO"
-    assert block_v2["guardrail_source"] == "shopee_policy|community_ng"
+    assert block_v2["guardrail_source"] == "shopee_policy|shopee_brand_list|community_ng"
     assert "PH-D008" in block_v2["guardrail_note"]
     assert "source_id=COMMUNITY_NG_BRAND_20260916" in block_v2["guardrail_note"]
 

@@ -217,9 +217,9 @@ def test_ph_empty_inventory_uses_only_ph_guardrails_and_preserves_decisions():
         "EXCLUDE",
         "REVIEW",
         "ELIGIBLE",
-        "ELIGIBLE",
+        "REVIEW",
     ]
-    assert [row.guardrail_status for row in result.rows] == ["BLOCK", "REVIEW", "SAFE", "SAFE"]
+    assert [row.guardrail_status for row in result.rows] == ["BLOCK", "REVIEW", "SAFE", "REVIEW"]
 
 
 def test_sg_rule_does_not_leak_into_ph_guardrails():
@@ -254,7 +254,10 @@ def test_sg_rule_does_not_leak_into_ph_guardrails():
     )
 
     assert sg_result.rows[0].guardrail_status == "REVIEW"
-    assert ph_result.rows[0].guardrail_status == "SAFE"
+    # The SG controlled-goods rule does not leak; shared battery uncertainty
+    # now independently stops an electric item whose power source is unknown.
+    assert ph_result.rows[0].guardrail_status == "REVIEW"
+    assert ph_result.rows[0].guardrail_risk_category == "shipping_restricted"
     assert sg_ph_only_result.rows[0].guardrail_status == "SAFE"
     assert ph_only_result.rows[0].guardrail_status == "BLOCK"
 
@@ -700,9 +703,9 @@ def test_v12_dictionary_review_and_existing_block_propagate_to_gate_results():
 
     review_row, block_row = result.rows
     assert review_row.guardrail_status == "REVIEW"
-    assert review_row.guardrail_risk_category == "controlled_goods_unverified"
-    assert review_row.guardrail_matched_terms == "electric kettle"
-    assert review_row.guardrail_source == "shopee_policy"
+    assert review_row.guardrail_risk_category == "controlled_goods_unverified|shipping_restricted"
+    assert review_row.guardrail_matched_terms == "electric kettle|electric"
+    assert review_row.guardrail_source == "shopee_policy|internal_rule"
     assert review_row.final_eligibility == "REVIEW"
     assert review_row.reason_codes == ("GUARDRAIL_REVIEW",)
 
@@ -730,9 +733,9 @@ def test_community_ng_brand_block_routes_ph_candidate_to_guardrail_exclude():
 
     row = result.rows[0]
     assert row.guardrail_status == "BLOCK"
-    assert row.guardrail_risk_category == "community_report"
+    assert row.guardrail_risk_category == "brand_ip|community_report"
     assert row.guardrail_matched_terms == "LEGO"
-    assert row.guardrail_source == "community_ng"
+    assert row.guardrail_source == "shopee_brand_list|community_ng"
     assert "source_id=COMMUNITY_NG_BRAND_20260916" in row.guardrail_note
     assert row.final_eligibility == "EXCLUDE"
     assert row.reason_codes == ("GUARDRAIL_BLOCK",)

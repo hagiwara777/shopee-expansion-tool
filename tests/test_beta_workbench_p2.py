@@ -269,7 +269,7 @@ def test_safety_notes_never_override_validator_stops_and_are_persistent(bench):
     assert b'Synthetic safety review' in bench.queue_csv(queue='SAFETY')
     resumed = reopen(bench)
     assert resumed.store.products()[0]['notes'][-1]['kind']=='SAFETY'
-    assert b'FACT_GUARDRAIL_REVIEW' in resumed.queue_csv(queue='SAFETY')
+    assert b'FACT_GUARDRAIL_BLOCK' in resumed.queue_csv(queue='SAFETY')
 
 
 @pytest.mark.parametrize('title,root',[('Synthetic kitchen knife',3210981),('Synthetic contact lens',3210981),

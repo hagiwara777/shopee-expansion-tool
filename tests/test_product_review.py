@@ -67,7 +67,7 @@ def test_description_battery_signal_cannot_be_overridden_by_review(preview):
     item = app.session_state["sg_category_mapper_recommendations"][0]
     session = WeaponImageReviewSession("SG")
     supply(session, item, "Contains a rechargeable battery")
-    assert session.current(item).guardrail_status == "REVIEW"
+    assert session.current(item).guardrail_status == "BLOCK"
     with pytest.raises(ValueError):
         allow(session, item)
 
