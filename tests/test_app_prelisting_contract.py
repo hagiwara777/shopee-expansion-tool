@@ -142,12 +142,12 @@ def test_candidate_downloads_have_paired_safety_sidecars_and_ph_product_text_is_
     assert len(safety_downloads) == 2
     assert len(_function_calls("rows_to_ingredient_safety_sidecar")) == 2
     assert len(_function_calls("parse_ingredient_safety_sidecar")) == 1
-    assert '"Ingredient Safety Fact sidecar（任意）"' in APP_SOURCE
+    assert '"成分資料（SGでは必須）"' in APP_SOURCE
     assert "ingredient_safety=ingredient_safety_result" in APP_SOURCE
     assert len(_function_calls("rows_to_product_text_safety_sidecar")) == 2
     assert len(_function_calls("parse_product_text_safety_sidecar")) == 1
-    assert '"Product Text Safety Fact sidecar（PHでは必須）"' in APP_SOURCE
-    assert 'marketplace == "PH" and product_text_safety_file is None' in APP_SOURCE
+    assert '"説明文資料（SG・PHでは必須）"' in APP_SOURCE
+    assert 'configuration_errors.extend(required_safety_file_errors(' in APP_SOURCE
     assert "product_text_safety=product_text_safety_result" in APP_SOURCE
 
 

@@ -74,7 +74,7 @@ def test_matches_current_candidate_and_reuses_exact_v3_signals(market, source_ty
     ("Kitchen knife case", "Knife not included", "Synthetic Brand", "BODY_PRESENT", "EXCLUDE"),
     ("Kitchen knife case", "Knife not included", "Adidas", "ACCESSORY_ONLY", "EXCLUDE"),
     ("Kitchen knife case", "Battery case; knife not included", "Synthetic Brand", "ACCESSORY_ONLY", "REVIEW"),
-    ("Contact lens case", "Lenses not included", "Synthetic Brand", None, "REVIEW"),
+    ("Contact lens case", "Lenses not included", "Synthetic Brand", None, "EXCLUDE"),
     ("Ordinary case", "Ordinary description", "Synthetic Brand", None, "ELIGIBLE"),
 ])
 def test_shadow_never_changes_block_review_safe_or_confirmed_body_exclude(title, description, brand, body, expected):

@@ -7,12 +7,13 @@ import pytest
 from modules.prelisting_sg_body_safety import body_confirmation_bytes
 from modules.prelisting_candidate_csv import rows_to_prelisting_candidate_csv
 from modules.prelisting_gate_csv import build_prelisting_gate_exports
-from test_app_prelisting_gate import _empty_inventory_csv, _prelisting_gate_test_app, _run_gate_button
+from test_app_prelisting_gate import _empty_inventory_csv, _prelisting_gate_test_app, _run_gate_button, _upload_sg_safety_files
 from test_prelisting_sg_body_safety import case
 
 
 def upload(app, candidate_content, *, record=None):
     app.file_uploader(key="prelisting_gate_candidate_file").set_value(("candidate.csv", candidate_content, "text/csv")).run()
+    _upload_sg_safety_files(app, candidate_content)
     app.file_uploader(key="prelisting_gate_inventory_files").set_value(
         [("existing_SG.csv", _empty_inventory_csv("SG"), "text/csv")]).run()
     if record is not None:
@@ -62,6 +63,8 @@ def test_accessory_confirmation_releases_only_new_question_and_changed_candidate
     changed = rows_to_prelisting_candidate_csv((replace(candidates.rows[0], fetched_at="2026-10-09T00:00:00Z"),))
     app.file_uploader(key="prelisting_gate_candidate_file").set_value(("candidate.csv", changed, "text/csv")).run()
     assert "prelisting_gate_result" not in app.session_state
+    _upload_sg_safety_files(app, changed)
+    app.run()
     _run_gate_button(app).click().run()
     assert app.session_state["prelisting_gate_result"].review_count == 1
 

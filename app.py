@@ -358,6 +358,8 @@ def _render_prelisting_gate_input_tab(marketplace=None, *, enable_expansion_hand
         st.error("対象国を確認してください。")
         return
     st.write(f"対象国: {marketplace}")
+    from modules.fromax_ng_ui import render_fromax_ng_export
+    render_fromax_ng_export(marketplace)
     input_source = MANUAL
     if enable_expansion_handoff:
         input_source = st.radio("候補・Safety資料の入力元", (MANUAL, INTERNAL), key=SOURCE_KEY)
@@ -389,7 +391,7 @@ def _render_prelisting_gate_input_tab(marketplace=None, *, enable_expansion_hand
     candidate_bytes = candidate_file.getvalue() if candidate_file is not None else None
 
     ingredient_safety_file = st.file_uploader(
-        "Ingredient Safety Fact sidecar（任意）",
+        "成分資料（SGでは必須）",
         type=["csv"],
         accept_multiple_files=False,
         key="prelisting_gate_ingredient_safety_file",
@@ -398,11 +400,12 @@ def _render_prelisting_gate_input_tab(marketplace=None, *, enable_expansion_hand
         ingredient_safety_file.getvalue() if ingredient_safety_file is not None else None
     )
     st.caption(
-        "sidecar未指定でも従来どおり判定できます。Fact欠損はSafety PASSや成分不存在を意味しません。"
+        "候補と一緒に出力した成分資料を指定してください。商品ごとの成分が空欄でも受付できます。"
+        "空欄だけで要確認にはしませんが、成分がないことや安全を保証するものではありません。"
     )
 
     product_text_safety_file = st.file_uploader(
-        "Product Text Safety Fact sidecar（PHでは必須）",
+        "説明文資料（SG・PHでは必須）",
         type=["csv"],
         accept_multiple_files=False,
         key="prelisting_gate_product_text_safety_file",
@@ -413,8 +416,8 @@ def _render_prelisting_gate_input_tab(marketplace=None, *, enable_expansion_hand
         else None
     )
     st.caption(
-        "PHでsidecar未指定の場合は実行を停止します。sidecar内のNOT_CAPTURED / "
-        "NOT_AVAILABLE / PROVIDER_UNSUPPORTEDは、それ自体ではBLOCKやREVIEWにしません。"
+        "候補と一緒に出力した説明文資料を指定してください。資料ファイルがない場合は実行できません。"
+        "資料内の商品情報の欠損だけでは除外や要確認にしません。"
     )
 
     image_safety_file = None
@@ -536,10 +539,11 @@ def _render_prelisting_gate_input_tab(marketplace=None, *, enable_expansion_hand
         configuration_errors.append(
             "既出品CSVの数が全ショップ数と一致していません。"
         )
-    if marketplace == "PH" and product_text_safety_file is None:
-        configuration_errors.append(
-            "PHではCandidate CSVと対応するProduct Text Safety sidecarが必要です。"
-        )
+    from modules.prelisting_gate_ui import required_safety_file_errors
+    configuration_errors.extend(required_safety_file_errors(
+        marketplace, ingredient_present=ingredient_safety_file is not None,
+        product_text_present=product_text_safety_file is not None,
+    ))
 
     if marketplace == "PH" and image_safety_file is None:
         configuration_errors.append("PHでは候補CSVに対応する画像確認ファイルが必要です。")

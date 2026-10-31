@@ -130,6 +130,7 @@ class GuardrailDictionaries:
 @dataclass(frozen=True)
 class GuardrailMatch:
     rule: GuardrailRule
+    fact_field: str = ""
 
 
 @dataclass(frozen=True)
@@ -197,6 +198,8 @@ def apply_guardrails(
 
     for row in rows:
         matches = _find_matches(row, dictionaries)
+        if normalized_marketplace == "SG":
+            matches.extend(_find_sg_medical_fact_matches(row, dictionaries.keyword_rules))
         matches.extend(_find_sls_shared_battery_matches(row, sls_shared_battery_rules))
         v1_row = _apply_matches_to_row(row, matches)
         v2_matches = evaluate_deterministic_blocks_v2(
@@ -848,6 +851,35 @@ def _find_matches(
     return matches
 
 
+def _find_sg_medical_fact_matches(
+    row: dict[str, Any],
+    rules: Iterable[GuardrailRule],
+) -> list[GuardrailMatch]:
+    """Apply SG medical decisions to captured facts without inferring missing facts.
+
+    DEC-0159 limits this extension to medical/ingredient rules. Product text
+    stays a text fact; it is never promoted into a structured ingredient fact.
+    Other SG title-only rules and PH's existing V2 path keep their contracts.
+    """
+    text_values = [(field, value) for field, value in _product_text_values(row)
+                   if field != "product_title"]
+    ingredient_values = [(field, value) for field, value in _ingredient_safety_values(row)
+                         if field != "product_title"]
+    matches: list[GuardrailMatch] = []
+    for rule in rules:
+        if rule.risk_category not in {"regulated_ingredient", "medical_or_therapeutic"}:
+            continue
+        if rule.match_field not in {"title", "all"} or rule.match_type != "contains":
+            continue
+        values = text_values
+        if rule.risk_category == "regulated_ingredient":
+            values = text_values + ingredient_values
+        for field, value in values:
+            if _contains_term(normalize_text(value), rule.normalized_term):
+                matches.append(GuardrailMatch(rule=rule, fact_field=field))
+    return matches
+
+
 def _find_sls_shared_battery_matches(
     row: dict[str, Any],
     rules: Iterable[GuardrailRule],
@@ -1106,6 +1138,8 @@ def _match_note(match: GuardrailMatch) -> str:
     else:
         prefix = "Keyword matched"
     note = f"{prefix}: {match.rule.term}"
+    if match.fact_field:
+        note = f"{note} [fact_field={match.fact_field}]"
     if match.rule.note:
         note = f"{note} ({match.rule.note})"
     return note

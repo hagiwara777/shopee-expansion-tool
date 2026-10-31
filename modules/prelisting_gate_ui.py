@@ -225,6 +225,18 @@ def build_internal_shop_labels(marketplace: str, uploaded_file_count: int) -> tu
     )
 
 
+def required_safety_file_errors(
+    marketplace: str, *, ingredient_present: bool, product_text_present: bool,
+) -> tuple[str, ...]:
+    """Require SG's transported files, not a nonempty fact for every product."""
+    errors = []
+    if marketplace == "SG" and not ingredient_present:
+        errors.append("SGでは候補CSVに対応する成分資料が必要です。")
+    if marketplace in {"SG", "PH"} and not product_text_present:
+        errors.append(f"{marketplace}では候補CSVに対応する説明文資料が必要です。")
+    return tuple(errors)
+
+
 def shop_label_widget_key(filename: str, content: bytes) -> str:
     """Create a deterministic widget key from both filename and byte content."""
 
