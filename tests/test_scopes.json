@@ -1,0 +1,999 @@
+{
+  "schema_version": 1,
+  "default_scope": "active",
+  "retired": {
+    "tests/test_category_ai_benchmark.py": {
+      "reason": "使わないCategory AI・カテゴリ分類の候補生成と評価だけの確認。",
+      "tests": [
+        "test_confirmed_exact_select_is_correct_select",
+        "test_confirmed_wrong_select_is_wrong_category",
+        "test_confirmed_abstain_is_false_abstain",
+        "test_abstain_required_abstain_is_correct_abstain",
+        "test_abstain_required_select_is_overconfident_without_partial_credit",
+        "test_provider_failure_is_failed_and_not_abstain_in_scoring",
+        "test_gold_loader_rejects_invalid_status_and_expected_fields",
+        "test_gold_loader_rejects_non_leaf_and_id_path_mismatch",
+        "test_gold_loader_rejects_source_gold_identity_mismatch",
+        "test_gold_loader_rejects_duplicate_case_id_and_asin",
+        "test_source_whitelist_gold_separation_and_batch_hash_order_are_enforced",
+        "test_scoring_kpis_use_full_e2e_and_separate_completed_decision_reference",
+        "test_same_case_is_scored_independently_for_luna_and_terra",
+        "test_gold_evaluation_exports_status_outcome_path_and_prediction_hash",
+        "test_formal_100_product_fixture_loads_92_confirmed_and_8_abstain_required",
+        "test_versioned_profiles_and_price_config_are_fixed_and_comparable",
+        "test_bad_source_csv_is_rejected",
+        "test_catalog_snapshot_hash_is_order_independent_but_versioned",
+        "test_catalog_accepts_shopee_style_zero_parent_for_root"
+      ]
+    },
+    "tests/test_category_ai_benchmark_ui.py": {
+      "reason": "使わないCategory AI・カテゴリ分類の候補生成と評価だけの確認。",
+      "tests": [
+        "test_standalone_benchmark_ui_renders_required_controls_without_api_call"
+      ]
+    },
+    "tests/test_category_ai_core.py": {
+      "reason": "使わないCategory AI・カテゴリ分類の候補生成と評価だけの確認。",
+      "tests": [
+        "test_root_child_leaf_traversal_records_every_step_and_minimum_confidence",
+        "test_root_leaf_selection_finishes_in_one_step",
+        "test_low_confidence_is_recorded_but_never_used_as_confirmation_threshold",
+        "test_abstain_never_selects_a_category_or_invents_root_confidence",
+        "test_candidate_outside_current_step_is_fail_closed",
+        "test_invalid_json_or_structured_output_violation_fails_closed",
+        "test_transport_equivalent_fake_failures_are_fail_closed",
+        "test_fake_provider_contract_captures_allowed_input_but_makes_no_semantic_claim",
+        "test_owner_approved_prompt_v1_content_is_byte_locked",
+        "test_same_core_operates_on_ph_and_sg_synthetic_catalogs",
+        "test_usage_cost_profile_and_prediction_hash_are_saved",
+        "test_model_comparison_allows_only_exact_model_id_to_change",
+        "test_catalog_validation_rejects_missing_parent_and_leaf_contradiction"
+      ]
+    },
+    "tests/test_category_ai_leaf_search.py": {
+      "reason": "使わないCategory AI・カテゴリ分類の候補生成と評価だけの確認。",
+      "tests": [
+        "test_all_dedicated_batches_checked_before_others",
+        "test_related_root_dedicated_match_wins_before_others",
+        "test_later_batch_can_beat_earlier_match",
+        "test_unclear_product_never_uses_others",
+        "test_exhaustion_not_claimed_when_related_root_limit_hit",
+        "test_transport_failure_never_falls_back_to_others",
+        "test_unlisted_id_fails_closed",
+        "test_provider_uses_v2_schema_and_parses_usage_without_losing_type",
+        "test_versioned_v2_replay_connects_to_sg_suggestions_without_auto_confirm"
+      ]
+    },
+    "tests/test_category_ai_openai.py": {
+      "reason": "使わないCategory AI・カテゴリ分類の候補生成と評価だけの確認。",
+      "tests": [
+        "test_request_payload_uses_entire_fixed_profile_and_strict_schema",
+        "test_transport_failures_return_only_safe_codes",
+        "test_refusal_and_empty_output_fail_closed",
+        "test_key_preflight_stops_before_any_session_call"
+      ]
+    },
+    "tests/test_category_mapper_ai.py": {
+      "reason": "使わないCategory AI・カテゴリ分類の候補生成と評価だけの確認。",
+      "tests": [
+        "test_catalog_uses_complete_mapper_tree_and_fixed_luna_profile",
+        "test_only_unconfirmed_rows_are_predicted_and_evidence_is_existing_mapper_data",
+        "test_prediction_is_independent_and_high_confidence_never_changes_readiness",
+        "test_abstain_and_failure_do_not_stop_other_products_or_replace_fallback",
+        "test_catalog_mismatch_is_not_adoptable",
+        "test_group_consensus_requires_every_member_to_match_one_valid_leaf"
+      ]
+    },
+    "tests/test_sg_category_diagnostic.py": {
+      "reason": "使わないCategory AI・カテゴリ分類の候補生成と評価だけの確認。",
+      "tests": [
+        "test_category_only_diagnostic_records_status_without_product_text",
+        "test_default_cli_is_offline",
+        "test_scope_rejects_extra_products_before_creating_output",
+        "test_remaining_budget_carries_previous_reservation_and_cannot_be_claimed_twice",
+        "test_prior_catalog_mismatch_blocks_before_network",
+        "test_trace_identifies_actual_abstention_branch_and_candidates"
+      ]
+    },
+    "tests/test_category_ai_keepa_runner.py": {
+      "reason": "使わないCategory AI評価用のseed探索・計画・候補収集。",
+      "tests": [
+        "test_electric_kettle_seed_uses_keepa_root_and_leaf_pair",
+        "test_confirmed_taxonomy_corrections_match_live_seed_diagnostic",
+        "test_full_mock_run_covers_fixed_plan_batches_dedupe_and_blank_resolver_title",
+        "test_seed_validation_records_all_mismatches_and_stops_before_later_endpoints",
+        "test_page_one_is_used_only_for_the_shortage_leaf_and_is_frozen",
+        "test_family_and_identifier_variants_are_excluded",
+        "test_valid_pool_shortage_stops_without_more_finder_requests",
+        "test_token_balance_is_required_and_only_boolean_is_persisted",
+        "test_balance_below_hard_cap_stops_before_first_request",
+        "test_runner_hard_token_cap_stop_also_persists_partial_manifest",
+        "test_hard_cap_and_request_cap_stop_before_another_request"
+      ]
+    },
+    "tests/test_app_category_mapper.py": {
+      "reason": "使わないカテゴリ・Brand確定・Shopee token・Category AIの画面。",
+      "tests": [
+        "test_category_mapper_hides_catalog_admin_controls_by_default",
+        "test_category_mapper_shows_catalog_admin_controls_when_explicitly_enabled",
+        "test_category_mapper_temporary_access_token_input_is_masked_and_session_only",
+        "test_category_mapper_catalog_actions_use_session_token_without_persisting_it",
+        "test_category_mapper_blank_session_token_keeps_existing_catalog_factory",
+        "test_category_mapper_brand_failure_with_temporary_token_stays_unconfirmed",
+        "test_category_mapper_does_not_add_refresh_token_or_refresh_endpoint",
+        "test_category_mapper_builds_downloads_and_clears_stale_results",
+        "test_category_mapper_ai_is_explicit_independent_and_human_confirmed",
+        "test_category_mapper_shows_and_confirms_conditioner_candidate_by_group"
+      ]
+    },
+    "tests/test_app_category_mapper_sg.py": {
+      "reason": "使わないSGカテゴリ確定画面。",
+      "tests": [
+        "test_sg_category_mapper_ui_exposes_isolated_minimum_beta",
+        "test_sg_category_mapper_ui_confirms_one_product_and_stops"
+      ]
+    },
+    "tests/test_category_mapper.py": {
+      "reason": "使わないカテゴリ・Brand・属性確定、カテゴリ別準備出力・Shopee取得。",
+      "tests": [
+        "test_shampoo_profile_is_confirmed_but_case_accessory_is_not",
+        "test_shampoo_conditioner_sets_are_not_confirmed_as_single_shampoo",
+        "test_single_shampoo_without_set_marker_keeps_confirmed_profile",
+        "test_unknown_type_is_unmapped_and_user_confirmed_mapping_is_reused",
+        "test_conditioner_is_suggested_not_shampoo_and_user_confirmation_is_reused",
+        "test_category_change_resets_old_brand_and_missing_tree_mapping_is_not_reused",
+        "test_attribute_flatten_is_null_safe_deduplicated_and_cycle_safe",
+        "test_attribute_flatten_accepts_official_mandatory_field_with_null_children",
+        "test_brand_rules_are_explicit_and_no_brand_needs_user_choice",
+        "test_no_brand_user_selection_makes_gate_row_ready_but_not_raw_expansion",
+        "test_no_brand_confirmation_is_scoped_to_category_and_reused_after_restart",
+        "test_real_brand_alias_does_not_conflict_with_no_brand_policy",
+        "test_brand_paging_stops_on_match_resumes_and_uses_cached_data",
+        "test_brand_paging_stops_at_ten_and_uses_previous_cache_after_failure",
+        "test_exports_are_bom_encoded_ordered_and_one_asin_per_group_row",
+        "test_store_is_user_local_seeded_and_preserves_existing_user_mapping",
+        "test_store_records_empty_attribute_tree_and_multiselect_metadata",
+        "test_default_store_path_is_under_local_appdata",
+        "test_catalog_client_temporary_access_token_override_is_memory_only",
+        "test_catalog_client_temporary_token_still_requires_existing_shop_credentials",
+        "test_catalog_client_is_ph_only_and_never_exposes_request_values",
+        "test_catalog_client_attribute_tree_uses_category_id_list_and_keeps_input_order",
+        "test_catalog_client_rejects_invalid_attribute_and_brand_requests_before_api_call",
+        "test_catalog_client_handles_shopee_application_errors_and_brand_page_contract",
+        "test_classification_matches_english_and_excludes_accessories"
+      ]
+    },
+    "tests/test_category_mapper_sg.py": {
+      "reason": "使わないSGカテゴリ一覧の取込・DB置換・AI／人によるカテゴリ確定。",
+      "tests": [
+        "test_sg_catalog_validates_and_replace_removes_deleted_ids_without_touching_ph",
+        "test_sg_catalog_rejects_duplicate_missing_parent_cycle_path_leaf_and_market",
+        "test_failed_catalog_validation_does_not_replace_existing_sg_catalog",
+        "test_ai_uses_sg_product_evidence_and_confidence_never_confirms",
+        "test_ai_abstain_failure_and_catalog_mismatch_stay_unconfirmed",
+        "test_human_confirmation_is_per_asin_persisted_and_revalidated",
+        "test_confirmation_rechecks_current_sg_leaf_path",
+        "test_sg_brand_attribute_and_listing_profile_store_operations_remain_out_of_scope",
+        "test_normalized_sg_catalog_is_deterministic_and_uses_only_parent_paths",
+        "test_normalized_sg_catalog_rejects_invalid_values_before_replace",
+        "test_normalized_sg_catalog_rejects_incomplete_or_unreachable_tree",
+        "test_sg_parser_rejects_extra_path_segments",
+        "test_normalized_sg_import_replaces_only_sg_without_schema_change",
+        "test_sg_replace_rejects_direct_catalog_with_extra_path_before_db_write",
+        "test_normalized_sg_import_rolls_back_on_insert_failure"
+      ]
+    },
+    "tests/test_category_mapper_sg_brand.py": {
+      "reason": "使わないShopee Brand ID取得・確定・No Brand保存。保安ゲートの監視ブランドとは別。",
+      "tests": [
+        "test_strict_rejects_invalid_raw_rows",
+        "test_strict_rejects_raw_paging_contract",
+        "test_strict_duplicate_conflict_and_exact_dedup",
+        "test_no_brand_uses_name_and_actual_nonzero_id_only",
+        "test_strict_accepts_sg_live_no_brand_name_variants",
+        "test_strict_no_brand_variant_does_not_accept_ambiguous_names",
+        "test_explicit_live_brand_grant_completes_after_legacy_limit",
+        "test_extended_live_brand_scope_refuses_unapproved_category_before_request",
+        "test_ph_default_normalization_is_unchanged",
+        "test_client_mismatch_rejected_before_request",
+        "test_run_client_binding_mismatch",
+        "test_default_network_transport_not_available_to_offline_run",
+        "test_complete_paging_replace_removes_old_and_preserves_ph_other_category",
+        "test_failed_run_keeps_old_rows_but_revokes_current",
+        "test_ten_page_budget_does_not_request_eleven_or_replace",
+        "test_tenth_terminal_page_is_complete",
+        "test_replace_insert_failure_rolls_back_rows_and_state",
+        "test_new_session_never_restores_persisted_success",
+        "test_catalog_cannot_bind_wrong_market_category_shop_session_digest",
+        "test_category_b_result_cannot_apply_to_category_a_product",
+        "test_client_shop_change_during_run_rejects_before_replace",
+        "test_db_catalog_change_revokes_current",
+        "test_table_requires_explicit_initialization_and_default_db_rejected",
+        "test_two_products_no_brand_coexist_without_alias_or_other_product_reuse",
+        "test_no_brand_product_mismatch_not_reused",
+        "test_no_brand_saved_mismatch_review_even_with_valid_real_alias",
+        "test_current_no_brand_disappears_id_name_or_class_changes",
+        "test_unregistered_brand_never_falls_back_to_no_brand_or_ph_policy",
+        "test_evidence_digest_fixed_version_fields_and_order",
+        "test_real_alias_current_id_name_class_changes_review",
+        "test_source_normalization_collision_and_missing_brand_review",
+        "test_human_confirmation_required",
+        "test_no_brand_to_real_change_atomic_and_rollback",
+        "test_confirmation_rechecks_db_inside_write_transaction",
+        "test_no_brand_requires_current_category_path_and_leaf",
+        "test_category_reconfirmation_clears_previous_brand_state",
+        "test_exact_normalized_and_title_matches_are_candidates_only",
+        "test_existing_ph_rows_and_schema_unchanged_by_sg_acceptance",
+        "test_raw_echo_fields_are_not_a_binding_authority",
+        "test_source_brand_is_not_fabricated_for_human_no_brand",
+        "test_category_changed_no_brand_never_silently_switches_to_real_alias",
+        "test_evidence_digest_independent_of_csv_row_order_newlines_and_column_order",
+        "test_unconfirmed_or_stale_alias_review",
+        "test_selected_id_and_name_must_be_current",
+        "test_strict_page_size_bound_and_original_name_conflict"
+      ]
+    },
+    "tests/test_sg_brand_confirmation_ui.py": {
+      "reason": "使わないShopee Brand／カテゴリ確定・Category AIの画面。",
+      "tests": [
+        "test_requires_selection_and_product_confirmation",
+        "test_catalog_change_revokes_confirmed_display",
+        "test_product_change_clears_checkbox_and_no_brand_confirmation",
+        "test_session_change_requires_current_catalog",
+        "test_saved_no_brand_is_stale_after_product_change",
+        "test_uninitialized_database_cannot_confirm",
+        "test_full_sg_flow_fetch_confirm_save_and_rerun_without_requests",
+        "test_refetch_failure_does_not_reuse_saved_brand_or_leak_exception",
+        "test_input_replacement_requires_new_brand_acquisition",
+        "test_workflow_rejects_other_market_or_default_network",
+        "test_ai_only_suggests_until_human_adoption",
+        "test_ai_abstain_keeps_manual_category_path",
+        "test_ai_adoption_rechecks_current_category_path"
+      ]
+    },
+    "tests/test_shopee_access_token_source.py": {
+      "reason": "使わないShopee API・token・Google認証・Bridge接続。",
+      "tests": [
+        "test_shared_interface_binds_each_marketplace",
+        "test_invalid_bridge_data_fails_closed_without_secret",
+        "test_transport_failure_fails_closed_without_error_detail",
+        "test_google_adapter_http_status_is_read_only_and_fail_closed",
+        "test_google_adapter_auth_and_timeout_are_redacted",
+        "test_legacy_when_source_off",
+        "test_explicit_zero_keeps_legacy_source",
+        "test_invalid_source_setting_fails_closed_without_legacy",
+        "test_override_precedes_enabled_source",
+        "test_enabled_source_uses_bridge_without_legacy_fallback",
+        "test_my_th_runtime_not_activated"
+      ]
+    },
+    "tests/test_shopee_catalog_client_marketplace.py": {
+      "reason": "使わないShopee API・token・Google認証・Bridge接続。",
+      "tests": [
+        "test_bound_marketplace_uses_shared_category_attribute_brand_contract",
+        "test_marketplace_mismatch_fails_before_request",
+        "test_unsupported_marketplace_fails_at_creation",
+        "test_existing_ph_marketplace_argument_normalization_is_preserved",
+        "test_sg_env_reads_only_requested_marketplace_values",
+        "test_sg_bridge_uses_bound_shop_and_does_not_fallback",
+        "test_unsupported_marketplace_fails_before_source_or_env_read",
+        "test_api_error_does_not_repeat_token_or_partner_key"
+      ]
+    },
+    "tests/test_p5_category_acquisition.py": {
+      "reason": "使わないP5の受入・trusted起動・実行許可・台帳・Windows観測・保存先設置・Shopee取得。",
+      "tests": [
+        "test_unbound_leaf_install_does_not_grant_execution_or_product_operations",
+        "test_empty_leaf_cannot_expand_scope_or_create_storage",
+        "test_strict_catalog_acquisition_and_one_send_keep_p2_unchanged",
+        "test_real_google_request_adapter_trace_is_bounded_and_synthetic",
+        "test_failure_never_retries_or_upgrades_partial_results",
+        "test_category_scope_cannot_be_rebound_into_product_scope",
+        "test_missing_primary_category_spec_still_stops_before_start",
+        "test_category_only_ui_replays_without_send_or_product_controls"
+      ]
+    },
+    "tests/test_p5_initializer.py": {
+      "reason": "使わないP5の受入・trusted起動・実行許可・台帳・Windows観測・保存先設置・Shopee取得。",
+      "tests": [
+        "test_real_script_config_alone_and_import_cannot_authorize",
+        "test_registration_rejects_untyped_values",
+        "test_initializer_to_actual_entrypoint_start_and_rerun",
+        "test_registered_connection_rejects_mismatch_before_io",
+        "test_initializer_cannot_replace_operator_or_accept_fake_authority",
+        "test_windows_observer_checks_initializer_loaded_code_and_source"
+      ]
+    },
+    "tests/test_p5_operation_preflight.py": {
+      "reason": "使わないP5の受入・trusted起動・実行許可・台帳・Windows観測・保存先設置・Shopee取得。",
+      "tests": [
+        "test_category_preflight_without_attribute_or_openai_is_zero_io",
+        "test_brand_requires_both_specs",
+        "test_preparation_requires_current_category_and_brand_specs_without_network_grants",
+        "test_openai_needs_current_price",
+        "test_openai_requires_model_and_finite_positive_approved_limits",
+        "test_openai_without_shopee_needs_own_key_before_client_construction",
+        "test_unapproved_operations_stop_before_secret_or_send",
+        "test_shopee_dependencies_cannot_be_removed_or_zeroed",
+        "test_related_shopee_sends_need_positive_individual_budgets",
+        "test_unused_budget_cannot_be_spent_and_zero_is_required",
+        "test_production_attribute_rejected_even_with_legacy_permit_and_no_guard",
+        "test_scoped_runtime_rechecks_binding_and_sticky_consumption",
+        "test_brand_only_current_route_and_complete_paging_remain_required",
+        "test_keepa_only_needs_no_catalog_price_or_shopee_credential",
+        "test_category_spec_fields_cannot_be_omitted",
+        "test_production_paid_scope_does_not_read_shopee_or_google_body",
+        "test_scoped_permit_itself_rejects_missing_requirements_without_adapter_guard"
+      ]
+    },
+    "tests/test_p5_permission_trial.py": {
+      "reason": "使わないP5の受入・trusted起動・実行許可・台帳・Windows観測・保存先設置・Shopee取得。",
+      "tests": [
+        "test_designated_trial_starts_without_promoting_permission_or_doing_io",
+        "test_trial_cannot_expand_or_be_enabled_by_a_flag",
+        "test_sg_cannot_use_the_unknown_permission_exception",
+        "test_trial_does_not_waive_spec_checks_or_accept_false_verification",
+        "test_unknown_marker_cannot_be_promoted_in_an_ordinary_approval",
+        "test_bounded_sdk_trace_and_failure_preservation",
+        "test_trial_is_bound_to_original_review_and_rechecked_before_operations",
+        "test_absent_trial_preserves_the_prechange_original_record_digest"
+      ]
+    },
+    "tests/test_p5_production_connection.py": {
+      "reason": "使わないP5の受入・trusted起動・実行許可・台帳・Windows観測・保存先設置・Shopee取得。",
+      "tests": [
+        "test_unconnected_paid_credential_references_stop_before_client_or_send",
+        "test_reference_is_lazy_bound_and_uses_existing_reader_without_legacy_token",
+        "test_reference_mismatch_fails_before_secret_read",
+        "test_resolved_underlying_shop_and_missing_reference_stop",
+        "test_code_observation_uses_running_imports_and_git_not_release_config",
+        "test_clean_checkout_cannot_hide_changed_loaded_code",
+        "test_code_mismatch_fails_closed",
+        "test_production_checks_code_references_and_unresolved_sources",
+        "test_missing_original_authority_is_a_safe_stop",
+        "test_bridge_permission_precedes_google_body_read",
+        "test_bridge_other_sheet_or_range_is_refused_before_send",
+        "test_google_failure_cannot_retry_or_replenish_reservations"
+      ]
+    },
+    "tests/test_p5_restart_binding.py": {
+      "reason": "使わないP5の受入・trusted起動・実行許可・台帳・Windows観測・保存先設置・Shopee取得。",
+      "tests": [
+        "test_profile_rejects_incomplete_or_invalid_installation_target",
+        "test_profile_pins_every_stable_execution_boundary",
+        "test_profile_can_be_planned_before_store_or_listener_exists",
+        "test_profile_keeps_scope_stable_but_stales_old_process_review",
+        "test_profile_mode_preserves_actual_os_and_code_target_guards",
+        "test_unknown_profile_version_is_not_a_legacy_fallback",
+        "test_profile_pins_venv_entry_and_distinct_os_python_image",
+        "test_planning_refuses_a_different_interpreter_than_the_running_venv",
+        "test_two_real_processes_keep_same_store_budget_history_and_unknown_stop",
+        "test_previous_process_approval_is_rejected_even_with_same_profile",
+        "test_native_profile_planning_needs_no_store_or_application_listener"
+      ]
+    },
+    "tests/test_p5_storage_probe.py": {
+      "reason": "使わないP5の受入・trusted起動・実行許可・台帳・Windows観測・保存先設置・Shopee取得。",
+      "tests": [
+        "test_success_closes_sqlite_before_unlink_and_removes_only_own_probe",
+        "test_transaction_failure_closes_db_and_retains_probe_files",
+        "test_uncertain_residue_is_preserved_before_any_unlink",
+        "test_cleanup_failure_stops_and_retains_remaining_files"
+      ]
+    },
+    "tests/test_p5_composition.py": {
+      "reason": "使わないP5専用の原承認・資格情報接続・Windows観測・設置・backup。",
+      "tests": [
+        "test_original_record_rechecked_on_start_and_operations",
+        "test_review_digest_does_not_share_mutable_approval_state",
+        "test_credentials_are_service_lazy_in_both_orders",
+        "test_unapproved_service_does_not_read_key_even_after_other_service",
+        "test_windows_observation_rejects_mismatches",
+        "test_observation_binds_process_identity_not_ticket_label",
+        "test_observation_can_recheck_inside_existing_p2_write_transaction",
+        "test_observation_rejects_actual_store_identity_changes_without_repair",
+        "test_full_operator_composition_uses_original_os_references_and_real_checkpoint",
+        "test_precreation_ignores_only_nonexistent_target_acl_then_requires_full_acl",
+        "test_precreation_never_relaxes_identity_and_capacity",
+        "test_unapproved_missing_parent_is_rejected_before_any_creation",
+        "test_checkpoint_failure_stops_without_releasing_unknown",
+        "test_missing_production_checkpoint_closes_output",
+        "test_partial_backup_failure_keeps_files_claim_history_and_stops_output",
+        "test_configured_runtime_and_windows_constructors_are_inert",
+        "test_windows_storage_maps_readonly_metadata_without_secret_or_acl_io",
+        "test_windows_storage_rejects_incomplete_os_metadata_without_mutation",
+        "test_pending_operator_composes_only_at_start_and_rerenders_do_not_send"
+      ]
+    },
+    "tests/test_p5_output.py": {
+      "reason": "使わないP5の準備pool・属性・出品準備出力と操作許可。",
+      "tests": [
+        "test_operational_download_is_not_submission",
+        "test_attribute_not_fetched_empty_and_failed_preserve_preparation_contract",
+        "test_t07_attribute_refresh_during_formatting_rejects_old_bytes",
+        "test_operational_permission_revoked_during_formatting_rolls_back",
+        "test_revocation_after_commit_never_returns_bytes_and_preserves_lock",
+        "test_mock_category_replacement_cannot_borrow_official_brand_receipt",
+        "test_initial_p5_never_accepts_auto_rule_or_replayed_weapon"
+      ]
+    },
+    "tests/test_p5_runtime.py": {
+      "reason": "使わないP5専用の実行許可・設置・台帳・Shopee・画像AIの処理。",
+      "tests": [
+        "test_t01_trusted_composition_rechecks_original_observations_and_operations",
+        "test_t02_trusted_market_fixed_allocation_cannot_exceed_total",
+        "test_t06_new_only_setup_checkpoint_and_disconnected_recovery",
+        "test_t06_unknown_alias_acl_and_capacity_rejected_before_creation",
+        "test_t06_partial_install_retained_and_never_reinitialized",
+        "test_t02_each_physical_brand_page_reads_bridge_before_signing",
+        "test_t01_lower_p2_write_and_download_cannot_bypass_operation_allowlist",
+        "test_configuration_is_not_execution_or_installation",
+        "test_live_permit_without_verified_primary_sources_stops_before_io",
+        "test_scope_and_credential_market_shop_are_exact",
+        "test_category_brand_attribute_currentness_and_mock_never_operational",
+        "test_invalid_category_raw_is_not_silently_discarded",
+        "test_catalog_scope_and_request_limit_stop_before_send",
+        "test_parallel_open_and_budget_do_not_reset",
+        "test_timeout_does_not_retry_and_paid_reservation_survives",
+        "test_openai_invalid_profile_is_rejected_before_send",
+        "test_claim_or_store_replacement_cannot_create_new_budget",
+        "test_primary_source_and_default_transport_contract_is_synthetic_not_live",
+        "test_each_http_counter_is_independent_and_zero_limit_sends_nothing",
+        "test_unknown_image_stream_retains_reservation_and_prevents_second_get",
+        "test_bridge_and_google_auth_use_separate_finite_transports",
+        "test_image_destination_allowlist_sends_nothing",
+        "test_partial_http_category_response_stops_without_official_receipt",
+        "test_existing_weapon_inspector_uses_only_p5_image_and_paid_transports",
+        "test_mock_object_cannot_borrow_default_transport_provenance",
+        "test_empty_finder_never_runs_legacy_diagnostics_or_resends_query",
+        "test_google_external_credential_adapters_are_refused_before_loading"
+      ]
+    },
+    "tests/test_p5_candidates.py": {
+      "reason": "使わないP5の固定selection・資料世代・P2保存・pool・並列予約と専用探索。",
+      "tests": [
+        "test_t03_t04_same_content_generation_preserves_selection_history_and_other_product",
+        "test_t03_legacy_update_requires_new_installation_and_selected_subset",
+        "test_t05_crash_each_boundary_never_revives_ready_or_resends",
+        "test_t02_t05_send_requires_both_invalidations_and_charges_same_ledger",
+        "test_t05_pending_copy_and_stale_revision_stop_before_begin",
+        "test_t04_changed_fact_keeps_old_confirmation_invalid",
+        "test_t05_missing_journal_never_downgrades_to_old_mode",
+        "test_t05_concurrent_update_and_output_fail_closed",
+        "test_t04_filter_reassessment_retains_selection_but_blocks_pool",
+        "test_scope_change_budget_excess_and_response_size_stop_without_reset",
+        "test_rebatching_and_preparation_limit_cannot_expand_fixed_targets",
+        "test_new_mode_budget_and_candidate_history_missing_on_disk_stop",
+        "test_preparation_limit_and_parallel_fix_are_atomic",
+        "test_parallel_finder_adapters_reserve_one_approved_page",
+        "test_market_shop_and_candidate_tampering_cannot_reuse_selection",
+        "test_existing_listing_stops_preparation_in_this_market_and_shop"
+      ]
+    },
+    "tests/test_p5_ui.py": {
+      "reason": "使わないP5の許可・資料更新・scope読込・専用起動画面。",
+      "tests": [
+        "test_t07_update_display_rerenders_zero_send",
+        "test_unapproved_settings_and_rerenders_have_no_side_effects",
+        "test_country_switch_reopens_same_budget_and_preserves_other_market",
+        "test_json_scope_loads_resolver_plan_without_creating_permit",
+        "test_production_attribute_button_is_disabled_and_rerender_reads_no_credentials"
+      ]
+    },
+    "tests/test_beta_workbench_p2.py": {
+      "reason": "使わないP2長期保存・準備pool・出品状態管理・投入予約。",
+      "tests": [
+        "test_restart_keeps_history_but_never_restores_preparation",
+        "test_group_a_restart_b_and_same_asin_accumulate_without_history_loss",
+        "test_cancellation_is_durable_and_intake_does_not_reconfirm",
+        "test_p1_refresh_failure_never_uses_saved_valid",
+        "test_five_states_and_recheck_cannot_reset_confirmed_submission",
+        "test_unknown_reservation_survives_restart_and_requires_complete_explicit_resolution",
+        "test_same_session_unknown_can_be_resolved_successfully",
+        "test_changed_product_and_old_revision_cannot_finish_success",
+        "test_parallel_connections_allow_only_one_reservation",
+        "test_cross_market_shop_schema_and_legacy_open_never_mutate",
+        "test_database_missing_corruption_and_lost_reservation_stop_without_repair",
+        "test_partial_save_rolls_back_all_products_history_and_locks",
+        "test_commit_failure_never_delivers_bytes_or_keeps_partial_reservation",
+        "test_p1_invalidation_during_formatter_rolls_back_output",
+        "test_unchanged_refresh_has_no_spurious_revision_but_changed_fact_invalidates",
+        "test_unresolved_queue_and_exclusion_cannot_be_cleared_by_group_confirm",
+        "test_old_selection_and_other_market_intake_are_atomic",
+        "test_two_markets_and_shops_can_share_asin_without_shared_history",
+        "test_replaced_valid_same_market_shop_database_is_rejected_by_open_handle",
+        "test_reservation_remains_locked_if_evidence_changes_after_commit_before_return",
+        "test_refresh_and_listing_group_failure_roll_back"
+      ]
+    },
+    "tests/test_classification_p3.py": {
+      "reason": "使わないP3カテゴリ・Brand確定、AUTO_RULE、準備poolとの接続。",
+      "tests": [
+        "test_three_of_ten_independent_human_confirmations_and_actor",
+        "test_limited_auto_mixed_authority_and_default_operational_stop",
+        "test_ambiguous_or_unproven_automatic_decisions_hold",
+        "test_selection_rejects_product_revision_and_material_changes",
+        "test_group_auto_failure_rolls_back_the_whole_selected_subset",
+        "test_cancellation_requires_reason_before_any_write",
+        "test_material_change_between_selection_check_and_transaction_stops",
+        "test_existing_strict_client_delivers_current_complete_mock_and_rejects_partial",
+        "test_atomic_subset_rolls_back_all_updates_and_notes",
+        "test_add_b_keeps_a_and_revoke_survives_restart_without_auto_reaccept",
+        "test_material_update_invalidates_prepared_pool",
+        "test_acquisition_failure_does_not_restore_previous_complete_brand",
+        "test_identical_material_after_failure_never_revives_old_confirmation",
+        "test_invalid_fact_refresh_stays_expired_when_retried_with_same_content",
+        "test_unapproved_operation_flag_cannot_unlock_auto_and_approval_is_exact"
+      ]
+    },
+    "tests/test_classification_p3_ui.py": {
+      "reason": "使わないP3確定画面だけの操作。",
+      "tests": [
+        "test_shared_ui_three_selected_products_and_evidence_change"
+      ]
+    },
+    "tests/test_practical_beta_p4_ui.py": {
+      "reason": "使わないP4の準備pool・5状態・保存復旧・画像AI・shop再開画面だけの操作。",
+      "tests": [
+        "test_disjoint_b_preserves_a_but_reacquired_same_a_needs_fresh_review",
+        "test_a05_all_five_states_and_explicit_return",
+        "test_a06_storage_failure_and_stale_reservation_fail_closed",
+        "test_a02_target_weapon_replay_human_review_deletion_and_wrong_market",
+        "test_a06_same_country_shop_change_discards_transient_state"
+      ]
+    },
+    "tests/test_sg_initial_beta.py": {
+      "reason": "使わないSG初期ベータの自動分類・カテゴリ／Brand確定・準備pool・出品状態管理。",
+      "tests": [
+        "test_new_asin_auto_rule_is_not_user_confirmation",
+        "test_counterexamples_abstain",
+        "test_brand_incomplete_ambiguous_expired_and_old_stop",
+        "test_brand_missing_only_waits_for_brand",
+        "test_brand_conflicts_and_no_brand_auto_prohibited",
+        "test_changes_invalidate_and_stop_downstream",
+        "test_group_subset_human_category_does_not_adopt_brand_and_mixed_csv",
+        "test_human_no_brand_explicit_and_category_first",
+        "test_pool_cross_batch_operation_and_restart",
+        "test_copy_unknown_restart_double_operation_cancel_and_five_states",
+        "test_copy_success_after_revocation_stops_and_cannot_repeat",
+        "test_atomic_db_failure_never_returns_success_or_partial_update",
+        "test_current_context_missing_stops",
+        "test_unresolved_other_product_does_not_block_ready_subset",
+        "test_new_db_only_no_silent_creation_repair_or_old_db_migration",
+        "test_stale_revision_group_change_and_json_damage_stop",
+        "test_refresh_is_stable_and_does_not_create_spurious_history",
+        "test_ui_subset_and_confirmation_widget_invalidates",
+        "test_pending_copy_lock_loss_and_state_corruption_stop",
+        "test_manual_exclude_and_brand_revocation_survive_new_batches",
+        "test_failed_copy_and_double_finish_are_explicit",
+        "test_two_connections_cannot_reserve_the_same_asin",
+        "test_versioned_demo_contract_uses_mock_brand_and_stops_exceptions",
+        "test_listing_error_history_remains_recordable_after_preparation_expires",
+        "test_explicit_offline_entry_never_opens_legacy_ph_or_sg_runtime",
+        "test_commit_failure_cannot_deliver_copy_bytes_or_retain_reservation"
+      ]
+    },
+    "tests/test_sg_beta_release.py": {
+      "reason": "使わない専用ベータの稼働状態切替とカテゴリ別準備出力。",
+      "tests": [
+        "test_inactive_state_blocks_before_workflow_access",
+        "test_unaccepted_or_broken_state_closes_beta",
+        "test_beta_and_preview_outputs_have_separate_meanings",
+        "test_activation_change_during_build_closes_output",
+        "test_beta_entry_before_adoption_never_opens_a_runtime",
+        "test_beta_ui_outputs_and_revocation"
+      ]
+    },
+    "tests/test_sg_candidate_runtime.py": {
+      "reason": "使わないCategory／画像AIの隔離replayと専用catalog接続。",
+      "tests": [
+        "test_replay_rejects_wrong_binding_or_malformed_data",
+        "test_duplicate_bundle_keys_are_rejected",
+        "test_replay_never_reuses_existing_or_production_database",
+        "test_catalog_replay_binds_shop_and_exact_category_offset",
+        "test_category_replay_is_bound_to_product_catalog_and_profile",
+        "test_replayed_image_uses_existing_transport_and_refuses_different_image",
+        "test_sg_batch_uses_country_root_selection",
+        "test_failed_batch_invalidates_unprocessed_old_reviews"
+      ]
+    },
+    "tests/test_sg_image_inspection.py": {
+      "reason": "使わない画像AIの取得・判定・専用準備画面。Gate側の既存画像Fact・Safety条件のテストは残す。",
+      "tests": [
+        "test_only_weapon_suspicion_or_indeterminate_needs_human_review",
+        "test_partial_images_are_indeterminate_and_cannot_be_no_signal",
+        "test_missing_images_never_call_transport_or_allow_preparation",
+        "test_existing_safety_stop_and_other_market_never_call_ai",
+        "test_auth_failure_invalidates_all_previous_review_and_closes_preview_until_recheck",
+        "test_image_reinspection_resets_ui_checkboxes_and_never_runs_on_rerun",
+        "test_adapter_rejects_missing_or_network_sessions",
+        "test_sg_workflow_rejects_unvalidated_inspector",
+        "test_image_result_cannot_move_between_products_and_new_evaluation_invalidates_decision",
+        "test_invalid_result_is_system_failure_and_never_becomes_human_confirmation",
+        "test_non_target_sg_product_needs_no_image_or_human_review",
+        "test_non_target_missing_images_does_not_block_preparation"
+      ]
+    },
+    "tests/test_ph_image_safety_api.py": {
+      "reason": "使わない画像AIの取得・判定・専用準備画面。Gate側の既存画像Fact・Safety条件のテストは残す。",
+      "tests": [
+        "test_request_uses_pinned_model_structured_output_storage_off_and_exact_images",
+        "test_api_transient_retries_once",
+        "test_retry_exhaustion_is_product_error",
+        "test_auth_contract_unsupported_configuration_is_global_stop_without_retry",
+        "test_preflight_stops_before_any_network",
+        "test_image_url_is_restricted_before_network",
+        "test_more_than_three_images_stops_before_network",
+        "test_missing_images_does_not_call_api",
+        "test_invalid_image_or_redirect_is_product_error",
+        "test_large_image_is_rejected_without_api",
+        "test_image_transient_get_retries_once_and_closes_responses",
+        "test_partial_images_do_not_hide_failure_with_no_signal",
+        "test_bad_ai_output_is_product_error",
+        "test_incomplete_or_refusal_has_no_invented_semantic_result",
+        "test_wrong_response_model_stops",
+        "test_api_image_failure_is_product_error_not_global_configuration_error"
+      ]
+    },
+    "tests/test_sg_live_runtime.py": {
+      "reason": "使わない旧SGのCategory／Brand／画像AI live受入・専用準備出力。",
+      "tests": [
+        "test_runtime_creation_and_rerun_are_local_only",
+        "test_new_location_or_changed_grant_cannot_reset_existing_run",
+        "test_missing_ledger_refuses_reset",
+        "test_concurrent_runtime_cannot_spend_same_grant",
+        "test_failed_requests_and_restart_keep_consumption",
+        "test_each_endpoint_gets_fresh_bound_token_and_stops_out_of_scope",
+        "test_wrong_shop_stops_before_catalog_endpoint",
+        "test_paid_reservation_and_failure_survive_restart",
+        "test_invalid_grant_has_no_requests",
+        "test_corrupt_ledger_fails_closed",
+        "test_real_factory_reads_latest_bridge_without_changing_environment",
+        "test_paid_ai_rejects_other_product_before_any_transport"
+      ]
+    },
+    "tests/test_sg_live_ui.py": {
+      "reason": "使わない旧SGのCategory／Brand／画像AI live受入・専用準備出力。",
+      "tests": [
+        "test_live_ui_open_and_rerun_do_not_acquire_data",
+        "test_live_ui_invalid_grant_does_not_initialize"
+      ]
+    },
+    "tests/test_sg_live_validation.py": {
+      "reason": "使わない旧SGのCategory／Brand／画像AI live受入・専用準備出力。",
+      "tests": [
+        "test_budget_charges_before_calls_and_never_refunds_timeout",
+        "test_budget_exhaustion_prevents_next_network_request",
+        "test_unbounded_or_unknown_paid_profile_never_reaches_network",
+        "test_owner_budget_cannot_be_increased",
+        "test_session_pins_standard_tier_redirects_and_original_payload_is_unchanged",
+        "test_scope_enforces_three_unique_products",
+        "test_live_scope_refuses_normal_database",
+        "test_extended_brand_grant_requires_bounded_category_allowlist",
+        "test_extended_brand_grant_counts_repeated_requests_and_rejects_other_category",
+        "test_cli_bridge_failure_stops_before_keepa_or_paid_calls",
+        "test_category_probe_diagnostics_exclude_reasoning_and_unstructured_provider_errors",
+        "test_probe_distinguishes_abstention_from_transport_failure",
+        "test_live_scope_product_and_store_binding_and_offline_default_are_preserved",
+        "test_live_image_transport_needs_live_scope_and_shared_budget"
+      ]
+    },
+    "tests/test_sg_preparation_preview.py": {
+      "reason": "使わない旧SGのCategory／Brand／画像AI live受入・専用準備出力。",
+      "tests": [
+        "test_group_category_confirmation_saves_each_asin_without_confirming_brand",
+        "test_group_save_rolls_back_every_product_on_failure",
+        "test_group_rejects_mixed_market_brand_or_noneligible",
+        "test_attributes_are_sg_bound_and_failure_discards_old_result",
+        "test_audit_revalidates_stale_brand_and_never_exports_ready_true",
+        "test_group_ui_requires_explicit_product_confirmation",
+        "test_preparation_assessment_lists_missing_steps_and_closes_exit",
+        "test_failed_catalog_refresh_closes_all_preparation"
+      ]
+    },
+    "tests/test_sg_beta_process_identity.py": {
+      "reason": "使わない旧ベータ専用起動・停止のWindows観測だけの確認。通常app.py起動・Resolver・Gate・Keepaを確認しない。指示Gの2件は修正しない。",
+      "tests": [
+        "test_actual_venv_child_json_resume_and_identity_rejection"
+      ]
+    },
+    "tests/test_asin_resolver_evidence.py": {
+      "reason": "使わないEvidence Batchのmanifest・再開・checkpoint・成果物台帳。",
+      "tests": [
+        "test_batch_requires_environment_approved_formal_main_commit",
+        "test_approved_formal_commit_rejects_invalid_and_mismatched_values",
+        "test_source_input_is_saved_before_and_regenerates_the_same_source_map",
+        "test_retry_free_transition_graph_and_completed_batch_is_immutable",
+        "test_retry_transition_graph_requires_every_retry_checkpoint",
+        "test_illegal_jumps_and_retry_artifacts_without_retry_path_stop",
+        "test_invalid_runtime_artifact_metadata_stops_validation",
+        "test_sha_mismatch_stops_without_overwrite",
+        "test_source_map_mismatch_and_missing_parent_stop_validation",
+        "test_restore_batch_state_reconstructs_saved_inputs_and_retry_state",
+        "test_every_checkpoint_restores_the_correct_next_action_and_export_rows",
+        "test_manifest_schema_rejects_required_metadata_mismatches",
+        "test_stage_write_failure_rolls_back_new_files_and_keeps_prior_checkpoint",
+        "test_parse_stage_write_failure_rolls_back_both_new_files",
+        "test_manifest_sidecar_failure_restores_the_prior_valid_pair",
+        "test_atomic_manifest_updates_leave_no_temporary_files"
+      ]
+    },
+    "tests/test_asin_resolver_evidence_integration.py": {
+      "reason": "使わないEvidence Batchの成果物台帳・再開の結合確認。",
+      "tests": [
+        "test_synthetic_batch_can_resume_and_stops_for_tampering_or_foreign_artifact"
+      ]
+    },
+    "tests/test_app_resolver_contract.py": {
+      "reason": "使わないEvidence Batchからの画面再開だけの確認。",
+      "tests": [
+        "test_source_map_saved_resume_uses_saved_input_with_an_empty_widget_once",
+        "test_source_map_saved_resume_missing_input_stops_without_manifest_write",
+        "test_batch_created_resume_still_requires_widget_input",
+        "test_loading_another_batch_clears_the_previous_product_input_widget"
+      ]
+    },
+    "tests/test_keepa_client.py": {
+      "reason": "使わないExpansionのseed探索・候補検索・探索モード・検索cache・ページ見積りだけの確認。",
+      "tests": [
+        "test_token_estimate_uses_50_candidates_per_page",
+        "test_find_related_products_uses_brand_category_and_excludes_duplicates",
+        "test_find_related_products_deduplicates_repeated_candidates",
+        "test_search_mode_params_for_strict_standard_broad_and_category_research",
+        "test_standard_search_uses_root_category_when_parent_is_unavailable",
+        "test_cache_key_includes_mode_domain_categories_hash_and_version",
+        "test_broad_mode_marks_noise_risk",
+        "test_find_related_products_uses_search_cache_without_api_calls",
+        "test_find_related_products_requires_source_brand",
+        "test_find_related_products_requires_source_category"
+      ]
+    },
+    "tests/test_keepa_candidate_filters.py": {
+      "reason": "使わないExpansion Finderだけの診断fallbackとページ上限の確認。",
+      "tests": [
+        "test_active_finder_failure_does_not_spend_on_diagnostic_fallback",
+        "test_active_finder_rejects_response_above_declared_page_ceiling"
+      ]
+    }
+  },
+  "retained_mixed": {
+    "tests/test_category_ai_keepa_runner.py": {
+      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
+      "tests": [
+        "test_unexpected_token_consumption_stops_and_preserves_partial_result",
+        "test_transport_failure_does_not_fallback_and_preserves_partial_result",
+        "test_http_transport_attempts_once_and_never_exposes_key_in_error"
+      ]
+    },
+    "tests/test_app_category_mapper.py": {
+      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
+      "tests": [
+        "test_category_mapper_defaults_to_ph_and_uploads_csv",
+        "test_category_mapper_applies_no_brand_to_gate_group_and_enables_outputs",
+        "test_sls_stop_reason_visible_and_brand_disabled",
+        "test_sls_asset_error_is_local_and_does_not_change_db"
+      ]
+    },
+    "tests/test_app_category_mapper_sg.py": {
+      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
+      "tests": [
+        "test_market_switch_keeps_inputs_and_live_actions_separate"
+      ]
+    },
+    "tests/test_category_mapper.py": {
+      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
+      "tests": [
+        "test_accepts_expansion_and_gate_eligible_but_rejects_audit_review_exclude_and_non_ph",
+        "test_rejects_gate_csv_with_mixed_schema_versions",
+        "test_rejects_invalid_or_duplicate_candidate_asins",
+        "test_resolver_title_csv_is_optional_evidence_only",
+        "test_output_blockers_and_group_exports_keep_all_21_gate_asins_in_order",
+        "test_real_shaped_gate_rows_keep_sets_out_of_shampoo_outputs"
+      ]
+    },
+    "tests/test_category_mapper_sg.py": {
+      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
+      "tests": [
+        "test_accepts_only_formal_all_eligible_sg_gate_csv",
+        "test_rejects_non_sg_mixed_noneligible_mixed_source_and_audit",
+        "test_rejects_raw_candidate_and_invalid_gate_schema",
+        "test_rejects_rows_that_are_not_formal_complete_gate_eligible",
+        "test_sg_never_reaches_ph_groups_listing_text_or_db_migration"
+      ]
+    },
+    "tests/test_category_mapper_sg_brand.py": {
+      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
+      "tests": [
+        "test_brand_confirmation_and_review_preserve_sls_stop"
+      ]
+    },
+    "tests/test_sg_brand_confirmation_ui.py": {
+      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
+      "tests": [
+        "test_saves_explicit_brand_and_keeps_shipping_stop",
+        "test_same_brand_name_different_market_ids_stay_separate"
+      ]
+    },
+    "tests/test_p5_composition.py": {
+      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
+      "tests": [
+        "test_actual_sdk_cold_trace_four_sends_and_112_reserved_tokens"
+      ]
+    },
+    "tests/test_p5_output.py": {
+      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
+      "tests": [
+        "test_sg_formal_gate_still_rechecks_after_output_commit"
+      ]
+    },
+    "tests/test_p5_runtime.py": {
+      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
+      "tests": [
+        "test_maximum_keepa_tokens_reserved_and_actual_recorded",
+        "test_keepa_missing_invalid_consumption_retains_reservation_across_restart",
+        "test_failed_persistence_sends_nothing",
+        "test_actual_sdk_transport_records_f1_f2_consumption_without_network",
+        "test_expansion_and_resolver_share_bounded_sdk_and_filter_observations",
+        "test_finite_keepa_tokens_stop_before_second_send"
+      ]
+    },
+    "tests/test_p5_candidates.py": {
+      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
+      "tests": [
+        "test_t04_fresh_bypasses_fresh_cache_and_rebuilds_safety",
+        "test_t04_fresh_captures_both_price_and_rating",
+        "test_t04_all_safety_material_remains_bound_to_generation",
+        "test_t04_changed_resolver_requires_new_exact_comparison",
+        "test_finder_selection_safety_classification_save_restart",
+        "test_resolver_origin_identity_and_source_survive_to_store",
+        "test_safety_stops_cannot_be_overridden_by_classification"
+      ]
+    },
+    "tests/test_p5_ui.py": {
+      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
+      "tests": [
+        "test_common_screen_uses_only_injected_client_and_filters_do_not_send",
+        "test_two_stage_expansion_ui_through_safety_and_saved_classification",
+        "test_resolver_identity_widget_never_selects_unknown_or_mismatch"
+      ]
+    },
+    "tests/test_beta_workbench_p2.py": {
+      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
+      "tests": [
+        "test_latest_all_shop_parent_or_sku_matches_even_without_preparation_and_never_unlists",
+        "test_safety_notes_never_override_validator_stops_and_are_persistent",
+        "test_body_battery_image_and_block_never_prepare",
+        "test_unknown_fact_provenance_and_saved_success_are_not_permissions",
+        "test_saved_body_exclusion_survives_changed_sources_and_restart",
+        "test_sls_stop_cannot_be_cleared_by_category_brand_or_notes"
+      ]
+    },
+    "tests/test_classification_p3.py": {
+      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
+      "tests": [
+        "test_keepa_capture_and_resolver_keep_only_own_explicit_jp_metadata",
+        "test_normal_producer_facts_reach_p1_without_reconstruction"
+      ]
+    },
+    "tests/test_classification_p3_ui.py": {
+      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
+      "tests": [
+        "test_actual_normal_gate_connects_to_p1_p2_and_changed_material_stops"
+      ]
+    },
+    "tests/test_practical_beta_p4_ui.py": {
+      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
+      "tests": [
+        "test_a01_a03_a04_a05_a06_same_app_restart_a_then_resolver_b",
+        "test_a02_safety_hold_notes_auto_and_unknown_provenance_never_grant_output"
+      ]
+    },
+    "tests/test_sg_initial_beta.py": {
+      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
+      "tests": [
+        "test_per_field_origins_never_promoted",
+        "test_legacy_jp_default_is_not_proof",
+        "test_review_persistence_restart_and_human_note_cannot_clear_battery",
+        "test_existing_parent_and_sku_all_shops_and_market_isolation",
+        "test_safety_body_weapon_and_sls_stops",
+        "test_unproven_capture_time_is_not_auto_fact",
+        "test_sls_exclusion_cannot_be_overridden_by_auto_classification",
+        "test_confirming_classification_cannot_clear_guardrail_block",
+        "test_saved_cache_audit_is_readonly_and_never_invents_provenance",
+        "test_saved_completed_weapon_inspection_cannot_hide_missing_images",
+        "test_valid_saved_weapon_inspection_retains_targeted_human_contract",
+        "test_saved_audit_output_cannot_overwrite_inputs"
+      ]
+    },
+    "tests/test_sg_beta_release.py": {
+      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
+      "tests": [
+        "test_beta_does_not_release_existing_stops",
+        "test_beta_rechecks_new_battery_signals_despite_old_gate_and_category_allow"
+      ]
+    },
+    "tests/test_sg_candidate_runtime.py": {
+      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
+      "tests": [
+        "test_candidate_entry_from_files_to_group_downloads"
+      ]
+    },
+    "tests/test_asin_resolver_evidence.py": {
+      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
+      "tests": [
+        "test_two_column_and_legacy_inputs_have_deterministic_source_maps",
+        "test_source_input_rejects_duplicate_ids_and_extra_columns"
+      ]
+    },
+    "tests/test_app_resolver_contract.py": {
+      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
+      "tests": [
+        "test_app_resolver_imports_match_public_resolver_functions",
+        "test_resolver_copy_guidance_describes_the_unedited_chatgpt_round_trip",
+        "test_internal_evidence_batch_controls_are_hidden_by_default",
+        "test_canopy_test_mode_is_explicit_without_provider_selection_ui",
+        "test_unknown_provider_stops_without_keepa_fallback",
+        "test_resolver_ui_handles_30_synthetic_tsv_lines_and_malformed_url",
+        "test_resolver_gate_handoff_consolidates_duplicates_without_counting_excluded",
+        "test_resolver_gate_handoff_conflict_is_shown_with_asin",
+        "test_legacy_mode_still_rejects_an_empty_widget_input"
+      ]
+    },
+    "tests/test_keepa_client.py": {
+      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
+      "tests": [
+        "test_normalize_asin_accepts_10_alphanumeric_chars",
+        "test_normalize_asin_rejects_invalid_values",
+        "test_keepa_detail_response_transports_three_ingredient_facts_without_extra_query",
+        "test_old_product_cache_hit_is_not_captured_and_does_not_refresh",
+        "test_old_product_cache_candidate_transport_is_product_text_not_captured",
+        "test_detail_success_and_failure_counts_are_separate"
+      ]
+    },
+    "tests/test_keepa_candidate_filters.py": {
+      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
+      "tests": [
+        "test_only_requested_acquisition_adds_stats_and_rating",
+        "test_old_product_cache_is_unknown_without_automatic_refill",
+        "test_search_cache_reuses_candidates_and_hydrates_observation_without_api",
+        "test_expired_product_cache_uses_normal_finite_acquisition",
+        "test_captured_missing_no_offer_or_invalid_are_not_repeated_automatically",
+        "test_explicit_refill_rejects_insufficient_declared_budget_before_send",
+        "test_known_token_shortage_stops_normal_and_manual_acquisition_before_send",
+        "test_changed_refill_plan_stops_before_send",
+        "test_refill_preserves_safety_cache_age_and_previous_rating_timestamp",
+        "test_partial_or_wrong_refill_response_fails_without_replacing_existing_product",
+        "test_expansion_and_resolver_use_same_observation_and_no_finder_pushdown",
+        "test_installed_sdk_retains_raw_stats_and_jp_yen_is_not_stats_parsed",
+        "test_sg_existing_bounded_transport_reserves_actual_send",
+        "test_sdk_initial_zero_token_placeholder_is_checked_once_before_explicit_fetch"
+      ]
+    }
+  },
+  "retained_uncertain": {
+    "tests/test_p5_acceptance_rehearsal.py": "P5受入とResolver資料搬送を複数回まとめて扱う。分離を断定せず全件残す。",
+    "tests/test_preparation_validity.py": "P1の共通現在根拠・Safety条件。P2〜P4の廃止だけで共通条件まで外さない。",
+    "tests/test_preparation_exit_contract.py": "旧カテゴリ準備出力と共通の資料・Safety失効条件を同時に扱うため残す。",
+    "tests/test_preparation_group_output.py": "旧カテゴリ出力と共通CSV整形・順序・式文字列保護を扱うため残す。",
+    "tests/test_product_review.py": "旧分類・画像確認と共通の人による確認・Safety条件が混在するため残す。",
+    "tests/test_product_review_transport.py": "GateのCandidate・説明文・確認資料の受渡しも確認するため残す。",
+    "tests/test_image_inspection_policy.py": "画像AI実行だけでなくGateが読む既存画像Factの対象判定を含むため残す。",
+    "tests/test_beta_application.py": "旧専用画面だけでなく市場切替・Keepa cacheと設定の市場分離も確認するため残す。",
+    "tests/test_sg_beta_environment.py": "旧設置設定とKeepaの継続取得予算の共通条件が混在するため残す。",
+    "tests/test_sg_continuous_operation.py": "カテゴリ取得とKeepaの送信予約・実消費・UNKNOWN保全が混在するため残す。",
+    "tests/test_commerce_keepa_expansion.py": "Expansionを含むが、残すKeepa共通取得の応答・失敗時停止も確認するため残す。",
+    "tests/test_expansion_gate_handoff.py": "ExpansionとGateへの成分・説明文の同一性／失効を同時に確認するため残す。",
+    "tests/test_home_appliances_files.py": "独立の家電ファイル分類の扱いは今回の廃止指定だけでは確定しないため残す。",
+    "tests/test_home_appliances_research_replay.py": "独立の家電資料replayの扱いは今回の指定だけでは確定しないため残す。",
+    "tests/test_canopy_client.py": "Canopy TESTは今回の廃止指定にないため推測で外さない。",
+    "tests/test_sls_category_assets.py": "カテゴリ依存だが既存の輸送・電池・市場分離の安全条件を確認する。今回の指定だけで外さない。",
+    "tests/test_sls_category_lifecycle.py": "カテゴリ依存だが既存の輸送・電池・市場分離の安全条件を確認する。今回の指定だけで外さない。",
+    "tests/test_sls_category_protected.py": "カテゴリ依存だが既存の輸送・電池・市場分離の安全条件を確認する。今回の指定だけで外さない。",
+    "tests/test_sls_category_rules.py": "カテゴリ依存だが既存の輸送・電池・市場分離の安全条件を確認する。今回の指定だけで外さない。",
+    "tests/test_sls_category_sg_assets.py": "カテゴリ依存だが既存の輸送・電池・市場分離の安全条件を確認する。今回の指定だけで外さない。",
+    "tests/test_sls_category_sg_lifecycle.py": "カテゴリ依存だが既存の輸送・電池・市場分離の安全条件を確認する。今回の指定だけで外さない。",
+    "tests/test_sls_category_sg_rules.py": "カテゴリ依存だが既存の輸送・電池・市場分離の安全条件を確認する。今回の指定だけで外さない。",
+    "tests/test_sls_category_sg_ui.py": "カテゴリ依存だが既存の輸送・電池・市場分離の安全条件を確認する。今回の指定だけで外さない。",
+    "tests/test_sls_category_transform.py": "カテゴリ依存だが既存の輸送・電池・市場分離の安全条件を確認する。今回の指定だけで外さない。"
+  }
+}
