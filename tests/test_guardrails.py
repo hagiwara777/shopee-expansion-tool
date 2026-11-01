@@ -1091,6 +1091,7 @@ PH_BLOCK_RULE_IDS = {
     *(f"PH-D{number:03d}" for number in range(90, 96)),
     *(f"PH-D{number:03d}" for number in range(15, 19)),
     *(f"PH-D{number:03d}" for number in range(96, 100)),
+    *(f"PH-D{number:03d}" for number in range(100, 104)),
 }
 
 
@@ -1144,7 +1145,7 @@ def test_marketplace_ph_loads_only_ph_dictionaries_and_allows_zero_brand_rules()
     dictionaries = load_guardrail_dictionaries(marketplace="  ｐｈ ")
 
     assert dictionaries.brand_rules == []
-    assert len(dictionaries.keyword_rules) == 99
+    assert len(dictionaries.keyword_rules) == 103
     assert {rule.file_name for rule in dictionaries.keyword_rules} == {"risk_keywords_ph.csv"}
 
 
@@ -1194,8 +1195,8 @@ def test_ph_dictionary_contains_exactly_the_approved_rules_and_metadata():
     block_rows = ph_rules_with_action("BLOCK")
     review_rows = ph_rules_with_action("REVIEW")
 
-    assert len(rows) == 99
-    assert len(block_rows) == 56
+    assert len(rows) == 103
+    assert len(block_rows) == 60
     assert len(review_rows) == 43
     assert len(terms) == len(set(terms))
     assert {ph_rule_id(row) for row in block_rows} == PH_BLOCK_RULE_IDS

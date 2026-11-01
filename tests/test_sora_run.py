@@ -14,18 +14,19 @@ class Client:
     product_field_prefix = 'spapi'
     verification_label = 'SP_API_VERIFIED'
 
-    def __init__(self, attributes=None):
+    def __init__(self, attributes=None, title='普通のタオル'):
         self.attributes = attributes or {}
+        self.title = title
 
     def verify_products_by_asin(self, asins):
         return {asin: normalize_catalog_item({'asin': asin, 'attributes': self.attributes,
-            'summaries': [{'marketplaceId': JP_MARKETPLACE, 'itemName': '普通のタオル',
+            'summaries': [{'marketplaceId': JP_MARKETPLACE, 'itemName': self.title,
                           'brand': '試験ブランド', 'browseClassification': {'displayName': 'タオル'}}]},
             fetched_at='2026-11-01T09:00:00+00:00') for asin in asins}
 
 
-def run_for(attributes=None, marketplace='SG'):
-    verified = verify_preview_rows(preview_candidates('B000000001'), Client(attributes))
+def run_for(attributes=None, marketplace='SG', *, title='普通のタオル'):
+    verified = verify_preview_rows(preview_candidates('B000000001'), Client(attributes, title))
     return prepare_sora_run(verified, marketplace=marketplace, auth_calls=1, catalog_calls=1,
                             input_files=('research.csv',))
 
@@ -75,3 +76,46 @@ def test_unverified_product_never_becomes_gate_candidate():
     run = prepare_sora_run(rows, marketplace='SG', auth_calls=1, catalog_calls=1)
     assert run.unverified_row_count == 1
     assert evaluate_sora_run(run).candidate_count == 1
+
+
+@pytest.mark.parametrize('marketplace', ['PH', 'SG'])
+@pytest.mark.parametrize('term', [
+    '塩酸ジフェンヒドラミン', 'diphenhydramine',
+    'diphenhydramine hydrochloride', 'ジフェンヒドラミン',
+])
+@pytest.mark.parametrize('attribute', [
+    'ingredients', 'active_ingredients', 'special_ingredients',
+    'product_description', 'bullet_point', 'short_product_description',
+    'safety_warning', 'special_feature',
+])
+def test_approved_medical_ingredients_in_each_captured_field_excluded_from_handoff(
+    marketplace, term, attribute,
+):
+    run = run_for({attribute: [{'value': term}]}, marketplace)
+    result = evaluate_sora_run(run)
+    assert result.rows[0].final_eligibility == 'EXCLUDE'
+    assert term in result.rows[0].guardrail_matched_terms
+    assert sora_exports(run, result)['通過ASIN.txt'] == b''
+
+
+def test_ph_ingredient_dictionary_is_limited_to_owner_approved_four_spellings():
+    from modules.guardrails import load_guardrail_dictionaries
+    rules = [rule for rule in load_guardrail_dictionaries(marketplace='PH').keyword_rules
+             if rule.risk_category == 'regulated_ingredient']
+    assert {rule.term for rule in rules} == {
+        '塩酸ジフェンヒドラミン', 'diphenhydramine',
+        'diphenhydramine hydrochloride', 'ジフェンヒドラミン',
+    }
+    assert all(rule.action == 'BLOCK' and rule.match_field == 'title' for rule in rules)
+
+
+@pytest.mark.parametrize('marketplace', ['PH', 'SG'])
+@pytest.mark.parametrize('term', [
+    '塩酸ジフェンヒドラミン', 'diphenhydramine',
+    'diphenhydramine hydrochloride', 'ジフェンヒドラミン',
+])
+def test_approved_ingredient_names_in_product_title_excluded(marketplace, term):
+    run = run_for(marketplace=marketplace, title=term)
+    result = evaluate_sora_run(run)
+    assert result.rows[0].final_eligibility == 'EXCLUDE'
+    assert sora_exports(run, result)['通過ASIN.txt'] == b''
