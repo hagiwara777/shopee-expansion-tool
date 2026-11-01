@@ -128,7 +128,16 @@ jobs:
           persist-credentials: false
       - name: Install pinned commerce-api-core
         run: python -m pip install ./work/ci/commerce-api-core
-      - run: python -m pytest -q
+      - name: Sora active tests
+        run: python -m pytest -q --junitxml=outputs/test-timing/sora-active.xml
+      - name: commerce-api-core separate tests
+        run: python -m pytest -q work/ci/commerce-api-core/tests --junitxml=outputs/test-timing/commerce-api-core.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-timing
+          path: outputs/test-timing/*.xml
+          if-no-files-found: warn
       - shell: powershell
         if: github.event_name == 'pull_request'
         run: .\scripts\Generate-GovernanceEvidence.ps1 -GateId tests.offline -OutputDirectory evidence
