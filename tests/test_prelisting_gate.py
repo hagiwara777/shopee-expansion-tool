@@ -799,9 +799,11 @@ def test_phase1_v2_keeps_candidate_gate_schema_and_gate_public_interface_v1():
         "ingredient_safety",
         "product_text_safety",
         "sg_body_confirmations",
+        "check_existing_listings",
     )
     assert parameters["ingredient_safety"].default is None
     assert parameters["product_text_safety"].default is None
+    assert parameters["check_existing_listings"].default is True
     assert PRELISTING_CANDIDATE_SCHEMA_VERSION == "PRELISTING_CANDIDATE_V1"
     assert GATE_RESULT_SCHEMA_VERSION == "PRELISTING_GATE_RESULT_V1"
 

@@ -7,12 +7,12 @@ from modules.prelisting_sg_body_safety import (
 )
 
 
-def render_sg_body_review(candidates, product_text, confirmations):
+def render_sg_body_review(candidates, product_text, confirmations, *, persist=True):
     result = prepare_body_confirmations(candidates, product_text, confirmations)
     checks = body_checks(candidates, product_text, result)
     if not checks:
         return result
-    st.subheader("SG 本体・実同梱の確認")
+    st.subheader("SG 本体・実同梱の確認" if persist else "追加確認：本体・実同梱")
     st.caption("レンズ本体は販売除外、一般台所用包丁本体は当社の暫定除外です。"
                "本体を含むセットも除外します。付属品確認で既存の別理由による停止は解除されません。")
     titles = {row.candidate_asin: row.product_title for row in candidates.rows}
@@ -29,7 +29,7 @@ def render_sg_body_review(candidates, product_text, confirmations):
             subject = "一般台所用包丁" if family == "KNIFE" else "コンタクトレンズ"
             st.write(f"{subject}本体が商品またはセットに実際に含まれますか？")
             st.caption("疑義の根拠: " + "; ".join(check["evidence"]))
-            st.caption(f"保存済み確認: {check['outcome']}" + (f" / {check['note']}" if check["note"] else ""))
+            st.caption(("保存済み確認: " if persist else "今回の確認: ") + str(check['outcome']) + (f" / {check['note']}" if check["note"] else ""))
             if check["outcome"] == "BODY_PRESENT":
                 st.warning("本体・実同梱を確認済みのため除外します。")
                 continue
@@ -43,7 +43,9 @@ def render_sg_body_review(candidates, product_text, confirmations):
                 except SGBodySafetyError:
                     st.warning("対象・確認結果・商品内容の確認と判断根拠を確認してください。停止を維持します。")
                 else:
-                    st.success("確認結果を反映しました。再開用の確認記録も保存してください。")
+                    st.success("確認結果を反映しました。" + ("再開用の確認記録も保存してください。" if persist else "保安ゲートを再判定してください。"))
+    if not persist:
+        return result
     st.download_button("SG本体確認記録を保存", data=body_confirmation_bytes(result),
                        file_name="sg_body_confirmations.json", mime="application/json", key="sg_body_download")
     st.caption("同じ入力での再実行には確認を保持します。画面を閉じて再開するときは、この記録を読み込んでください。")

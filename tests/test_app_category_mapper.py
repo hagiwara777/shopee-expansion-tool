@@ -1,3 +1,4 @@
+# Legacy renderer is preserved off the normal Sora route; exercise it explicitly.
 import csv
 from io import StringIO
 import logging
@@ -147,7 +148,7 @@ def _seed_hobbies_leaf(tmp_path: Path) -> None:
 def _test_app(monkeypatch, tmp_path: Path) -> AppTest:
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "localappdata"))
     monkeypatch.setattr(logging.Logger, "warning", _standard_logger_warning)
-    return AppTest.from_file(str(APP_PATH), default_timeout=10).run()
+    return AppTest.from_string("from app import render_application\nrender_application()", default_timeout=10).run()
 
 
 def test_category_mapper_hides_catalog_admin_controls_by_default(monkeypatch, tmp_path):

@@ -1,3 +1,4 @@
+# Legacy renderer is preserved off the normal Sora route; exercise it explicitly.
 """AppTest of explicit image execution, human review and stale-result invalidation."""
 import logging
 from copy import deepcopy
@@ -24,7 +25,7 @@ from test_ph_image_safety import candidate, fact, FakeAnalyzer
 
 def open_ph(monkeypatch, *, images=("one.jpg",), roots=(13299531,)):
     monkeypatch.setattr(logging.Logger, "warning", _standard_logger_warning)
-    app = AppTest.from_file(str(APP_PATH), default_timeout=10).run()
+    app = AppTest.from_string("from app import render_application\nrender_application()", default_timeout=10).run()
     app.selectbox(key="prelisting_gate_marketplace").set_value("PH").run()
     candidates = tuple(candidate(f"B00000000{i+1}") for i, _ in enumerate(roots))
     content = rows_to_prelisting_candidate_csv(candidates)
