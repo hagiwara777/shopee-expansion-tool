@@ -12,7 +12,7 @@ import unicodedata
 
 from modules.asin_resolver_evidence import parse_source_input
 from modules.amazon_data_provider import AmazonDataProviderError
-from modules.amazon_data_provider import CANOPY_TEST_PROVIDER, KEEPA_PROVIDER
+from modules.amazon_data_provider import CANOPY_TEST_PROVIDER, KEEPA_PROVIDER, SP_API_PROVIDER
 from modules.ingredient_safety import (
     ingredient_safety_fact_from_product_data,
     ingredient_safety_fact_from_transport,
@@ -959,7 +959,8 @@ def _verified_row(
     product_text_payload = None
     image_payload = None
     if status == FOUND:
-        provider = CANOPY_TEST_PROVIDER if product_field_prefix == "canopy" else KEEPA_PROVIDER
+        provider = {"canopy": CANOPY_TEST_PROVIDER, "spapi": SP_API_PROVIDER}.get(
+            product_field_prefix, KEEPA_PROVIDER)
         source_payload = (
             keepa_product.get("ingredient_safety_fact")
             if isinstance(keepa_product, dict)
@@ -1000,7 +1001,8 @@ def _verified_row(
                 fetched_at=product_fetched_at,
             )
         product_text_payload = product_text_safety_fact_to_payload(product_text_fact)
-        image_payload = image_fact_from_product(keepa_product, candidate_asin=str(row.get("asin") or ""), provider=provider)
+        if provider != SP_API_PROVIDER:
+            image_payload = image_fact_from_product(keepa_product, candidate_asin=str(row.get("asin") or ""), provider=provider)
     verified.update(
         {
             "status": status,

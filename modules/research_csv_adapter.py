@@ -1,4 +1,4 @@
-"""Deterministic import adapter for Shopee PH research CSV files.
+"""Deterministic import adapter for Shopee PH/SG research CSV files.
 
 This module is deliberately independent from the ASIN Resolver execution flow.
 It turns reviewed Shopee research rows into the Resolver's small two-column TSV
@@ -129,13 +129,16 @@ class _Candidate:
     search_timestamp: float
 
 
-def import_research_csvs(files: Iterable[ResearchCsvInput]) -> ResearchCsvAdapterResult:
+def import_research_csvs(files: Iterable[ResearchCsvInput], *, marketplace: str = "PH") -> ResearchCsvAdapterResult:
     """Validate, filter, deduplicate, and prepare an uploaded research batch.
 
     A bad file is isolated as a ``SCHEMA_ERROR`` marker.  It never changes the
     interpretation of otherwise valid files in the same upload.
     """
 
+    if marketplace not in {"PH", "SG"}:
+        raise ValueError("対象国はPHまたはSGを指定してください。")
+    valid_marketplace = f"VALID_SHOPEE_{marketplace}"
     uploads = tuple(files)
     batch_id = _batch_id(uploads)
     all_manifests: list[tuple[tuple[int, int], dict[str, str]]] = []
@@ -173,8 +176,8 @@ def import_research_csvs(files: Iterable[ResearchCsvInput]) -> ResearchCsvAdapte
             location = _match_value(manifest["location"])
             if location != "japan":
                 location_not_japan_rows += 1
-            if country != "ph":
-                _defer(manifest, COUNTRY_NOT_PH, "NOT_APPLIED", "NOT_APPLIED")
+            if country != marketplace.lower():
+                _defer(manifest, COUNTRY_NOT_PH if marketplace == "PH" else "COUNTRY_NOT_SG", "NOT_APPLIED", "NOT_APPLIED")
                 continue
             if location != "japan":
                 _defer(manifest, LOCATION_NOT_JAPAN, "NOT_APPLIED", "NOT_APPLIED")
@@ -186,13 +189,13 @@ def import_research_csvs(files: Iterable[ResearchCsvInput]) -> ResearchCsvAdapte
                 _defer(manifest, URL_INVALID, "NOT_APPLIED", "INVALID")
                 continue
             manifest["normalized_product_url"] = normalized_url
-            if _product_host(normalized_url) != "shopee.ph":
-                _defer(manifest, MARKETPLACE_REVIEW, "NOT_APPLIED", "NOT_SHOPEE_PH")
+            if _product_host(normalized_url) != f"shopee.{marketplace.lower()}":
+                _defer(manifest, MARKETPLACE_REVIEW, "NOT_APPLIED", f"NOT_SHOPEE_{marketplace}")
                 continue
 
             timestamp = _parse_search_date(manifest["search_date"])
             if timestamp is None:
-                _defer(manifest, SCHEMA_ERROR, "NOT_APPLIED", "VALID_SHOPEE_PH")
+                _defer(manifest, SCHEMA_ERROR, "NOT_APPLIED", valid_marketplace)
                 schema_error_count += 1
                 continue
             candidates.append(_Candidate(manifest, file_index, row_index, timestamp))
@@ -201,7 +204,7 @@ def import_research_csvs(files: Iterable[ResearchCsvInput]) -> ResearchCsvAdapte
     for candidate in candidates:
         candidates_by_url.setdefault(candidate.manifest["normalized_product_url"], []).append(candidate)
 
-    source_ids = assign_source_ids(candidates_by_url)
+    source_ids = assign_source_ids(candidates_by_url, marketplace=marketplace)
     resolver_candidates: list[_Candidate] = []
     duplicate_superseded_count = 0
     for normalized_url, group in candidates_by_url.items():
@@ -215,19 +218,19 @@ def import_research_csvs(files: Iterable[ResearchCsvInput]) -> ResearchCsvAdapte
             candidate.manifest["source_id"] = source_id
             candidate.manifest["duplicate_count"] = str(len(group))
             candidate.manifest["provenance_files"] = provenance_files
-            candidate.manifest["marketplace_validation_status"] = "VALID_SHOPEE_PH"
+            candidate.manifest["marketplace_validation_status"] = valid_marketplace
             if candidate is winner:
                 continue
             duplicate_superseded_count += 1
-            _defer(candidate.manifest, DUPLICATE_SUPERSEDED, "NOT_APPLIED", "VALID_SHOPEE_PH")
+            _defer(candidate.manifest, DUPLICATE_SUPERSEDED, "NOT_APPLIED", valid_marketplace)
 
         cleaned_title, cleaning_status = clean_research_title(winner.manifest["raw_title"])
         winner.manifest["cleaned_title"] = cleaned_title
         winner.manifest["title_cleaning_status"] = cleaning_status
         if not cleaned_title:
-            _defer(winner.manifest, TITLE_EMPTY, cleaning_status, "VALID_SHOPEE_PH")
+            _defer(winner.manifest, TITLE_EMPTY, cleaning_status, valid_marketplace)
         elif cleaning_status == TITLE_REVIEW:
-            _defer(winner.manifest, TITLE_REVIEW, cleaning_status, "VALID_SHOPEE_PH")
+            _defer(winner.manifest, TITLE_REVIEW, cleaning_status, valid_marketplace)
         else:
             winner.manifest["inclusion_status"] = INCLUDED
             winner.manifest["exclusion_reason"] = ""
@@ -251,7 +254,7 @@ def import_research_csvs(files: Iterable[ResearchCsvInput]) -> ResearchCsvAdapte
     summary = {
         "input_file_count": len(uploads),
         "total_rows": total_rows,
-        "ph_japan_rows": ph_japan_rows,
+        f"{marketplace.lower()}_japan_rows": ph_japan_rows,
         "location_not_japan_rows": location_not_japan_rows,
         "unique_listing_count": len(candidates_by_url),
         "duplicate_superseded_count": duplicate_superseded_count,
@@ -307,6 +310,7 @@ def assign_source_ids(
     candidates_by_url: Mapping[str, Sequence[object]],
     *,
     hash_function: Callable[[bytes], str] | None = None,
+    marketplace: str = "PH",
 ) -> dict[str, str]:
     """Assign order-independent ``JPH`` IDs, lengthening colliding prefixes."""
 
@@ -325,7 +329,7 @@ def assign_source_ids(
                 if lengths[url] >= len(digests[url]):
                     raise ValueError("SHA-256 collision cannot be resolved")
                 lengths[url] += 1
-    return {url: f"JPH{digests[url][:lengths[url]]}" for url in sorted(digests)}
+    return {url: f"J{marketplace}{digests[url][:lengths[url]]}" for url in sorted(digests)}
 
 
 def clean_research_title(raw_title: str) -> tuple[str, str]:

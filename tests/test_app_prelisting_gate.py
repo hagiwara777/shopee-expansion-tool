@@ -1,3 +1,4 @@
+# Legacy renderer is preserved off the normal Sora route; exercise it explicitly.
 import ast
 import csv
 from io import StringIO
@@ -412,7 +413,7 @@ def _product_text_sidecar(candidate_csv: bytes) -> bytes:
 
 def _prelisting_gate_test_app(monkeypatch) -> AppTest:
     monkeypatch.setattr(logging.Logger, "warning", _standard_logger_warning)
-    app = AppTest.from_file(str(APP_PATH), default_timeout=10)
+    app = AppTest.from_string("from app import render_application\nrender_application()", default_timeout=10)
     return app.run()
 
 

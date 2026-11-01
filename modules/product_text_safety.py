@@ -9,7 +9,7 @@ from io import StringIO
 import json
 from typing import Any, Callable, Iterable, Mapping, TYPE_CHECKING
 
-from modules.amazon_data_provider import CANOPY_TEST_PROVIDER, KEEPA_PROVIDER
+from modules.amazon_data_provider import CANOPY_TEST_PROVIDER, KEEPA_PROVIDER, SP_API_PROVIDER
 
 if TYPE_CHECKING:
     from modules.prelisting_candidate_csv import (
@@ -235,6 +235,8 @@ def facts_for_candidate_rows(
             or candidate.source.startswith("canopy")
         ):
             provider = CANOPY_TEST_PROVIDER
+        elif candidate.source_verification == "SP_API_VERIFIED":
+            provider = SP_API_PROVIDER
         else:
             provider = KEEPA_PROVIDER
         facts.append(
@@ -435,7 +437,7 @@ def _validate_fact(fact: ProductTextSafetyFact) -> None:
         raise ProductTextSafetyError("Product Text Safety Fact type is invalid")
     _required_text(fact.candidate_asin, "candidate_asin")
     provider = _required_text(fact.provider, "provider")
-    if provider not in {KEEPA_PROVIDER, CANOPY_TEST_PROVIDER}:
+    if provider not in {KEEPA_PROVIDER, CANOPY_TEST_PROVIDER, SP_API_PROVIDER}:
         raise ProductTextSafetyError("unsupported Product Text Safety provider")
     if fact.capture_status not in PRODUCT_TEXT_SAFETY_CAPTURE_STATUSES:
         raise ProductTextSafetyError("unsupported Product Text Safety capture_status")

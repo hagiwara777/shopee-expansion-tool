@@ -9,7 +9,7 @@ from io import StringIO
 import json
 from typing import Any, Callable, Iterable, Mapping, TYPE_CHECKING
 
-from modules.amazon_data_provider import CANOPY_TEST_PROVIDER, KEEPA_PROVIDER
+from modules.amazon_data_provider import CANOPY_TEST_PROVIDER, KEEPA_PROVIDER, SP_API_PROVIDER
 if TYPE_CHECKING:
     from modules.prelisting_candidate_csv import (
         PrelistingCandidateFileResult,
@@ -240,6 +240,8 @@ def facts_for_candidate_rows(
             provider = str(provider_for_row(source))
         elif candidate.source_verification == "CANOPY_VERIFIED" or candidate.source.startswith("canopy"):
             provider = CANOPY_TEST_PROVIDER
+        elif candidate.source_verification == "SP_API_VERIFIED":
+            provider = SP_API_PROVIDER
         else:
             provider = KEEPA_PROVIDER
         facts.append(
@@ -402,7 +404,7 @@ def _validate_fact(fact: IngredientSafetyFact) -> None:
         raise IngredientSafetyError("Ingredient Safety Fact type is invalid")
     _required_text(fact.candidate_asin, "candidate_asin")
     provider = _required_text(fact.provider, "provider")
-    if provider not in {KEEPA_PROVIDER, CANOPY_TEST_PROVIDER}:
+    if provider not in {KEEPA_PROVIDER, CANOPY_TEST_PROVIDER, SP_API_PROVIDER}:
         raise IngredientSafetyError("unsupported Ingredient Safety provider")
     if fact.capture_status not in INGREDIENT_SAFETY_CAPTURE_STATUSES:
         raise IngredientSafetyError("unsupported Ingredient Safety capture_status")
@@ -421,7 +423,7 @@ def _validate_fact(fact: IngredientSafetyFact) -> None:
         raise IngredientSafetyError("uncaptured Ingredient Safety Fact must be empty")
     if provider == CANOPY_TEST_PROVIDER and fact.capture_status != PROVIDER_UNSUPPORTED:
         raise IngredientSafetyError("Canopy Ingredient Safety Fact must be PROVIDER_UNSUPPORTED")
-    if provider == KEEPA_PROVIDER and fact.capture_status == PROVIDER_UNSUPPORTED:
+    if provider in {KEEPA_PROVIDER, SP_API_PROVIDER} and fact.capture_status == PROVIDER_UNSUPPORTED:
         raise IngredientSafetyError("Keepa Ingredient Safety Fact cannot be PROVIDER_UNSUPPORTED")
 
 

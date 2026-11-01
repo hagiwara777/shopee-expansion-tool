@@ -1,3 +1,4 @@
+# Legacy renderer is preserved off the normal Sora route; exercise it explicitly.
 import ast
 import logging
 from pathlib import Path
@@ -45,7 +46,7 @@ def _new_evidence_manifest(tmp_path, monkeypatch, batch_id, *, save_source_map):
 def _test_app(monkeypatch, tmp_path):
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "localappdata"))
     monkeypatch.setattr(logging.Logger, "warning", _standard_logger_warning)
-    return AppTest.from_file(str(APP_PATH), default_timeout=10).run()
+    return AppTest.from_string("from app import render_application\nrender_application()", default_timeout=10).run()
 
 
 def _verified_resolver_row(index, asin, *, source_id=None):
@@ -139,7 +140,7 @@ def test_unknown_provider_stops_without_keepa_fallback(monkeypatch, tmp_path):
 def test_resolver_ui_handles_30_synthetic_tsv_lines_and_malformed_url(monkeypatch, tmp_path):
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "localappdata"))
     monkeypatch.setattr(logging.Logger, "warning", _standard_logger_warning)
-    app = AppTest.from_file(str(APP_PATH), default_timeout=10).run()
+    app = AppTest.from_string("from app import render_application\nrender_application()", default_timeout=10).run()
 
     assert not app.exception
     initial_titles = "\n".join(

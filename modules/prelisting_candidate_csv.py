@@ -39,9 +39,12 @@ RESOLVER_FOUND_STATUS = "FOUND"
 RESOLVER_VERIFICATION = "KEEPA_VERIFIED"
 CANOPY_RESOLVER_SOURCE = "asin_resolver_canopy_verified"
 CANOPY_RESOLVER_VERIFICATION = "CANOPY_VERIFIED"
+SP_API_RESOLVER_SOURCE = "asin_resolver_sp_api_verified"
+SP_API_RESOLVER_VERIFICATION = "SP_API_VERIFIED"
 RESOLVER_SOURCE_BY_VERIFICATION = {
     RESOLVER_VERIFICATION: RESOLVER_SOURCE,
     CANOPY_RESOLVER_VERIFICATION: CANOPY_RESOLVER_SOURCE,
+    SP_API_RESOLVER_VERIFICATION: SP_API_RESOLVER_SOURCE,
 }
 _INPUT_ROW_KEYS = (
     "seed_asin",
@@ -66,6 +69,10 @@ _INPUT_ROW_KEYS = (
     "canopy_brand",
     "canopy_category",
     "canopy_fetched_at",
+    "spapi_title",
+    "spapi_brand",
+    "spapi_category",
+    "spapi_fetched_at",
     "product_title",
     "product_brand",
     "product_category",
@@ -181,7 +188,8 @@ def resolver_rows_to_prelisting_candidates(
         if status != RESOLVER_FOUND_STATUS or verification not in RESOLVER_SOURCE_BY_VERIFICATION:
             continue
 
-        prefix = "keepa" if verification == RESOLVER_VERIFICATION else "canopy"
+        prefix = {RESOLVER_VERIFICATION: "keepa", CANOPY_RESOLVER_VERIFICATION: "canopy",
+                  SP_API_RESOLVER_VERIFICATION: "spapi"}[verification]
         product_title = values["product_title"] or values[f"{prefix}_title"]
         product_brand = values["product_brand"] or values[f"{prefix}_brand"]
         product_category = values["product_category"] or values[f"{prefix}_category"]

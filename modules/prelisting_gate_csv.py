@@ -73,7 +73,7 @@ PRELISTING_GATE_RESULT_COLUMNS = (
 
 _FINAL_ELIGIBILITIES = {"ELIGIBLE", "REVIEW", "EXCLUDE"}
 _GUARDRAIL_STATUSES = {"SAFE", "REVIEW", "BLOCK"}
-_EXISTING_LISTING_STATUSES = {"CLEAR", "EXISTING"}
+_EXISTING_LISTING_STATUSES = {"CLEAR", "EXISTING", "NOT_CHECKED"}
 _INPUT_DUPLICATE_STATUSES = {"UNIQUE", "DUPLICATE"}
 _SOURCE_ASIN_STATUSES = {"CLEAR", "SELF_ASIN"}
 _METADATA_STATUSES = {"COMPLETE", "INCOMPLETE"}
@@ -285,7 +285,7 @@ def _validate_evidence(
 ) -> tuple[ListingEvidence, ...]:
     if not isinstance(row.existing_evidence, tuple):
         raise PrelistingGateCsvError(f"結果 {row_number}行目のexisting_evidenceはtupleである必要があります。")
-    if row.existing_listing_status == "CLEAR" and row.existing_evidence:
+    if row.existing_listing_status in {"CLEAR", "NOT_CHECKED"} and row.existing_evidence:
         raise PrelistingGateCsvError("CLEAR行に既出品証跡を含められません。")
     if row.existing_listing_status == "EXISTING" and not row.existing_evidence:
         raise PrelistingGateCsvError("EXISTING行には既出品証跡が1件以上必要です。")

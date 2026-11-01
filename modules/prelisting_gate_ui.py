@@ -61,7 +61,7 @@ _PRELISTING_GATE_VALUE_LABELS = {
     "guardrail_status": {
         "SAFE": "現行ルール該当なし", "REVIEW": "要確認", "BLOCK": "除外対象",
     },
-    "existing_listing_status": {"CLEAR": "既出品なし", "EXISTING": "既出品あり"},
+    "existing_listing_status": {"CLEAR": "既出品なし", "EXISTING": "既出品あり", "NOT_CHECKED": "重複照合は未実施"},
     "metadata_status": {"COMPLETE": "商品情報あり", "INCOMPLETE": "商品情報不足"},
 }
 _PRELISTING_GATE_REASON_LABELS = {

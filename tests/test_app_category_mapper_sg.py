@@ -1,3 +1,4 @@
+# Legacy renderer is preserved off the normal Sora route; exercise it explicitly.
 import csv
 from io import StringIO
 import logging
@@ -87,7 +88,7 @@ def _test_app(monkeypatch, tmp_path):
 
 
 def _sg_app():
-    app = AppTest.from_file(str(APP_PATH), default_timeout=10).run()
+    app = AppTest.from_string("from app import render_application\nrender_application()", default_timeout=10).run()
     return app.selectbox(key="category_mapper_marketplace").set_value("SG").run()
 
 

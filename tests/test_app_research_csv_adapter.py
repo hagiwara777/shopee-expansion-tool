@@ -1,3 +1,4 @@
+# Legacy renderer is preserved off the normal Sora route; exercise it explicitly.
 import csv
 from io import StringIO
 import logging
@@ -50,7 +51,7 @@ def test_research_csv_adapter_tab_uploads_previews_and_downloads_without_api(mon
         raise AssertionError("The research CSV adapter must not initialize Keepa")
 
     monkeypatch.setattr(KeepaExpansionClient, "__init__", unexpected_keepa_call)
-    app = AppTest.from_file(str(APP_PATH), default_timeout=10).run()
+    app = AppTest.from_string("from app import render_application\nrender_application()", default_timeout=10).run()
 
     assert not app.exception
     assert "Shopee調査CSV取込" in [tab.label for tab in app.tabs]

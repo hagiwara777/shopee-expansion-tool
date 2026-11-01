@@ -1,4 +1,25 @@
-# Shopee Expansion Tool Ver1
+# Sora
+
+Shopee調査CSVからASINを特定し、PH／SGの出品前保安ゲートを通してFROMAX向けの通過ASINを出すツールです（DEC-0165）。
+Soraから使う商品情報APIはAmazon SP-APIの読取りのみです。Keepa、Shopee API、OpenAI APIを通常操作から呼びません。
+
+1. 対象国を選び、Shopee調査CSVを読み込むか商品名を貼り付けます。
+2. 「AI用プロンプト生成」で作った内容をChatGPTへ手作業で貼り、返答をSoraへ貼り戻して解析します。ASIN一覧の直接貼付もできます。
+3. 対象と予定回数を確認して「SP-APIでASIN確認」を押します。最大100 ASIN、商品取得は20件ずつ、再試行・リダイレクト追随はしません。
+4. 候補・成分・説明文は同じ画面の保安ゲートへ渡されます。既出品CSVは任意で、未入力なら「重複照合は未実施」です。
+5. 必要な本体確認を行い判定します。国別の通過ASIN TXT、要確認CSV、停止CSV、実行記録JSONを保存します。
+
+新しい実行・入力・国へ前回の商品資料や判定を持ち越しません。長い説明本文が取れない場合があり、通過は安全・出品・輸送適合の保証ではありません。
+初版完成には、両国それぞれ50〜100商品の画面操作をOwnerが3回行い、既知禁止品が通過しない確認が必要です。
+
+起動は既存のPython環境で `python -m streamlit run app.py` を使います。Sora専用の認証ファイルを `SORA_SP_API_ENV` で明示します。
+未指定時だけ、このフォルダの `.env` を参照します。必要な項目名は `SP_API_CLIENT_ID`、`SP_API_CLIENT_SECRET`、`SP_API_REFRESH_TOKEN` です。
+FROMAX用の認証へ自動で切り替えず、環境変数中の別の認証値も採用しません。実ファイル・値をGitHubへ追加しないでください。
+設定値の保存先は変えず、公開の手順へ秘密値や端末固有の保存先は記載しません。
+
+以下は保全した旧機能の説明です。Expansion・P5・Keepa・Category／Brand確定・画像AI等を、通常のSora画面で使うための手順ではありません。
+
+## 旧 Shopee Expansion Tool Ver1
 
 現在の役割は**FROMAXへ入れる前のリサーチ・安全確認・ASIN受け渡し**です（[DEC-0159](docs/DECISION_LOG.md)）。
 Shopee調査CSV取込・ASIN Resolver・Expansionで候補を発見し、国別／共通の出品前保安ゲートで確認します。

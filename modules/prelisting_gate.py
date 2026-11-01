@@ -102,6 +102,7 @@ def evaluate_prelisting_gate(
     ingredient_safety: IngredientSafetySidecarResult | None = None,
     product_text_safety: ProductTextSafetySidecarResult | None = None,
     sg_body_confirmations: dict | None = None,
+    check_existing_listings: bool = True,
 ) -> PrelistingGateResult:
     """Return final eligibility for validated SG or PH candidates and inventory evidence.
 
@@ -112,14 +113,19 @@ def evaluate_prelisting_gate(
 
     try:
         normalized_marketplace = _normalize_supported_marketplace(marketplace, "marketplace")
-        _validate_expected_shop_count(expected_shop_count)
         candidate_rows = _validate_candidates(candidates)
         inventory_results = tuple(inventories)
-        _validate_inventories(
-            inventory_results,
-            marketplace=normalized_marketplace,
-            expected_shop_count=expected_shop_count,
-        )
+        if type(check_existing_listings) is not bool:
+            raise PrelistingGateError("重複照合の実施指定が不正です。")
+        if check_existing_listings:
+            _validate_expected_shop_count(expected_shop_count)
+            _validate_inventories(
+                inventory_results,
+                marketplace=normalized_marketplace,
+                expected_shop_count=expected_shop_count,
+            )
+        elif inventory_results or type(expected_shop_count) is not int or expected_shop_count != 0:
+            raise PrelistingGateError("重複照合をしない場合は既出品資料を指定できません。")
         existing_index = _build_existing_index(inventory_results)
         guarded_rows = _apply_and_validate_guardrails(
             candidate_rows,
@@ -132,6 +138,7 @@ def evaluate_prelisting_gate(
             guarded_rows,
             existing_index,
             marketplace=normalized_marketplace,
+            check_existing_listings=check_existing_listings,
         )
         result = _build_result(normalized_marketplace, result_rows)
         if normalized_marketplace == SG_MARKETPLACE:
@@ -431,6 +438,7 @@ def _evaluate_rows(
     existing_index: Mapping[str, list[ListingEvidence]],
     *,
     marketplace: str,
+    check_existing_listings: bool = True,
 ) -> tuple[PrelistingGateRow, ...]:
     seen_asins: set[str] = set()
     result_rows: list[PrelistingGateRow] = []
@@ -447,6 +455,8 @@ def _evaluate_rows(
         )
         existing_evidence = tuple(existing_index.get(candidate.candidate_asin, []))
         existing_listing_status = "EXISTING" if existing_evidence else "CLEAR"
+        if not check_existing_listings:
+            existing_listing_status = "NOT_CHECKED"
         metadata_missing_fields = _metadata_missing_fields(candidate.candidate)
         metadata_status = "INCOMPLETE" if metadata_missing_fields else "COMPLETE"
         reason_codes = _reason_codes(
@@ -531,7 +541,7 @@ def _final_eligibility(
         return "REVIEW"
     if (
         guardrail_status == "SAFE"
-        and existing_listing_status == "CLEAR"
+        and existing_listing_status in {"CLEAR", "NOT_CHECKED"}
         and input_duplicate_status == "UNIQUE"
         and source_asin_status == "CLEAR"
         and metadata_status == "COMPLETE"

@@ -2006,4 +2006,5 @@ def render_application(marketplace=None, *, sg_config_path=None, enable_expansio
 
 
 if __name__ == "__main__":
-    render_application()
+    from modules.sora_ui import render_sora_app
+    render_sora_app()
