@@ -11,7 +11,11 @@ from pathlib import Path
 import re
 import unicodedata
 
-from modules.guardrails import load_guardrail_dictionaries, load_deterministic_block_rules_v2
+from modules.guardrails import (
+    NEGATION_AWARE_MEDICAL_TERMS,
+    load_guardrail_dictionaries,
+    load_deterministic_block_rules_v2,
+)
 from modules.community_ng import load_community_ng_assets
 from modules.brand_monitoring import load_brand_monitoring, normalize_brand
 
@@ -94,6 +98,8 @@ def build_fromax_ng_export(
             reason = "ASIN指定の除外です。商品名のNGキーワードでは再現できません。"
         elif rule.match_type != "contains" or rule.match_field not in {"title", "all"}:
             reason = "完全一致・カテゴリ等の条件を、商品名の部分一致へ置換できません。"
+        elif rule.risk_category == "medical_or_therapeutic" and rule.normalized_term in NEGATION_AWARE_MEDICAL_TERMS:
+            reason = "否定文を区別する語句です。FROMAXの部分一致では「医薬品ではありません」等も止まるため、一括貼付しないでください。"
         add(rule.term, f"{rule.file_name}:{rule.row_number}", reason)
 
     for rule in v2:

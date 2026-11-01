@@ -15,10 +15,10 @@ Kaminomoto S-2,BLOCK,own_penalty_product,title,contains,own_penalty_case,Own Sho
 塩酸ジフェンヒドラミン,BLOCK,regulated_ingredient,title,contains,internal_rule,Conservative regulated-ingredient rule; this ingredient was not specifically identified in the Shopee penalty notice,TRUE
 diphenhydramine,BLOCK,regulated_ingredient,title,contains,internal_rule,Conservative regulated-ingredient rule; this ingredient was not specifically identified in the Shopee penalty notice,TRUE
 diphenhydramine hydrochloride,BLOCK,regulated_ingredient,title,contains,internal_rule,Conservative regulated-ingredient rule; this ingredient was not specifically identified in the Shopee penalty notice,TRUE
-医薬部外品,REVIEW,medical_or_therapeutic,all,contains,internal_rule,DEC-0159; 日本の医薬部外品とSG禁止区分を同一視せず成分・用途・商品区分を人間確認; 個別の成分・育毛・実害商品BLOCKは維持,TRUE
-quasi-drug,REVIEW,medical_or_therapeutic,all,contains,internal_rule,DEC-0159; 日本の医薬部外品とSG禁止区分を同一視せず成分・用途・商品区分を人間確認; 個別の成分・育毛・実害商品BLOCKは維持,TRUE
-薬用,REVIEW,medical_or_therapeutic,title,contains,internal_rule,DEC-0159; 日本の医薬部外品とSG禁止区分を同一視せず成分・用途・商品区分を人間確認; 個別の成分・育毛・実害商品BLOCKは維持,TRUE
-有効成分,REVIEW,medical_or_therapeutic,title,contains,internal_rule,Active ingredient expression risk; review product context,TRUE
+医薬部外品,BLOCK,medical_or_therapeutic,all,contains,internal_rule,DEC-0164; Owner方針: 医薬部外品・薬用・有効成分の肯定表示を全市場で出品除外。法的な一律禁止の断定ではない。否定文は区別する。,TRUE
+quasi-drug,BLOCK,medical_or_therapeutic,all,contains,internal_rule,DEC-0164; Owner方針: 医薬部外品・薬用・有効成分の肯定表示を全市場で出品除外。法的な一律禁止の断定ではない。否定文は区別する。,TRUE
+薬用,BLOCK,medical_or_therapeutic,title,contains,internal_rule,DEC-0164; Owner方針: 医薬部外品・薬用・有効成分の肯定表示を全市場で出品除外。法的な一律禁止の断定ではない。否定文は区別する。,TRUE
+有効成分,BLOCK,medical_or_therapeutic,title,contains,internal_rule,DEC-0164; Owner方針: 医薬部外品・薬用・有効成分の肯定表示を全市場で出品除外。法的な一律禁止の断定ではない。否定文は区別する。,TRUE
 発毛促進,BLOCK,medical_or_therapeutic,title,contains,internal_rule,Hair-growth therapeutic claim risk in product title,TRUE
 育毛,BLOCK,medical_or_therapeutic,title,contains,internal_rule,Hair-growth or scalp-treatment claim risk in product title,TRUE
 hair growth,BLOCK,medical_or_therapeutic,title,contains,internal_rule,Hair-growth therapeutic claim risk in product title,TRUE
@@ -164,9 +164,9 @@ prescription drug,BLOCK,medical_or_therapeutic,title,contains,shopee_policy,SG20
 prescription drugs,BLOCK,medical_or_therapeutic,title,contains,shopee_policy,SG2026 2(vii); DEC-0159; Owner policy: medicines and medical devices are excluded in every market; accessories may also be blocked; no listing-permission exception.,TRUE
 OTC drug,BLOCK,medical_or_therapeutic,title,contains,internal_rule,SG2026 2(vii)関連; DEC-0159; Owner policy: medicines and medical devices are excluded in every market; accessories may also be blocked; no listing-permission exception.,TRUE
 OTC drugs,BLOCK,medical_or_therapeutic,title,contains,internal_rule,SG2026 2(vii)関連; DEC-0159; Owner policy: medicines and medical devices are excluded in every market; accessories may also be blocked; no listing-permission exception.,TRUE
-quasi drug,REVIEW,medical_or_therapeutic,title,contains,internal_rule,社内保守運用; 日本の医薬部外品とSG禁止区分を同一視せず成分・用途・商品区分を人間確認,TRUE
-quasi drugs,REVIEW,medical_or_therapeutic,title,contains,internal_rule,社内保守運用; 日本の医薬部外品とSG禁止区分を同一視せず成分・用途・商品区分を人間確認,TRUE
-medicated,REVIEW,medical_or_therapeutic,title,contains,internal_rule,社内保守運用; 薬用表現だけではSG禁止を確定せず成分・効能・商品区分を人間確認,TRUE
+quasi drug,BLOCK,medical_or_therapeutic,title,contains,internal_rule,DEC-0164; Owner方針: 医薬部外品・薬用・有効成分の肯定表示を全市場で出品除外。法的な一律禁止の断定ではない。否定文は区別する。,TRUE
+quasi drugs,BLOCK,medical_or_therapeutic,title,contains,internal_rule,DEC-0164; Owner方針: 医薬部外品・薬用・有効成分の肯定表示を全市場で出品除外。法的な一律禁止の断定ではない。否定文は区別する。,TRUE
+medicated,BLOCK,medical_or_therapeutic,title,contains,internal_rule,DEC-0164; Owner方針: 医薬部外品・薬用・有効成分の肯定表示を全市場で出品除外。法的な一律禁止の断定ではない。否定文は区別する。,TRUE
 medical claim,REVIEW,medical_or_therapeutic,title,contains,internal_rule,SG2026 2(xiv)(a)関連; 社内運用として対象商品区分と実際の効能表示を確認し語句だけで禁止claimを確定しない,TRUE
 therapeutic claim,REVIEW,medical_or_therapeutic,title,contains,internal_rule,SG2026 2(xiv)(a)関連; 社内運用として対象商品区分と実際の効能表示を確認し語句だけで禁止claimを確定しない,TRUE
 medicinal claim,REVIEW,medical_or_therapeutic,title,contains,internal_rule,SG2026 2(xiv)(a)関連; 社内運用として対象商品区分と実際の効能表示を確認し語句だけで禁止claimを確定しない,TRUE
@@ -187,3 +187,4 @@ OTC,BLOCK,medical_or_therapeutic,title,contains,internal_rule,DEC-0159; Owner po
 体温計,BLOCK,medical_or_therapeutic,title,contains,internal_rule,DEC-0159; 実商品C232Pで確認した医療機器の表現不足を補正; Owner全国医療機器BLOCK; 付属品の過剰停止を許容,TRUE
 しっしん,REVIEW,medical_or_therapeutic,title,contains,internal_rule,DEC-0159; 実商品入浴剤の取得済説明にある医療効能疑義を人が確認; 医薬部外品の一律BLOCKや成分欠損による停止ではない,TRUE
 ジフェンヒドラミン,BLOCK,regulated_ingredient,title,contains,internal_rule,DEC-0159; 実商品で確認した既存禁止成分の日本語表記; 塩酸塩の前後関係にかかわらず同成分を検知; 新しい禁止成分の追加ではない,TRUE
+quasi-drugs,BLOCK,medical_or_therapeutic,title,contains,internal_rule,DEC-0164; Owner方針: 医薬部外品・薬用・有効成分の肯定表示を全市場で出品除外。否定文は区別する。,TRUE

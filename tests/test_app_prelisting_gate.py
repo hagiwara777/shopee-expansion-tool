@@ -363,6 +363,7 @@ def _prelisting_candidate_csv() -> bytes:
             ("B000FQTRS0", "synthetic blocked product"),
             ("B000000002", "medicated cleanser"),
             ("B000000003", "ordinary storage box"),
+            ("B000000004", "エアゾール ヘアスプレー"),
         )
     ]
     return rows_to_prelisting_candidate_csv(rows)
@@ -519,7 +520,14 @@ def test_prelisting_gate_marketplace_switches_run_ph_empty_inventory_and_clear_r
 
     _run_gate_button(app).click().run()
     assert len(app.exception) == 0
-    assert app.session_state["prelisting_gate_result"].marketplace == "SG"
+    sg_result = app.session_state["prelisting_gate_result"]
+    assert sg_result.marketplace == "SG"
+    assert (sg_result.candidate_count, sg_result.eligible_count, sg_result.review_count, sg_result.exclude_count) == (4, 1, 1, 2)
+    sg_by_asin = {row.candidate.candidate_asin: row for row in sg_result.rows}
+    assert (sg_by_asin["B000000002"].guardrail_status, sg_by_asin["B000000002"].final_eligibility) == ("BLOCK", "EXCLUDE")
+    assert "medicated" in sg_by_asin["B000000002"].guardrail_matched_terms.split("|")
+    assert sg_by_asin["B000000004"].final_eligibility == "REVIEW"
+    assert "SLS輸送確認" in sg_by_asin["B000000004"].guardrail_note
     assert [button.label for button in app.download_button] == [
         "出品可能CSVをダウンロード",
         "要確認CSVをダウンロード",
@@ -567,11 +575,16 @@ def test_prelisting_gate_marketplace_switches_run_ph_empty_inventory_and_clear_r
     assert len(app.exception) == 0
     result = app.session_state["prelisting_gate_result"]
     assert result.marketplace == "PH"
-    assert (result.eligible_count, result.review_count, result.exclude_count) == (1, 1, 1)
+    assert (result.candidate_count, result.eligible_count, result.review_count, result.exclude_count) == (4, 1, 1, 2)
+    ph_by_asin = {row.candidate.candidate_asin: row for row in result.rows}
+    assert (ph_by_asin["B000000002"].guardrail_status, ph_by_asin["B000000002"].final_eligibility) == ("BLOCK", "EXCLUDE")
+    assert "medicated" in ph_by_asin["B000000002"].guardrail_matched_terms.split("|")
+    assert ph_by_asin["B000000004"].final_eligibility == "REVIEW"
+    assert "SLS輸送確認" in ph_by_asin["B000000004"].guardrail_note
     assert all(row.existing_listing_status == "CLEAR" for row in result.rows)
     result_metrics = [metric for metric in app.metric if metric.label in {"候補総数", "出品候補", "要確認", "除外"}]
     assert [metric.label for metric in result_metrics] == ["候補総数", "出品候補", "要確認", "除外"]
-    assert [metric.value for metric in result_metrics] == ["3", "1", "1", "1"]
+    assert [metric.value for metric in result_metrics] == ["4", "1", "1", "2"]
     assert [tab.label for tab in app.tabs if tab.label in {"出品候補", "要確認", "除外"}] == ["出品候補", "要確認", "除外"]
     displayed = [frame.value for frame in app.dataframe if "最終判定" in frame.value.columns]
     assert len(displayed) == 3
@@ -600,6 +613,7 @@ def test_prelisting_gate_marketplace_switches_run_ph_empty_inventory_and_clear_r
         assert all(row["existing_listing_status"] == "CLEAR" for row in csv_rows)
         assert all(row["metadata_status"] == "COMPLETE" for row in csv_rows)
     review_csv_row = next(csv.DictReader(StringIO(exports.review_csv.decode("utf-8-sig"))))
+    assert review_csv_row["candidate_asin"] == "B000000004"
     assert review_csv_row["reason_codes"] == "GUARDRAIL_REVIEW"
     app.run()
     assert len(app.exception) == 0

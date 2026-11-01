@@ -215,11 +215,11 @@ def test_ph_empty_inventory_uses_only_ph_guardrails_and_preserves_decisions():
     assert [row.existing_listing_status for row in result.rows] == ["CLEAR"] * 4
     assert [row.final_eligibility for row in result.rows] == [
         "EXCLUDE",
-        "REVIEW",
+        "EXCLUDE",
         "ELIGIBLE",
         "REVIEW",
     ]
-    assert [row.guardrail_status for row in result.rows] == ["BLOCK", "REVIEW", "SAFE", "REVIEW"]
+    assert [row.guardrail_status for row in result.rows] == ["BLOCK", "BLOCK", "SAFE", "REVIEW"]
 
 
 def test_sg_rule_does_not_leak_into_ph_guardrails():
