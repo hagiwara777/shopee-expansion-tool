@@ -888,8 +888,9 @@ def _find_medical_fact_matches(
 ) -> list[GuardrailMatch]:
     """Use captured facts, retaining their ingredient/text provenance.
 
-    SG's existing medical extension remains. DEC-0164 also applies quasi-drug
-    displays in text/ingredients to both markets, without widening other PH rules.
+    SG's existing medical extension remains. PH also checks its approved
+    regulated-ingredient rules (DEC-0166). Quasi-drug displays apply to both
+    markets (DEC-0164); other PH medical rules keep their existing scope.
     """
     text_values = [(field, value) for field, value in _product_text_values(row)
                    if field != "product_title"]
@@ -898,7 +899,8 @@ def _find_medical_fact_matches(
     matches: list[GuardrailMatch] = []
     for rule in rules:
         is_quasi_drug = rule.normalized_term in QUASI_DRUG_TERMS
-        if marketplace != "SG" and not is_quasi_drug:
+        is_ph_ingredient = marketplace == "PH" and rule.risk_category == "regulated_ingredient"
+        if marketplace != "SG" and not is_quasi_drug and not is_ph_ingredient:
             continue
         if rule.risk_category not in {"regulated_ingredient", "medical_or_therapeutic"}:
             continue
