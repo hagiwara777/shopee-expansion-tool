@@ -7,11 +7,11 @@
   "shop_label": "PH_SHOP_1",
   "candidate_count": 3,
   "eligible_count": 1,
-  "review_count": 1,
-  "exclude_count": 1,
+  "review_count": 0,
+  "exclude_count": 2,
   "ELIGIBLE": 1,
-  "REVIEW": 1,
-  "EXCLUDE": 1,
+  "REVIEW": 0,
+  "EXCLUDE": 2,
   "existing_listing_row_count": 0,
   "existing_asin_count": 0,
   "evidence_count": 0,
@@ -31,10 +31,10 @@
       "reason_codes": ["GUARDRAIL_BLOCK"]
     },
     "B000000002": {
-      "guardrail": "REVIEW",
+      "guardrail": "BLOCK",
       "inventory": "CLEAR",
-      "final": "REVIEW",
-      "reason_codes": ["GUARDRAIL_REVIEW"]
+      "final": "EXCLUDE",
+      "reason_codes": ["GUARDRAIL_BLOCK"]
     },
     "B000000003": {
       "guardrail": "SAFE",
