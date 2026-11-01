@@ -74,6 +74,19 @@ MARKETPLACE_DICTIONARY_FILES = {
 }
 SLS_SHARED_BATTERY_RULESET_FILE = Path("sls_shared") / "battery_review_rules.csv"
 SLS_SHARED_RUNTIME_MARKETPLACES = frozenset({"PH", "SG"})
+# DEC-0164: only the transport groups approved from the saved 200-product audit.
+# A pump labelled just "スプレー" and unvalidated perfume/nail terms are absent.
+SLS_TRANSPORT_REVIEW_TERMS = (
+    "スプレー缶", "エアゾール", "LPG", "DME", "高圧ガス", "窒素ガス", "火気と高温に注意",
+    "ドライシャンプー", "ヘアスプレー", "白髪染め", "染毛剤", "カラートリートメント",
+    "ヘアスタイリング", "スタイリング仕上げ", "ヘアセット剤", "仕上げ剤", "まとめ髪スタイリング",
+    "電動本体", "電動ハンドル", "電動カミソリ",
+)
+QUASI_DRUG_TERMS = frozenset({
+    "医薬部外品", "薬用", "有効成分", "quasi-drug", "quasi-drugs",
+    "quasi drug", "quasi drugs", "medicated",
+})
+NEGATION_AWARE_MEDICAL_TERMS = QUASI_DRUG_TERMS | {"医薬品"}
 SLS_SHARED_RULE_COLUMNS = (
     "term",
     "action",
@@ -212,9 +225,11 @@ def apply_guardrails(
                 note=f"公式監視ブランド（{brand.scope}）。親会社から子ブランドへの推定は行わない。",
                 file_name=f"brand_monitoring/{brand.file_name}", row_number=0,
                 dictionary_type="brand"), fact_field="brand"))
-        if normalized_marketplace == "SG":
-            matches.extend(_find_sg_medical_fact_matches(row, dictionaries.keyword_rules))
+        matches.extend(_find_medical_fact_matches(
+            row, dictionaries.keyword_rules, marketplace=normalized_marketplace,
+        ))
         matches.extend(_find_sls_shared_battery_matches(row, sls_shared_battery_rules))
+        matches.extend(_find_sls_transport_matches(row))
         v1_row = _apply_matches_to_row(row, matches)
         v2_matches = evaluate_deterministic_blocks_v2(
             row,
@@ -865,15 +880,16 @@ def _find_matches(
     return matches
 
 
-def _find_sg_medical_fact_matches(
+def _find_medical_fact_matches(
     row: dict[str, Any],
     rules: Iterable[GuardrailRule],
+    *,
+    marketplace: str,
 ) -> list[GuardrailMatch]:
-    """Apply SG medical decisions to captured facts without inferring missing facts.
+    """Use captured facts, retaining their ingredient/text provenance.
 
-    DEC-0159 limits this extension to medical/ingredient rules. Product text
-    stays a text fact; it is never promoted into a structured ingredient fact.
-    Other SG title-only rules and PH's existing V2 path keep their contracts.
+    SG's existing medical extension remains. DEC-0164 also applies quasi-drug
+    displays in text/ingredients to both markets, without widening other PH rules.
     """
     text_values = [(field, value) for field, value in _product_text_values(row)
                    if field != "product_title"]
@@ -881,16 +897,39 @@ def _find_sg_medical_fact_matches(
                          if field != "product_title"]
     matches: list[GuardrailMatch] = []
     for rule in rules:
+        is_quasi_drug = rule.normalized_term in QUASI_DRUG_TERMS
+        if marketplace != "SG" and not is_quasi_drug:
+            continue
         if rule.risk_category not in {"regulated_ingredient", "medical_or_therapeutic"}:
             continue
         if rule.match_field not in {"title", "all"} or rule.match_type != "contains":
             continue
         values = text_values
-        if rule.risk_category == "regulated_ingredient":
+        if rule.risk_category == "regulated_ingredient" or is_quasi_drug:
             values = text_values + ingredient_values
         for field, value in values:
-            if _contains_term(normalize_text(value), rule.normalized_term):
+            if _contains_rule_term(normalize_text(value), rule):
                 matches.append(GuardrailMatch(rule=rule, fact_field=field))
+    return matches
+
+
+def _find_sls_transport_matches(row: dict[str, Any]) -> list[GuardrailMatch]:
+    values = _product_text_values(row) + [
+        (field, value) for field, value in _ingredient_safety_values(row)
+        if field != "product_title"
+    ]
+    matches: list[GuardrailMatch] = []
+    for term in SLS_TRANSPORT_REVIEW_TERMS:
+        normalized_term = normalize_text(term)
+        for field, value in values:
+            if _contains_term(normalize_text(value), normalized_term):
+                matches.append(GuardrailMatch(GuardrailRule(
+                    term=term, normalized_term=normalized_term, action="REVIEW",
+                    risk_category="shipping_restricted", match_field="all",
+                    match_type="contains", source_type="internal_rule",
+                    note="DEC-0164; SLS輸送確認：商品資料の輸送リスク語。正式なSLS適合の保証ではありません。",
+                    file_name="guardrails.py", row_number=0, dictionary_type="sls_shared",
+                ), fact_field=field))
     return matches
 
 
@@ -942,8 +981,42 @@ def _rule_matches(rule: GuardrailRule, target_values: dict[str, str]) -> bool:
             continue
         if rule.match_type == "exact" and target == rule.normalized_term:
             return True
-        if rule.match_type == "contains" and _contains_term(target, rule.normalized_term):
+        if rule.match_type == "contains" and _contains_rule_term(target, rule):
             return True
+    return False
+
+
+def _contains_rule_term(target: str, rule: GuardrailRule) -> bool:
+    term = rule.normalized_term
+    contextual = rule.risk_category == "medical_or_therapeutic"
+    if not contextual or term not in NEGATION_AWARE_MEDICAL_TERMS | {"しっしん"}:
+        return _contains_term(target, term)
+    pattern = re.escape(term)
+    if re.fullmatch(r"[a-z0-9 -]+", term):
+        pattern = rf"(?<![a-z0-9]){pattern}(?![a-z0-9])"
+    for match in re.finditer(pattern, target):
+        if term == "しっしん":
+            # Ignore only a linked don't-use caution, never an efficacy claim.
+            caution = re.match(
+                r"しっしん(?:(?!効|改善|治|予防|緩和)[^。.!?！？●◎◇<>;；]){0,48}"
+                r"(?:部位|とき|時|箇所|お?肌)[にではがへ、,\s]{0,5}"
+                r"(?:お使いにならない|使用しない|使わない)",
+                target[match.start():],
+            )
+            if caution:
+                continue
+        else:
+            suffix = target[match.end():]
+            negated = re.match(
+                r"\s*(?:で(?:は|も)?(?:ありません|ない|ございません)"
+                r"|に(?:は)?該当し(?:ません|ない)"
+                r"|(?:は|を)?(?:配合し(?:てい)?(?:ません|ない)|含(?:みません|まない)|なし|無し))",
+                suffix,
+            )
+            english_negative = re.search(r"\b(?:not\s+(?:an?\s+)?|non[- ])$", target[:match.start()])
+            if negated or english_negative:
+                continue
+        return True
     return False
 
 

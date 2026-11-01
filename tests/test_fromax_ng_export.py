@@ -10,8 +10,10 @@ from modules.fromax_ng_export import build_fromax_ng_export
 def test_sg_export_separates_otc_boundary_brands_and_asin_from_paste_list():
     bundle = build_fromax_ng_export("SG")
     caution_terms = {c.term.casefold() for c in bundle.cautions}
-    assert "医薬品" in bundle.keywords
-    assert "医薬部外品" not in bundle.keywords and "薬用" not in bundle.keywords
+    for term in ("医薬品", "医薬部外品", "薬用", "有効成分"):
+        assert term not in bundle.keywords
+        assert term in caution_terms
+    assert any("否定文" in c.reason for c in bundle.cautions if c.term == "医薬品")
     assert "OTC" not in bundle.keywords and "otc" in caution_terms
     assert "otc" in "Hotcake".casefold()  # FROMAX would stop this unrelated product.
     assert "Adidas" not in bundle.keywords and "adidas" in caution_terms
