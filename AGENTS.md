@@ -81,6 +81,9 @@ AGENTSには毎タスク必須の恒久原則、[RUNBOOK](docs/RUNBOOK_CHATGPT_C
 
 - Product Finder、Guardrail、ASIN Resolverの責務を分離し、承認済みscope変更なしに統合・拡張しない。
 - 変更後は実行可能な限りpytestを行う。実Keepa APIと外部APIを使うE2Eは明示承認なしに実行しない。
+  作業中は関連テストだけを行い、最終差分の通常全体テストは統合前に1回とする（DEC-0163）。
+  廃止機能専用だけを通常実行から分け、共有・混在・判断不明のテストとPH／SG保護を残す。
+  選別・旧機能の別実行・計測・実行中の終了方法はRUNBOOKと[テスト範囲](docs/TEST_SCOPE.md)を適用する。
   Browser E2E前はRUNBOOK「Browser E2E」を適用し、upload確認とdecision実行を別段階にする。
 - ユーザー提示、Git観測、test確認、未確認・仮定を区別し、未実行をPASSにしない。
   mock、実API、実データ、Owner受入は別の確認。Evidenceのprovenanceと対象bindingを検証し、
