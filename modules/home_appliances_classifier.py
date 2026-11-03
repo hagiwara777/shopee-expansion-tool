@@ -3,6 +3,8 @@
 Derived from the frozen research V3 (including V2), with two bounded repairs:
 explicit replacement cartridges versus purifier bundles, and whitespace in
 package contents. No ASIN, brand, model lookup or external acquisition.
+V3_2 (DEC-0166) adds common appliance-body names because the pre-listing gate
+now uses this rule entry to stop appliance bodies in every market.
 """
 from __future__ import annotations
 
@@ -10,7 +12,7 @@ from dataclasses import dataclass
 import re
 import unicodedata
 
-VERSION = "HOME_APPLIANCES_V3_1"
+VERSION = "HOME_APPLIANCES_V3_2"
 A = "NON_ELECTRIC_ACCESSORY"
 B = "EXCLUDE_POLICY_CANDIDATE"
 C = "UNKNOWN"
@@ -19,7 +21,14 @@ PASSIVE = (r"フィルター|フィルタ|カートリッジ|紙パック|集じ
            r"収納ケース|カバー|内釜|パッキン|ブラケット|(?:保護|冷蔵庫|洗濯機|シリコン|"
            r"滑り止め|水受け).{0,12}(?:マット|トレイ|トレー)|冷蔵庫トレイ")
 BODY = (r"電気ケトル|炊飯器|電子レンジ|空気清浄機|掃除機|加湿器|除湿機|扇風機|"
-        r"ヒーター|トースター|洗濯機|冷蔵庫|電動シェーバー|鼻毛カッター|ひげそり")
+        r"ヒーター|トースター|洗濯機|冷蔵庫|電動シェーバー|鼻毛カッター|ひげそり|"
+        # DEC-0166: common appliance-body names used by the pre-listing gate.
+        r"ドライヤー(?!スタンド|ホルダー|ラック|フック|掛け)|ヘアアイロン|ストレートアイロン|"
+        r"カールアイロン|スチームアイロン|衣類スチーマー|電気ポット|電気圧力鍋|"
+        r"ハンドブレンダー|スティックブレンダー|ハンドミキサー|ジューサーミキサー|"
+        r"フードプロセッサー|コーヒーメーカー|エスプレッソマシン|ノンフライヤー|"
+        r"サーキュレーター|食器洗い乾燥機|食洗機|布団乾燥機|衣類乾燥機|"
+        r"ホームベーカリー|電気毛布|ホットカーペット")
 POWER = (r"AC\s*アダプタ|電源アダプタ|充電器|充電ケース|電動|充電|コードレス|バッテリ|"
          r"電池(?:内蔵|式|で|[0-9一二三四五六七八九十本個]|残量)|bluetooth|wi[ -]?fi|"
          r"USB[ -]?(?:給電|電源)|入力電圧|\b\d{2,3}\s*v\b|\b\d{2,4}\s*w\b")
