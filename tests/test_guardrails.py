@@ -809,6 +809,11 @@ SG_SAFETY_BASELINE_GROUPS = (
 )
 
 
+# DEC-0166: these SG Safety Mark title words name an appliance body, which the
+# all-market appliance policy now stops. The SG REVIEW rule itself is unchanged.
+APPLIANCE_POLICY_BLOCK_TERMS = {
+    "扇風機", "ヘアドライヤー", "電子レンジ", "炊飯器", "トースター", "掃除機", "洗濯機", "冷蔵庫",
+}
 OWNER_MEDICAL_BLOCK_TERMS = {
     "condom", "condoms", "コンドーム", "medical device", "medical devices", "医療機器",
     "prescription medicine", "OTC medicine", "処方薬", "市販薬", "医薬品",
@@ -984,7 +989,8 @@ def test_sg_safety_baseline_does_not_leak_water_beads_rule_into_ph():
 def test_every_v12_title_rule_routes_its_own_term_to_current_owner_action(term):
     row = apply_guardrails([candidate(title=f"Featured {term} product")])[0]
 
-    assert row["guardrail_status"] == ("BLOCK" if term in OWNER_MEDICAL_BLOCK_TERMS else "REVIEW")
+    escalated = term in OWNER_MEDICAL_BLOCK_TERMS or term in APPLIANCE_POLICY_BLOCK_TERMS
+    assert row["guardrail_status"] == ("BLOCK" if escalated else "REVIEW")
     assert term in row["guardrail_matched_terms"].split("|")
 
 
@@ -1769,3 +1775,87 @@ def test_observed_japanese_diphenhydramine_alias_matches_existing_ingredient_pol
     assert guarded["guardrail_status"] == "BLOCK"
     assert "ジフェンヒドラミン" in guarded["guardrail_matched_terms"]
     assert f"fact_field={field}" in guarded["guardrail_note"]
+
+
+# DEC-0166: appliance bodies stop in every market; passive accessories are left alone.
+APPLIANCE_KITCHEN = "ホーム＆キッチン > 家電 > キッチン家電"
+APPLIANCE_BODY_CASES = [
+    ("パナソニック ドライヤー ナノケア", "ビューティー > ヘアケア・スタイリング"),
+    ("パナソニック ヘアードライヤー ナノケア", "ビューティー > ヘアケア・スタイリング > ヘアドライヤー"),
+    ("SALONIA ストレートアイロン 24mm", "ビューティー > ヘアケア・スタイリング"),
+    ("カールアイロン 32mm", "ビューティー > ヘアケア・スタイリング"),
+    ("ティファール 電気ケトル 0.8L", APPLIANCE_KITCHEN + " > 電気ケトル"),
+    ("Levoit Core Mini 空気清浄機 12畳", "ホーム＆キッチン > 家電 > 季節・空調家電 > 空気清浄機"),
+    ("象印 炊飯器 5.5合", APPLIANCE_KITCHEN + " > 炊飯器・精米器 > 炊飯器"),
+    ("ブラウン ハンドブレンダー マルチクイック", APPLIANCE_KITCHEN),
+    ("アイリスオーヤマ ホットプレート", APPLIANCE_KITCHEN),
+    ("アイリスオーヤマ サーキュレーター", "ホーム＆キッチン > 家電 > 季節・空調家電"),
+]
+APPLIANCE_ACCESSORY_CASES = [
+    ("3M エアコン用フィルター 4枚入り", "ホーム＆キッチン > 家電 > 季節・空調家電 > エアコン > エアコン用アクセサリ"),
+    ("日立 冷蔵庫用 浄水フィルター RJK-30", APPLIANCE_KITCHEN + " > 冷蔵庫 > 冷蔵庫用アクセサリ"),
+    ("クリンスイ 交換用カートリッジ CPC5W 2個入", "ホーム＆キッチン > キッチン用品 > 浄水器"),
+    ("空気清浄機用 交換フィルター Levoit Core Mini対応", APPLIANCE_KITCHEN),
+    ("ドライヤースタンド 壁掛け", "ホーム＆キッチン > 収納"),
+    ("白元 ドライ&ドライUP 除湿シート", "ホーム＆キッチン > 収納"),
+]
+OUT_OF_APPLIANCE_SCOPE_CASES = [
+    ("ミンティア ワイルド&クール 50粒", "食品・飲料・お酒 > 菓子"),
+    ("iPhone 15 ケース 手帳型", "家電＆カメラ > 携帯電話アクセサリ > ケース"),
+    ("ビューティーブレンダー メイクスポンジ", "ビューティー > メイク道具"),
+]
+
+
+@pytest.mark.parametrize("marketplace", ["PH", "SG"])
+@pytest.mark.parametrize("title,category", APPLIANCE_BODY_CASES)
+def test_appliance_bodies_are_blocked_in_both_markets(marketplace, title, category):
+    row = apply_guardrails([candidate(title=title, category=category)], marketplace=marketplace)[0]
+
+    assert row["guardrail_status"] == "BLOCK"
+    assert "home_appliance_policy" in row["guardrail_risk_category"].split("|")
+    assert "DEC-0166" in row["guardrail_note"]
+
+
+@pytest.mark.parametrize("marketplace", ["PH", "SG"])
+@pytest.mark.parametrize("title,category", APPLIANCE_ACCESSORY_CASES + OUT_OF_APPLIANCE_SCOPE_CASES)
+def test_passive_accessories_and_out_of_scope_items_are_not_stopped_by_appliance_policy(
+    marketplace, title, category,
+):
+    row = apply_guardrails([candidate(title=title, category=category)], marketplace=marketplace)[0]
+
+    assert "home_appliance_policy" not in row["guardrail_risk_category"]
+    # Existing SG Safety Mark words (e.g. 冷蔵庫) may still ask for review; PH has none.
+    assert row["guardrail_status"] == ("SAFE" if marketplace == "PH" else row["guardrail_status"])
+    assert row["guardrail_status"] != "BLOCK"
+
+
+@pytest.mark.parametrize("marketplace", ["PH", "SG"])
+def test_unresolved_appliance_part_waits_for_review(marketplace):
+    row = apply_guardrails(
+        [candidate(title="掃除機用 ヘッド", category="ホーム＆キッチン > 家電 > 生活家電 > 掃除機")],
+        marketplace=marketplace,
+    )[0]
+
+    assert row["guardrail_status"] == "REVIEW"
+    assert "home_appliance_policy" in row["guardrail_risk_category"].split("|")
+
+
+def test_appliance_power_in_captured_details_is_blocked():
+    row = {
+        **candidate(title="キッチン用 本体", category=APPLIANCE_KITCHEN),
+        "description": ["本製品の入力電圧は100V、充電式です。"],
+    }
+
+    assert apply_guardrails([row], marketplace="PH")[0]["guardrail_status"] == "BLOCK"
+
+
+def test_sg_controlled_goods_review_rule_is_kept_beside_appliance_policy():
+    row = apply_guardrails(
+        [candidate(title="ヘアドライヤー 大風量", category="ビューティー > ヘアケア・スタイリング")],
+        marketplace="SG",
+    )[0]
+
+    assert row["guardrail_status"] == "BLOCK"
+    categories = row["guardrail_risk_category"].split("|")
+    assert "controlled_goods_unverified" in categories
+    assert "home_appliance_policy" in categories

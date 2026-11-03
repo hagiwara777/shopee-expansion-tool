@@ -10,6 +10,15 @@ import unicodedata
 
 from modules.battery_presence import assess_battery_presence
 from modules.brand_monitoring import BrandMonitoringError, load_brand_monitoring
+from modules.home_appliances_classifier import (
+    A as HOME_APPLIANCE_A,
+    B as HOME_APPLIANCE_B,
+    BODY as HOME_APPLIANCE_BODY,
+    C as HOME_APPLIANCE_C,
+    DETAIL_FIELDS as HOME_APPLIANCE_DETAIL_FIELDS,
+    classify_owned_text as classify_home_appliance_text,
+    norm as home_appliances_norm,
+)
 from modules.community_ng import (
     CommunityNgAsinBlock,
     CommunityNgBrandBlock,
@@ -56,6 +65,7 @@ ALLOWED_RISK_CATEGORIES = {
     "controlled_goods_unverified",
     "license_or_certification_required",
     "shipping_restricted",
+    "home_appliance_policy",
     "other",
 }
 ALLOWED_MATCH_FIELDS = {"asin", "brand", "title", "category", "all"}
@@ -230,6 +240,7 @@ def apply_guardrails(
         ))
         matches.extend(_find_sls_shared_battery_matches(row, sls_shared_battery_rules))
         matches.extend(_find_sls_transport_matches(row))
+        matches.extend(_find_home_appliance_matches(row))
         v1_row = _apply_matches_to_row(row, matches)
         v2_matches = evaluate_deterministic_blocks_v2(
             row,
@@ -933,6 +944,80 @@ def _find_sls_transport_matches(row: dict[str, Any]) -> list[GuardrailMatch]:
     return matches
 
 
+HOME_APPLIANCE_BODY_PATTERN = (
+    HOME_APPLIANCE_BODY
+    + r"|電気(?:フライパン|鍋|グリル|調理器)|ホットプレート"
+)
+HOME_APPLIANCE_SKIPPED_CODES = frozenset({
+    "HOME_APPLIANCES_CONTEXT_UNVERIFIED",
+    "MISSING_TITLE",
+})
+
+
+def _home_appliance_scope(title: str, category: str) -> tuple[bool, bool]:
+    """Return (in_scope, category_in_scope).
+
+    The broad Amazon root "家電＆カメラ" alone (phones, cables, cameras) is not an
+    appliance subtree; a deeper segment such as "美容家電" or "ホーム＆キッチン > 家電" is.
+    Titles naming an appliance body bring other categories into scope, so the
+    classifier can still separate a body from its passive accessory.
+    """
+    segments = [segment.strip() for segment in home_appliances_norm(category).split(">")]
+    category_in_scope = any(
+        "家電" in segment and segment != "家電&カメラ" for segment in segments
+    )
+    compact_title = re.sub(r"\s+", "", home_appliances_norm(title))
+    title_in_scope = bool(re.search(HOME_APPLIANCE_BODY_PATTERN, compact_title, re.I))
+    return category_in_scope or title_in_scope, category_in_scope
+
+
+def _find_home_appliance_matches(row: dict[str, Any]) -> list[GuardrailMatch]:
+    """DEC-0166: Owner policy, applied in every market.
+
+    Appliance bodies and powered goods (classification B) are not handled and stop.
+    Unresolved appliance items (C) wait for review. Passive accessories (A) and items
+    outside the appliance scope are left to every other existing rule.
+    """
+    title = str(row.get("product_title") or "")
+    category = str(row.get("category") or "")
+    in_scope, category_in_scope = _home_appliance_scope(title, category)
+    if not in_scope:
+        return []
+    details: dict[str, list[str]] = {}
+    for field, value in _product_text_values(row):
+        if field in HOME_APPLIANCE_DETAIL_FIELDS:
+            details.setdefault(field, []).append(value)
+    decision = classify_home_appliance_text({
+        "title": title,
+        # The classifier keeps its research scope check; a title-only appliance
+        # identity is passed as explicit appliance context instead of widening it.
+        "category": category if category_in_scope else f"家電 > {category}",
+        **details,
+    })
+    if decision.classification == HOME_APPLIANCE_A:
+        return []
+    if decision.classification == HOME_APPLIANCE_C and (
+        decision.reason_code in HOME_APPLIANCE_SKIPPED_CODES
+    ):
+        return []
+    quoted = re.search(r"「(.+?)」", decision.evidence)
+    term = quoted.group(1) if quoted else decision.reason_code
+    if decision.classification == HOME_APPLIANCE_B:
+        action = "BLOCK"
+        note = ("DEC-0166; 事業方針：家電本体・電気で動く商品は全市場で取り扱いません。"
+                f"{decision.reason_code}: {decision.evidence}")
+    else:
+        action = "REVIEW"
+        note = ("DEC-0166; 家電の本体か電気を使わない付属品かを確定できません。"
+                f"{decision.reason_code}: {decision.evidence} 不足: {decision.missing_information}")
+    return [GuardrailMatch(GuardrailRule(
+        term=term, normalized_term=normalize_text(term), action=action,
+        risk_category="home_appliance_policy", match_field="all", match_type="contains",
+        source_type="internal_rule", note=note, file_name="home_appliances_classifier.py",
+        row_number=0, dictionary_type="home_appliance",
+    ))]
+
+
 def _find_sls_shared_battery_matches(
     row: dict[str, Any],
     rules: Iterable[GuardrailRule],
@@ -1248,6 +1333,8 @@ def _match_note(match: GuardrailMatch) -> str:
         prefix = "Brand matched"
     elif match.rule.dictionary_type == "sls_shared":
         prefix = "SLS Shared Battery signal matched"
+    elif match.rule.dictionary_type == "home_appliance":
+        prefix = "Home appliance policy matched"
     else:
         prefix = "Keyword matched"
     note = f"{prefix}: {match.rule.term}"
