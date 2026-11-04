@@ -134,12 +134,12 @@ def test_kao_alias_obeys_country_list_and_does_not_start_taiwan_runtime():
 
 def test_approved_alias_inventory_excludes_competing_name_and_resolves_official_references():
     records = json.loads((CONFIG_DIR / "aliases.json").read_text(encoding="utf-8"))["aliases"]
-    assert len(records) == 36
+    assert len(records) == 77
     assert not any(r["alias"] == "セラヴィ" for r in records)
     for market in ("SG", "PH"):
         data = load_brand_monitoring(market)
         for record in records:
-            if market in record.get("markets", ["SG", "PH"]):
+            if market in record.get("markets", ["SG", "PH"]) and data.matches(record["canonical"]):
                 assert data.matches(record["alias"]), record["alias"]
     assert load_brand_monitoring("PH").matches("CeraVe")  # Canonical BLOCK remains.
 

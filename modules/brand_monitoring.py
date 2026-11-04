@@ -92,6 +92,12 @@ def load_brand_monitoring(marketplace: str, config_dir: str | Path | None = None
                 or any(not isinstance(v, str) or not v.strip() or "\n" in v or "\r" in v for v in brands)):
             raise BrandMonitoringError(f"監視ブランド設定が不正です: {filename}")
         rules.extend(MonitoringBrand(v, scope, filename) for v in brands)
+    company = _read(base / "company.json")
+    if (company.get("scope") != "COMPANY" or company.get("decision") != "DEC-0167"
+            or not isinstance(company.get("brands"), list) or not company["brands"]
+            or any(not isinstance(b, str) or not b.strip() for b in company["brands"])):
+        raise BrandMonitoringError("自社共通禁止ブランド設定が不正です。")
+    rules.extend(MonitoringBrand(v, "COMPANY", "company.json") for v in company["brands"])
     raw_aliases = _read(base / "aliases.json").get("aliases")
     if not isinstance(raw_aliases, list):
         raise BrandMonitoringError("監視ブランドの別表記設定が不正です。")

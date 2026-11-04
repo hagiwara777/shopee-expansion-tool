@@ -2,7 +2,11 @@
 
 Runtime is PH only. `canonical.json` defines the Master Unique Category IDs;
 `markets/PH.json` supplies category conditions after Shopee Category confirmation.
-No Amazon/Keepa category-name join is permitted. Category ALLOW does not release
+No Amazon/Keepa category-name join is permitted for category assignment or SLS ALLOW.
+DEC-0167 adds a separate product safety policy in `guardrails/policy/`: acquired
+Amazon text/category nodes may identify a prohibited product group, producing
+only BLOCK/REVIEW. It does not call this evaluator, infer a Shopee category ID,
+release a restriction, or enable the old Mapper runtime. Category ALLOW does not release
 Battery, Community NG, own penalty, or any existing product Safety restriction.
 
 PH runtime reads only canonical and PH JSON plus their individual manifests.

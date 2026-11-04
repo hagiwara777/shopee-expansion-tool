@@ -87,7 +87,11 @@ def test_caution_does_not_mask_forbidden_ingredient_or_add_kanji_rules():
 ])
 def test_transport_terms_review_title_ingredients_and_text(market, field, text):
     result = decide(market, **{field: text if field == "product_title" else [text]})
-    assert result["guardrail_status"] == "REVIEW"
+    expected = ('BLOCK' if '白髪染め' in text else
+                'SAFE' if ('ヘアスタイリング' in text or 'まとめ髪スタイリング' in text) and 'スプレー' not in text else 'REVIEW')
+    assert result["guardrail_status"] == expected
+    if expected == 'SAFE':
+        return
     assert "SLS輸送確認" in result["guardrail_note"]
     assert f"fact_field={field}" in result["guardrail_note"]
 
@@ -97,7 +101,8 @@ def test_transport_terms_review_title_ingredients_and_text(market, field, text):
     "ヘアトニック 消毒液", "xxLPGxx ADMEx", "湿疹 湿しん",
 ])
 def test_transport_does_not_expand_into_unapproved_terms_or_ascii_substrings(text):
-    assert decide(product_title=text, description=[text], ingredients=[text])["guardrail_status"] == "SAFE"
+    expected = "BLOCK" if text in {"香水", "除光液 ネイルポリッシュ"} else "SAFE"
+    assert decide(product_title=text, description=[text], ingredients=[text])["guardrail_status"] == expected
 
 
 def test_transport_review_never_downgrades_brand_battery_or_medical_blocks():

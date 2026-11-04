@@ -16,6 +16,7 @@ from modules.guardrails import (
     load_guardrail_dictionaries,
     load_deterministic_block_rules_v2,
 )
+from modules.safety_policy import load_policy_rules
 from modules.community_ng import load_community_ng_assets
 from modules.brand_monitoring import load_brand_monitoring, normalize_brand
 
@@ -112,6 +113,20 @@ def build_fromax_ng_export(
             reason = "条件付きの判定をNGキーワードだけでは再現できません。"
         boundary = rule.operator == "contains_term" and re.search(r"[a-z0-9]", rule.normalized_value) is not None
         add(rule.value, rule.rule_id, reason, boundary=boundary)
+
+    for rule in load_policy_rules():
+        if rule['action'] != 'BLOCK' or ('ALL' not in rule['markets'] and marketplace not in rule['markets']):
+            continue
+        reason = ''
+        if rule['condition'] == 'medical' or rule['risk'] == 'medical_or_therapeutic' and rule['condition'] == 'general':
+            reason = '否定文を区別する語句です。FROMAXの部分一致では再現できません。'
+        elif rule['condition'] != 'always' or any(f in rule['fields'] for f in ('brand', 'asin', 'category')):
+            reason = '対象欄・カテゴリ・文脈の条件付き停止です。FROMAXの部分一致へ置換しません。'
+        for term in rule['terms']:
+            term_reason = reason
+            if term in {'ライター', 'マッチ'}:
+                term_reason = '別意味を除外する条件付き停止です。FROMAXの部分一致へ置換しません。'
+            add(term, 'policy/' + rule['id'], term_reason)
 
     for block in community.brand_blocks:
         if block.marketplace == marketplace:

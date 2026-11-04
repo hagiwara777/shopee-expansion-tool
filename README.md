@@ -1,6 +1,8 @@
 # Sora
 
 Shopee調査CSVからASINを特定し、PH／SGの出品前保安ゲートを通してFROMAX向けの通過ASINを出すツールです（DEC-0165）。
+保安ルールは[共通・国別・個別ASINの方針](docs/SORA_SAFETY_POLICY.md)を適用します（DEC-0167）。
+今回の版は判定ルールの改修で、以下の入口と100件上限は従来どおりです。
 Soraから使う商品情報APIはAmazon SP-APIの読取りのみです。Keepa、Shopee API、OpenAI APIを通常操作から呼びません。
 
 1. 対象国を選び、Shopee調査CSVを読み込むか商品名を貼り付けます。

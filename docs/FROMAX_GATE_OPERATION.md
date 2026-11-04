@@ -1,5 +1,8 @@
 # FROMAXとの併用
 
+現行の判定規則・照合欄・別意味除外・輸送停止は[Sora共通保安ルール](SORA_SAFETY_POLICY.md)、DEC-0167を参照する。
+以下は旧Keepa中心の手動搬送・比較の履歴であり、旧REVIEWや未採用の記載で現行の停止を緩和しない。
+
 本ツールはFROMAXへ入れる前のリサーチ・安全確認を担当する（DEC-0159／0160）。
 大量収集はFROMAXのKeepaリサーチ、Shopeeで売れる商品からのASIN特定は本ツールのResolverを主力にする。
 カテゴリ・brand・属性・価格・出品・在庫管理はFROMAXに任せ、Expansionの既存機能は保全する。
