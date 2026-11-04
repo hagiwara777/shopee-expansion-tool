@@ -118,11 +118,31 @@ def test_samples_are_shared_even_for_config_only_future_markets(title):
     ("デンタルフロス", "SAFE", "BLOCK"), ("トランプ", "SAFE", "BLOCK"),
     ("ダーマローラー", "SAFE", "BLOCK"), ("肥料", "SAFE", "BLOCK"),
     ("ペットフード", "BLOCK", "BLOCK"), ("サプリメント", "BLOCK", "BLOCK"),
+    ("kitchen knife", "BLOCK", "BLOCK"), ("包丁", "BLOCK", "BLOCK"),
     ("モバイルバッテリー", "BLOCK", "BLOCK"),
 ])
 def test_market_differences_are_data_not_input_origin(title, sg, ph):
     assert guarded(title, market="SG")["guardrail_status"] == sg
     assert guarded(title, market="PH")["guardrail_status"] == ph
+
+
+@pytest.mark.parametrize("title", ["Kitchen knife case", "Kitchen knife sharpener", "包丁研ぎ器"])
+def test_sg_knife_accessory_is_not_mistaken_for_a_body(title):
+    # The separate SG body gate still requires a reviewed confirmation.
+    assert guarded(title, market="SG")["guardrail_status"] == "SAFE"
+
+
+@pytest.mark.parametrize("description", ["Includes a kitchen knife", "Contains a knife"])
+def test_sg_accessory_with_explicit_knife_body_stays_blocked(description):
+    assert guarded("Kitchen knife case", market="SG", description=description)["guardrail_status"] == "BLOCK"
+
+
+def test_ph_contact_lens_body_and_accessory_are_distinct():
+    assert guarded("Contact lens", market="PH")["guardrail_status"] == "BLOCK"
+    assert guarded("Contact lens case", market="PH")["guardrail_status"] == "SAFE"
+    assert guarded("Contact lens case", market="PH", description="Contains a contact lens")["guardrail_status"] == "BLOCK"
+    # Existing plural-term stops, including accessories, cannot be relaxed.
+    assert guarded("Contact lenses case", market="PH")["guardrail_status"] == "BLOCK"
 
 
 def test_future_market_common_rules_do_not_enable_runtime():

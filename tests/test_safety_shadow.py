@@ -81,7 +81,7 @@ def test_shadow_does_not_mutate_facts_or_release_ph_sg_safety():
     assert {m: apply_guardrails(rows, marketplace=m) for m in baseline} == baseline
     assert baseline["PH"][1]["guardrail_status"] == "BLOCK"
     assert baseline["SG"][15]["guardrail_status"] == "BLOCK"
-    assert baseline["PH"][14]["guardrail_status"] == "SAFE"
+    assert baseline["PH"][14]["guardrail_status"] == "BLOCK"  # Medical device in both markets.
 
 
 @pytest.mark.parametrize("changes", [
@@ -248,7 +248,6 @@ def test_investigation_groups_explain_existing_stops_without_new_review(tmp_path
     expected = {
         ("PH","KNIFE","BLOCK_WITH_ACCESSORY_SIGNAL","kitchen knife","internal_rule"):2,
         ("PH","CONTACT_LENS","BLOCK_WITH_ACCESSORY_SIGNAL","contact lenses","shopee_policy"):1,
-        ("PH","CONTACT_LENS","SAFE_WITH_BODY_SIGNAL","",""):1,
         ("SG","CONTACT_LENS","BLOCK_WITH_ACCESSORY_SIGNAL","contact lenses","shopee_policy"):1,
         # SG now BLOCKs this confirmed medical term, so it is no longer an
         # unresolved SAFE/REVIEW body signal to investigate (DEC-0159).

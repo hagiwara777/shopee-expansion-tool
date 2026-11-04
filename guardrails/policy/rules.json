@@ -1631,13 +1631,30 @@
         "ラベル誤表示",
         "used cosmetics",
         "used makeup",
-        "使用済み化粧品",
+        "使用済み化粧品"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "SG-KITCHEN-KNIFE",
+      "markets": [
+        "SG"
+      ],
+      "action": "BLOCK",
+      "risk": "weapon",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
         "包丁",
         "kitchen knife",
         "chef knife"
       ],
-      "condition": "always",
-      "note": "DEC-0167; Ownerの出品方針による停止",
+      "condition": "sg_knife",
+      "note": "DEC-0129 / DEC-0167; SGの包丁本体を停止し、付属品の本体・同梱確認を維持する。",
       "source": "internal_rule"
     },
     {
@@ -1960,8 +1977,6 @@
         "OTC medicine",
         "condom",
         "condoms",
-        "contact lens",
-        "contact lenses",
         "diagnostic test kit",
         "hair growth",
         "hair loss",
@@ -1976,9 +1991,6 @@
         "quasi drugs",
         "quasi-drug",
         "quasi-drugs",
-        "カラコン",
-        "カラーコンタクト",
-        "コンタクトレンズ",
         "コンドーム",
         "一般用医薬品",
         "体温計",
@@ -2001,6 +2013,125 @@
       ],
       "condition": "medical",
       "note": "DEC-0159 / DEC-0164 / DEC-0167; 医薬品・医療機器・医薬部外品の肯定表示によるOwnerの出品除外。直接の否定文を区別する。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-CONTACT-LENSES",
+      "markets": [
+        "SG",
+        "PH"
+      ],
+      "action": "BLOCK",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "contact lenses",
+        "コンタクトレンズ"
+      ],
+      "condition": "medical",
+      "note": "DEC-0159 / DEC-0164; 既存の医療機器表示停止と出典を維持。",
+      "source": "shopee_policy"
+    },
+    {
+      "id": "COMMON-CONTACT-LENSES-OTHER-MARKETS",
+      "markets": [
+        "MY",
+        "TH",
+        "TW"
+      ],
+      "action": "BLOCK",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "contact lenses",
+        "コンタクトレンズ"
+      ],
+      "condition": "medical",
+      "note": "DEC-0159; 全市場の医療機器を出品除外とするOwner方針。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "CONTACT-LENS-SINGULAR",
+      "markets": [
+        "SG"
+      ],
+      "action": "BLOCK",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "contact lens"
+      ],
+      "condition": "medical",
+      "note": "DEC-0159 / DEC-0164; 既存の医療機器表示停止と出典を維持。",
+      "source": "shopee_policy"
+    },
+    {
+      "id": "CONTACT-LENS-SINGULAR-OTHER-MARKETS",
+      "markets": [
+        "MY",
+        "TH",
+        "TW"
+      ],
+      "action": "BLOCK",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "contact lens"
+      ],
+      "condition": "medical",
+      "note": "DEC-0159; 全市場の医療機器を出品除外とするOwner方針。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "PH-CONTACT-LENS-SINGULAR",
+      "markets": [
+        "PH"
+      ],
+      "action": "BLOCK",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "contact lens"
+      ],
+      "condition": "ph_contact_lens",
+      "note": "DEC-0159; PHのレンズ本体を停止し、空ケースだけを本体とみなさない。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "PH-OTHER-COLOR-CONTACT",
+      "markets": [
+        "PH",
+        "MY",
+        "TH",
+        "TW"
+      ],
+      "action": "BLOCK",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "カラコン",
+        "カラーコンタクト"
+      ],
+      "condition": "medical",
+      "note": "DEC-0159; 既存PHのカラーコンタクト停止を維持。",
       "source": "internal_rule"
     },
     {
@@ -2356,6 +2487,25 @@
       ],
       "condition": "always",
       "note": "DEC-0167; 既存SG PowerCoreの電池疑義を維持し共通化。。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "PH-KITCHEN-KNIFE",
+      "markets": [
+        "PH"
+      ],
+      "action": "BLOCK",
+      "risk": "weapon",
+      "fields": [
+        "title"
+      ],
+      "terms": [
+        "kitchen knife",
+        "chef knife",
+        "包丁"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; 既存PH-D070～PH-D072の包丁停止を維持。",
       "source": "internal_rule"
     }
   ]

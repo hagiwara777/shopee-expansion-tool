@@ -12,7 +12,8 @@ import re
 POLICY_DIR = Path(__file__).resolve().parents[1] / "guardrails" / "policy"
 FIELDS = {"title", "text", "ingredients", "category", "brand", "asin"}
 CONDITIONS = {"always", "medical", "general", "spray", "mask", "weapon_attachment",
-              "food", "laser", "certification", "sample", "used", "food_review", "battery"}
+              "food", "laser", "certification", "sample", "used", "food_review", "battery",
+              "sg_knife", "ph_contact_lens"}
 RISKS = {"drug_or_hemp", "medical_or_therapeutic", "regulated_ingredient", "brand_ip",
          "weapon", "weapon_related_toy", "food_restricted", "shipping_restricted",
          "tobacco_or_vape", "alcohol", "license_or_certification_required", "own_penalty_product", "other"}
@@ -110,6 +111,23 @@ def _condition(rule, value, row, group):
     category = normalize_text(row.get("category", ""))
     context = title + " " + value
     decoration = re.search(r"フィギュア|キーホルダー|キーチェーン|ペンダント|figure|keychain|pendant", context)
+    if condition in {"sg_knife", "ph_contact_lens"}:
+        # A bare accessory name is not proof that it contains the body.  Keep
+        # the existing SG body-confirmation gate and all other policy hits.
+        # Explicit inclusion, including in another text field, still blocks.
+        if condition == "sg_knife":
+            accessory = r"(?:kitchen|chef)[ -]+knife[ -]+(?:sharpener|case|sheath|holder|storage)\b|包丁(?:研ぎ器|研ぎ|ケース|収納|ホルダー)"
+            inclusion = r"(?:with|includes?|including|contains?)\s+(?:a\s+)?(?:(?:kitchen|chef)\s+)?knife\b|包丁(?:付き|付属|同梱|入り)"
+        else:
+            accessory = r"contact[ -]+lens[ -]+(?:case|holder|storage)\b"
+            inclusion = r"(?:with|includes?|including|contains?)\s+(?:a\s+)?contact[ -]+lens(?:es)?\b"
+        all_text = [title]
+        all_text.extend(normalize_text(raw) for _, _, raw in _values(row, ("text",)))
+        if any(re.search(inclusion, text) for text in all_text):
+            return action
+        remaining = re.sub(accessory, " ", value)
+        from modules.guardrails import _contains_term
+        return action if any(_contains_term(remaining, normalize_text(term)) for term in rule["terms"]) else None
     if condition == "general":
         if decoration and rule["risk"] in {"weapon", "weapon_related_toy"}:
             return None  # Dedicated attachment rule decides this ambiguity.
@@ -173,7 +191,7 @@ def evaluate_policy(row, marketplace, rules=None):
                     matched = (normalized == value if ">" in normalized else normalized in [n.strip() for n in value.split(">")])
                 elif group in {"brand", "asin"}:
                     matched = value == normalized
-                elif rule["condition"] == "medical" or (rule["condition"] == "general" and rule["risk"] == "medical_or_therapeutic"):
+                elif rule["condition"] in {"medical", "ph_contact_lens"} or (rule["condition"] == "general" and rule["risk"] == "medical_or_therapeutic"):
                     probe = GuardrailRule(term, normalized, rule["action"], "medical_or_therapeutic",
                                           "title", "contains", rule["source"], rule["note"], "rules.json", 0, "policy")
                     matched = _contains_rule_term(value, probe)

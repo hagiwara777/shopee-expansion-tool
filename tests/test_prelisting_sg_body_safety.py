@@ -58,7 +58,7 @@ def confirm(candidates, text=None, *, outcome="BODY_PRESENT", family="KNIFE", co
 def test_names_are_suspicion_never_confirmed_body(title, family):
     _, candidates, text = case(title)
     result = run(candidates, text)
-    expected = "EXCLUDE" if title in {"Contact lenses", "Contact lens case", "コンタクトレンズ保存ケース"} else "REVIEW"
+    expected = "EXCLUDE" if title in {"Contact lenses", "Contact lens case", "コンタクトレンズ保存ケース", "Kitchen knife", "三徳包丁セット"} else "REVIEW"
     assert result.rows[0].final_eligibility == expected
     assert "SG_BODY_REVIEW" in result.rows[0].reason_codes
     assert body_checks(candidates, text)[0]["outcome"] == "UNRESOLVED"
@@ -98,6 +98,14 @@ def test_accessory_confirmation_only_resolves_our_new_question():
     assert result.exclude_count == 1 and result.rows[0].guardrail_status == "BLOCK"
     assert "GUARDRAIL_BLOCK" in result.rows[0].reason_codes
     assert "SG_BODY_REVIEW" not in result.rows[0].reason_codes
+
+
+def test_accessory_confirmation_does_not_release_explicit_knife_inclusion():
+    _, candidates, text = case("Kitchen knife case", description="Includes a kitchen knife")
+    record = confirm(candidates, text, outcome="ACCESSORY_ONLY")
+    result = run(candidates, text, record)
+    assert result.exclude_count == 1
+    assert "GUARDRAIL_BLOCK" in result.rows[0].reason_codes
 
 
 @pytest.mark.parametrize("stop", ["battery", "brand", "existing", "metadata"])
