@@ -34,6 +34,7 @@ def test_seed_title_and_category_stop_but_description_does_not(market):
 @pytest.mark.parametrize("market", ["SG", "PH"])
 @pytest.mark.parametrize("phrase", [
     "塩素系漂白剤のご使用はおやめください", "漂白剤を使わないでください",
+    "塩素系漂白剤 のご使用はおやめください", "塩素系漂白剤　のご使用はおやめください",
     "漂白剤は使用しないでください",
 ])
 def test_bleach_usage_prohibition_is_not_a_product_claim(market, phrase):
