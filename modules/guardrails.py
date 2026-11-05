@@ -10,6 +10,7 @@ import unicodedata
 
 from modules.safety_policy import SafetyPolicyError, load_policy_rules, evaluate_policy, mask_harmless_phrases
 from modules.battery_presence import assess_battery_presence
+from modules.match_context import excerpt_at
 from modules.brand_monitoring import BrandMonitoringError, load_brand_monitoring
 from modules.home_appliances_classifier import (
     A as HOME_APPLIANCE_A,
@@ -246,7 +247,7 @@ def apply_guardrails(
             v2_rules,
             marketplace=normalized_marketplace,
         )
-        v2_row = _apply_v2_matches_to_row(v1_row, v2_matches)
+        v2_row = _apply_v2_matches_to_row(v1_row, v2_matches, row=row)
         community_matches = _find_community_ng_matches(
             row,
             community_assets.asin_blocks,
@@ -1189,7 +1190,7 @@ def _apply_matches_to_row(
             "guardrail_risk_category": _join_unique(match.rule.risk_category for match in matches),
             "guardrail_matched_terms": _join_unique(match.rule.term for match in matches),
             "guardrail_source": _join_unique(match.rule.source_type for match in matches),
-            "guardrail_note": _join_unique(_match_note(match) for match in matches),
+            "guardrail_note": _join_unique(_match_note(match, row) for match in matches),
         }
     )
     return guarded_row
@@ -1198,6 +1199,8 @@ def _apply_matches_to_row(
 def _apply_v2_matches_to_row(
     v1_row: dict[str, str],
     matches: list[DeterministicBlockMatchV2],
+    *,
+    row: dict[str, Any] | None = None,
 ) -> dict[str, str]:
     if not matches:
         return v1_row
@@ -1208,7 +1211,7 @@ def _apply_v2_matches_to_row(
         risk_values: Iterable[str] = (match.rule.risk_category for match in matches)
         term_values: Iterable[str] = (match.rule.canonical_term for match in matches)
         source_values: Iterable[str] = (match.rule.source_type for match in matches)
-        note_values: Iterable[str] = (_v2_match_note(match) for match in matches)
+        note_values: Iterable[str] = (_v2_match_note(match, row) for match in matches)
     else:
         risk_values = (
             guarded_row.get("guardrail_risk_category", ""),
@@ -1224,7 +1227,7 @@ def _apply_v2_matches_to_row(
         )
         note_values = (
             guarded_row.get("guardrail_note", ""),
-            *(_v2_match_note(match) for match in matches),
+            *(_v2_match_note(match, row) for match in matches),
         )
 
     guarded_row.update(
@@ -1307,7 +1310,44 @@ def _apply_community_ng_matches_to_row(
     return guarded_row
 
 
-def _match_note(match: GuardrailMatch) -> str:
+def _context_values(row: dict[str, Any], fields: Iterable[str]) -> Iterable[tuple[str, str]]:
+    """Read only fields that the relevant rule already evaluated."""
+    for field in fields:
+        value = row.get(field)
+        values = (value,) if isinstance(value, str) else value if isinstance(value, (list, tuple)) else ()
+        for item in values:
+            if isinstance(item, str) and item:
+                yield field, item
+
+
+def _context_for_term(
+    row: dict[str, Any], fields: Iterable[str], term: str, *,
+    rule: GuardrailRule | None = None, v2: bool = False, contains: bool = False,
+) -> str:
+    normalizer = normalize_v2_text if v2 else normalize_text
+    normalized_term = normalizer(term)
+    if not normalized_term:
+        return ""
+    pattern = re.escape(normalized_term)
+    if not contains and _is_ascii_token_phrase(normalized_term):
+        pattern = rf"(?<![a-z0-9]){pattern}(?![a-z0-9])"
+    for field, raw in _context_values(row, fields):
+        value = normalizer(raw)
+        occurrences = list(re.finditer(pattern, value))
+        for occurrence in occurrences:
+            if rule is not None:
+                # Keep this occurrence and mask the others before applying the
+                # existing contextual/negation matcher.  A nearby harmless
+                # phrase must not be quoted as the reason for a positive hit.
+                probe = re.sub(pattern, lambda m: m.group() if m.start() == occurrence.start()
+                               else " " * len(m.group()), value)
+                if not _contains_rule_term(probe, rule):
+                    continue
+            return f"; 該当箇所[{field}]: 「{excerpt_at(value, occurrence.start(), occurrence.end())}」"
+    return ""
+
+
+def _match_note(match: GuardrailMatch, row: dict[str, Any] | None = None) -> str:
     if match.rule.dictionary_type == "brand":
         prefix = "Brand matched"
     elif match.rule.dictionary_type == "sls_shared":
@@ -1323,17 +1363,32 @@ def _match_note(match: GuardrailMatch) -> str:
         note = f"{note} [fact_field={match.fact_field}]"
     if match.rule.note:
         note = f"{note} ({match.rule.note})"
+    if row is not None and "該当箇所[" not in match.rule.note:
+        aliases = {"title": "product_title", "asin": "candidate_asin"}
+        if match.fact_field:
+            fields = (aliases.get(match.fact_field, match.fact_field),)
+        elif match.rule.match_field != "all":
+            fields = (aliases.get(match.rule.match_field, match.rule.match_field),)
+        else:
+            fields = ("product_title", "brand", "category")
+            if match.rule.dictionary_type in {"sls_shared", "home_appliance"}:
+                fields += ("description", "features", "shortDescription", "safetyWarning", "itemHighlights")
+        note += _context_for_term(row, fields, match.rule.term, rule=match.rule)
     return note
 
 
-def _v2_match_note(match: DeterministicBlockMatchV2) -> str:
-    return (
+def _v2_match_note(match: DeterministicBlockMatchV2, row: dict[str, Any] | None = None) -> str:
+    note = (
         f"V2 Rule matched: {match.rule.rule_id} "
         f"(canonical_term={match.rule.canonical_term}; "
         f"matched_value={match.rule.value}; "
         f"fact_field={match.actual_fact_field}; "
         f"evidence_ref={match.rule.evidence_ref}; {match.rule.note})"
     )
+    if row is not None:
+        note += _context_for_term(row, (match.actual_fact_field,), match.rule.value,
+                                  v2=True, contains=match.rule.operator == "contains")
+    return note
 
 
 def _community_ng_term(match: CommunityNgMatch) -> str:
@@ -1344,13 +1399,15 @@ def _community_ng_term(match: CommunityNgMatch) -> str:
 
 def _community_ng_match_note(match: CommunityNgMatch) -> str:
     block = match.block
-    return (
+    note = (
         "Community NG matched: "
         f"marketplace={block.marketplace}; "
         f"match_field={match.match_field}; "
         f"matched_value={match.matched_value}; "
         f"source_id={block.source_id}; source_row={block.source_row}"
     )
+    field = "candidate_asin" if match.match_field == "asin" else match.match_field
+    return note + f"; 該当箇所[{field}]: 「{excerpt_at(match.matched_value, 0, len(match.matched_value))}」"
 
 
 def _join_unique(values: Iterable[str]) -> str:

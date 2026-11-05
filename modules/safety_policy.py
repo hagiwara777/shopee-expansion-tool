@@ -8,6 +8,8 @@ import json
 from pathlib import Path
 import re
 
+from modules.match_context import excerpt_at
+
 
 POLICY_DIR = Path(__file__).resolve().parents[1] / "guardrails" / "policy"
 FIELDS = {"title", "text", "ingredients", "category", "brand", "asin"}
@@ -93,7 +95,8 @@ def _values(row, fields):
 def mask_harmless_phrases(value):
     """Suppress only these occurrences, not other positive statements nearby."""
     return re.sub(r"アルコールフリー|ノンアルコール|(?<![a-z0-9])alcohol[- ]free(?![a-z0-9])"
-                  r"|(?<![a-z0-9])fake\s+lashes(?![a-z0-9])|つけまつげ", " ", value)
+                  r"|(?<![a-z0-9])fake\s+lashes(?![a-z0-9])|つけまつげ",
+                  lambda match: " " * len(match[0]), value)
 
 
 def _condition(rule, value, row, group):
@@ -172,42 +175,82 @@ def _condition(rule, value, row, group):
     raise SafetyPolicyError("未対応の保安ルール条件です。")
 
 
+# Headers are local to one bullet; never downgrade a separate claim/field.
+INGREDIENT_HEADER = re.compile(
+    r"(?<!\w)(?:全成分|原材料(?:[・/／]\s*成分)?|成分)(?=$|[\s:：\]］】)）/／・])"
+)
+BULLET_FIELDS = {"features", "itemHighlights"}
+
+
+def _policy_pattern(term, rule):
+    if term == "アルコール":
+        return r"(?<![ァ-ヴー])アルコール"
+    if term == "ライター":
+        return r"(?<!ハイ)ライター"
+    if term == "マッチ":
+        return r"マッチ(?!ング)"
+    if rule["id"] == "COMMON-DRUG" and term == "hemp":
+        return re.escape(term)
+    medical = (rule["condition"] in {"medical", "ph_contact_lens"}
+               or (rule["condition"] == "general" and rule["risk"] == "medical_or_therapeutic"))
+    if re.fullmatch(r"[a-z0-9]+(?: [a-z0-9]+)*", term) or (medical and re.fullmatch(r"[a-z0-9 -]+", term)):
+        return rf"(?<![a-z0-9]){re.escape(term)}(?![a-z0-9])"
+    if re.search(r"[^a-z0-9 -].*[a-z0-9]$", term):
+        return re.escape(term) + r"(?![a-z0-9])"
+    return re.escape(term)
+
+
 def evaluate_policy(row, marketplace, rules=None):
-    # This pure evaluator accepts configured future markets without enabling UI,
-    # API credentials, Catalog/Mapper, or other market operation.
-    from modules.guardrails import normalize_text, _contains_term, _contains_rule_term, GuardrailRule
+    # Future-market data never enables its UI, credentials, or operations.
+    from modules.guardrails import normalize_text, _contains_rule_term, GuardrailRule
     rules = load_policy_rules() if rules is None else rules
     hits = []
     for rule in rules:
         if "ALL" not in rule["markets"] and marketplace not in rule["markets"]:
             continue
         for group, field, raw in _values(row, rule["fields"]):
-            value = normalize_text(raw)
-            if rule["condition"] == "general":
-                value = mask_harmless_phrases(value)
+            original = normalize_text(raw)
+            value = mask_harmless_phrases(original) if rule["condition"] == "general" else original
+            exclusions = {"SG-AMULET": r"お守り(?:ください|下さい)",
+                          "COMMON-SLS-PLANT": r"植物(?:由来|性|エキス|オイル|アロマ)"}
+            if rule["id"] in exclusions:
+                value = re.sub(exclusions[rule["id"]], lambda m: " " * len(m[0]), value)
+            header = (INGREDIENT_HEADER.search(original)
+                      if rule["id"] == "COMMON-COSMETIC-INGREDIENT" and field in BULLET_FIELDS else None)
             for term in rule["terms"]:
                 normalized = normalize_text(term)
-                if group == "category":
-                    matched = (normalized == value if ">" in normalized else normalized in [n.strip() for n in value.split(">")])
-                elif group in {"brand", "asin"}:
-                    matched = value == normalized
-                elif rule["condition"] in {"medical", "ph_contact_lens"} or (rule["condition"] == "general" and rule["risk"] == "medical_or_therapeutic"):
-                    probe = GuardrailRule(term, normalized, rule["action"], "medical_or_therapeutic",
-                                          "title", "contains", rule["source"], rule["note"], "rules.json", 0, "policy")
-                    matched = _contains_rule_term(value, probe)
-                elif rule["id"] == "COMMON-DRUG":
-                    matched = normalized in value if normalized == "hemp" else _contains_term(value, normalized)
-                else:
-                    # Japanese vitamin prefixes need the same Latin boundary as AHA.
-                    matched = bool(re.search(re.escape(normalized) + r"(?![a-z0-9])", value)) if re.search(r"[^a-z0-9 -].*[a-z0-9]$", normalized) else _contains_term(value, normalized)
-                if normalized == "ライター":
-                    matched = bool(re.search(r"(?<!ハイ)ライター", value))
-                if normalized == "マッチ":
-                    matched = bool(re.search(r"マッチ(?!ング)", value))
-                if not matched:
+                if group == "category" and rule["id"] not in {"SG-AMULET", "COMMON-SLS-PLANT"}:
+                    if not (normalized == value if ">" in normalized else normalized in [n.strip() for n in value.split(">")]):
+                        continue
+                if group in {"brand", "asin"} and value != normalized:
                     continue
-                action = _condition(rule, value, row, group)
-                if action:
-                    hits.append(PolicyHit(rule["id"], term, action, rule["risk"], field,
-                                          rule["note"], rule["source"]))
+                occurrences = list(re.finditer(_policy_pattern(normalized, rule), value))
+                if not occurrences:
+                    continue
+                medical = (rule["condition"] in {"medical", "ph_contact_lens"}
+                           or (rule["condition"] == "general" and rule["risk"] == "medical_or_therapeutic"))
+                probe = (GuardrailRule(term, normalized, rule["action"], "medical_or_therapeutic",
+                                       "title", "contains", rule["source"], rule["note"], "rules.json", 0, "policy")
+                         if medical else None)
+                seen_actions = set()
+                for index, occurrence in enumerate(occurrences):
+                    if medical:
+                        # Isolate this occurrence so a later positive cannot make
+                        # a negated occurrence appear to be the matching evidence.
+                        start = occurrences[index - 1].end() if index else 0
+                        end = occurrences[index + 1].start() if index + 1 < len(occurrences) else len(value)
+                        if not _contains_rule_term(value[start:end], probe):
+                            continue
+                    action = _condition(rule, value, row, group)
+                    ingredient_list = header is not None and occurrence.start() >= header.end()
+                    if ingredient_list:
+                        action = "REVIEW"
+                    if not action or action in seen_actions:
+                        continue
+                    seen_actions.add(action)
+                    note = rule["note"]
+                    if ingredient_list:
+                        note += "; 箇条書きの成分一覧に記載（要確認）"
+                    note += f"; 該当箇所[{field}]: 「{excerpt_at(original, occurrence.start(), occurrence.end())}」"
+                    hits.append(PolicyHit(rule["id"], term, action, rule["risk"], field, note, rule["source"]))
     return hits

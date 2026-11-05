@@ -290,7 +290,7 @@
         "レチノイン酸"
       ],
       "condition": "always",
-      "note": "DEC-0167; Ownerの出品方針による停止",
+      "note": "DEC-0167; Ownerの出品方針による停止 DEC-0168; 箇条書きの成分一覧だけの記載はREVIEW。別の肯定表示はBLOCKを維持。",
       "source": "internal_rule"
     },
     {
@@ -1453,23 +1453,40 @@
       "risk": "shipping_restricted",
       "fields": [
         "title",
-        "text",
         "category"
       ],
       "terms": [
         "植物",
+        "plants"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; SLS表2026-09-17のNO商品群を検出。AmazonカテゴリによるShopeeカテゴリ自動割当・ALLOW生成は行わない。。SLS輸送確認。 DEC-0168; 商品名・カテゴリに限定し植物由来・植物性・植物エキス・植物オイル・植物アロマを除く。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-SLS-PLANT-OTHER",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text",
+        "category"
+      ],
+      "terms": [
         "種子",
         "園芸用土",
         "培養土",
         "種まき用",
         "生きた動物",
         "生体販売",
-        "plants",
         "seeds",
         "gardening soil"
       ],
       "condition": "always",
-      "note": "DEC-0167; SLS表2026-09-17のNO商品群を検出。AmazonカテゴリによるShopeeカテゴリ自動割当・ALLOW生成は行わない。。SLS輸送確認。",
+      "note": "DEC-0167 / DEC-0168; 同居していた種子・土・生体等の既存停止と対象欄を維持。SLS輸送確認。",
       "source": "internal_rule"
     },
     {
@@ -1602,7 +1619,6 @@
         "text"
       ],
       "terms": [
-        "お守り",
         "磁性粘土",
         "護身用ペン",
         "護身用バトン",
@@ -1635,6 +1651,24 @@
       ],
       "condition": "always",
       "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "SG-AMULET",
+      "markets": [
+        "SG"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "お守り"
+      ],
+      "condition": "always",
+      "note": "DEC-0168; SGのお守り商品だけを停止。お守りください／お守り下さいを除く。",
       "source": "internal_rule"
     },
     {
