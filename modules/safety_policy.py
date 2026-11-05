@@ -224,6 +224,10 @@ def evaluate_policy(row, marketplace, rules=None):
                         continue
                 if group in {"brand", "asin"} and value != normalized:
                     continue
+                # Every pattern requires this literal term.  Avoid compiling
+                # hundreds of no-hit Japanese patterns on every reassessment.
+                if normalized not in value:
+                    continue
                 occurrences = list(re.finditer(_policy_pattern(normalized, rule), value))
                 if not occurrences:
                     continue
