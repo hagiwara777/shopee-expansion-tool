@@ -76,7 +76,7 @@ def test_included_battery_is_blocked_in_each_runtime_market(marketplace, title, 
 ])
 def test_uncertain_accessories_and_generic_warnings_stay_review(marketplace, title, facts):
     guarded = apply_guardrails([product(title, **facts)], marketplace=marketplace)[0]
-    assert guarded["guardrail_status"] == "REVIEW"
+    assert guarded["guardrail_status"] == ("BLOCK" if marketplace == "PH" and "歯ブラシ" in title else "REVIEW")
 
 
 @pytest.mark.parametrize("title,values", [
@@ -120,7 +120,7 @@ def test_normalization_and_unrelated_product_have_no_inclusion_inference():
 def test_battery_holder_has_no_inclusion_evidence_and_keeps_ph_existing_block():
     title = "モバイルバッテリー収納ホルダー"
     assert assess_battery_presence(title, [("product_title", title)]) is None
-    assert apply_guardrails([product(title)], marketplace="SG")[0]["guardrail_status"] == "REVIEW"
+    assert apply_guardrails([product(title)], marketplace="SG")[0]["guardrail_status"] == "BLOCK"
     assert apply_guardrails([product(title)], marketplace="PH")[0]["guardrail_status"] == "BLOCK"
 
 

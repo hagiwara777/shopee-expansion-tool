@@ -55,6 +55,7 @@ def test_manual_chatgpt_to_sp_api_to_gate_same_normal_screen(client_calls, marke
     app = AppTest.from_file(str(ROOT/'app.py'), default_timeout=20).run()
     assert not app.exception
     assert client_calls == []
+    assert any(caption.value.startswith('版: ') for caption in app.caption)
     app.selectbox(key='sora_marketplace').set_value(marketplace).run()
     app.text_area(key='sora_source_input').set_value('JPH-example\tA towel').run()
     button(app, 'sora_generate_prompt').click().run()

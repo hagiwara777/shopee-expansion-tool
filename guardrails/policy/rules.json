@@ -1,0 +1,2546 @@
+{
+  "schema": "SORA_SAFETY_POLICY_V1",
+  "decision": "DEC-0167",
+  "rules": [
+    {
+      "id": "COMMON-DRUG",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "drug_or_hemp",
+      "fields": [
+        "title",
+        "text",
+        "ingredients"
+      ],
+      "terms": [
+        "CBD",
+        "大麻",
+        "マリファナ",
+        "ヘンプ",
+        "Hemp",
+        "ガンビル",
+        "Gambir",
+        "Sativa",
+        "Cannabis",
+        "アヘン",
+        "コカイン",
+        "ケタミン",
+        "ブフォテニン"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-RYUKAKUSAN",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "title",
+        "text",
+        "ingredients"
+      ],
+      "terms": [
+        "龍角散"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-GENERAL-TITLE-other",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "other",
+      "fields": [
+        "title"
+      ],
+      "terms": [
+        "偽物",
+        "fake",
+        "replica",
+        "コピー品",
+        "アダルト",
+        "adult only",
+        "R18",
+        "18禁",
+        "違法",
+        "illegal",
+        "脱税",
+        "盗品"
+      ],
+      "condition": "general",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-GENERAL-TEXT-other",
+      "markets": [
+        "ALL"
+      ],
+      "action": "REVIEW",
+      "risk": "other",
+      "fields": [
+        "text"
+      ],
+      "terms": [
+        "偽物",
+        "fake",
+        "replica",
+        "コピー品",
+        "アダルト",
+        "adult only",
+        "R18",
+        "18禁",
+        "違法",
+        "illegal",
+        "脱税",
+        "盗品"
+      ],
+      "condition": "general",
+      "note": "DEC-0167; Ownerの出品方針による要確認",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-GENERAL-TITLE-medical_or_therapeutic",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "title"
+      ],
+      "terms": [
+        "医薬品",
+        "medicine",
+        "処方箋",
+        "prescription"
+      ],
+      "condition": "general",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-GENERAL-TEXT-medical_or_therapeutic",
+      "markets": [
+        "ALL"
+      ],
+      "action": "REVIEW",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "text"
+      ],
+      "terms": [
+        "医薬品",
+        "medicine",
+        "処方箋",
+        "prescription"
+      ],
+      "condition": "general",
+      "note": "DEC-0167; Ownerの出品方針による要確認",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-GENERAL-TITLE-tobacco_or_vape",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "tobacco_or_vape",
+      "fields": [
+        "title"
+      ],
+      "terms": [
+        "タバコ",
+        "cigarette"
+      ],
+      "condition": "general",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-GENERAL-TEXT-tobacco_or_vape",
+      "markets": [
+        "ALL"
+      ],
+      "action": "REVIEW",
+      "risk": "tobacco_or_vape",
+      "fields": [
+        "text"
+      ],
+      "terms": [
+        "タバコ",
+        "cigarette"
+      ],
+      "condition": "general",
+      "note": "DEC-0167; Ownerの出品方針による要確認",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-GENERAL-TITLE-alcohol",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "alcohol",
+      "fields": [
+        "title"
+      ],
+      "terms": [
+        "アルコール",
+        "alcohol"
+      ],
+      "condition": "general",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-GENERAL-TEXT-alcohol",
+      "markets": [
+        "ALL"
+      ],
+      "action": "REVIEW",
+      "risk": "alcohol",
+      "fields": [
+        "text"
+      ],
+      "terms": [
+        "アルコール",
+        "alcohol"
+      ],
+      "condition": "general",
+      "note": "DEC-0167; Ownerの出品方針による要確認",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-GENERAL-TITLE-weapon",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "weapon",
+      "fields": [
+        "title"
+      ],
+      "terms": [
+        "武器",
+        "weapon",
+        "弾薬"
+      ],
+      "condition": "general",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-GENERAL-TEXT-weapon",
+      "markets": [
+        "ALL"
+      ],
+      "action": "REVIEW",
+      "risk": "weapon",
+      "fields": [
+        "text"
+      ],
+      "terms": [
+        "武器",
+        "weapon",
+        "弾薬"
+      ],
+      "condition": "general",
+      "note": "DEC-0167; Ownerの出品方針による要確認",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-COSMETIC-INGREDIENT",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "regulated_ingredient",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "アゼライン酸",
+        "ハイドロキノン",
+        "ヒドロキノン",
+        "レチノール",
+        "ナイアシンアミド",
+        "アルブチン",
+        "トランサミン",
+        "トラネキサム酸",
+        "AHA",
+        "グリコール酸",
+        "サリチル酸",
+        "コウジ酸",
+        "ビタミンA",
+        "ビタミンB3",
+        "ボトックス",
+        "ボツリヌス",
+        "トレチノイン",
+        "レチノイン酸"
+      ],
+      "condition": "always",
+      "note": "DEC-0167 / DEC-0168 / DEC-0169; 商品名・通常説明は停止。見出しで確認した成分一覧の区間だけはREVIEWとし、区間外のBLOCKを優先。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-DIPHENHYDRAMINE",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "regulated_ingredient",
+      "fields": [
+        "title",
+        "text",
+        "ingredients"
+      ],
+      "terms": [
+        "ジフェンヒドラミン",
+        "塩酸ジフェンヒドラミン",
+        "diphenhydramine",
+        "diphenhydramine hydrochloride"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-GROWTH",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "育毛",
+        "発毛",
+        "発毛促進",
+        "hair growth",
+        "hair loss"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-CONDOM",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "コンドーム",
+        "condom",
+        "condoms"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-SUPPLEMENT",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "food_restricted",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "サプリ",
+        "サプリメント",
+        "健康食品",
+        "dietary supplement",
+        "food supplement"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-POWERBANK",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "モバイルバッテリー",
+        "power bank",
+        "powerbank"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止。旧PH-D073/PH-D074/PH-D075の停止を共通化。。SLS輸送確認。",
+      "source": "shopee_policy"
+    },
+    {
+      "id": "COMMON-BATTERY-SINGLE",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "リチウム電池単体",
+        "リチウムイオン電池単体",
+        "交換用電池",
+        "ボタン電池",
+        "コイン電池",
+        "乾電池",
+        "ノートPC用バッテリー",
+        "カメラ用バッテリー",
+        "lithium battery pack",
+        "battery pack"
+      ],
+      "condition": "battery",
+      "note": "DEC-0167; Ownerの出品方針による停止。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-LITHIUM-SIGNAL",
+      "markets": [
+        "ALL"
+      ],
+      "action": "REVIEW",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "リチウム電池",
+        "リチウムイオン電池",
+        "lithium battery",
+        "lithium ion battery"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による要確認。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-WEAPON",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "weapon",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "スタンガン",
+        "電気スタンナー",
+        "催涙スプレー",
+        "stun gun",
+        "stun guns",
+        "pepper spray",
+        "firearm",
+        "firearms",
+        "weapon parts",
+        "銃器",
+        "拳銃",
+        "火薬",
+        "本物そっくりのおもちゃの銃",
+        "リアルなおもちゃの銃",
+        "おもちゃの銃",
+        "おもちゃの弾",
+        "エアガン",
+        "サバイバルゲーム",
+        "サバゲー",
+        "replica weapon",
+        "replica weapons"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-WEAPON-DECORATION",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "weapon_related_toy",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "剣",
+        "刀",
+        "銃",
+        "武器",
+        "ナイフ",
+        "sword",
+        "gun",
+        "weapon",
+        "knife"
+      ],
+      "condition": "weapon_attachment",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-FIRE-FUEL",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "花火",
+        "爆竹",
+        "火薬",
+        "ライター",
+        "マッチ",
+        "着火剤",
+        "燃料",
+        "オイルライター用オイル",
+        "lighter fluid",
+        "fireworks",
+        "firecracker",
+        "matches",
+        "lighter",
+        "gasoline",
+        "kerosene"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-DIGITAL",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "other",
+      "fields": [
+        "title"
+      ],
+      "terms": [
+        "デジタルコード",
+        "オンラインコード",
+        "ダウンロード版",
+        "ギフト券",
+        "プリペイドカード",
+        "e-voucher",
+        "電子ギフト券",
+        "商品券",
+        "ダウンロードコード",
+        "ライセンスキー",
+        "オンラインサービス利用券",
+        "チケット",
+        "バウチャー"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-AEROSOL",
+      "markets": [
+        "ALL"
+      ],
+      "action": "REVIEW",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text",
+        "ingredients"
+      ],
+      "terms": [
+        "スプレー缶",
+        "エアゾール",
+        "エアロゾル",
+        "LPG",
+        "DME",
+        "高圧ガス",
+        "窒素ガス",
+        "火気と高温に注意",
+        "aerosol"
+      ],
+      "condition": "always",
+      "note": "DEC-0164/0167; SLS輸送確認：エアゾール・高圧ガス。正式な発送適合の保証ではない。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-STYLING-SPRAY",
+      "markets": [
+        "ALL"
+      ],
+      "action": "REVIEW",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text",
+        "ingredients"
+      ],
+      "terms": [
+        "ヘアスタイリング",
+        "スタイリング仕上げ",
+        "ヘアセット剤",
+        "仕上げ剤",
+        "まとめ髪スタイリング"
+      ],
+      "condition": "spray",
+      "note": "DEC-0167; Ownerの出品方針による要確認。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-DRY-SPRAY",
+      "markets": [
+        "ALL"
+      ],
+      "action": "REVIEW",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text",
+        "ingredients"
+      ],
+      "terms": [
+        "ドライシャンプー",
+        "ヘアスプレー",
+        "電動本体",
+        "電動ハンドル",
+        "電動カミソリ"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による要確認。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-TRANSPORT-FLAMMABLE",
+      "markets": [
+        "ALL"
+      ],
+      "action": "REVIEW",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "高濃度アルコール",
+        "消毒用エタノール",
+        "引火性",
+        "flammable liquid"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による要確認。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-TRANSPORT-OXIDIZER",
+      "markets": [
+        "ALL"
+      ],
+      "action": "REVIEW",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "過酸化水素",
+        "ヘアカラーの2剤",
+        "オキシ",
+        "漂白剤",
+        "hydrogen peroxide"
+      ],
+      "condition": "always",
+      "note": "DEC-0167 / DEC-0170; SLS輸送確認。注意書きの漂白剤の明確な使用禁止だけを除外し、別の肯定表示は維持。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-TRANSPORT-CORROSIVE",
+      "markets": [
+        "ALL"
+      ],
+      "action": "REVIEW",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "塩酸",
+        "強アルカリ",
+        "腐食性",
+        "hydrochloric acid"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による要確認。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-TRANSPORT-TOXIC",
+      "markets": [
+        "ALL"
+      ],
+      "action": "REVIEW",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "殺虫剤",
+        "農薬",
+        "除草剤",
+        "pesticide",
+        "pesticides",
+        "insecticide",
+        "insecticides",
+        "毒物",
+        "劇物"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による要確認。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-TRANSPORT-BIO",
+      "markets": [
+        "ALL"
+      ],
+      "action": "REVIEW",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "放射性",
+        "病原体",
+        "生体",
+        "radioactive",
+        "pathogen"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による要確認。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-TRANSPORT-CHARCOAL",
+      "markets": [
+        "ALL"
+      ],
+      "action": "REVIEW",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "活性炭",
+        "activated carbon",
+        "activated charcoal"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による要確認。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-TRANSPORT-VALUABLES",
+      "markets": [
+        "ALL"
+      ],
+      "action": "REVIEW",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "貴金属",
+        "宝石",
+        "現金",
+        "切手",
+        "カード類",
+        "precious metal",
+        "gemstone",
+        "cash",
+        "postage stamp"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による要確認。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-COLD-FOOD",
+      "markets": [
+        "ALL"
+      ],
+      "action": "REVIEW",
+      "risk": "food_restricted",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "要冷蔵",
+        "冷蔵保存",
+        "腐敗しやすい",
+        "変質しやすい",
+        "perishable",
+        "keep refrigerated"
+      ],
+      "condition": "food_review",
+      "note": "DEC-0167; Ownerの出品方針による要確認",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-SAMPLE",
+      "markets": [
+        "ALL"
+      ],
+      "action": "REVIEW",
+      "risk": "other",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "サンプル",
+        "試供品",
+        "小分け",
+        "非売品サンプル",
+        "量り売り",
+        "sample",
+        "samples"
+      ],
+      "condition": "sample",
+      "note": "DEC-0167; Ownerの出品方針による要確認",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-MASK",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "マスク",
+        "不織布マスク",
+        "立体マスク",
+        "N95",
+        "respirator",
+        "surgical mask",
+        "face mask"
+      ],
+      "condition": "mask",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-PETFOOD",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "ペットフード",
+        "犬用フード",
+        "猫用フード",
+        "pet food",
+        "dog food",
+        "cat food"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-FORMULA",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "food_restricted",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "粉ミルク",
+        "乳児用調製粉乳",
+        "infant formula",
+        "ステージ1粉乳",
+        "ステージ2粉乳",
+        "3歳以下の乳製品"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-INFANT-DAIRY-UNKNOWN",
+      "markets": [
+        "ALL"
+      ],
+      "action": "REVIEW",
+      "risk": "food_restricted",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "乳幼児用乳製品",
+        "幼児用乳製品",
+        "toddler milk"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による要確認",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-ANIMAL",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "other",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "野生動物製品",
+        "動物製品",
+        "象牙",
+        "剥製",
+        "wildlife product",
+        "animal product"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-LOTTERY",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "other",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "宝くじ",
+        "スロットマシン",
+        "lottery ticket",
+        "slot machine"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-FINANCE",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "other",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "株券",
+        "株式",
+        "有価証券",
+        "クレジットカード",
+        "デビットカード",
+        "通貨",
+        "紙幣",
+        "記念硬貨",
+        "currency",
+        "credit card",
+        "debit card",
+        "securities"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-OFFICIAL",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "other",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "政府のバッジ",
+        "警察バッジ",
+        "軍のバッジ",
+        "勲章",
+        "警察制服",
+        "軍服",
+        "政府文書",
+        "身分証明書",
+        "警察の制服",
+        "軍の制服",
+        "police badge",
+        "military uniform",
+        "police uniform"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-MERCURY",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "水銀体温計",
+        "水銀を含む",
+        "mercury thermometer"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-MERCURY-UNKNOWN",
+      "markets": [
+        "ALL"
+      ],
+      "action": "REVIEW",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "水銀",
+        "mercury"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による要確認。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-ALCOHOL-DRINK",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "alcohol",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "アルコール飲料",
+        "alcoholic beverage",
+        "alcoholic beverages",
+        "酒類",
+        "ビール",
+        "ワイン",
+        "日本酒"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-TOBACCO",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "tobacco_or_vape",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "電子タバコ",
+        "電子たばこ",
+        "タバコ用アクセサリー",
+        "電子タバコ用アクセサリー",
+        "tobacco",
+        "vape",
+        "electronic cigarette",
+        "electronic cigarettes",
+        "electric cigarette",
+        "electric cigarettes",
+        "e-cigarette",
+        "e-juice",
+        "vape pod"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-ADULT-TOY",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "other",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "大人のおもちゃ",
+        "アダルトグッズ",
+        "adult toy",
+        "sex toy"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-SLS-PERFUME",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text",
+        "category"
+      ],
+      "terms": [
+        "香水",
+        "オードパルファム",
+        "オードトワレ",
+        "eau de parfum",
+        "eau de toilette",
+        "Perfumes & Fragrances"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; SLS表2026-09-17のNO商品群を検出。AmazonカテゴリによるShopeeカテゴリ自動割当・ALLOW生成は行わない。。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-SLS-NAIL",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text",
+        "category"
+      ],
+      "terms": [
+        "マニキュア",
+        "ネイルポリッシュ",
+        "ネイルケア",
+        "つけ爪",
+        "付け爪",
+        "ネイルシール",
+        "ネイル用具",
+        "ネイルチップ",
+        "ジェルネイル",
+        "除光液",
+        "nail polish",
+        "nail polish remover",
+        "Nail Care",
+        "ネイル"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; SLS表2026-09-17のNO商品群を検出。AmazonカテゴリによるShopeeカテゴリ自動割当・ALLOW生成は行わない。。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-SLS-NAIL-COAT",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text",
+        "category"
+      ],
+      "terms": [
+        "ネイル用ベースコート",
+        "ネイル用トップコート",
+        "nail base coat",
+        "nail top coat"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; SLS表2026-09-17のNO商品群を検出。AmazonカテゴリによるShopeeカテゴリ自動割当・ALLOW生成は行わない。。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-SLS-HAIRCOLOR",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text",
+        "category"
+      ],
+      "terms": [
+        "ヘアカラー",
+        "白髪染め",
+        "白髪かくし",
+        "染毛剤",
+        "カラートリートメント",
+        "カラーシャンプー",
+        "カラーオンリタッチ",
+        "Hair Colour",
+        "Hair Color"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; SLS表2026-09-17のNO商品群を検出。AmazonカテゴリによるShopeeカテゴリ自動割当・ALLOW生成は行わない。。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-SLS-SETTING",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text",
+        "category"
+      ],
+      "terms": [
+        "メイクセッティングスプレー",
+        "メイクのセッティングスプレー",
+        "メイクキープスプレー",
+        "セッティングスプレー",
+        "setting spray"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; SLS表2026-09-17のNO商品群を検出。AmazonカテゴリによるShopeeカテゴリ自動割当・ALLOW生成は行わない。。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-SLS-OIL",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text",
+        "category"
+      ],
+      "terms": [
+        "ベビーオイル",
+        "エッセンシャルオイル",
+        "baby oil",
+        "essential oil",
+        "Essential Oils"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; SLS表2026-09-17のNO商品群を検出。AmazonカテゴリによるShopeeカテゴリ自動割当・ALLOW生成は行わない。。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-SLS-DIFFUSER",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text",
+        "category"
+      ],
+      "terms": [
+        "ディフューザー",
+        "加湿器",
+        "オイルバーナー",
+        "diffuser",
+        "humidifier",
+        "oil burner"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; SLS表2026-09-17のNO商品群を検出。AmazonカテゴリによるShopeeカテゴリ自動割当・ALLOW生成は行わない。。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-SLS-SANITIZER",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text",
+        "category"
+      ],
+      "terms": [
+        "手指消毒剤",
+        "手指消毒",
+        "hand sanitizer",
+        "hand sanitiser"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; SLS表2026-09-17のNO商品群を検出。AmazonカテゴリによるShopeeカテゴリ自動割当・ALLOW生成は行わない。。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-SLS-LAUNDRY",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text",
+        "category"
+      ],
+      "terms": [
+        "洗濯洗剤",
+        "laundry detergent",
+        "Laundry Detergent"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; SLS表2026-09-17のNO商品群を検出。AmazonカテゴリによるShopeeカテゴリ自動割当・ALLOW生成は行わない。。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-SLS-PAINT",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text",
+        "category"
+      ],
+      "terms": [
+        "油絵の具",
+        "油絵具",
+        "oil paint"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; SLS表2026-09-17のNO商品群を検出。AmazonカテゴリによるShopeeカテゴリ自動割当・ALLOW生成は行わない。。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-SLS-CAROIL",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text",
+        "category"
+      ],
+      "terms": [
+        "自動車用オイル",
+        "エンジンオイル",
+        "ブレーキフルード",
+        "クーラント",
+        "モーターオイル",
+        "engine oil",
+        "motor oil",
+        "brake fluid",
+        "coolant"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; SLS表2026-09-17のNO商品群を検出。AmazonカテゴリによるShopeeカテゴリ自動割当・ALLOW生成は行わない。。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-SLS-COIN",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text",
+        "category"
+      ],
+      "terms": [
+        "コイン",
+        "coin",
+        "coins"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; SLS表2026-09-17のNO商品群を検出。AmazonカテゴリによるShopeeカテゴリ自動割当・ALLOW生成は行わない。。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-SLS-PLANT",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "植物",
+        "plants"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; SLS表2026-09-17のNO商品群を検出。AmazonカテゴリによるShopeeカテゴリ自動割当・ALLOW生成は行わない。。SLS輸送確認。 DEC-0168; 商品名・カテゴリに限定し植物由来・植物性・植物エキス・植物オイル・植物アロマを除く。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-SLS-PLANT-OTHER",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text",
+        "category"
+      ],
+      "terms": [
+        "種子",
+        "園芸用土",
+        "培養土",
+        "種まき用",
+        "生きた動物",
+        "生体販売",
+        "seeds",
+        "gardening soil"
+      ],
+      "condition": "always",
+      "note": "DEC-0167 / DEC-0168 / DEC-0170; 種子は商品名・カテゴリのみ、種子油・種子エキス・種子オイルを除外。他の土・生体等の対象欄と停止は維持。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-SLS-FOOD",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "food_restricted",
+      "fields": [
+        "title",
+        "text",
+        "category"
+      ],
+      "terms": [
+        "食用油",
+        "牛乳",
+        "乳製品",
+        "鶏卵",
+        "生卵",
+        "卵",
+        "豆腐",
+        "アイスクリーム",
+        "生鮮食品",
+        "冷凍食品",
+        "加工肉",
+        "シーフード",
+        "海産物",
+        "食肉",
+        "cooking oil",
+        "dairy",
+        "milk",
+        "egg",
+        "eggs",
+        "tofu",
+        "ice cream",
+        "frozen food",
+        "processed meat",
+        "seafood"
+      ],
+      "condition": "food",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "SG-GUM",
+      "markets": [
+        "SG"
+      ],
+      "action": "BLOCK",
+      "risk": "food_restricted",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "チューイングガム",
+        "chewing gum",
+        "bubble gum"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "SG-MEAT",
+      "markets": [
+        "SG"
+      ],
+      "action": "BLOCK",
+      "risk": "food_restricted",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "肉入り",
+        "牛肉入り",
+        "豚肉入り",
+        "鶏肉入り",
+        "ビーフジャーキー",
+        "ポークジャーキー",
+        "サラミ",
+        "ソーセージ",
+        "ベーコン",
+        "コンビーフ",
+        "ハム",
+        "beef jerky",
+        "pork jerky",
+        "salami",
+        "sausage",
+        "bacon",
+        "ham"
+      ],
+      "condition": "food",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "SG-RADIO",
+      "markets": [
+        "SG"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "通信機器",
+        "無線機",
+        "トランシーバー",
+        "walkie talkie",
+        "two-way radio"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "SG-SPECIFIC",
+      "markets": [
+        "SG"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "磁性粘土",
+        "護身用ペン",
+        "護身用バトン",
+        "護身用スティック",
+        "自己防衛用スティック",
+        "self defence baton",
+        "self defense pen",
+        "ダガー",
+        "銃剣",
+        "カランビット",
+        "ナックル",
+        "手裏剣",
+        "カーボン矢",
+        "クロスボウ",
+        "錠前破り",
+        "電動スクーター",
+        "電子スクーター",
+        "ホバーボード",
+        "電動自転車",
+        "hoverboard",
+        "プリペイドSIM",
+        "prepaid SIM card",
+        "動物性脂肪",
+        "モダフィニル",
+        "誤ったラベル",
+        "ラベル誤表示",
+        "used cosmetics",
+        "used makeup",
+        "使用済み化粧品"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "SG-AMULET",
+      "markets": [
+        "SG"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "お守り"
+      ],
+      "condition": "always",
+      "note": "DEC-0168; SGのお守り商品だけを停止。お守りください／お守り下さいを除く。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "SG-KITCHEN-KNIFE",
+      "markets": [
+        "SG"
+      ],
+      "action": "BLOCK",
+      "risk": "weapon",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "包丁",
+        "kitchen knife",
+        "chef knife"
+      ],
+      "condition": "sg_knife",
+      "note": "DEC-0129 / DEC-0167; SGの包丁本体を停止し、付属品の本体・同梱確認を維持する。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "SG-LASER",
+      "markets": [
+        "SG"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "レーザーポインター",
+        "laser pointer"
+      ],
+      "condition": "laser",
+      "note": "DEC-0167; Ownerの出品方針による停止。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "SG-FOOD",
+      "markets": [
+        "SG"
+      ],
+      "action": "BLOCK",
+      "risk": "food_restricted",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "未殺菌乳",
+        "殺菌していない乳製品",
+        "non-pasteurised dairy",
+        "野生キノコ",
+        "wild mushroom"
+      ],
+      "condition": "food",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "SG-NASAL",
+      "markets": [
+        "SG"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text",
+        "category"
+      ],
+      "terms": [
+        "鼻のケア",
+        "鼻腔洗浄",
+        "鼻洗浄",
+        "ベビーオーラルケア",
+        "鼻吸い器",
+        "車用芳香剤",
+        "車用香水",
+        "車載スピーカー",
+        "Nasal Care",
+        "Baby Oral Care",
+        "car air freshener",
+        "car perfume",
+        "car speaker"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "PH-ORAL",
+      "markets": [
+        "PH"
+      ],
+      "action": "BLOCK",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "title",
+        "text",
+        "category"
+      ],
+      "terms": [
+        "歯ブラシ",
+        "ハブラシ",
+        "歯磨き粉",
+        "歯みがき粉",
+        "歯磨剤",
+        "デンタルフロス",
+        "マウスウォッシュ",
+        "矯正用品",
+        "マウスピース",
+        "toothbrush",
+        "toothpaste",
+        "dental floss",
+        "mouthwash",
+        "orthodontic",
+        "Oral Care"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "PH-GAMBLING",
+      "markets": [
+        "PH"
+      ],
+      "action": "BLOCK",
+      "risk": "other",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "トランプ",
+        "サイコロ",
+        "ルーレット",
+        "ポーカーチップ",
+        "カジノチップ",
+        "playing cards",
+        "dice",
+        "roulette",
+        "poker chips"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "PH-NEEDLE",
+      "markets": [
+        "PH"
+      ],
+      "action": "BLOCK",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "ダーマローラー",
+        "マイクロニードル",
+        "タトゥー用針",
+        "眉タトゥー用針",
+        "tattoo needle",
+        "microblading needle",
+        "derma roller",
+        "microneedle"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "PH-OTHER",
+      "markets": [
+        "PH"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "免税品",
+        "ペット用の薬",
+        "動物用医薬品",
+        "pet medicine",
+        "ナンバープレート",
+        "政府のステッカー",
+        "ICCステッカー",
+        "テロをテーマにした玩具",
+        "HIV検査キット",
+        "COVID-19検査キット",
+        "COVID19検査キット",
+        "COVID-19 test kit",
+        "COVID19 test kit",
+        "HIV test kit",
+        "ワクチン",
+        "FDA警告フェイスマスク",
+        "タバコの付属品",
+        "電子タバコの付属品",
+        "免税",
+        "duty free"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "PH-CERTIFICATION",
+      "markets": [
+        "PH"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "PSマーク",
+        "ICCマーク",
+        "PS認証",
+        "ICC認証"
+      ],
+      "condition": "certification",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "PH-USED",
+      "markets": [
+        "PH"
+      ],
+      "action": "BLOCK",
+      "risk": "other",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "ベビー用品",
+        "下着",
+        "化粧品",
+        "コンタクトレンズ",
+        "baby product",
+        "underwear",
+        "cosmetics",
+        "contact lens"
+      ],
+      "condition": "used",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "PH-SLS",
+      "markets": [
+        "PH"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "潤滑剤",
+        "性機能向上",
+        "肥料",
+        "投資用貴金属",
+        "投資用プラチナ",
+        "投資用金",
+        "投資用銀",
+        "投資用ダイヤ",
+        "投資用翡翠",
+        "lubricant",
+        "performance enhancement",
+        "fertilizer",
+        "investment precious metal",
+        "exhaust",
+        "触媒コンバーター",
+        "排気管",
+        "CNGガスキット"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "TH-TW-FOOD",
+      "markets": [
+        "TH",
+        "TW"
+      ],
+      "action": "BLOCK",
+      "risk": "food_restricted",
+      "fields": [
+        "title",
+        "text",
+        "category"
+      ],
+      "terms": [
+        "食品",
+        "食品・飲料",
+        "food",
+        "food & beverages",
+        "grocery",
+        "スナック",
+        "飲料"
+      ],
+      "condition": "food",
+      "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-MEDICAL-DISPLAY",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "COVID-19 test kit",
+        "COVID19 test kit",
+        "HIV test kit",
+        "OTC",
+        "OTC drug",
+        "OTC drugs",
+        "OTC medicine",
+        "condom",
+        "condoms",
+        "diagnostic test kit",
+        "hair growth",
+        "hair loss",
+        "hypodermic needle",
+        "medical device",
+        "medical devices",
+        "medicated",
+        "prescription drug",
+        "prescription drugs",
+        "prescription medicine",
+        "quasi drug",
+        "quasi drugs",
+        "quasi-drug",
+        "quasi-drugs",
+        "コンドーム",
+        "一般用医薬品",
+        "体温計",
+        "処方薬",
+        "医療機器",
+        "医療用医薬品",
+        "医療用針",
+        "医薬部外品",
+        "市販薬",
+        "指定医薬部外品",
+        "指定第2類医薬品",
+        "有効成分",
+        "注射針",
+        "発毛促進",
+        "第1類医薬品",
+        "第2類医薬品",
+        "第3類医薬品",
+        "育毛",
+        "薬用"
+      ],
+      "condition": "medical",
+      "note": "DEC-0159 / DEC-0164 / DEC-0167; 医薬品・医療機器・医薬部外品の肯定表示によるOwnerの出品除外。直接の否定文を区別する。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-CONTACT-LENSES",
+      "markets": [
+        "SG",
+        "PH"
+      ],
+      "action": "BLOCK",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "contact lenses",
+        "コンタクトレンズ"
+      ],
+      "condition": "medical",
+      "note": "DEC-0159 / DEC-0164 / DEC-0170; 医療機器表示停止を維持。注意書きで外す・着用者への明確な指示だけを除外。",
+      "source": "shopee_policy"
+    },
+    {
+      "id": "COMMON-CONTACT-LENSES-OTHER-MARKETS",
+      "markets": [
+        "MY",
+        "TH",
+        "TW"
+      ],
+      "action": "BLOCK",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "contact lenses",
+        "コンタクトレンズ"
+      ],
+      "condition": "medical",
+      "note": "DEC-0159; 全市場の医療機器を出品除外とするOwner方針。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "CONTACT-LENS-SINGULAR",
+      "markets": [
+        "SG"
+      ],
+      "action": "BLOCK",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "contact lens"
+      ],
+      "condition": "medical",
+      "note": "DEC-0159 / DEC-0164; 既存の医療機器表示停止と出典を維持。",
+      "source": "shopee_policy"
+    },
+    {
+      "id": "CONTACT-LENS-SINGULAR-OTHER-MARKETS",
+      "markets": [
+        "MY",
+        "TH",
+        "TW"
+      ],
+      "action": "BLOCK",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "contact lens"
+      ],
+      "condition": "medical",
+      "note": "DEC-0159; 全市場の医療機器を出品除外とするOwner方針。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "PH-CONTACT-LENS-SINGULAR",
+      "markets": [
+        "PH"
+      ],
+      "action": "BLOCK",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "contact lens"
+      ],
+      "condition": "ph_contact_lens",
+      "note": "DEC-0159; PHのレンズ本体を停止し、空ケースだけを本体とみなさない。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "PH-OTHER-COLOR-CONTACT",
+      "markets": [
+        "PH",
+        "MY",
+        "TH",
+        "TW"
+      ],
+      "action": "BLOCK",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "カラコン",
+        "カラーコンタクト"
+      ],
+      "condition": "medical",
+      "note": "DEC-0159; 既存PHのカラーコンタクト停止を維持。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-QUASI-FACT",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "ingredients"
+      ],
+      "terms": [
+        "医薬部外品",
+        "指定医薬部外品",
+        "薬用",
+        "有効成分",
+        "quasi-drug",
+        "quasi-drugs",
+        "quasi drug",
+        "quasi drugs",
+        "medicated"
+      ],
+      "condition": "medical",
+      "note": "DEC-0159 / DEC-0164 / DEC-0167; 医薬品・医療機器・医薬部外品の肯定表示によるOwnerの出品除外。直接の否定文を区別する。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-PENALTY-ASIN",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "own_penalty_product",
+      "fields": [
+        "asin"
+      ],
+      "terms": [
+        "B000FQTRS0"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Own Shopee penalty and delist case for Kaminomoto S-II / S-2",
+      "source": "own_penalty_case"
+    },
+    {
+      "id": "COMMON-PENALTY-TITLE",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "own_penalty_product",
+      "fields": [
+        "title"
+      ],
+      "terms": [
+        "薬用加美乃素S-II",
+        "薬用加美乃素S-2",
+        "加美乃素S-II",
+        "加美乃素S-2",
+        "Kaminomoto S-II",
+        "Kaminomoto S-2"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Own Shopee penalty and delist case for Kaminomoto S-II / S-2",
+      "source": "own_penalty_case"
+    },
+    {
+      "id": "SLS-CATEGORY-EVIDENCE-ALL-BLOCK",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "category"
+      ],
+      "terms": [
+        "Automobiles > Automobile Spare Parts > Electronics > Batteries & Accessories",
+        "Automobiles > Automobiles",
+        "Automobiles > Automotive Oils & Lubes > Antifreezes & Coolants",
+        "Automobiles > Automotive Oils & Lubes > Automotive Fluids > Brake Fluids",
+        "Automobiles > Automotive Oils & Lubes > Automotive Fluids > Others",
+        "Automobiles > Automotive Oils & Lubes > Automotive Fluids > Transmissions Fluids",
+        "Automobiles > Automotive Oils & Lubes > Fuel Additives & Savers",
+        "Automobiles > Automotive Oils & Lubes > Greases & Lubricants",
+        "Automobiles > Automotive Oils & Lubes > Oils",
+        "Automobiles > Automotive Oils & Lubes > Others",
+        "Beauty > Hair Care > Hair Colour",
+        "Beauty > Hand, Foot & Nail Care > Nail Care > Artificial Nail",
+        "Beauty > Hand, Foot & Nail Care > Nail Care > Base & Top Coat",
+        "Beauty > Hand, Foot & Nail Care > Nail Care > Manicure Tools & Devices",
+        "Beauty > Hand, Foot & Nail Care > Nail Care > Nail Art & Sticker",
+        "Beauty > Hand, Foot & Nail Care > Nail Care > Nail Polish",
+        "Beauty > Hand, Foot & Nail Care > Nail Care > Nail Polish Remover",
+        "Beauty > Hand, Foot & Nail Care > Nail Care > Nail Treatment",
+        "Beauty > Hand, Foot & Nail Care > Nail Care > Others",
+        "Beauty > Makeup > Face > Setting & Finishing Spray",
+        "Beauty > Perfumes & Fragrances",
+        "Cameras & Drones > Camera Accessories > Batteries & Battery Grips",
+        "Computers & Accessories > Peripherals & Accessories > Laptop Batteries",
+        "Food & Beverages > Alcoholic Beverages > Beer & Cider",
+        "Food & Beverages > Alcoholic Beverages > Liquor & Spirits",
+        "Food & Beverages > Alcoholic Beverages > Others",
+        "Food & Beverages > Alcoholic Beverages > Sake, Soju & Umeshu",
+        "Food & Beverages > Alcoholic Beverages > Wine & Champagne",
+        "Food & Beverages > Beverages > Non-dairy Milk",
+        "Food & Beverages > Cooking Essentials > Oil",
+        "Food & Beverages > Dairy & Eggs > Beancurd",
+        "Food & Beverages > Dairy & Eggs > Butter & Margarine",
+        "Food & Beverages > Dairy & Eggs > Cheese & Cheese Powder",
+        "Food & Beverages > Dairy & Eggs > Eggs",
+        "Food & Beverages > Dairy & Eggs > Ice cream",
+        "Food & Beverages > Dairy & Eggs > Milk > Condensed & Evaporated Milk",
+        "Food & Beverages > Dairy & Eggs > Milk > Fresh Milk",
+        "Food & Beverages > Dairy & Eggs > Milk > Others",
+        "Food & Beverages > Dairy & Eggs > Milk > Powdered Milk",
+        "Food & Beverages > Dairy & Eggs > Milk > UHT Milk",
+        "Food & Beverages > Dairy & Eggs > Yogurt & Cultured Milk",
+        "Food & Beverages > Fresh & Frozen Food > Frozen Processed Food",
+        "Food & Beverages > Fresh & Frozen Food > Fruits",
+        "Food & Beverages > Fresh & Frozen Food > Meat > Beef",
+        "Food & Beverages > Fresh & Frozen Food > Meat > Lamb",
+        "Food & Beverages > Fresh & Frozen Food > Meat > Others",
+        "Food & Beverages > Fresh & Frozen Food > Meat > Pork",
+        "Food & Beverages > Fresh & Frozen Food > Meat > Poultry",
+        "Food & Beverages > Fresh & Frozen Food > Mushroom",
+        "Food & Beverages > Fresh & Frozen Food > Others",
+        "Food & Beverages > Fresh & Frozen Food > Processed Meat & Seafood",
+        "Food & Beverages > Fresh & Frozen Food > Seafood > Crab",
+        "Food & Beverages > Fresh & Frozen Food > Seafood > Fish",
+        "Food & Beverages > Fresh & Frozen Food > Seafood > Others",
+        "Food & Beverages > Fresh & Frozen Food > Seafood > Prawn",
+        "Food & Beverages > Fresh & Frozen Food > Vegetables",
+        "Food & Beverages > Fresh & Frozen Food > Vegetarian Meat",
+        "Food Delivery > American & Mexican Food",
+        "Food Delivery > Bentos",
+        "Food Delivery > Breakfast & Brunch",
+        "Food Delivery > Chinese Food",
+        "Food Delivery > Coffee & Tea",
+        "Food Delivery > Dessert & Bakery",
+        "Food Delivery > Healthy Meals",
+        "Food Delivery > Hong Kong Food",
+        "Food Delivery > Hot Pot & BBQ",
+        "Food Delivery > Italian & French Food",
+        "Food Delivery > Japanese Food",
+        "Food Delivery > Korean Food",
+        "Food Delivery > Malaysian & Singapean Food",
+        "Food Delivery > Other Western Food",
+        "Food Delivery > Others",
+        "Food Delivery > Pizzas & Fast Food",
+        "Food Delivery > Smoothies & Beverages",
+        "Food Delivery > Taiwanese Snacks",
+        "Food Delivery > Thai & Vietnamese Food",
+        "Food Delivery > Vegan",
+        "Health > Personal Care > Hand Sanitizers",
+        "Health > Sexual Wellness > Sex Toys",
+        "Hobbies & Collections > Collectible Items > Coins",
+        "Home & Living > Gardening > Garden Soils & Growing Media",
+        "Home & Living > Gardening > Plants",
+        "Home & Living > Gardening > Seeds & Bulbs",
+        "Home & Living > Home Care Supplies > Laundry Care > Detergents",
+        "Home & Living > Home Fragrance & Aromatherapy > Diffusers, Humidifiers & Oil Burners",
+        "Home & Living > Home Fragrance & Aromatherapy > Essential Oils",
+        "Home & Living > Kitchenware > Lighters, Matches & Fire Starters",
+        "Home Appliances > Batteries",
+        "Home Appliances > E-Cigarettes > Kits",
+        "Home Appliances > E-Cigarettes > Liquids",
+        "Home Appliances > E-Cigarettes > Others",
+        "Home Appliances > E-Cigarettes > Pods & Mods",
+        "Home Appliances > E-Cigarettes > Tanks & Atomizers",
+        "Mobile & Gadgets > Accessories > Powerbanks & Batteries > Batteries",
+        "Mobile & Gadgets > Accessories > Powerbanks & Batteries > Others",
+        "Mobile & Gadgets > Accessories > Powerbanks & Batteries > Powerbanks",
+        "Mobile & Gadgets > Accessories > Powerbanks & Batteries > Powercases",
+        "Mom & Baby > Baby Healthcare > Baby Skincare > Oils",
+        "Mom & Baby > Maternity Healthcare > Maternity Milk",
+        "Mom & Baby > Toys > Sports & Outdoor Play > Blasters & Toy Guns",
+        "Motorcycles > Motorcycle Spare Parts > Batteries & Accessories",
+        "Motorcycles > Motorcycles",
+        "Sports & Outdoors > Sports & Outdoor Recreation Equipments > Shooting & Survival Games",
+        "Stationery > Art Supplies > Oil Paint",
+        "Tickets, Vouchers & Services > Beauty & Wellness > Dental",
+        "Tickets, Vouchers & Services > Beauty & Wellness > Fitness",
+        "Tickets, Vouchers & Services > Beauty & Wellness > Hair",
+        "Tickets, Vouchers & Services > Beauty & Wellness > Health",
+        "Tickets, Vouchers & Services > Beauty & Wellness > Others",
+        "Tickets, Vouchers & Services > Beauty & Wellness > Spa & Massage",
+        "Tickets, Vouchers & Services > E-Money",
+        "Tickets, Vouchers & Services > Events & Attractions > Concerts & Exhibitions",
+        "Tickets, Vouchers & Services > Events & Attractions > Events, Fairs & Conferences",
+        "Tickets, Vouchers & Services > Events & Attractions > Movies",
+        "Tickets, Vouchers & Services > Events & Attractions > Others",
+        "Tickets, Vouchers & Services > Events & Attractions > Theme Parks & Attractions",
+        "Tickets, Vouchers & Services > F&B > Dine-in & Takeaway",
+        "Tickets, Vouchers & Services > F&B > Food Delivery",
+        "Tickets, Vouchers & Services > F&B > Others",
+        "Tickets, Vouchers & Services > Gaming & App Stores",
+        "Tickets, Vouchers & Services > Lessons & Workshops",
+        "Tickets, Vouchers & Services > Others",
+        "Tickets, Vouchers & Services > Real Estate",
+        "Tickets, Vouchers & Services > Services > Air-Conditioning Servicing",
+        "Tickets, Vouchers & Services > Services > Delivery & Moving",
+        "Tickets, Vouchers & Services > Services > Design",
+        "Tickets, Vouchers & Services > Services > Housekeeping",
+        "Tickets, Vouchers & Services > Services > Insurance",
+        "Tickets, Vouchers & Services > Services > Others",
+        "Tickets, Vouchers & Services > Services > Photography & Printing",
+        "Tickets, Vouchers & Services > Shopee > Others",
+        "Tickets, Vouchers & Services > Shopee > Shopee Official",
+        "Tickets, Vouchers & Services > Shopee > Shopee Paid Ads Credits",
+        "Tickets, Vouchers & Services > Shopping > Malls & Department Stores",
+        "Tickets, Vouchers & Services > Shopping > Others",
+        "Tickets, Vouchers & Services > Shopping > Supermarkets",
+        "Tickets, Vouchers & Services > Streaming",
+        "Tickets, Vouchers & Services > Telco > Internet & Cable TV",
+        "Tickets, Vouchers & Services > Telco > Mobile Data",
+        "Tickets, Vouchers & Services > Telco > Mobile Top-ups & Pre-paid",
+        "Tickets, Vouchers & Services > Telco > Others",
+        "Tickets, Vouchers & Services > Transport",
+        "Tickets, Vouchers & Services > Travel > Accommodation",
+        "Tickets, Vouchers & Services > Travel > Buses",
+        "Tickets, Vouchers & Services > Travel > Car Rentals",
+        "Tickets, Vouchers & Services > Travel > Flights",
+        "Tickets, Vouchers & Services > Travel > Hot Springs",
+        "Tickets, Vouchers & Services > Travel > Others",
+        "Tickets, Vouchers & Services > Travel > Tour & Packages",
+        "Tickets, Vouchers & Services > Travel > Trains",
+        "Tickets, Vouchers & Services > Utilities",
+        "Watches > Watches Accessories > Batteries"
+      ],
+      "condition": "always",
+      "source": "shopee_policy",
+      "note": "DEC-0167; source-lock master SHA-256 35f7bab5da9c5dd3d9b62456035916a9fce62a153d6bcfcaa82c221dc117dbc9; 具体的な商品分類の完全パス一致のみ。ShopeeカテゴリID割当・SLS ALLOWを生成しない。。SLS輸送確認。"
+    },
+    {
+      "id": "SLS-CATEGORY-EVIDENCE-ALL-REVIEW",
+      "markets": [
+        "ALL"
+      ],
+      "action": "REVIEW",
+      "risk": "shipping_restricted",
+      "fields": [
+        "category"
+      ],
+      "terms": [
+        "Health > Others",
+        "Health > Personal Care > Others"
+      ],
+      "condition": "always",
+      "source": "shopee_policy",
+      "note": "DEC-0167; source-lock master SHA-256 35f7bab5da9c5dd3d9b62456035916a9fce62a153d6bcfcaa82c221dc117dbc9; 具体的な商品分類の完全パス一致のみ。ShopeeカテゴリID割当・SLS ALLOWを生成しない。。SLS輸送確認。"
+    },
+    {
+      "id": "SLS-CATEGORY-EVIDENCE-SG-BLOCK",
+      "markets": [
+        "SG"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "category"
+      ],
+      "terms": [
+        "Automobiles > Automobile Interior Accessories > Amplifiers, Speakers & Subwoofers",
+        "Automobiles > Automobile Interior Accessories > Perfumes, Air Fresheners & Purifiers",
+        "Food & Beverages > Dairy & Eggs > Others",
+        "Health > Medical Supplies > Nasal Care",
+        "Health > Medical Supplies > Over-the-counter Medicine",
+        "Mom & Baby > Baby Healthcare > Baby Oral Care",
+        "Mom & Baby > Baby Healthcare > Nasal Care",
+        "Spare Parts and Accessories for Vehicles > Spare Parts for Automobiles > Additive and Lubricant",
+        "Spare Parts and Accessories for Vehicles > Spare Parts for Automobiles > Additive and Lubricant > Additive",
+        "Spare Parts and Accessories for Vehicles > Spare Parts for Automobiles > Additive and Lubricant > Lubricant",
+        "Spare Parts and Accessories for Vehicles > Spare Parts for Automobiles > Additive and Lubricant > Others",
+        "Spare Parts and Accessories for Vehicles > Spare Parts for Motorcycles > Additive and Lubricant",
+        "Spare Parts and Accessories for Vehicles > Spare Parts for Motorcycles > Additive and Lubricant > Engine Oil",
+        "Spare Parts and Accessories for Vehicles > Vehicular Tools > Battery Tools",
+        "Spare Parts and Accessories for Vehicles > Vehicular Tools > Battery Tools > Battery Chargers",
+        "Spare Parts and Accessories for Vehicles > Vehicular Tools > Battery Tools > Battery Testers",
+        "Spare Parts and Accessories for Vehicles > Vehicular Tools > Battery Tools > Others"
+      ],
+      "condition": "always",
+      "source": "shopee_policy",
+      "note": "DEC-0167; source-lock master SHA-256 35f7bab5da9c5dd3d9b62456035916a9fce62a153d6bcfcaa82c221dc117dbc9; 具体的な商品分類の完全パス一致のみ。ShopeeカテゴリID割当・SLS ALLOWを生成しない。。SLS輸送確認。"
+    },
+    {
+      "id": "SLS-CATEGORY-EVIDENCE-PH-BLOCK",
+      "markets": [
+        "PH"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "category"
+      ],
+      "terms": [
+        "Fashion Accessories > Investment Precious Metals > Diamond",
+        "Fashion Accessories > Investment Precious Metals > Jade",
+        "Fashion Accessories > Investment Precious Metals > Others",
+        "Fashion Accessories > Investment Precious Metals > Platinum & K Gold",
+        "Fashion Accessories > Investment Precious Metals > Silver",
+        "Health > Sexual Wellness > Condoms",
+        "Health > Sexual Wellness > Lubricants",
+        "Health > Sexual Wellness > Performance Enhancement",
+        "Home & Living > Gardening > Fertilizer",
+        "Home Appliances > Large Household Appliances > Cooling > Air Coolers & Portable Aircons",
+        "Home Appliances > Large Household Appliances > Cooling > Air-Conditioners",
+        "Spare Parts and Accessories for Vehicles > Spare Parts for Automobiles > CNG",
+        "Spare Parts and Accessories for Vehicles > Spare Parts for Automobiles > CNG > Gas Kit",
+        "Spare Parts and Accessories for Vehicles > Spare Parts for Automobiles > CNG > Others",
+        "Spare Parts and Accessories for Vehicles > Spare Parts for Automobiles > CNG > Spare Parts",
+        "Spare Parts and Accessories for Vehicles > Spare Parts for Automobiles > Exhaust",
+        "Spare Parts and Accessories for Vehicles > Spare Parts for Automobiles > Exhaust > Catalytic Converter",
+        "Spare Parts and Accessories for Vehicles > Spare Parts for Automobiles > Exhaust > Exhaust Tip",
+        "Spare Parts and Accessories for Vehicles > Spare Parts for Automobiles > Exhaust > Others"
+      ],
+      "condition": "always",
+      "source": "shopee_policy",
+      "note": "DEC-0167; source-lock master SHA-256 35f7bab5da9c5dd3d9b62456035916a9fce62a153d6bcfcaa82c221dc117dbc9; 具体的な商品分類の完全パス一致のみ。ShopeeカテゴリID割当・SLS ALLOWを生成しない。。SLS輸送確認。"
+    },
+    {
+      "id": "SLS-CATEGORY-EVIDENCE-PH-REVIEW",
+      "markets": [
+        "PH"
+      ],
+      "action": "REVIEW",
+      "risk": "shipping_restricted",
+      "fields": [
+        "category"
+      ],
+      "terms": [
+        "Health > Sexual Wellness > Others"
+      ],
+      "condition": "always",
+      "source": "shopee_policy",
+      "note": "DEC-0167; source-lock master SHA-256 35f7bab5da9c5dd3d9b62456035916a9fce62a153d6bcfcaa82c221dc117dbc9; 具体的な商品分類の完全パス一致のみ。ShopeeカテゴリID割当・SLS ALLOWを生成しない。。SLS輸送確認。"
+    },
+    {
+      "id": "COMMON-POWERCORE-SIGNAL",
+      "markets": [
+        "ALL"
+      ],
+      "action": "REVIEW",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text",
+        "brand",
+        "category"
+      ],
+      "terms": [
+        "PowerCore"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; 既存SG PowerCoreの電池疑義を維持し共通化。。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "PH-KITCHEN-KNIFE",
+      "markets": [
+        "PH"
+      ],
+      "action": "BLOCK",
+      "risk": "weapon",
+      "fields": [
+        "title"
+      ],
+      "terms": [
+        "kitchen knife",
+        "chef knife",
+        "包丁"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; 既存PH-D070～PH-D072の包丁停止を維持。",
+      "source": "internal_rule"
+    }
+  ]
+}

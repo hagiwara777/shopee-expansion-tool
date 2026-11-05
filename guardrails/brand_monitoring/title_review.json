@@ -1,0 +1,13 @@
+{
+  "schema": "SORA_TITLE_BRAND_REVIEW_V1",
+  "company_names": ["Kao", "花王"],
+  "ambiguous_names": [
+    "Airborne", "Apple", "Assure", "Beats", "Benefit", "Blood", "Camel",
+    "Century", "Coach", "Converse", "Deli", "Dove", "Downy", "Dukes",
+    "Dynamo", "Ensure", "Finish", "Fossil", "Fusion", "Greenfield", "Guardian",
+    "HONOR", "HOURGLASS", "icon", "Joy", "Lifeline", "Nard", "NOW",
+    "Offspring", "OMEGA", "ORGANIC", "Pigeon", "Porter", "Powerbank", "Quaker",
+    "Safeguard", "Simple", "Supreme", "Tide", "Vanish", "Vans", "Venus",
+    "Whisper", "Zenith", "ブラウン"
+  ]
+}

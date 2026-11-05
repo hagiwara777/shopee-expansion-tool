@@ -258,7 +258,7 @@ def test_sg_rule_does_not_leak_into_ph_guardrails():
     # now independently stops an electric item whose power source is unknown.
     assert ph_result.rows[0].guardrail_status == "REVIEW"
     assert ph_result.rows[0].guardrail_risk_category == "shipping_restricted"
-    assert sg_ph_only_result.rows[0].guardrail_status == "SAFE"
+    assert sg_ph_only_result.rows[0].guardrail_status == "BLOCK"  # DEC-0167 shared medical policy.
     assert ph_only_result.rows[0].guardrail_status == "BLOCK"
 
 
@@ -665,7 +665,7 @@ def test_malformed_sls_shared_battery_asset_stops_entire_gate(tmp_path, monkeypa
     dictionary_dir = tmp_path / "guardrails"
     dictionary_dir.mkdir()
 
-    for file_name in ("prohibited_brands_sg.csv", "risk_keywords_sg.csv"):
+    for file_name in ("prohibited_brands_sg.csv", "risk_keywords_sg.csv", "deterministic_block_rules_v2.csv"):
         (dictionary_dir / file_name).write_bytes((source_dir / file_name).read_bytes())
 
     community_dir = dictionary_dir / "community_ng"
@@ -759,8 +759,10 @@ def test_phase1_v2_title_only_and_non_exact_brand_do_not_exclude_at_gate():
         marketplace="PH",
     )
 
-    assert [row.guardrail_status for row in result.rows] == ["SAFE", "SAFE"]
-    assert [row.final_eligibility for row in result.rows] == ["ELIGIBLE", "ELIGIBLE"]
+    # DEC-0170 title IP is review evidence; it is not a V2 exact-brand block.
+    assert [row.guardrail_status for row in result.rows] == ["REVIEW", "SAFE"]
+    assert [row.final_eligibility for row in result.rows] == ["REVIEW", "ELIGIBLE"]
+    assert "TITLE-BRAND-REVIEW" in result.rows[0].guardrail_note
     assert all("GUARDRAIL_BLOCK" not in row.reason_codes for row in result.rows)
 
 

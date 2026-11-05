@@ -8,7 +8,9 @@ import re
 from typing import Any, Iterable
 import unicodedata
 
+from modules.safety_policy import SafetyPolicyError, load_policy_rules, evaluate_policy, mask_harmless_phrases
 from modules.battery_presence import assess_battery_presence
+from modules.match_context import excerpt_at
 from modules.brand_monitoring import BrandMonitoringError, load_brand_monitoring
 from modules.home_appliances_classifier import (
     A as HOME_APPLIANCE_A,
@@ -84,14 +86,6 @@ MARKETPLACE_DICTIONARY_FILES = {
 }
 SLS_SHARED_BATTERY_RULESET_FILE = Path("sls_shared") / "battery_review_rules.csv"
 SLS_SHARED_RUNTIME_MARKETPLACES = frozenset({"PH", "SG"})
-# DEC-0164: only the transport groups approved from the saved 200-product audit.
-# A pump labelled just "スプレー" and unvalidated perfume/nail terms are absent.
-SLS_TRANSPORT_REVIEW_TERMS = (
-    "スプレー缶", "エアゾール", "LPG", "DME", "高圧ガス", "窒素ガス", "火気と高温に注意",
-    "ドライシャンプー", "ヘアスプレー", "白髪染め", "染毛剤", "カラートリートメント",
-    "ヘアスタイリング", "スタイリング仕上げ", "ヘアセット剤", "仕上げ剤", "まとめ髪スタイリング",
-    "電動本体", "電動ハンドル", "電動カミソリ",
-)
 QUASI_DRUG_TERMS = frozenset({
     "医薬部外品", "薬用", "有効成分", "quasi-drug", "quasi-drugs",
     "quasi drug", "quasi drugs", "medicated",
@@ -208,11 +202,11 @@ def apply_guardrails(
         dictionary_dir,
         marketplace=normalized_marketplace,
     )
-    v2_rules = (
-        load_deterministic_block_rules_v2(dictionary_dir)
-        if normalized_marketplace == "PH"
-        else []
-    )
+    v2_rules = load_deterministic_block_rules_v2(dictionary_dir)
+    try:
+        policy_rules = load_policy_rules()
+    except SafetyPolicyError as exc:
+        raise GuardrailDictionaryError(str(exc)) from exc
     base_dir = Path(dictionary_dir) if dictionary_dir is not None else _default_dictionary_dir()
     try:
         community_assets = load_community_ng_assets(base_dir / "community_ng")
@@ -227,19 +221,38 @@ def apply_guardrails(
 
     for row in rows:
         matches = _find_matches(row, dictionaries)
-        for brand in monitoring.matches(str(row.get("brand") or "")):
+        primary_brand_hits = monitoring.matches(str(row.get("brand") or ""))
+        for brand in primary_brand_hits:
             matches.append(GuardrailMatch(GuardrailRule(
                 term=brand.term, normalized_term=normalize_text(brand.term), action="BLOCK",
                 risk_category="brand_ip", match_field="brand", match_type="exact",
-                source_type="shopee_brand_list",
-                note=f"公式監視ブランド（{brand.scope}）。親会社から子ブランドへの推定は行わない。",
+                source_type="internal_rule" if brand.scope == "COMPANY" else "shopee_brand_list",
+                note=("DEC-0167; 自社共通禁止ブランド。" if brand.scope == "COMPANY" else f"公式監視ブランド（{brand.scope}）。") + "親会社から子ブランドへの推定は行わない。",
                 file_name=f"brand_monitoring/{brand.file_name}", row_number=0,
                 dictionary_type="brand"), fact_field="brand"))
+        for mention in monitoring.title_matches(str(row.get("product_title") or "")):
+            brand = mention.brand
+            if brand in primary_brand_hits:
+                continue
+            matches.append(GuardrailMatch(GuardrailRule(
+                term=brand.term, normalized_term=normalize_text(brand.term), action="REVIEW",
+                risk_category="brand_ip", match_field="title", match_type="contains",
+                source_type="shopee_brand_list",
+                note=f"TITLE-BRAND-REVIEW; 公式監視ブランド（{brand.scope}）の商品名表示。ブランド欄との不一致・IP利用を要確認。"
+                     f"照合表記: {mention.name}; 該当箇所[product_title]: 「{mention.context}」",
+                file_name=f"brand_monitoring/{brand.file_name}", row_number=0,
+                dictionary_type="brand"), fact_field="product_title"))
         matches.extend(_find_medical_fact_matches(
             row, dictionaries.keyword_rules, marketplace=normalized_marketplace,
         ))
         matches.extend(_find_sls_shared_battery_matches(row, sls_shared_battery_rules))
-        matches.extend(_find_sls_transport_matches(row))
+        try:
+            for hit in evaluate_policy(row, normalized_marketplace, policy_rules):
+                matches.append(GuardrailMatch(GuardrailRule(
+                    hit.term, normalize_text(hit.term), hit.action, hit.risk, "all", "contains",
+                    hit.source, f"{hit.rule_id}; {hit.note}", "policy/rules.json", 0, "policy"), hit.field))
+        except SafetyPolicyError as exc:
+            raise GuardrailDictionaryError(str(exc)) from exc
         matches.extend(_find_home_appliance_matches(row))
         v1_row = _apply_matches_to_row(row, matches)
         v2_matches = evaluate_deterministic_blocks_v2(
@@ -247,7 +260,7 @@ def apply_guardrails(
             v2_rules,
             marketplace=normalized_marketplace,
         )
-        v2_row = _apply_v2_matches_to_row(v1_row, v2_matches)
+        v2_row = _apply_v2_matches_to_row(v1_row, v2_matches, row=row)
         community_matches = _find_community_ng_matches(
             row,
             community_assets.asin_blocks,
@@ -481,11 +494,10 @@ def evaluate_deterministic_blocks_v2(
     marketplace: str,
 ) -> list[DeterministicBlockMatchV2]:
     """Evaluate already-validated deterministic BLOCK rules without I/O."""
-    normalized_marketplace = _normalize_marketplace(marketplace)
-    if normalized_marketplace != "PH":
-        return []
-
-    applicable_scopes = {"COMMON_BLOCK", "PH_BLOCK"}
+    normalized_marketplace = str(marketplace).strip().upper()
+    if re.fullmatch(r"[A-Z]{2}", normalized_marketplace) is None:
+        raise GuardrailDictionaryError("V2 marketplaceの形式が不正です。")
+    applicable_scopes = {"COMMON_BLOCK", f"{normalized_marketplace}_BLOCK"}
     matches: list[DeterministicBlockMatchV2] = []
     for rule in rules:
         if rule.scope not in applicable_scopes:
@@ -924,26 +936,6 @@ def _find_medical_fact_matches(
     return matches
 
 
-def _find_sls_transport_matches(row: dict[str, Any]) -> list[GuardrailMatch]:
-    values = _product_text_values(row) + [
-        (field, value) for field, value in _ingredient_safety_values(row)
-        if field != "product_title"
-    ]
-    matches: list[GuardrailMatch] = []
-    for term in SLS_TRANSPORT_REVIEW_TERMS:
-        normalized_term = normalize_text(term)
-        for field, value in values:
-            if _contains_term(normalize_text(value), normalized_term):
-                matches.append(GuardrailMatch(GuardrailRule(
-                    term=term, normalized_term=normalized_term, action="REVIEW",
-                    risk_category="shipping_restricted", match_field="all",
-                    match_type="contains", source_type="internal_rule",
-                    note="DEC-0164; SLS輸送確認：商品資料の輸送リスク語。正式なSLS適合の保証ではありません。",
-                    file_name="guardrails.py", row_number=0, dictionary_type="sls_shared",
-                ), fact_field=field))
-    return matches
-
-
 HOME_APPLIANCE_BODY_PATTERN = (
     HOME_APPLIANCE_BODY
     + r"|電気(?:フライパン|鍋|グリル|調理器)|ホットプレート"
@@ -1073,8 +1065,9 @@ def _rule_matches(rule: GuardrailRule, target_values: dict[str, str]) -> bool:
 
 def _contains_rule_term(target: str, rule: GuardrailRule) -> bool:
     term = rule.normalized_term
+    target = mask_harmless_phrases(target)
     contextual = rule.risk_category == "medical_or_therapeutic"
-    if not contextual or term not in NEGATION_AWARE_MEDICAL_TERMS | {"しっしん"}:
+    if not contextual or (term not in NEGATION_AWARE_MEDICAL_TERMS | {"しっしん", "medicine", "処方箋", "prescription"} and rule.dictionary_type != "policy"):
         return _contains_term(target, term)
     pattern = re.escape(term)
     if re.fullmatch(r"[a-z0-9 -]+", term):
@@ -1210,7 +1203,7 @@ def _apply_matches_to_row(
             "guardrail_risk_category": _join_unique(match.rule.risk_category for match in matches),
             "guardrail_matched_terms": _join_unique(match.rule.term for match in matches),
             "guardrail_source": _join_unique(match.rule.source_type for match in matches),
-            "guardrail_note": _join_unique(_match_note(match) for match in matches),
+            "guardrail_note": _join_unique(_match_note(match, row) for match in matches),
         }
     )
     return guarded_row
@@ -1219,6 +1212,8 @@ def _apply_matches_to_row(
 def _apply_v2_matches_to_row(
     v1_row: dict[str, str],
     matches: list[DeterministicBlockMatchV2],
+    *,
+    row: dict[str, Any] | None = None,
 ) -> dict[str, str]:
     if not matches:
         return v1_row
@@ -1229,7 +1224,7 @@ def _apply_v2_matches_to_row(
         risk_values: Iterable[str] = (match.rule.risk_category for match in matches)
         term_values: Iterable[str] = (match.rule.canonical_term for match in matches)
         source_values: Iterable[str] = (match.rule.source_type for match in matches)
-        note_values: Iterable[str] = (_v2_match_note(match) for match in matches)
+        note_values: Iterable[str] = (_v2_match_note(match, row) for match in matches)
     else:
         risk_values = (
             guarded_row.get("guardrail_risk_category", ""),
@@ -1245,7 +1240,7 @@ def _apply_v2_matches_to_row(
         )
         note_values = (
             guarded_row.get("guardrail_note", ""),
-            *(_v2_match_note(match) for match in matches),
+            *(_v2_match_note(match, row) for match in matches),
         )
 
     guarded_row.update(
@@ -1328,13 +1323,52 @@ def _apply_community_ng_matches_to_row(
     return guarded_row
 
 
-def _match_note(match: GuardrailMatch) -> str:
+def _context_values(row: dict[str, Any], fields: Iterable[str]) -> Iterable[tuple[str, str]]:
+    """Read only fields that the relevant rule already evaluated."""
+    for field in fields:
+        value = row.get(field)
+        values = (value,) if isinstance(value, str) else value if isinstance(value, (list, tuple)) else ()
+        for item in values:
+            if isinstance(item, str) and item:
+                yield field, item
+
+
+def _context_for_term(
+    row: dict[str, Any], fields: Iterable[str], term: str, *,
+    rule: GuardrailRule | None = None, v2: bool = False, contains: bool = False,
+) -> str:
+    normalizer = normalize_v2_text if v2 else normalize_text
+    normalized_term = normalizer(term)
+    if not normalized_term:
+        return ""
+    pattern = re.escape(normalized_term)
+    if not contains and _is_ascii_token_phrase(normalized_term):
+        pattern = rf"(?<![a-z0-9]){pattern}(?![a-z0-9])"
+    for field, raw in _context_values(row, fields):
+        value = normalizer(raw)
+        occurrences = list(re.finditer(pattern, value))
+        for occurrence in occurrences:
+            if rule is not None:
+                # Keep this occurrence and mask the others before applying the
+                # existing contextual/negation matcher.  A nearby harmless
+                # phrase must not be quoted as the reason for a positive hit.
+                probe = re.sub(pattern, lambda m: m.group() if m.start() == occurrence.start()
+                               else " " * len(m.group()), value)
+                if not _contains_rule_term(probe, rule):
+                    continue
+            return f"; 該当箇所[{field}]: 「{excerpt_at(value, occurrence.start(), occurrence.end())}」"
+    return ""
+
+
+def _match_note(match: GuardrailMatch, row: dict[str, Any] | None = None) -> str:
     if match.rule.dictionary_type == "brand":
         prefix = "Brand matched"
     elif match.rule.dictionary_type == "sls_shared":
         prefix = "SLS Shared Battery signal matched"
     elif match.rule.dictionary_type == "home_appliance":
         prefix = "Home appliance policy matched"
+    elif match.rule.dictionary_type == "policy":
+        prefix = "Safety policy matched"
     else:
         prefix = "Keyword matched"
     note = f"{prefix}: {match.rule.term}"
@@ -1342,17 +1376,32 @@ def _match_note(match: GuardrailMatch) -> str:
         note = f"{note} [fact_field={match.fact_field}]"
     if match.rule.note:
         note = f"{note} ({match.rule.note})"
+    if row is not None and "該当箇所[" not in match.rule.note:
+        aliases = {"title": "product_title", "asin": "candidate_asin"}
+        if match.fact_field:
+            fields = (aliases.get(match.fact_field, match.fact_field),)
+        elif match.rule.match_field != "all":
+            fields = (aliases.get(match.rule.match_field, match.rule.match_field),)
+        else:
+            fields = ("product_title", "brand", "category")
+            if match.rule.dictionary_type in {"sls_shared", "home_appliance"}:
+                fields += ("description", "features", "shortDescription", "safetyWarning", "itemHighlights")
+        note += _context_for_term(row, fields, match.rule.term, rule=match.rule)
     return note
 
 
-def _v2_match_note(match: DeterministicBlockMatchV2) -> str:
-    return (
+def _v2_match_note(match: DeterministicBlockMatchV2, row: dict[str, Any] | None = None) -> str:
+    note = (
         f"V2 Rule matched: {match.rule.rule_id} "
         f"(canonical_term={match.rule.canonical_term}; "
         f"matched_value={match.rule.value}; "
         f"fact_field={match.actual_fact_field}; "
         f"evidence_ref={match.rule.evidence_ref}; {match.rule.note})"
     )
+    if row is not None:
+        note += _context_for_term(row, (match.actual_fact_field,), match.rule.value,
+                                  v2=True, contains=match.rule.operator == "contains")
+    return note
 
 
 def _community_ng_term(match: CommunityNgMatch) -> str:
@@ -1363,13 +1412,15 @@ def _community_ng_term(match: CommunityNgMatch) -> str:
 
 def _community_ng_match_note(match: CommunityNgMatch) -> str:
     block = match.block
-    return (
+    note = (
         "Community NG matched: "
         f"marketplace={block.marketplace}; "
         f"match_field={match.match_field}; "
         f"matched_value={match.matched_value}; "
         f"source_id={block.source_id}; source_row={block.source_row}"
     )
+    field = "candidate_asin" if match.match_field == "asin" else match.match_field
+    return note + f"; 該当箇所[{field}]: 「{excerpt_at(match.matched_value, 0, len(match.matched_value))}」"
 
 
 def _join_unique(values: Iterable[str]) -> str:

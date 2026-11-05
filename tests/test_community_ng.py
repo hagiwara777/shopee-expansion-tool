@@ -163,7 +163,7 @@ def test_non_runtime_market_data_does_not_leak_to_sg_or_ph():
 
 def test_community_block_wins_and_preserves_review_official_and_own_penalty_evidence():
     review = apply_guardrails(
-        [candidate(brand="OXO", title="alcohol")],
+        [candidate(brand="OXO", title="water beads")],
         marketplace="SG",
     )[0]
     official = apply_guardrails([candidate(brand="nivea")], marketplace="SG")[0]
@@ -248,6 +248,7 @@ def test_manifest_count_mismatch_and_runtime_load_failure_fail_closed(tmp_path):
     dictionary_dir.mkdir()
     shutil.copy(Path(__file__).resolve().parents[1] / "guardrails" / "prohibited_brands_sg.csv", dictionary_dir)
     shutil.copy(Path(__file__).resolve().parents[1] / "guardrails" / "risk_keywords_sg.csv", dictionary_dir)
+    shutil.copy(Path(__file__).resolve().parents[1] / "guardrails" / "deterministic_block_rules_v2.csv", dictionary_dir)
     shutil.copytree(asset_dir, dictionary_dir / "community_ng")
     with pytest.raises(GuardrailDictionaryError, match="Community NG asset"):
         apply_guardrails([candidate()], dictionary_dir, marketplace="SG")

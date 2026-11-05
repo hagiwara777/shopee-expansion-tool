@@ -70,7 +70,7 @@ def test_matches_current_candidate_and_reuses_exact_v3_signals(market, source_ty
 
 
 @pytest.mark.parametrize("title,description,brand,body,expected", [
-    ("Kitchen knife", "Includes a knife", "Synthetic Brand", None, "REVIEW"),
+    ("Kitchen knife", "Includes a knife", "Synthetic Brand", None, "EXCLUDE"),
     ("Kitchen knife case", "Knife not included", "Synthetic Brand", "BODY_PRESENT", "EXCLUDE"),
     ("Kitchen knife case", "Knife not included", "Adidas", "ACCESSORY_ONLY", "EXCLUDE"),
     ("Kitchen knife case", "Battery case; knife not included", "Synthetic Brand", "ACCESSORY_ONLY", "REVIEW"),

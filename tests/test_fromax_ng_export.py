@@ -34,10 +34,10 @@ def test_width_and_kana_variants_are_finite_but_not_kanji_synonyms():
 
 def test_market_specific_v2_and_community_blocks_are_not_mixed():
     sg, ph = build_fromax_ng_export("SG"), build_fromax_ng_export("PH")
-    assert "ギャバ" in ph.keywords and "ギャバ" not in sg.keywords
+    assert "ギャバ" in ph.keywords and "ギャバ" in sg.keywords
     assert "gaba" in {c.term.casefold() for c in ph.cautions}
-    assert "gaba" not in {c.term.casefold() for c in sg.cautions}
-    assert "医療機器" in sg.keywords and "医療機器" in ph.keywords
+    assert "gaba" in {c.term.casefold() for c in sg.cautions}
+    assert "医療機器" in {c.term for c in sg.cautions} and "医療機器" in {c.term for c in ph.cautions}
     rows = list(csv.DictReader(StringIO(sg.cautions_csv.decode("utf-8-sig"))))
     assert rows and all(r["通常リストから分けた理由"] for r in rows)
     assert any("Community NG" in r["出典"] for r in rows)

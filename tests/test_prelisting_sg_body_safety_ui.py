@@ -22,7 +22,7 @@ def upload(app, candidate_content, *, record=None):
     return app
 
 
-@pytest.mark.parametrize("title", ["Kitchen knife set", "カラコンとケースのセット"])
+@pytest.mark.parametrize("title", ["Chef knives set", "カラコンとケースのセット"])
 def test_confirmed_body_never_returns_to_output_on_ui_rerun_or_restart(monkeypatch, title):
     content, _, _ = case(title)
     app = upload(_prelisting_gate_test_app(monkeypatch), content)

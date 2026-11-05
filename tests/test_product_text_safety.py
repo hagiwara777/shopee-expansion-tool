@@ -275,7 +275,7 @@ def test_ph_hemp_literal_substring_blocks_in_title_description_and_features(
     assert "hemp" in result["guardrail_matched_terms"].lower()
 
 
-def test_hemp_rule_is_not_applied_to_sg_and_unapproved_alias_is_not_added():
+def test_hemp_and_owner_approved_cbd_are_shared():
     hemp = {
         "candidate_asin": "B000000001",
         "brand": "Synthetic Brand",
@@ -285,8 +285,8 @@ def test_hemp_rule_is_not_applied_to_sg_and_unapproved_alias_is_not_added():
     }
     inferred_alias = {**hemp, "description": ["CBD product"]}
 
-    assert apply_guardrails((hemp,), marketplace="SG")[0]["guardrail_status"] == "SAFE"
-    assert apply_guardrails((inferred_alias,), marketplace="PH")[0]["guardrail_status"] == "SAFE"
+    assert apply_guardrails((hemp,), marketplace="SG")[0]["guardrail_status"] == "BLOCK"
+    assert apply_guardrails((inferred_alias,), marketplace="PH")[0]["guardrail_status"] == "BLOCK"
 
 
 @pytest.mark.parametrize(

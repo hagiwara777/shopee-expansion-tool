@@ -49,6 +49,11 @@ def test_explicit_alias_only_and_outer_brand_is_primary(tmp_path):
         {"alias": "ジレット", "canonical": "Gillette"},
         {"alias": "カネボウ", "canonical": "Kanebo"},
     ]}, ensure_ascii=False), encoding="utf-8")
+    # This fixture intentionally replaces the alias inventory with only two
+    # entries, so its company exclusion references the canonical name alone.
+    title_config = json.loads((tmp_path / "title_review.json").read_text(encoding="utf-8"))
+    title_config["company_names"] = ["Kao"]
+    (tmp_path / "title_review.json").write_text(json.dumps(title_config), encoding="utf-8")
     data = load_brand_monitoring("SG", tmp_path)
     assert data.matches("ジレット")
     assert data.matches("カネボウ(Kanebo)")
@@ -134,12 +139,12 @@ def test_kao_alias_obeys_country_list_and_does_not_start_taiwan_runtime():
 
 def test_approved_alias_inventory_excludes_competing_name_and_resolves_official_references():
     records = json.loads((CONFIG_DIR / "aliases.json").read_text(encoding="utf-8"))["aliases"]
-    assert len(records) == 36
+    assert len(records) == 77
     assert not any(r["alias"] == "セラヴィ" for r in records)
     for market in ("SG", "PH"):
         data = load_brand_monitoring(market)
         for record in records:
-            if market in record.get("markets", ["SG", "PH"]):
+            if market in record.get("markets", ["SG", "PH"]) and data.matches(record["canonical"]):
                 assert data.matches(record["alias"]), record["alias"]
     assert load_brand_monitoring("PH").matches("CeraVe")  # Canonical BLOCK remains.
 

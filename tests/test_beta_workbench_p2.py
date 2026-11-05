@@ -277,10 +277,7 @@ def test_safety_notes_never_override_validator_stops_and_are_persistent(bench):
     ('Synthetic power bank',3210981)])
 def test_body_battery_image_and_block_never_prepare(bench,title,root):
     intake(bench,[product(bench.scope.marketplace,title=title,root=root)])
-    if bench.scope.marketplace=='PH' and title=='Synthetic contact lens':
-        # SG-only body policy must not leak into PH.
-        assert len(bench.prepared_pool())==1
-        return
+    # A contact lens body is a medical device in both markets (DEC-0159).
     assert bench.prepared_pool()==()
     with pytest.raises(WorkStoreError): bench.output(selected(bench))
 
