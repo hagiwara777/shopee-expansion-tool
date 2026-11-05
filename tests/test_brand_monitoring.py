@@ -49,6 +49,11 @@ def test_explicit_alias_only_and_outer_brand_is_primary(tmp_path):
         {"alias": "ジレット", "canonical": "Gillette"},
         {"alias": "カネボウ", "canonical": "Kanebo"},
     ]}, ensure_ascii=False), encoding="utf-8")
+    # This fixture intentionally replaces the alias inventory with only two
+    # entries, so its company exclusion references the canonical name alone.
+    title_config = json.loads((tmp_path / "title_review.json").read_text(encoding="utf-8"))
+    title_config["company_names"] = ["Kao"]
+    (tmp_path / "title_review.json").write_text(json.dumps(title_config), encoding="utf-8")
     data = load_brand_monitoring("SG", tmp_path)
     assert data.matches("ジレット")
     assert data.matches("カネボウ(Kanebo)")

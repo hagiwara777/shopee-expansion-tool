@@ -685,7 +685,7 @@
         "hydrogen peroxide"
       ],
       "condition": "always",
-      "note": "DEC-0167; Ownerの出品方針による要確認。SLS輸送確認。",
+      "note": "DEC-0167 / DEC-0170; SLS輸送確認。注意書きの漂白剤の明確な使用禁止だけを除外し、別の肯定表示は維持。",
       "source": "internal_rule"
     },
     {
@@ -1486,7 +1486,7 @@
         "gardening soil"
       ],
       "condition": "always",
-      "note": "DEC-0167 / DEC-0168; 同居していた種子・土・生体等の既存停止と対象欄を維持。SLS輸送確認。",
+      "note": "DEC-0167 / DEC-0168 / DEC-0170; 種子は商品名・カテゴリのみ、種子油・種子エキス・種子オイルを除外。他の土・生体等の対象欄と停止は維持。SLS輸送確認。",
       "source": "internal_rule"
     },
     {
@@ -2066,7 +2066,7 @@
         "コンタクトレンズ"
       ],
       "condition": "medical",
-      "note": "DEC-0159 / DEC-0164; 既存の医療機器表示停止と出典を維持。",
+      "note": "DEC-0159 / DEC-0164 / DEC-0170; 医療機器表示停止を維持。注意書きで外す・着用者への明確な指示だけを除外。",
       "source": "shopee_policy"
     },
     {

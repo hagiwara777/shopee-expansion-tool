@@ -53,7 +53,7 @@ def test_plant_exclusions_do_not_cancel_a_separate_plant_product(market):
     assert guarded("植物由来の鉢と観葉植物", market=market)["guardrail_status"] == "BLOCK"
 
 
-@pytest.mark.parametrize("term", ["種子", "園芸用土", "生きた動物"])
+@pytest.mark.parametrize("term", ["園芸用土", "生きた動物"])
 def test_plant_scope_correction_does_not_change_other_shipping_terms(term):
     assert guarded(description=term)["guardrail_status"] == "BLOCK"
 

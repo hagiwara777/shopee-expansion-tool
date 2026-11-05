@@ -178,6 +178,8 @@ def _condition(rule, value, row, group):
 
 
 def _policy_pattern(term, rule):
+    if rule["id"] == "COMMON-SLS-PLANT-OTHER" and term == "種子":
+        return r"種子(?!油|エキス|オイル)"
     if term == "アルコール":
         return r"(?<![ァ-ヴー])アルコール"
     if term == "ライター":
@@ -193,6 +195,20 @@ def _policy_pattern(term, rule):
     if re.search(r"[^a-z0-9 -].*[a-z0-9]$", term):
         return re.escape(term) + r"(?![a-z0-9])"
     return re.escape(term)
+
+
+def _mask_usage_cautions(value, field, rule_id):
+    """Exclude only an explicit usage instruction in the safety-warning field."""
+    if field != "safetyWarning":
+        return value
+    pattern = None
+    if rule_id == "COMMON-TRANSPORT-OXIDIZER":
+        pattern = (r"漂白剤(?:の)?(?:ご)?(?:使用|利用)(?:は|を)?(?:おやめ(?:ください|下さい)|しない(?:で)?(?:ください|下さい)?)"
+                   r"|漂白剤(?:を|は)(?:使わない|使用しない|使用しないで)(?:で)?(?:ください|下さい)?")
+    elif rule_id == "COMMON-CONTACT-LENSES":
+        pattern = (r"コンタクトレンズを(?:はずして|外して|外し(?:てから|た上で))"
+                   r"|コンタクトレンズ(?:を)?(?:着用|装用|使用)(?:している|中の|の)?方は")
+    return re.sub(pattern, lambda match: " " * len(match[0]), value) if pattern else value
 
 
 def evaluate_policy(row, marketplace, rules=None):
@@ -214,9 +230,12 @@ def evaluate_policy(row, marketplace, rules=None):
                           "COMMON-SLS-PLANT": r"植物(?:由来|性|エキス|オイル|アロマ)"}
             if rule["id"] in exclusions:
                 value = re.sub(exclusions[rule["id"]], lambda m: " " * len(m[0]), value)
+            value = _mask_usage_cautions(value, field, rule["id"])
             sections = ingredient_spans(original) if is_ingredient_policy_text else ()
             for term in rule["terms"]:
                 normalized = normalize_text(term)
+                if rule["id"] == "COMMON-SLS-PLANT-OTHER" and term == "種子" and group not in {"title", "category"}:
+                    continue
                 if group == "category" and rule["id"] not in {"SG-AMULET", "COMMON-SLS-PLANT"}:
                     if not (normalized == value if ">" in normalized else normalized in [n.strip() for n in value.split(">")]):
                         continue

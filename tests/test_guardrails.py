@@ -1417,7 +1417,9 @@ def test_phase1_v2_never_matches_contains_title_blank_or_unrelated_brand():
         marketplace="PH",
     )
 
-    assert [row["guardrail_status"] for row in rows] == ["SAFE", "SAFE", "SAFE", "SAFE"]
+    # DEC-0170 adds independent official title-IP review, not a V2 brand stop.
+    assert [row["guardrail_status"] for row in rows] == ["SAFE", "REVIEW", "SAFE", "SAFE"]
+    assert "TITLE-BRAND-REVIEW" in rows[1]["guardrail_note"]
     assert all("V2 Rule matched" not in row["guardrail_note"] for row in rows)
 
 
@@ -1758,8 +1760,11 @@ def test_passive_accessories_and_out_of_scope_items_are_not_stopped_by_appliance
     row = apply_guardrails([candidate(title=title, category=category)], marketplace=marketplace)[0]
 
     assert "home_appliance_policy" not in row["guardrail_risk_category"]
-    # Existing SG Safety Mark words (e.g. 冷蔵庫) may still ask for review; PH has none.
-    assert row["guardrail_status"] == ("SAFE" if marketplace == "PH" else row["guardrail_status"])
+    # SG Safety Mark and DEC-0170 title IP remain independent of appliances.
+    if marketplace == "PH":
+        expected = "REVIEW" if title.startswith("3M ") else "SAFE"
+        assert row["guardrail_status"] == expected
+        assert ("TITLE-BRAND-REVIEW" in row["guardrail_note"]) == (expected == "REVIEW")
 
 
 @pytest.mark.parametrize("marketplace", ["PH", "SG"])

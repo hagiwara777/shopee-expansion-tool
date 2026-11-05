@@ -221,7 +221,8 @@ def apply_guardrails(
 
     for row in rows:
         matches = _find_matches(row, dictionaries)
-        for brand in monitoring.matches(str(row.get("brand") or "")):
+        primary_brand_hits = monitoring.matches(str(row.get("brand") or ""))
+        for brand in primary_brand_hits:
             matches.append(GuardrailMatch(GuardrailRule(
                 term=brand.term, normalized_term=normalize_text(brand.term), action="BLOCK",
                 risk_category="brand_ip", match_field="brand", match_type="exact",
@@ -229,6 +230,18 @@ def apply_guardrails(
                 note=("DEC-0167; 自社共通禁止ブランド。" if brand.scope == "COMPANY" else f"公式監視ブランド（{brand.scope}）。") + "親会社から子ブランドへの推定は行わない。",
                 file_name=f"brand_monitoring/{brand.file_name}", row_number=0,
                 dictionary_type="brand"), fact_field="brand"))
+        for mention in monitoring.title_matches(str(row.get("product_title") or "")):
+            brand = mention.brand
+            if brand in primary_brand_hits:
+                continue
+            matches.append(GuardrailMatch(GuardrailRule(
+                term=brand.term, normalized_term=normalize_text(brand.term), action="REVIEW",
+                risk_category="brand_ip", match_field="title", match_type="contains",
+                source_type="shopee_brand_list",
+                note=f"TITLE-BRAND-REVIEW; 公式監視ブランド（{brand.scope}）の商品名表示。ブランド欄との不一致・IP利用を要確認。"
+                     f"照合表記: {mention.name}; 該当箇所[product_title]: 「{mention.context}」",
+                file_name=f"brand_monitoring/{brand.file_name}", row_number=0,
+                dictionary_type="brand"), fact_field="product_title"))
         matches.extend(_find_medical_fact_matches(
             row, dictionaries.keyword_rules, marketplace=normalized_marketplace,
         ))

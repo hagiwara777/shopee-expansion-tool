@@ -11,6 +11,7 @@ from modules.prelisting_sg_body_safety import prepare_body_confirmations
 from modules.prelisting_sg_body_safety_ui import render_sg_body_review
 from modules.research_csv_adapter import ResearchCsvInput, import_research_csvs
 from modules.sora_run import evaluate_sora_run, prepare_sora_run, sora_exports
+from modules.sora_version import RUNNING_VERSION
 from modules.sp_api_catalog import SpApiCatalogClient, SpApiCatalogError, load_sp_api_credentials, planned_catalog_calls
 
 
@@ -28,7 +29,9 @@ def _clear_resolver():
 
 def render_sora_app():
     st.set_page_config(page_title='Sora', layout='wide')
-    st.title('Sora')
+    title_column, version_column = st.columns([5, 1], vertical_alignment='center')
+    title_column.title('Sora')
+    version_column.caption(f'版: {RUNNING_VERSION}', text_alignment='right')
     st.caption('Shopee調査 → ChatGPTでASIN候補を調べる → Amazonの商品情報を確認 → 出品前保安ゲート')
     marketplace = st.selectbox('対象国', ('SG', 'PH'), key='sora_marketplace')
     if st.session_state.get('sora_previous_marketplace') not in {None, marketplace}:
