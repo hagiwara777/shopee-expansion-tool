@@ -48,12 +48,19 @@ def test_bleach_usage_prohibition_is_not_a_product_claim(market, phrase):
 @pytest.mark.parametrize("phrase", [
     "コンタクトレンズをはずしてからご使用ください", "コンタクトレンズを外してご使用ください",
     "コンタクトレンズ着用の方は外してください", "コンタクトレンズを装用している方は外してください",
+    "メガネ、コンタクトレンズ、アクセサリー等は、使用する前には必ずはずし、完全に乾いてから身につけるようにしてください。",
+    "コンタクトレンズ等は、ご使用前に必ず外してください。",
 ])
 def test_contact_lens_usage_caution_is_not_a_product_claim(market, phrase):
     assert guarded(market, safetyWarning=phrase)["guardrail_status"] == "SAFE"
     assert guarded(market, product_title="コンタクトレンズ", safetyWarning=phrase)["guardrail_status"] == "BLOCK"
     assert guarded(market, safetyWarning=phrase + "。コンタクトレンズ付きです。")["guardrail_status"] == "BLOCK"
     assert guarded(market, product_title="ヘアカラー", safetyWarning=phrase)["guardrail_status"] == "BLOCK"
+
+
+@pytest.mark.parametrize("market", ["SG", "PH"])
+def test_contact_list_without_removal_instruction_still_stops(market):
+    assert guarded(market, safetyWarning="コンタクトレンズ、アクセサリー等は、セットに含まれます。")["guardrail_status"] == "BLOCK"
 
 
 @pytest.mark.parametrize("name", ["ポケモン", "Pokemon", "ＰＯＫＥＭＯＮ"])
