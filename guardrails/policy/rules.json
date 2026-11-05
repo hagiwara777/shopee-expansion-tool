@@ -290,7 +290,7 @@
         "レチノイン酸"
       ],
       "condition": "always",
-      "note": "DEC-0167; Ownerの出品方針による停止 DEC-0168; 箇条書きの成分一覧だけの記載はREVIEW。別の肯定表示はBLOCKを維持。",
+      "note": "DEC-0167 / DEC-0168 / DEC-0169; 商品名・通常説明は停止。見出しで確認した成分一覧の区間だけはREVIEWとし、区間外のBLOCKを優先。",
       "source": "internal_rule"
     },
     {

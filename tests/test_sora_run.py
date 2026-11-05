@@ -62,6 +62,21 @@ def test_legacy_inventory_required_default_has_not_been_weakened():
                                  check_existing_listings=False)
 
 
+@pytest.mark.parametrize('marketplace', ['PH', 'SG'])
+@pytest.mark.parametrize(('description', 'expected'), [
+    ('全成分：水、香料、サリチル酸', 'REVIEW'),
+    ('<h3>全成分</h3>水、香料、ナイアシンアミド', 'REVIEW'),
+    ('全成分：水、香料\nサリチル酸配合', 'EXCLUDE'),
+    ('水、香料、サリチル酸', 'EXCLUDE'),
+])
+def test_sp_api_description_preserves_ingredient_section_boundaries(description, expected, marketplace):
+    run = run_for({'product_description': [{'value': description}]}, marketplace)
+    result = evaluate_sora_run(run)
+    assert result.rows[0].final_eligibility == expected
+    outputs = sora_exports(run, result)
+    assert b'B000000001' in outputs['要確認.csv' if expected == 'REVIEW' else '停止.csv']
+
+
 def test_market_specific_ingredient_and_product_text_rules_preserved():
     sg = run_for({'ingredients': [{'value': 'ジフェンヒドラミン'}]}, 'SG')
     ph = run_for({'bullet_point': [{'value': 'hemp'}]}, 'PH')

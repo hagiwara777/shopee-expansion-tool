@@ -7,8 +7,10 @@ from dataclasses import dataclass
 import json
 from pathlib import Path
 import re
+import unicodedata
 
 from modules.match_context import excerpt_at
+from modules.ingredient_text_sections import ingredient_spans
 
 
 POLICY_DIR = Path(__file__).resolve().parents[1] / "guardrails" / "policy"
@@ -175,13 +177,6 @@ def _condition(rule, value, row, group):
     raise SafetyPolicyError("未対応の保安ルール条件です。")
 
 
-# Headers are local to one bullet; never downgrade a separate claim/field.
-INGREDIENT_HEADER = re.compile(
-    r"(?<!\w)(?:全成分|原材料(?:[・/／]\s*成分)?|成分)(?=$|[\s:：\]］】)）/／・])"
-)
-BULLET_FIELDS = {"features", "itemHighlights"}
-
-
 def _policy_pattern(term, rule):
     if term == "アルコール":
         return r"(?<![ァ-ヴー])アルコール"
@@ -209,14 +204,17 @@ def evaluate_policy(row, marketplace, rules=None):
         if "ALL" not in rule["markets"] and marketplace not in rule["markets"]:
             continue
         for group, field, raw in _values(row, rule["fields"]):
-            original = normalize_text(raw)
+            is_ingredient_policy_text = rule["id"] == "COMMON-COSMETIC-INGREDIENT" and group == "text"
+            # Section boundaries need their original line/HTML structure.  The
+            # other policies keep their existing whitespace normalization.
+            original = (unicodedata.normalize("NFKC", raw).strip().lower()
+                        if is_ingredient_policy_text else normalize_text(raw))
             value = mask_harmless_phrases(original) if rule["condition"] == "general" else original
             exclusions = {"SG-AMULET": r"お守り(?:ください|下さい)",
                           "COMMON-SLS-PLANT": r"植物(?:由来|性|エキス|オイル|アロマ)"}
             if rule["id"] in exclusions:
                 value = re.sub(exclusions[rule["id"]], lambda m: " " * len(m[0]), value)
-            header = (INGREDIENT_HEADER.search(original)
-                      if rule["id"] == "COMMON-COSMETIC-INGREDIENT" and field in BULLET_FIELDS else None)
+            sections = ingredient_spans(original) if is_ingredient_policy_text else ()
             for term in rule["terms"]:
                 normalized = normalize_text(term)
                 if group == "category" and rule["id"] not in {"SG-AMULET", "COMMON-SLS-PLANT"}:
@@ -246,7 +244,8 @@ def evaluate_policy(row, marketplace, rules=None):
                         if not _contains_rule_term(value[start:end], probe):
                             continue
                     action = _condition(rule, value, row, group)
-                    ingredient_list = header is not None and occurrence.start() >= header.end()
+                    ingredient_list = any(start <= occurrence.start() and occurrence.end() <= end
+                                          for start, end in sections)
                     if ingredient_list:
                         action = "REVIEW"
                     if not action or action in seen_actions:
@@ -254,7 +253,7 @@ def evaluate_policy(row, marketplace, rules=None):
                     seen_actions.add(action)
                     note = rule["note"]
                     if ingredient_list:
-                        note += "; 箇条書きの成分一覧に記載（要確認）"
+                        note += "; 見出しで確認した成分一覧の区間に記載（要確認）"
                     note += f"; 該当箇所[{field}]: 「{excerpt_at(original, occurrence.start(), occurrence.end())}」"
                     hits.append(PolicyHit(rule["id"], term, action, rule["risk"], field, note, rule["source"]))
     return hits
