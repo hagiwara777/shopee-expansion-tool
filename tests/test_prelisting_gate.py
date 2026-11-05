@@ -759,8 +759,10 @@ def test_phase1_v2_title_only_and_non_exact_brand_do_not_exclude_at_gate():
         marketplace="PH",
     )
 
-    assert [row.guardrail_status for row in result.rows] == ["SAFE", "SAFE"]
-    assert [row.final_eligibility for row in result.rows] == ["ELIGIBLE", "ELIGIBLE"]
+    # DEC-0170 title IP is review evidence; it is not a V2 exact-brand block.
+    assert [row.guardrail_status for row in result.rows] == ["REVIEW", "SAFE"]
+    assert [row.final_eligibility for row in result.rows] == ["REVIEW", "ELIGIBLE"]
+    assert "TITLE-BRAND-REVIEW" in result.rows[0].guardrail_note
     assert all("GUARDRAIL_BLOCK" not in row.reason_codes for row in result.rows)
 
 
