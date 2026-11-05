@@ -1,9 +1,12 @@
 """Exact brand-field stops and country-scoped title-only review evidence."""
 from dataclasses import dataclass, field
+from collections.abc import Mapping
+from functools import lru_cache
 import json
 from pathlib import Path
 import re
 import unicodedata
+from types import MappingProxyType
 
 from modules.match_context import excerpt_at
 
@@ -74,7 +77,7 @@ def _title_pattern(name):
 @dataclass(frozen=True)
 class BrandMonitoring:
     rules: tuple[MonitoringBrand, ...]
-    aliases: dict[str, str]
+    aliases: Mapping[str, str]
     company_names: frozenset[str] = frozenset()
     ambiguous_names: frozenset[str] = frozenset()
     _rule_keys: tuple[tuple[MonitoringBrand, frozenset[str]], ...] = field(init=False, repr=False)
@@ -129,36 +132,54 @@ class BrandMonitoring:
         return tuple(found)
 
 
-def _read(path: Path) -> dict:
+def _read(name: str, text: str) -> dict:
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
+        data = json.loads(text)
         if not isinstance(data, dict):
             raise ValueError
         return data
-    except (OSError, ValueError) as exc:
-        raise BrandMonitoringError(f"監視ブランド設定を読めません: {path.name}") from exc
+    except ValueError as exc:
+        raise BrandMonitoringError(f"監視ブランド設定を読めません: {name}") from exc
 
 
 def load_brand_monitoring(marketplace: str, config_dir: str | Path | None = None) -> BrandMonitoring:
     if marketplace not in COUNTRY_FILES:
         raise BrandMonitoringError("監視ブランド照合の対象市場ではありません。")
     base = Path(config_dir) if config_dir is not None else CONFIG_DIR
+    sources = []
+    # Read every current file before reuse: missing, malformed, or changed
+    # settings must never fall back to a previously valid configuration.
+    for name in ("ipr.json", *COUNTRY_FILES.values(), "company.json", "aliases.json", "title_review.json"):
+        try:
+            sources.append((name, (base / name).read_text(encoding="utf-8")))
+        except (OSError, UnicodeError) as exc:
+            raise BrandMonitoringError(f"監視ブランド設定を読めません: {name}") from exc
+    return _compile_brand_monitoring(marketplace, tuple(sources))
+
+
+@lru_cache(maxsize=8)
+def _compile_brand_monitoring(marketplace: str, sources: tuple[tuple[str, str], ...]) -> BrandMonitoring:
+    """Reuse only immutable parsed settings keyed by their entire current text.
+
+    No product facts, decisions, credentials, or file metadata enter this cache.
+    """
+    texts = dict(sources)
     rules = []
     for filename, scope in (("ipr.json", "ALL"), (COUNTRY_FILES[marketplace], marketplace)):
-        data = _read(base / filename)
+        data = _read(filename, texts[filename])
         brands = data.get("brands")
         if (data.get("scope") != scope or not isinstance(data.get("source_url"), str)
                 or not isinstance(brands, list) or not brands
                 or any(not isinstance(v, str) or not v.strip() or "\n" in v or "\r" in v for v in brands)):
             raise BrandMonitoringError(f"監視ブランド設定が不正です: {filename}")
         rules.extend(MonitoringBrand(v, scope, filename) for v in brands)
-    company = _read(base / "company.json")
+    company = _read("company.json", texts["company.json"])
     if (company.get("scope") != "COMPANY" or company.get("decision") != "DEC-0167"
             or not isinstance(company.get("brands"), list) or not company["brands"]
             or any(not isinstance(b, str) or not b.strip() for b in company["brands"])):
         raise BrandMonitoringError("自社共通禁止ブランド設定が不正です。")
     rules.extend(MonitoringBrand(v, "COMPANY", "company.json") for v in company["brands"])
-    raw_aliases = _read(base / "aliases.json").get("aliases")
+    raw_aliases = _read("aliases.json", texts["aliases.json"]).get("aliases")
     if not isinstance(raw_aliases, list):
         raise BrandMonitoringError("監視ブランドの別表記設定が不正です。")
     known = {normalize_brand(rule.term) for rule in rules}
@@ -167,7 +188,7 @@ def load_brand_monitoring(marketplace: str, config_dir: str | Path | None = None
         # Check references against existing official files, without applying
         # that country's rules to the selected market.
         for filename in set(COUNTRY_FILES.values()) - {COUNTRY_FILES[marketplace]}:
-            other = _read(base / filename).get("brands")
+            other = _read(filename, texts[filename]).get("brands")
             if not isinstance(other, list) or any(not isinstance(v, str) for v in other):
                 raise BrandMonitoringError(f"監視ブランド設定が不正です: {filename}")
             known.update(normalize_brand(v) for v in other)
@@ -194,7 +215,7 @@ def load_brand_monitoring(marketplace: str, config_dir: str | Path | None = None
             raise BrandMonitoringError("監視ブランドの別表記が別の公式ブランドと競合しています。")
         if markets is None or marketplace in markets:
             aliases[key] = canonical
-    title_config = _read(base / "title_review.json")
+    title_config = _read("title_review.json", texts["title_review.json"])
     if (set(title_config) != {"schema", "company_names", "ambiguous_names"}
             or title_config.get("schema") != "SORA_TITLE_BRAND_REVIEW_V1"):
         raise BrandMonitoringError("商品名の監視ブランド確認設定が不正です。")
@@ -209,4 +230,4 @@ def load_brand_monitoring(marketplace: str, config_dir: str | Path | None = None
     companies = frozenset(all_aliases.get(name, name) for name in names["company_names"])
     if not companies <= known:
         raise BrandMonitoringError("商品名の会社名除外の参照先が公式設定にありません。")
-    return BrandMonitoring(tuple(rules), aliases, companies, names["ambiguous_names"])
+    return BrandMonitoring(tuple(rules), MappingProxyType(aliases), companies, names["ambiguous_names"])

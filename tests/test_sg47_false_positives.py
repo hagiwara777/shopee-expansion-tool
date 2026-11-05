@@ -1,6 +1,7 @@
 """Owner-reported SG47 wording, without ASIN-specific policy exceptions."""
 import json
 import shutil
+import os
 
 import pytest
 
@@ -95,3 +96,22 @@ def test_title_exclusions_are_configurable_and_invalid_config_stops(tmp_path):
     (tmp_path / "title_review.json").unlink()
     with pytest.raises(BrandMonitoringError):
         load_brand_monitoring("SG", tmp_path)
+
+
+def test_reused_settings_are_immutable_and_current_content_still_fails_closed(tmp_path):
+    for path in CONFIG_DIR.glob("*.json"):
+        shutil.copyfile(path, tmp_path / path.name)
+    first = load_brand_monitoring("SG", tmp_path)
+    assert load_brand_monitoring("SG", tmp_path) is first
+    with pytest.raises(TypeError):
+        first.aliases["ポケモン"] = "not-an-official-brand"
+    config = tmp_path / "title_review.json"
+    valid, before = config.read_bytes(), config.stat()
+    # Size and timestamp equality must not hide invalid current content.
+    config.write_bytes(b"!" + valid[1:])
+    os.utime(config, ns=(before.st_atime_ns, before.st_mtime_ns))
+    with pytest.raises(BrandMonitoringError):
+        load_brand_monitoring("SG", tmp_path)
+    config.write_bytes(valid)
+    assert load_brand_monitoring("SG", tmp_path).matches("花王")
+    assert not load_brand_monitoring("PH", tmp_path).matches("花王")
