@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 import re
 import time
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 from dotenv import dotenv_values
 import requests
@@ -22,6 +22,8 @@ CATALOG_URL = "https://sellingpartnerapi-fe.amazon.com/catalog/2022-04-01/items"
 AUTH_URL = "https://api.amazon.com/auth/o2/token"
 REQUIRED_FIELDS = ("SP_API_CLIENT_ID", "SP_API_CLIENT_SECRET", "SP_API_REFRESH_TOKEN")
 ASIN_PATTERN = re.compile(r"[A-Z0-9]{10}\Z")
+MAX_ASINS = 500
+CATALOG_BATCH_SIZE = 20
 
 
 class SpApiCatalogError(AmazonDataProviderError):
@@ -51,7 +53,7 @@ def load_sp_api_credentials(env_path: str | Path | None = None) -> SpApiCredenti
 
 
 def planned_catalog_calls(asins) -> int:
-    return math.ceil(len(_unique_asins(asins)) / 20)
+    return math.ceil(len(_unique_asins(asins)) / CATALOG_BATCH_SIZE)
 
 
 def _unique_asins(asins) -> list[str]:
@@ -60,8 +62,8 @@ def _unique_asins(asins) -> list[str]:
     unique = list(dict.fromkeys(str(value).strip().upper() for value in asins))
     if any(not ASIN_PATTERN.fullmatch(value) for value in unique):
         raise SpApiCatalogError("ASINの形式を確認してください。")
-    if len(unique) > 100:
-        raise SpApiCatalogError("1回の実行は100 ASINまでです。分けて実行してください。")
+    if len(unique) > MAX_ASINS:
+        raise SpApiCatalogError("1回の入力は500 ASINまでです。分けて実行してください。")
     return unique
 
 
@@ -82,14 +84,14 @@ class SpApiCatalogClient:
         self._used = False
         self._last_catalog_start = None
 
-    def verify_products_by_asin(self, asins) -> dict[str, dict[str, Any]]:
+    def verify_products_by_asin(self, asins, *, on_batch: Callable | None = None) -> dict[str, dict[str, Any]]:
         requested = _unique_asins(asins)
         if self._used:
             raise SpApiCatalogError("この実行の取得は終了しています。新しい実行から開始してください。")
         self._used = True
         if not requested:
             return {}
-        # A run has exactly one authorization attempt and at most five catalog sends.
+        # Each explicit attempt has one authorization and at most 25 catalog sends.
         self.auth_calls += 1
         payload = self._request("POST", AUTH_URL, data={
             "grant_type": "refresh_token", "client_id": self._credentials.client_id,
@@ -101,10 +103,10 @@ class SpApiCatalogClient:
             raise SpApiCatalogError("Amazonの認証結果を確認できません。取得を停止しました。")
         products = {}
         try:
-            for start in range(0, len(requested), 20):
+            for start in range(0, len(requested), CATALOG_BATCH_SIZE):
                 if self._last_catalog_start is not None:
                     self._sleep(max(0.0, 2.0 - (self._monotonic() - self._last_catalog_start)))
-                batch = requested[start:start + 20]
+                batch = requested[start:start + CATALOG_BATCH_SIZE]
                 self._last_catalog_start = self._monotonic()
                 self.catalog_calls += 1
                 response = self._request("GET", CATALOG_URL,
@@ -118,11 +120,17 @@ class SpApiCatalogClient:
                 if not isinstance(items, list) or response.get("pagination", {}).get("nextToken"):
                     raise SpApiCatalogError("Amazonの商品取得結果が想定形式と異なるため停止しました。")
                 fetched_at = datetime.now(timezone.utc).isoformat()
+                batch_products = {}
                 for item in items:
                     asin = item.get("asin") if isinstance(item, dict) else None
-                    if asin not in batch or asin in products:
+                    if asin not in batch or asin in batch_products or asin in products:
                         raise SpApiCatalogError("Amazonの商品取得結果のASINが一致しないため停止しました。")
-                    products[asin] = normalize_catalog_item(item, fetched_at=fetched_at)
+                    batch_products[asin] = normalize_catalog_item(item, fetched_at=fetched_at)
+                # Commit only a fully validated response. Missing ASINs are a
+                # completed NOT_FOUND response, not a reason for an automatic retry.
+                if on_batch is not None:
+                    on_batch(tuple(batch), batch_products)
+                products.update(batch_products)
             return products
         finally:
             token = None

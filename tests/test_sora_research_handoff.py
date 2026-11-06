@@ -48,6 +48,7 @@ def test_research_csv_is_passed_to_prompt_in_same_screen(monkeypatch):
     monkeypatch.setattr('modules.sora_ui.load_sp_api_credentials',
                         lambda: pytest.fail('CSV import must not read secrets'))
     app = AppTest.from_file(str(Path(__file__).resolve().parents[1]/'app.py'), default_timeout=20).run()
+    app.radio(key='sora_entry').set_value('Shopee調査CSV・ChatGPT（Resolver）').run()
     next(b for b in app.button if b.key == 'sora_import_research').click().run()
     assert not app.exception
     assert 'Ordinary towel' in app.text_area(key='sora_source_input').value
