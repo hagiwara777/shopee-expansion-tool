@@ -57,13 +57,21 @@ def client_calls(monkeypatch):
     return calls
 
 
+def preserved_resolver_screen():
+    import streamlit as st
+    from modules.sora_ui import _render_resolver, _render_acquisition, _render_gate
+
+    marketplace = st.selectbox('対象国', ('SG', 'PH'), key='sora_marketplace')
+    rows, files = _render_resolver(marketplace)
+    _render_acquisition(rows, marketplace=marketplace, input_files=files)
+    _render_gate(marketplace)
+
+
 @pytest.mark.parametrize('marketplace', ['PH', 'SG'])
-def test_manual_chatgpt_to_sp_api_to_gate_same_normal_screen(client_calls, marketplace):
-    app = AppTest.from_file(str(ROOT/'app.py'), default_timeout=20).run()
+def test_preserved_resolver_to_sp_api_to_gate_in_isolated_screen(client_calls, marketplace):
+    app = AppTest.from_function(preserved_resolver_screen, default_timeout=20).run()
     assert not app.exception
     assert client_calls == []
-    assert any(caption.value.startswith('版: ') for caption in app.caption)
-    app.radio(key='sora_entry').set_value('Shopee調査CSV・ChatGPT（Resolver）').run()
     app.selectbox(key='sora_marketplace').set_value(marketplace).run()
     app.text_area(key='sora_source_input').set_value('JPH-example\tA towel').run()
     button(app, 'sora_generate_prompt').click().run()
@@ -107,11 +115,31 @@ def test_display_input_and_country_change_never_load_secrets_or_call_api(client_
     monkeypatch.setattr('requests.Session.request', lambda *a, **kw: pytest.fail('Network request on render'))
     app = AppTest.from_file(str(ROOT/'app.py'), default_timeout=20).run()
     app.text_area(key='sora_asins').set_value('B000000001').run()
-    app.radio(key='sora_entry').set_value('Shopee調査CSV・ChatGPT（Resolver）').run()
-    app.text_area(key='sora_source_input').set_value('A towel').run()
-    button(app, 'sora_generate_prompt').click().run()
+    app.radio(key='sora_entry').set_value('FROMAXのKeepa CSV').run()
     app.selectbox(key='sora_marketplace').set_value('PH').run()
+    app.radio(key='sora_entry').set_value('ASINを貼る').run()
     assert not app.exception
+    assert client_calls == []
+
+
+@pytest.mark.parametrize('marketplace', ['PH', 'SG'])
+def test_normal_entry_has_only_two_options_and_discards_removed_resolver_state(client_calls, marketplace):
+    app = AppTest.from_file(str(ROOT/'app.py'), default_timeout=20)
+    app.session_state['sora_marketplace'] = marketplace
+    app.session_state['sora_entry'] = 'Shopee調査CSV・ChatGPT（Resolver）'
+    app.session_state['sora_run'] = object()
+    app.session_state['sora_result'] = object()
+    app.session_state['sora_preview'] = [{'asin': 'B000000001'}]
+    app.run()
+    assert not app.exception
+    assert app.radio(key='sora_entry').options == ['ASINを貼る', 'FROMAXのKeepa CSV']
+    assert app.radio(key='sora_entry').value == 'ASINを貼る'
+    assert any(caption.value.startswith('版: ') for caption in app.caption)
+    assert not any(b.key in {'sora_import_research', 'sora_generate_prompt', 'sora_parse_response'} for b in app.button)
+    assert not any(t.key in {'sora_source_input', 'sora_response'} for t in app.text_area)
+    assert 'sora_run' not in app.session_state and 'sora_result' not in app.session_state
+    assert 'sora_preview' not in app.session_state
+    assert len(app.get('download_button')) == 0
     assert client_calls == []
 
 
