@@ -1,24 +1,32 @@
-"""Normal Sora operations: manual ChatGPT Resolver and one-run safety Gate."""
+"""ASIN-first Sora entry, optional Resolver, and the existing safety Gate."""
 
 import hashlib
 
 import streamlit as st
 
-from modules.asin_resolver import build_ai_prompt, build_source_map, preview_candidates, verify_preview_rows
+from modules.asin_resolver import build_ai_prompt, build_source_map, preview_candidates
 from modules.listing_inventory_parser import parse_listing_inventory_csv
 from modules.prelisting_gate_ui import build_prelisting_gate_preview_rows, localize_prelisting_gate_preview_rows
 from modules.prelisting_sg_body_safety import prepare_body_confirmations
 from modules.prelisting_sg_body_safety_ui import render_sg_body_review
 from modules.research_csv_adapter import ResearchCsvInput, import_research_csvs
+from modules.sora_acquisition import SoraAcquisition
+from modules.sora_input import SoraInputError, parse_asin_text, parse_fromax_keepa_csv
 from modules.sora_run import evaluate_sora_run, prepare_sora_run, sora_exports
 from modules.sora_version import RUNNING_VERSION
 from modules.sp_api_catalog import SpApiCatalogClient, SpApiCatalogError, load_sp_api_credentials, planned_catalog_calls
 
 
-def _clear_run():
+def _clear_gate():
     for key in list(st.session_state):
-        if key in {'sora_run', 'sora_result', 'sora_body', 'sora_verified', 'sora_calls'} or key.startswith('sg_body_'):
+        if key in {'sora_run', 'sora_result', 'sora_body'} or key.startswith('sg_body_'):
             del st.session_state[key]
+
+
+def _clear_run():
+    _clear_gate()
+    for key in ('sora_acquisition', 'sora_verified', 'sora_calls', 'sora_selection_signature'):
+        st.session_state.pop(key, None)
 
 
 def _clear_resolver():
@@ -32,7 +40,7 @@ def render_sora_app():
     title_column, version_column = st.columns([5, 1], vertical_alignment='center')
     title_column.title('Sora')
     version_column.caption(f'版: {RUNNING_VERSION}', text_alignment='right')
-    st.caption('Shopee調査 → ChatGPTでASIN候補を調べる → Amazonの商品情報を確認 → 出品前保安ゲート')
+    st.caption('FROMAXのKeepaでASINを集める → Soraで商品情報・保安確認 → 通過ASINをFROMAXへ')
     marketplace = st.selectbox('対象国', ('SG', 'PH'), key='sora_marketplace')
     if st.session_state.get('sora_previous_marketplace') not in {None, marketplace}:
         _clear_resolver()
@@ -43,7 +51,57 @@ def render_sora_app():
         _clear_resolver()
         st.success('前回の商品資料・判定・確認結果を消しました。')
 
-    st.header('1. ASIN Resolver')
+    st.header('1. ASINを貼る／FROMAXのKeepa CSVを入れる')
+    entry = st.radio('入力方法', ('ASINを貼る', 'FROMAXのKeepa CSV', 'Shopee調査CSV・ChatGPT（Resolver）'),
+                     horizontal=True, key='sora_entry')
+    if st.session_state.get('sora_previous_entry') not in (None, entry):
+        _clear_resolver()
+    st.session_state['sora_previous_entry'] = entry
+    st.caption('最大500件。商品取得は20件ずつ。取得済みの資料はこの画面内だけで保持します。'
+               '入力・国・入口の変更、新しい実行、画面の再読込・終了で消えます。')
+    if entry == 'Shopee調査CSV・ChatGPT（Resolver）':
+        selected_rows, input_files = _render_resolver(marketplace)
+    else:
+        selected_rows, input_files = _render_direct_input(entry)
+    _render_acquisition(selected_rows, marketplace=marketplace, input_files=input_files)
+    _render_gate(marketplace)
+
+
+def _render_direct_input(entry):
+    if entry == 'ASINを貼る':
+        text = st.text_area('確認するASIN（1行1件・カンマ区切りも可）', key='sora_asins', height=160)
+        fingerprint = (entry, text)
+        content = text
+        has_input = bool(text.strip())
+        input_files = ('ASIN画面貼付',)
+    else:
+        upload = st.file_uploader('FROMAXのKeepa CSV（ASIN列から取り込み）', type=['csv'], key='sora_keepa_file')
+        content = upload.getvalue() if upload is not None else b''
+        has_input = upload is not None
+        fingerprint = (entry, upload.name, getattr(upload, 'file_id', ''), hashlib.sha256(content).hexdigest()) if upload else (entry, None)
+        input_files = (upload.name,) if upload else ()
+    if st.session_state.get('sora_direct_fingerprint') != fingerprint:
+        _clear_run()
+    st.session_state['sora_direct_fingerprint'] = fingerprint
+    if not has_input:
+        return [], input_files
+    try:
+        parsed = parse_asin_text(content) if entry == 'ASINを貼る' else parse_fromax_keepa_csv(content)
+    except (SoraInputError, SpApiCatalogError) as error:
+        st.error(str(error))
+        return [], input_files
+    st.write(f'入力{parsed.data_row_count}件／重複除外{parsed.duplicate_count}件／対象{len(parsed.asins)}件。')
+    if parsed.empty_asin_count:
+        st.warning(f'ASINが空の{parsed.empty_asin_count}行は取り込んでいません。')
+    if entry != 'ASINを貼る':
+        st.caption('商品名や重さが空欄でも、ASINがあれば取り込みます。判定にはAmazonから取得する商品情報を使います。')
+    with st.expander('取り込んだASINを確認'):
+        st.code('\n'.join(parsed.asins), language='text')
+    return preview_candidates('\n'.join(parsed.asins)), input_files
+
+
+def _render_resolver(marketplace):
+    st.subheader('Shopee調査CSVからASINを調べる')
     uploads = st.file_uploader('Shopee調査CSV（任意・複数選択可）', type=['csv'],
                               accept_multiple_files=True, key='sora_research_files')
     uploads = tuple(uploads or ())
@@ -86,6 +144,7 @@ def render_sora_app():
         st.session_state.pop('sora_selection', None)
         st.session_state['sora_preview'] = preview_candidates(response, build_source_map(names) if names.strip() else None)
     preview = st.session_state.get('sora_preview', [])
+    selected_rows = []
     if preview:
         displayed = [{key: row.get(key, '') for key in
                      ('selected', 'source_id', 'input_title', 'asin', 'note')} for row in preview]
@@ -94,42 +153,62 @@ def render_sora_app():
             column_config={'selected': st.column_config.CheckboxColumn('商品情報を確認する')})
         selected_rows = [row for row, display in zip(preview, selected)
                          if display['selected'] and row.get('asin') and row.get('source_id_known') is not False]
-        asins = tuple(dict.fromkeys(row['asin'] for row in selected_rows))
-        selection_signature = tuple(row['row_id'] for row in selected_rows)
-        if st.session_state.get('sora_selection_signature') not in (None, selection_signature):
-            _clear_run()
-        st.session_state['sora_selection_signature'] = selection_signature
+    return selected_rows, tuple(f.name for f in uploads) or ('Resolver画面貼付',)
+
+
+def _render_acquisition(selected_rows, *, marketplace, input_files):
+    signature = tuple((row['row_id'], row['asin']) for row in selected_rows)
+    if st.session_state.get('sora_selection_signature') not in (None, signature):
+        _clear_run()
+    st.session_state['sora_selection_signature'] = signature
+    asins = tuple(dict.fromkeys(row['asin'] for row in selected_rows))
+    if not asins:
+        return
+    try:
+        planned = planned_catalog_calls(asins)
+    except SpApiCatalogError as error:
+        st.warning(str(error))
+        return
+    acquisition = st.session_state.get('sora_acquisition')
+    st.write(f'対象{len(asins)}商品。予定：商品取得{planned}回＋認証最大1回。')
+    start = st.button('SP-APIでASIN確認', key='sora_verify', type='primary', disabled=acquisition is not None)
+    resume = False
+    if acquisition is not None and not acquisition.complete:
+        remaining = len(acquisition.pending_asins)
+        st.warning(f'取得処理済み{len(acquisition.completed_asins)}件／残り{remaining}件。'
+                   '全件の取得処理が終わるまで保安判定・出力は待機します。')
+        st.write(f'残りだけの予定：商品取得{planned_catalog_calls(acquisition.pending_asins)}回＋認証最大1回。')
+        resume = st.button(f'残り{remaining}件だけを取得する', key='sora_resume', type='primary')
+    if start or resume:
+        _clear_gate()
+        if start:
+            acquisition = SoraAcquisition(tuple(selected_rows), marketplace, input_files)
+            st.session_state['sora_acquisition'] = acquisition
+        client = None
         try:
-            planned = planned_catalog_calls(asins)
+            client = SpApiCatalogClient(load_sp_api_credentials())
+            acquisition.advance(client)
         except SpApiCatalogError as error:
-            st.warning(str(error))
-            planned = None
-        st.write(f'選択{len(selected_rows)}行／重複を除いて{len(asins)}商品。'
-                 f'予定：商品取得{planned if planned is not None else "上限超過"}回＋認証最大1回。')
-        if st.button('SP-APIでASIN確認', key='sora_verify', type='primary',
-                     disabled=not asins or planned is None or 'sora_calls' in st.session_state):
-            _clear_run()
+            acquisition.error = str(error)
+        except Exception:
+            acquisition.error = '商品情報の取得を停止しました。未確認商品は通過させません。'
+        finally:
             client = None
-            st.session_state['sora_calls'] = {'auth': 0, 'catalog': 0}
+            st.session_state['sora_calls'] = {'auth': acquisition.auth_calls, 'catalog': acquisition.catalog_calls}
+            st.session_state['sora_verified'] = acquisition.verified_rows
+        if acquisition.complete:
             try:
-                client = SpApiCatalogClient(load_sp_api_credentials())
-                verified = verify_preview_rows(selected_rows, client)
-                st.session_state['sora_verified'] = verified
-                if any(row.get('status') == 'ERROR' for row in verified):
-                    st.error(next(row['note'] for row in verified if row.get('status') == 'ERROR'))
-                else:
-                    st.session_state['sora_run'] = prepare_sora_run(verified, marketplace=marketplace,
-                        auth_calls=client.auth_calls, catalog_calls=client.catalog_calls,
-                        input_files=tuple(f.name for f in uploads) or ('画面貼付',))
-                    st.success('商品情報を確認しました。成分・説明文も同じ画面の保安ゲートへ渡しました。')
-            except SpApiCatalogError as error:
-                st.error(str(error))
+                st.session_state['sora_run'] = prepare_sora_run(acquisition.verified_rows, marketplace=marketplace,
+                    auth_calls=acquisition.auth_calls, catalog_calls=acquisition.catalog_calls, input_files=input_files)
             except Exception:
-                st.error('商品資料を保安ゲートへ渡せませんでした。未確認商品は通過させません。')
-            finally:
-                st.session_state['sora_calls'] = {'auth': client.auth_calls if client else 0,
-                                                  'catalog': client.catalog_calls if client else 0}
-                client = None
+                acquisition.error = '商品資料を保安ゲートへ渡せませんでした。未確認商品は通過させません。'
+        # Refresh the pending count/button after this explicit attempt; this
+        # rerun only renders state and never starts or resumes a request.
+        st.rerun()
+    if acquisition is not None and acquisition.error:
+        st.error(acquisition.error)
+    if acquisition is not None and acquisition.complete and 'sora_run' in st.session_state:
+        st.success('商品情報を確認しました。成分・説明文も同じ画面の保安ゲートへ渡しました。')
     if st.session_state.get('sora_verified'):
         st.dataframe([{k: row.get(k, '') for k in ('source_id', 'input_title', 'asin', 'product_title', 'verification', 'note')}
                       for row in st.session_state['sora_verified']], hide_index=True)
@@ -137,6 +216,7 @@ def render_sora_app():
         calls = st.session_state['sora_calls']
         st.caption(f"今回の実行：商品取得{calls['catalog']}回／認証{calls['auth']}回。自動再試行はしません。")
 
+def _render_gate(marketplace):
     st.header('2. 出品前保安ゲート')
     run = st.session_state.get('sora_run')
     if run is None:
@@ -160,7 +240,9 @@ def render_sora_app():
             inventories = [parse_listing_inventory_csv(f.getvalue(), filename=f.name,
                 marketplace=marketplace, shop_label=f'shop-{n}') for n, f in enumerate(inventory_files, 1)]
         except Exception:
-            st.error('既出品CSVを読み取れません。対象国・ファイル名・必須列を確認してください。')
+            st.error('これはShopeeの出品CSVとして読み取れません。FROMAXのKeepa CSVは上の入口に入れてください。'
+                     'Shopeeの出品エクスポートにはProduct ID・Parent SKU・Model ID・SKU・Stock列が必要です。'
+                     '対象国・ファイル名も確認してください。')
             st.session_state.pop('sora_result', None)
             return
     inventory_fingerprint = tuple((f.name, hashlib.sha256(f.getvalue()).hexdigest()) for f in inventory_files)

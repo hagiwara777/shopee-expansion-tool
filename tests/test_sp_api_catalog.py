@@ -91,7 +91,7 @@ def test_chunk_deduplication_counts_and_two_second_spacing():
     assert len(transport.calls) == 3
 
 
-@pytest.mark.parametrize('asins', [['bad'], [f'B{i:09d}' for i in range(101)], 'B000000001'])
+@pytest.mark.parametrize('asins', [['bad'], [f'B{i:09d}' for i in range(501)], 'B000000001'])
 def test_invalid_plan_sends_nothing(asins):
     transport = Transport()
     client = SpApiCatalogClient(CREDS, transport=transport)
