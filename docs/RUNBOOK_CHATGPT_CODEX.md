@@ -51,9 +51,9 @@ branch / HEAD / tree / 差分はGit、タスク固有状態はTask Contextと照
 | 通常read-only調査（Git・コード・文書・非秘密の保存ログ） | 上記Git観測、AGENTS・再開案内・対象scope確認後に開始。関連箇所を読む | Validate、snapshot、Task Context新設、実Trust Anchorの読込は開始条件にしない。実API・実商品・secret読込は「read-only」という名称でも含まない |
 | 通常のlocal編集 | 承認された目的・変更対象・禁止範囲、既存ユーザー差分、関連する現行契約を確認。継続タスクは既存Task Contextと照合 | 範囲内編集・修正のために正式VerifyのCONTINUEを要求しない。未承認の境界変更、停止中の実運用、別taskの差分混入は不可 |
 | offline検証・commit・push・Draft PR | 関連tests、変更時のGovernance設定Validate、差分・secret確認。必要な既存CIを実行し、未実行・失敗を区別 | 合成fixture・mockは実受入の証拠にしない。snapshotを通常編集の度に作らない。検証済み候補の公開はDEC-0073の承認範囲内 |
-| 正式受入・merge、および既存契約で正式検証を要求する設置 | repo外Task Context、承認された実Trust Anchor参照、現在対象のValidate→snapshot→fresh Verify。mandatory technical gates、Summary、Owner最終承認、fresh Owner Evidenceを確認 | HOLD / HARD_STOPを保持。実環境の鍵・Anchor操作、設置・live・deployはそれぞれ別承認。merge後のValidate・snapshot・read-only Verifyも維持 |
+| 旧Verifierの正式受入・merge、および既存契約で正式検証を要求する設置 | repo外Task Context、承認された実Trust Anchor参照、現在対象のValidate→snapshot→fresh Verify。mandatory technical gates、Summary、Owner最終承認、fresh Owner Evidenceを確認 | HOLD / HARD_STOPを保持。実環境の鍵・Anchor操作、設置・live・deployはそれぞれ別承認。旧Verifierのmerge後のValidate・snapshot・read-only Verifyも維持 |
 
-DEC-0173の切替条件成立後のOwner手動mergeは、この表の旧Verifierによるmerge手順に代えて同Decisionの手順を適用する。旧Verifier自体や、別途正式検証を必要とする設置には従来の条件を維持する。
+Ownerが明示したDEC-0173の切替PRとその後のOwner手動mergeは、この表の旧Verifierによるmerge手順に代えて同Decisionの手順を適用する。旧Verifier自体や、別途正式検証を必要とする設置には従来の条件を維持する。旧VerifierのHOLDをCONTINUEへ読み替えない。
 
 通常調査は既存Git・`rg`・ファイル読込で行い、新しい認可engineを設けない。
 `Verify-ContextSnapshot.ps1 -Profile read-only`は**正式なsnapshotの検証profile**であり、
@@ -99,14 +99,15 @@ Exit codeは`0=CONTINUE`、`10=HOLD`、`20=HARD_STOP`、`64=usage`、`70=interna
 
 | 停止の原因 | 停止を維持する操作 | 独立して継続できる承認済み作業 |
 | --- | --- | --- |
-| Anchor／署名鍵不足、Owner未承認、CI・Evidence不足／古いbinding | 正式受入・署名・merge、およびその成立を前提にする設置・live | コード・文書の原因調査、合成fixtureでの修正・tests、差分review、検証済み候補のDraft公開 |
+| Anchor／署名鍵不足、Owner未承認、CI・Evidence不足／古いbinding | 旧Verifierによる正式受入・署名・merge、およびその成立を前提にする設置・live | コード・文書の原因調査、合成fixtureでの修正・tests、差分review、検証済み候補のDraft公開 |
 | tests失敗、Config不正、protected gate失敗 | 失敗対象を検証済みとしてcommit／採用すること、依存する製品操作 | 該当原因の調査・最小修正・失敗testの再実行。gate削除や期待値の無根拠な変更は不可 |
 | repository identity不一致、secret露出疑義、無関係dirty変更 | 当該信頼前提による書込み・公開・署名・実行。ユーザー差分の上書き | 読取診断、秘密を出さない範囲確認。独立した正しい対象を実測できるまでは依存する編集をしない |
 | Safety／予算／商品／実運用の明示停止 | 当該商品・サービス・保存先と依存する操作 | 停止対象へ触れない、承認済みの文書・合成tests等。別task・別profileを名乗って同じ操作を再開しない |
 
+Ownerが明示したDEC-0173の署名手続き置換とOwner手動mergeは、旧Verifierの署名鍵・Anchorを使わない。旧VerifierのHOLD自体を解除せず、CI・PH／SG保護・Owner未確認・identity不一致等の停止は新方式でも維持する。
 HARD_STOPも解除しない。独立性を確認できない作業は停止対象に含める。
 Ownerが全作業停止を明示した場合はそれを優先する。原因解消後は元のgateを現在対象で再評価し、
-失敗記録や実行済み消費を消さない。正式VerifyがHOLDのままならformal採用完了とは報告しない。
+失敗記録や実行済み消費を消さない。旧Verifierの正式VerifyがHOLDのままなら旧Verifierによる受入成功とは報告しない。
 
 ## Decision読込
 
@@ -139,35 +140,35 @@ Required Decisionsは次の単一作業に必要なIDと参照理由だけに保
 Summaryの変更を要求しない。一方、同じHEAD・scopeでもCI再実行のrun attemptに伴うEvidence ID変更や
 Provider観測情報の変更はverification input hashを変え、旧Summaryを無効にする。
 単なるEvidence実行時刻変更と識別情報変更は同一ではない。再取得・再実行前後のbindingをCodexが照合し、
-変更があれば現行の再提示・再承認を維持する。今回、技術再検証とOwner承認を分離する新方式は導入しない。
+変更があれば旧Verifierでの再提示・再承認を維持する。旧Verifierに技術再検証とOwner承認を分離する機能は導入しない。
 
 ## Formal acceptance
 
 Governance mandatory checksはbranch protectionと独立して評価します。provider欠落、check欠落、pending、
 skipped、neutral、古いheadはformal acceptanceを満たしません。mandatory technical gate完了前はOwner Acceptanceを要求しません。
 
-### Owner手動merge方式と移行条件（DEC-0173）
+### Owner手動merge方式（DEC-0173）
 
 Ownerは採用サマリーと現在のPRのCIを確認し、自分のGitHub PR画面のMergeボタンで取り込む。
 Codexはサマリー・差分・チェックの確認を準備するが、Ownerに代わってmergeしない。
 この方式の受入では署名鍵・Trust Anchor・署名付きOwner Evidenceを使わない。既存の鍵・記録・実装は保全する。
 
-切替は次のすべてが成立した後だけとする。設定変更そのものは別の明示承認を要する。
+切替PR自体とその後の各PRは、次の条件を満たす。設定変更そのものは別の明示承認を要する。
 
 1. mainの有効なrulesetで、`governance.validate`、`governance.ps51`、`governance.ps7`、`tests.offline`、`protected.ph + protected.sg`、`governance.owner-merge-readiness`の6つの現在対象チェックを必須にする。保護ジョブはPHとSG両方の検証・Evidence生成が成功した場合だけ成功となる。最後のチェックは前の5ジョブがすべて成功した場合だけ成功する。欠落・待機・失敗・skip・neutral・古い対象は成功にしない。
 2. pull request必須・削除禁止・非fast-forward禁止を維持し、必須チェックを回避するbypassを追加しない。rulesetの適用対象、必須チェックの提供元と現在対象への結合を確認する。
-3. CodexがOwnerのmerge権限を使えないこと、Owner本人がPR画面でmergeできることを実権限で確認する。現在の共有認証を前提に権限分離を成立扱いにしない。GitHub設定・権限・認証変更はそれぞれ別承認とする。
-4. 現行の正式受入から新方式への切替自体を、既存の停止条件を迂回せず正式に採用する。移行PRの旧方式による受入条件と必要な別承認が未成立の場合は停止し、OwnerのMergeボタンを迂回手段にしない。
+3. Codexはmergeせず、Owner本人がGitHubのPR画面で取り込む。Ownerの指示により権限の完全な分離は当面条件としない。共有認証では技術的な権限制御や操作主体の識別によってこの運用を保証できない。GitHub設定・権限・認証変更はそれぞれ別承認とする。
+4. 切替PRも、必須CIと採用サマリーを確認したOwnerが最終判断する。署名鍵・Trust Anchor・旧VerifierによるCONTINUEを切替条件にせず、旧Verifierの結果を成功へ読み替えない。保安・CI・identity不一致等の停止は維持する。
 
-成立後も、各PRの対象head・base・変更範囲、PH／SG保護を含む必須CI、9項目の採用サマリーを現在のGitHub情報で照合する。GitHubはskipped／neutralを必須チェックの通過と扱う場合があるため、Ownerは各ジョブが明示的にsuccessであることも確認する。対象・主要リスク・CI結果が変われば確認をやり直す。Ownerが確認後に実際にmergeし、merge後は正式main・対象treeと記録を確認する。設置・実API・設定変更は別承認のまま維持する。
-GitHub設定が未適用・権限分離が未確認・移行条件が未成立の場合、新方式を有効と扱わない。旧方式のHOLDをそのまま維持する。
+各PRの対象head・base・変更範囲、PH／SG保護を含む必須CI、9項目の採用サマリーを現在のGitHub情報で照合する。GitHubはskipped／neutralを必須チェックの通過と扱う場合があるため、Ownerは各ジョブが明示的にsuccessであることも確認する。対象・主要リスク・CI結果が変われば確認をやり直す。Ownerが確認後に実際にmergeし、merge後は正式main・対象treeと記録を確認する。設置・実API・設定変更は別承認のまま維持する。
+GitHub必須チェックが未適用、現在対象のCIが失敗・未完了、Ownerの確認がない場合は取り込まない。
 
 Owner Acceptance Summaryは、採用対象、変更、非対象、既存運用影響、主要リスク、確認済みEvidence、既知制約、
 承認後の意味、rollbackの9項目を事業用語で説明します。オーナーへhash、SHA、schema等の技術判断を要求しません。
 
-### 通常のOwner Acceptanceの入口
+### 署名付き旧Owner Acceptanceの入口（保全）
 
-通常は本節から実施する。PR #96 bootstrapや過去PRの復旧記録は履歴であり、通常受入の手順ではない。
+本節は旧Verifierの手順として保全し、DEC-0173のOwner手動mergeには適用しない。PR #96 bootstrapや過去PRの復旧記録は履歴である。
 現在の鍵の所在・実環境の使用許可はOwner管理元の現在の指定を使い、過去のpathや成功記録から推定しない。
 
 1. **権限と環境を確定**：現在の対象PR・scope、実Anchorの読込許可、既存鍵の限定利用許可を既存Task Context／Owner指示で照合する。採用承認だけから秘密鍵利用を推定しない。使用するPythonのversion・依存と、formal main採用済みのGovernance一式・実import元を確認する。WindowsではUTF-8で起動し、既存の保護鍵を扱える許可済みユーザー／実行環境を用いる。環境の再構築・権限変更を自動実行しない。
@@ -471,7 +472,7 @@ post-merge検証成功後のTask Context CLOSEDはそのタスクの終了であ
 5. 恒久判断が変わった場合だけDECISION_LOGへ新IDで追記し、既存entryを書き換えない。
 6. 長期工程・順序が変わる場合だけPROJECT_ROADMAPを更新する。
 7. 恒久ルールが変わる場合だけAGENTS等を更新する。詳細を複数文書に複製しない。
-8. 正本文書更新時は「開始・実行」の操作別検証を行う。正式受入ではsnapshotを再生成する。
+8. 正本文書更新時は「開始・実行」の操作別検証を行う。旧Verifierの正式受入ではsnapshotを再生成する。
    必須生成・検証の失敗を完了扱いにしない。通常編集にはsnapshotを一律要求しない。
 9. 関連検証、変更ファイル、未追跡ファイル、secret確認後、検証済み範囲だけlocal commitする。
    push / Draft PRは通常開発承認のscope内、merge / deployは別の承認規則に従う。
@@ -483,8 +484,8 @@ handoffには完了内容、確認済みtests、未解決事項、次タスク�
 
 ## Post-Merge Stability
 
-DEC-0114を適用する。DEC-0072 / DEC-0073 / DEC-0106のtechnical gates、Owner最終承認、
-fresh Owner Evidence、binding、formal Verify、protected capability契約は維持する。
+DEC-0114を適用する。technical gates、Owner最終判断、現在対象の確認、protected capability契約は維持する。
+旧Verifierを使う場合はfresh Owner Evidence、binding、formal Verifyを維持し、DEC-0173のOwner手動mergeでは使わない。
 過去Decisionの個別受入事実は保持するが、後続の成功記録PRを通常終了工程とする部分は本節に置き換える。
 
 ### A. Post-Merge Stability Rule
@@ -508,13 +509,15 @@ open PR状態、current branch / head、CI待ち、Owner Acceptance待ち、merg
 
 ### C. No Recursive Finalization
 
-通常終了フローは次に固定する。
+旧Verifierによる終了フローは次に固定する。
 
 成果物作成 → tests → 正本文書をmerge後にも正しい形で同一PRへ含める →
 mandatory technical gates → Owner Acceptance → merge → formal main確認 →
 Validate → snapshot → read-only Verify → Task Context CLOSED → 終了。
 
-merge commit、MERGED状態、CI結果はGitHub、post-merge Verify結果はTask Context / Evidenceを正本とする。
+DEC-0173のOwner手動mergeでは、成果物・tests・正本文書・mandatory technical gates・Owner確認の後、OwnerがGitHubでmergeする。merge後はGitHub / GitでMERGED状態と正式mainを確認する。旧Verifierのsnapshot・Verify・署名鍵・Anchorをこの統合確認に使わない。存在するTask Contextの終了処理は適用可能な承認範囲で行い、欠落した記録の作成・復元を推測しない。
+
+merge commit、MERGED状態、CI結果はGitHub、旧Verifierのpost-merge Verify結果はTask Context / Evidenceを正本とする。
 post-merge Verify成功だけをGitへ記録する追加PRや「前PRをmergeした結果を記録するPR」を通常工程にしない。
 同一PRへ採用後の再開案内を含めることが正本化であり、成功記録の再正本化を要求しない。
 

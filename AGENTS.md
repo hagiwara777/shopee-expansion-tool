@@ -30,12 +30,12 @@ AGENTSには毎タスク必須の恒久原則、[RUNBOOK](docs/RUNBOOK_CHATGPT_C
   dirtyのままbranchを切り替えず、無関係な変更をstage / commitしない。
 - 開始条件はRUNBOOK「開始・実行」の操作別手順を適用する。通常のread-only調査には
   Validate・snapshot・実環境Trust Anchorを要求しない。通常編集とoffline検証はscope・差分・
-  関連testsを確認し、正式受入・設置は従来のValidate・snapshot・fresh Verifyを省略しない。
+  関連testsを確認し、旧Verifierの正式受入と当該Verifierが必要な設置は従来のValidate・snapshot・fresh Verifyを省略しない。DEC-0173のOwner手動mergeは同Decisionの手順を適用する。
   正式Governance操作前は「正本」「Trust Anchor」「Task Context」「開始・実行」を適用する。
 
 ## 軽量開発運用 v1・承認境界
 
-- DEC-0173のOwner手動merge方式は、RUNBOOKのGitHub必須チェック・権限分離・移行条件がすべて成立した後に適用する。成立前は既存の正式受入とHOLDを維持する。成立後はOwnerが対象PRのサマリーと現在のCIを確認し、GitHub画面から自分でmergeする。Codexはmergeしない。新方式の受入に署名鍵・Trust Anchorを使わない。
+- DEC-0173のOwner手動merge方式では、Ownerが対象PRのサマリー・現在の必須CIを確認し、GitHub画面から自分でmergeする。Codexはmergeしない。権限の完全な分離は当面の条件とせず、共有認証では技術的にCodexのmergeを防げない限界を明示する。新方式とその切替の受入に署名鍵・Trust Anchorを使わない。
 - CodexはGit・正本を確認し技術判断と検証を担う。GPTは必須の伝言役または承認者にしない。
   Ownerへ技術方式の選択を求めず、事業上の違いと確認結果を平易に説明する。
 - 読み取り・scope内local編集・testはユーザー変更とsecretを保護し、小さく可逆に進める。
@@ -64,8 +64,9 @@ AGENTSには毎タスク必須の恒久原則、[RUNBOOK](docs/RUNBOOK_CHATGPT_C
   停止は当該操作とその結果・信頼前提に依存する操作へ適用する。RUNBOOK「HOLDの適用範囲」に従い、
   承認済みで独立した原因調査・安全なlocal修正・offline検証準備は継続できる。
   Task Contextで既存gate、Global State、保護capabilityを削除・緩和しない。
+  Ownerが明示したDEC-0173の統合手続き置換は、旧Verifierの署名鍵・Anchorを新方式の切替条件にしない。旧VerifierのHOLDをCONTINUEへ変換せず、保安・CI・identity不一致等の停止は維持する。
 - 従来の署名付きVerifierのbootstrap repository identityはOwner受入済みrepo外Trust Anchorだけを信頼する。
-  DEC-0173の切替条件成立後のOwner手動mergeでは、OwnerがGitHub上で正式repositoryと対象PRを自分で確認し、Anchorを使わない。
+  DEC-0173の切替とOwner手動mergeでは、OwnerがGitHub上で正式repositoryと対象PRを自分で確認し、Anchorを使わない。
   いずれもrepo / remote / State / Config / Task Contextの自己申告だけを期待値にしない。
 - 変更分類はGOVERNANCE_ONLY / MARKET_LOCAL / SHARED_CORE。
   未知path・混合・分類不能はSHARED_COREとし、`ph.beta.operation`と`sg.safety.baseline`を保護する。
@@ -102,7 +103,7 @@ AGENTSには毎タスク必須の恒久原則、[RUNBOOK](docs/RUNBOOK_CHATGPT_C
 - formal mainで成立する再開案内の変更は同一PR内のCURRENT_WORKへ、恒久判断変更はDECISION_LOGへ新IDで追記（既存entryを書き換えない）、
   工程順変更時はPROJECT_ROADMAP、恒久ルール変更時はAGENTS等を更新する。詳細を重複複製しない。
 - CURRENT_WORKまたはDECISION_LOG更新時はRUNBOOK「開始・実行」の操作別検証を行う。
-  正式受入では現在対象のsnapshotを再生成・検証する。テスト失敗、無関係なdirty変更、
+  旧Verifierの正式受入では現在対象のsnapshotを再生成・検証する。テスト失敗、無関係なdirty変更、
   必須のsnapshot生成失敗、正本矛盾で正本化できない場合は、当該正本化を完了扱いにせず
   阻害要因を報告する。独立作業は「HOLDの適用範囲」、復旧は「Rollback」に従う。
 
