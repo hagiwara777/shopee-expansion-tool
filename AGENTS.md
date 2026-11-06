@@ -35,6 +35,7 @@ AGENTSには毎タスク必須の恒久原則、[RUNBOOK](docs/RUNBOOK_CHATGPT_C
 
 ## 軽量開発運用 v1・承認境界
 
+- DEC-0173のOwner手動merge方式は、RUNBOOKのGitHub必須チェック・権限分離・移行条件がすべて成立した後に適用する。成立前は既存の正式受入とHOLDを維持する。成立後はOwnerが対象PRのサマリーと現在のCIを確認し、GitHub画面から自分でmergeする。Codexはmergeしない。新方式の受入に署名鍵・Trust Anchorを使わない。
 - CodexはGit・正本を確認し技術判断と検証を担う。GPTは必須の伝言役または承認者にしない。
   Ownerへ技術方式の選択を求めず、事業上の違いと確認結果を平易に説明する。
 - 読み取り・scope内local編集・testはユーザー変更とsecretを保護し、小さく可逆に進める。
@@ -63,8 +64,9 @@ AGENTSには毎タスク必須の恒久原則、[RUNBOOK](docs/RUNBOOK_CHATGPT_C
   停止は当該操作とその結果・信頼前提に依存する操作へ適用する。RUNBOOK「HOLDの適用範囲」に従い、
   承認済みで独立した原因調査・安全なlocal修正・offline検証準備は継続できる。
   Task Contextで既存gate、Global State、保護capabilityを削除・緩和しない。
-- bootstrap repository identityはOwner受入済みrepo外Trust Anchorだけを信頼し、
-  repo / remote / State / Config / Task Contextの自己申告を期待値にしない。
+- 従来の署名付きVerifierのbootstrap repository identityはOwner受入済みrepo外Trust Anchorだけを信頼する。
+  DEC-0173の切替条件成立後のOwner手動mergeでは、OwnerがGitHub上で正式repositoryと対象PRを自分で確認し、Anchorを使わない。
+  いずれもrepo / remote / State / Config / Task Contextの自己申告だけを期待値にしない。
 - 変更分類はGOVERNANCE_ONLY / MARKET_LOCAL / SHARED_CORE。
   未知path・混合・分類不能はSHARED_COREとし、`ph.beta.operation`と`sg.safety.baseline`を保護する。
   両ACCEPTED capabilityを弱めず、SHARED_COREまたは未知変更では両方の保護gateを適用する。

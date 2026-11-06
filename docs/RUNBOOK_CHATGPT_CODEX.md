@@ -53,6 +53,8 @@ branch / HEAD / tree / 差分はGit、タスク固有状態はTask Contextと照
 | offline検証・commit・push・Draft PR | 関連tests、変更時のGovernance設定Validate、差分・secret確認。必要な既存CIを実行し、未実行・失敗を区別 | 合成fixture・mockは実受入の証拠にしない。snapshotを通常編集の度に作らない。検証済み候補の公開はDEC-0073の承認範囲内 |
 | 正式受入・merge、および既存契約で正式検証を要求する設置 | repo外Task Context、承認された実Trust Anchor参照、現在対象のValidate→snapshot→fresh Verify。mandatory technical gates、Summary、Owner最終承認、fresh Owner Evidenceを確認 | HOLD / HARD_STOPを保持。実環境の鍵・Anchor操作、設置・live・deployはそれぞれ別承認。merge後のValidate・snapshot・read-only Verifyも維持 |
 
+DEC-0173の切替条件成立後のOwner手動mergeは、この表の旧Verifierによるmerge手順に代えて同Decisionの手順を適用する。旧Verifier自体や、別途正式検証を必要とする設置には従来の条件を維持する。
+
 通常調査は既存Git・`rg`・ファイル読込で行い、新しい認可engineを設けない。
 `Verify-ContextSnapshot.ps1 -Profile read-only`は**正式なsnapshotの検証profile**であり、
 通常の読み取り調査を意味しない。既存の全Verify profileは従来どおりTrust Anchorとfresh bindingを要求する。
@@ -143,6 +145,22 @@ Provider観測情報の変更はverification input hashを変え、旧Summaryを
 
 Governance mandatory checksはbranch protectionと独立して評価します。provider欠落、check欠落、pending、
 skipped、neutral、古いheadはformal acceptanceを満たしません。mandatory technical gate完了前はOwner Acceptanceを要求しません。
+
+### Owner手動merge方式と移行条件（DEC-0173）
+
+Ownerは採用サマリーと現在のPRのCIを確認し、自分のGitHub PR画面のMergeボタンで取り込む。
+Codexはサマリー・差分・チェックの確認を準備するが、Ownerに代わってmergeしない。
+この方式の受入では署名鍵・Trust Anchor・署名付きOwner Evidenceを使わない。既存の鍵・記録・実装は保全する。
+
+切替は次のすべてが成立した後だけとする。設定変更そのものは別の明示承認を要する。
+
+1. mainの有効なrulesetで、`governance.validate`、`governance.ps51`、`governance.ps7`、`tests.offline`、`protected.ph + protected.sg`、`governance.owner-merge-readiness`の6つの現在対象チェックを必須にする。保護ジョブはPHとSG両方の検証・Evidence生成が成功した場合だけ成功となる。最後のチェックは前の5ジョブがすべて成功した場合だけ成功する。欠落・待機・失敗・skip・neutral・古い対象は成功にしない。
+2. pull request必須・削除禁止・非fast-forward禁止を維持し、必須チェックを回避するbypassを追加しない。rulesetの適用対象、必須チェックの提供元と現在対象への結合を確認する。
+3. CodexがOwnerのmerge権限を使えないこと、Owner本人がPR画面でmergeできることを実権限で確認する。現在の共有認証を前提に権限分離を成立扱いにしない。GitHub設定・権限・認証変更はそれぞれ別承認とする。
+4. 現行の正式受入から新方式への切替自体を、既存の停止条件を迂回せず正式に採用する。移行PRの旧方式による受入条件と必要な別承認が未成立の場合は停止し、OwnerのMergeボタンを迂回手段にしない。
+
+成立後も、各PRの対象head・base・変更範囲、PH／SG保護を含む必須CI、9項目の採用サマリーを現在のGitHub情報で照合する。GitHubはskipped／neutralを必須チェックの通過と扱う場合があるため、Ownerは各ジョブが明示的にsuccessであることも確認する。対象・主要リスク・CI結果が変われば確認をやり直す。Ownerが確認後に実際にmergeし、merge後は正式main・対象treeと記録を確認する。設置・実API・設定変更は別承認のまま維持する。
+GitHub設定が未適用・権限分離が未確認・移行条件が未成立の場合、新方式を有効と扱わない。旧方式のHOLDをそのまま維持する。
 
 Owner Acceptance Summaryは、採用対象、変更、非対象、既存運用影響、主要リスク、確認済みEvidence、既知制約、
 承認後の意味、rollbackの9項目を事業用語で説明します。オーナーへhash、SHA、schema等の技術判断を要求しません。
