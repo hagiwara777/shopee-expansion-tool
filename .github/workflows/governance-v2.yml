@@ -174,3 +174,23 @@ jobs:
           name: governance-evidence-protected-capabilities
           path: evidence/*.json
           if-no-files-found: error
+
+  owner-merge-readiness:
+    name: governance.owner-merge-readiness
+    if: ${{ always() }}
+    needs: [governance, powershell-51, powershell-7, offline-tests, protected-capabilities]
+    runs-on: windows-latest
+    env:
+      CHECK_GOVERNANCE: ${{ needs.governance.result }}
+      CHECK_PS51: ${{ needs.powershell-51.result }}
+      CHECK_PS7: ${{ needs.powershell-7.result }}
+      CHECK_OFFLINE: ${{ needs.offline-tests.result }}
+      CHECK_PROTECTED: ${{ needs.protected-capabilities.result }}
+    steps:
+      - name: Require every existing mandatory job to succeed
+        shell: pwsh
+        run: |
+          $results = @($env:CHECK_GOVERNANCE, $env:CHECK_PS51, $env:CHECK_PS7, $env:CHECK_OFFLINE, $env:CHECK_PROTECTED)
+          if ($results.Count -ne 5 -or @($results | Where-Object { $_ -cne 'success' }).Count -ne 0) {
+            throw 'Every existing mandatory CI job must succeed.'
+          }
