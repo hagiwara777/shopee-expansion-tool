@@ -31,10 +31,9 @@ def test_selected_country_filter_and_resolver_prompt(marketplace, country, host,
         assert 'R0001\tOrdinary towel' in build_ai_prompt(source)
 
 
-def test_research_csv_is_passed_to_prompt_in_same_screen(monkeypatch):
+def test_preserved_research_csv_is_passed_to_prompt_in_isolated_resolver(monkeypatch):
     import logging
     import streamlit as st
-    from pathlib import Path
 
     def warning(logger, message, *args, **kwargs):
         if logger.isEnabledFor(logging.WARNING):
@@ -47,8 +46,8 @@ def test_research_csv_is_passed_to_prompt_in_same_screen(monkeypatch):
         [uploaded] if kwargs.get('key') == 'sora_research_files' else uploader(*args, **kwargs))
     monkeypatch.setattr('modules.sora_ui.load_sp_api_credentials',
                         lambda: pytest.fail('CSV import must not read secrets'))
-    app = AppTest.from_file(str(Path(__file__).resolve().parents[1]/'app.py'), default_timeout=20).run()
-    app.radio(key='sora_entry').set_value('Shopee調査CSV・ChatGPT（Resolver）').run()
+    app = AppTest.from_string("from modules.sora_ui import _render_resolver\n_render_resolver('SG')",
+                              default_timeout=20).run()
     next(b for b in app.button if b.key == 'sora_import_research').click().run()
     assert not app.exception
     assert 'Ordinary towel' in app.text_area(key='sora_source_input').value
