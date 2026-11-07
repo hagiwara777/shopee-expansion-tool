@@ -185,7 +185,11 @@ def _policy_pattern(term, rule):
     if term == "ライター":
         return r"(?<!ハイ)ライター"
     if term == "マッチ":
-        return r"マッチ(?!ング)"
+        return r"マッチ(?!ング|ャ)"
+    if rule["id"] == "COMMON-SLS-PERFUME" and term == "フレグランス":
+        return r"フレグランス(?!フリー|不使用|無添加)"
+    if rule["id"] == "COMMON-SLS-PERFUME" and term in {"perfume", "perfumes", "fragrance", "fragrances"}:
+        return rf"(?<![a-z0-9]){re.escape(term)}(?![a-z0-9]|[ -]?free\b)"
     if rule["id"] == "COMMON-DRUG" and term == "hemp":
         return re.escape(term)
     medical = (rule["condition"] in {"medical", "ph_contact_lens"}
@@ -213,6 +217,39 @@ def _mask_usage_cautions(value, field, rule_id):
     return re.sub(pattern, lambda match: " " * len(match[0]), value) if pattern else value
 
 
+def _mask_other_person_perfume(value):
+    """Mask only a perfume occurrence explicitly referring to the user's other perfume."""
+    patterns = (
+        r"お手持ちの(?:スキンケア[・、,]\s*)?香水"
+        r"(?!タイプ|です|である|(?:を|が)?(?:同梱|付属|入って|配合|含む))",
+        r"香水(?=や他のフレグランスを(?:ご)?使用する方)",
+        r"香水(?=の香りを邪魔(?:したくない|しない|しません))",
+    )
+    for pattern in patterns:
+        value = re.sub(pattern, lambda m: m[0][:-2] + "  " if m[0].endswith("香水") else "  ", value)
+    return value
+
+
+def _mask_makeup_wine_colors(value, row):
+    """Recognize explicit color names only when the category is makeup."""
+    from modules.guardrails import normalize_text
+    category = normalize_text(row.get("category", ""))
+    nodes = (node.strip() for node in category.split(">"))
+    if not any(re.match(r"^(?:メイクアップ|口紅|リップ|アイシャドウ|アイライナー|チーク|makeup)(?:$|[・/、,\s])", node)
+               for node in nodes):
+        return value
+    return re.sub(r"(?:パンプキンワイン|ワイン(?:レッド|ピンク|ブラウン|パープル|色))"
+                  r"(?!\s*(?:入り|付き|同梱|付属|配合|含有|を含む|を使用))",
+                  lambda match: " " * len(match[0]), value)
+
+
+def _fragrance_text_describes_product(value, occurrence):
+    """The newly recognized generic word in prose needs an affirmative product expression."""
+    prefix = value[max(0, occurrence.start() - 40):occurrence.start()]
+    return bool(re.match(r"(?:です|である|タイプ|そのもの)", value[occurrence.end():])
+                or re.search(r"\b(?:this|the|our)\s+(?:(?:product|item)\s+)?is\s+(?:an?\s+)?$", prefix))
+
+
 def evaluate_policy(row, marketplace, rules=None):
     # Future-market data never enables its UI, credentials, or operations.
     from modules.guardrails import normalize_text, _contains_rule_term, GuardrailRule
@@ -233,6 +270,10 @@ def evaluate_policy(row, marketplace, rules=None):
             if rule["id"] in exclusions:
                 value = re.sub(exclusions[rule["id"]], lambda m: " " * len(m[0]), value)
             value = _mask_usage_cautions(value, field, rule["id"])
+            if rule["id"] == "COMMON-SLS-PERFUME" and group == "text":
+                value = _mask_other_person_perfume(value)
+            if rule["id"] == "COMMON-ALCOHOL-DRINK" and group in {"title", "text"}:
+                value = _mask_makeup_wine_colors(value, row)
             sections = ingredient_spans(original) if is_ingredient_policy_text else ()
             for term in rule["terms"]:
                 normalized = normalize_text(term)
@@ -257,6 +298,10 @@ def evaluate_policy(row, marketplace, rules=None):
                          if medical else None)
                 seen_actions = set()
                 for index, occurrence in enumerate(occurrences):
+                    if (rule["id"] == "COMMON-SLS-PERFUME"
+                            and term in {"フレグランス", "perfume", "perfumes", "fragrance", "fragrances"} and group == "text"
+                            and not _fragrance_text_describes_product(value, occurrence)):
+                        continue
                     if medical:
                         # Isolate this occurrence so a later positive cannot make
                         # a negated occurrence appear to be the matching evidence.
