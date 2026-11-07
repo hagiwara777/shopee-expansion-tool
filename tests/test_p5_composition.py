@@ -449,8 +449,8 @@ def test_windows_storage_rejects_incomplete_os_metadata_without_mutation(tmp_pat
 
 
 def pending_entry(runtime):
-    from app_beta import render_beta
-    render_beta(p5_runtimes={runtime.scope.marketplace: runtime})
+    from modules.p5_ui import render_p5_start
+    render_p5_start(runtime)
 
 
 def test_pending_operator_composes_only_at_start_and_rerenders_do_not_send(tmp_path, monkeypatch):
@@ -461,7 +461,6 @@ def test_pending_operator_composes_only_at_start_and_rerenders_do_not_send(tmp_p
     operator = object.__new__(P5Operator)
     monkeypatch.setattr(P5Operator, 'compose', lambda self, scope: calls.append('compose') or runtime)
     pending = PendingP5Runtime(runtime.scope, operator)
-    monkeypatch.setattr('app_beta.render_application', lambda *a, **k: None)
     app = AppTest.from_function(pending_entry, args=(pending,), default_timeout=30).run()
     app.run()
     assert not app.exception and not calls and pending.runtime.permit is None

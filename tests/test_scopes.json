@@ -111,28 +111,6 @@
         "test_hard_cap_and_request_cap_stop_before_another_request"
       ]
     },
-    "tests/test_app_category_mapper.py": {
-      "reason": "使わないカテゴリ・Brand確定・Shopee token・Category AIの画面。",
-      "tests": [
-        "test_category_mapper_hides_catalog_admin_controls_by_default",
-        "test_category_mapper_shows_catalog_admin_controls_when_explicitly_enabled",
-        "test_category_mapper_temporary_access_token_input_is_masked_and_session_only",
-        "test_category_mapper_catalog_actions_use_session_token_without_persisting_it",
-        "test_category_mapper_blank_session_token_keeps_existing_catalog_factory",
-        "test_category_mapper_brand_failure_with_temporary_token_stays_unconfirmed",
-        "test_category_mapper_does_not_add_refresh_token_or_refresh_endpoint",
-        "test_category_mapper_builds_downloads_and_clears_stale_results",
-        "test_category_mapper_ai_is_explicit_independent_and_human_confirmed",
-        "test_category_mapper_shows_and_confirms_conditioner_candidate_by_group"
-      ]
-    },
-    "tests/test_app_category_mapper_sg.py": {
-      "reason": "使わないSGカテゴリ確定画面。",
-      "tests": [
-        "test_sg_category_mapper_ui_exposes_isolated_minimum_beta",
-        "test_sg_category_mapper_ui_confirms_one_product_and_stops"
-      ]
-    },
     "tests/test_category_mapper.py": {
       "reason": "使わないカテゴリ・Brand・属性確定、カテゴリ別準備出力・Shopee取得。",
       "tests": [
@@ -296,9 +274,7 @@
     "tests/test_p5_initializer.py": {
       "reason": "使わないP5の受入・trusted起動・実行許可・台帳・Windows観測・保存先設置・Shopee取得。",
       "tests": [
-        "test_real_script_config_alone_and_import_cannot_authorize",
         "test_registration_rejects_untyped_values",
-        "test_initializer_to_actual_entrypoint_start_and_rerun",
         "test_registered_connection_rejects_mismatch_before_io",
         "test_initializer_cannot_replace_operator_or_accept_fake_authority",
         "test_windows_observer_checks_initializer_loaded_code_and_source"
@@ -475,8 +451,6 @@
       "tests": [
         "test_t07_update_display_rerenders_zero_send",
         "test_unapproved_settings_and_rerenders_have_no_side_effects",
-        "test_country_switch_reopens_same_budget_and_preserves_other_market",
-        "test_json_scope_loads_resolver_plan_without_creating_permit",
         "test_production_attribute_button_is_disabled_and_rerender_reads_no_credentials"
       ]
     },
@@ -538,8 +512,7 @@
         "test_disjoint_b_preserves_a_but_reacquired_same_a_needs_fresh_review",
         "test_a05_all_five_states_and_explicit_return",
         "test_a06_storage_failure_and_stale_reservation_fail_closed",
-        "test_a02_target_weapon_replay_human_review_deletion_and_wrong_market",
-        "test_a06_same_country_shop_change_discards_transient_state"
+        "test_a02_target_weapon_replay_human_review_deletion_and_wrong_market"
       ]
     },
     "tests/test_sg_initial_beta.py": {
@@ -569,7 +542,6 @@
         "test_two_connections_cannot_reserve_the_same_asin",
         "test_versioned_demo_contract_uses_mock_brand_and_stops_exceptions",
         "test_listing_error_history_remains_recordable_after_preparation_expires",
-        "test_explicit_offline_entry_never_opens_legacy_ph_or_sg_runtime",
         "test_commit_failure_cannot_deliver_copy_bytes_or_retain_reservation"
       ]
     },
@@ -724,15 +696,6 @@
         "test_synthetic_batch_can_resume_and_stops_for_tampering_or_foreign_artifact"
       ]
     },
-    "tests/test_app_resolver_contract.py": {
-      "reason": "使わないEvidence Batchからの画面再開だけの確認。",
-      "tests": [
-        "test_source_map_saved_resume_uses_saved_input_with_an_empty_widget_once",
-        "test_source_map_saved_resume_missing_input_stops_without_manifest_write",
-        "test_batch_created_resume_still_requires_widget_input",
-        "test_loading_another_batch_clears_the_previous_product_input_widget"
-      ]
-    },
     "tests/test_keepa_client.py": {
       "reason": "使わないExpansionのseed探索・候補検索・探索モード・検索cache・ページ見積りだけの確認。",
       "tests": [
@@ -763,21 +726,6 @@
         "test_unexpected_token_consumption_stops_and_preserves_partial_result",
         "test_transport_failure_does_not_fallback_and_preserves_partial_result",
         "test_http_transport_attempts_once_and_never_exposes_key_in_error"
-      ]
-    },
-    "tests/test_app_category_mapper.py": {
-      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
-      "tests": [
-        "test_category_mapper_defaults_to_ph_and_uploads_csv",
-        "test_category_mapper_applies_no_brand_to_gate_group_and_enables_outputs",
-        "test_sls_stop_reason_visible_and_brand_disabled",
-        "test_sls_asset_error_is_local_and_does_not_change_db"
-      ]
-    },
-    "tests/test_app_category_mapper_sg.py": {
-      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
-      "tests": [
-        "test_market_switch_keeps_inputs_and_live_actions_separate"
       ]
     },
     "tests/test_category_mapper.py": {
@@ -852,8 +800,6 @@
     "tests/test_p5_ui.py": {
       "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
       "tests": [
-        "test_common_screen_uses_only_injected_client_and_filters_do_not_send",
-        "test_two_stage_expansion_ui_through_safety_and_saved_classification",
         "test_resolver_identity_widget_never_selects_unknown_or_mismatch"
       ]
     },
@@ -875,16 +821,9 @@
         "test_normal_producer_facts_reach_p1_without_reconstruction"
       ]
     },
-    "tests/test_classification_p3_ui.py": {
-      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
-      "tests": [
-        "test_actual_normal_gate_connects_to_p1_p2_and_changed_material_stops"
-      ]
-    },
     "tests/test_practical_beta_p4_ui.py": {
       "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
       "tests": [
-        "test_a01_a03_a04_a05_a06_same_app_restart_a_then_resolver_b",
         "test_a02_safety_hold_notes_auto_and_unknown_provenance_never_grant_output"
       ]
     },
@@ -923,20 +862,6 @@
       "tests": [
         "test_two_column_and_legacy_inputs_have_deterministic_source_maps",
         "test_source_input_rejects_duplicate_ids_and_extra_columns"
-      ]
-    },
-    "tests/test_app_resolver_contract.py": {
-      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
-      "tests": [
-        "test_app_resolver_imports_match_public_resolver_functions",
-        "test_resolver_copy_guidance_describes_the_unedited_chatgpt_round_trip",
-        "test_internal_evidence_batch_controls_are_hidden_by_default",
-        "test_canopy_test_mode_is_explicit_without_provider_selection_ui",
-        "test_unknown_provider_stops_without_keepa_fallback",
-        "test_resolver_ui_handles_30_synthetic_tsv_lines_and_malformed_url",
-        "test_resolver_gate_handoff_consolidates_duplicates_without_counting_excluded",
-        "test_resolver_gate_handoff_conflict_is_shown_with_asin",
-        "test_legacy_mode_still_rejects_an_empty_widget_input"
       ]
     },
     "tests/test_keepa_client.py": {
@@ -978,7 +903,7 @@
     "tests/test_product_review.py": "旧分類・画像確認と共通の人による確認・Safety条件が混在するため残す。",
     "tests/test_product_review_transport.py": "GateのCandidate・説明文・確認資料の受渡しも確認するため残す。",
     "tests/test_image_inspection_policy.py": "画像AI実行だけでなくGateが読む既存画像Factの対象判定を含むため残す。",
-    "tests/test_beta_application.py": "旧専用画面だけでなく市場切替・Keepa cacheと設定の市場分離も確認するため残す。",
+    "tests/test_beta_application.py": "Keepa cache・設定の市場分離と旧preflightを確認するため残す。",
     "tests/test_sg_beta_environment.py": "旧設置設定とKeepaの継続取得予算の共通条件が混在するため残す。",
     "tests/test_sg_continuous_operation.py": "カテゴリ取得とKeepaの送信予約・実消費・UNKNOWN保全が混在するため残す。",
     "tests/test_commerce_keepa_expansion.py": "Expansionを含むが、残すKeepa共通取得の応答・失敗時停止も確認するため残す。",

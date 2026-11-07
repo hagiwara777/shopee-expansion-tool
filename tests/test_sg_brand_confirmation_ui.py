@@ -14,7 +14,7 @@ from modules.category_mapper_store import CategoryMapperStore
 from modules.shopee_catalog_client import ShopeeCatalogClient, ShopeeCatalogCredentials
 from modules.sls_category_rules_sg import SgSlsCategoryResult
 from modules.category_mapper_sg_brand_workflow import SGBrandWorkflow
-from test_app_category_mapper_sg import _sg_gate_csv
+from category_mapper_test_support import _sg_gate_csv
 from modules.category_ai_core import CategoryAIEngine, FakeCategoryAIProvider, make_fake_select, make_fake_abstain
 
 

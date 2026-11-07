@@ -1,21 +1,6 @@
-# Legacy renderer is preserved off the normal Sora route; exercise it explicitly.
+"""The preserved research adapter remains offline and deduplicates inputs."""
 import csv
 from io import StringIO
-import logging
-from pathlib import Path
-
-from streamlit.testing.v1 import AppTest
-
-from modules.keepa_client import KeepaExpansionClient
-
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-APP_PATH = PROJECT_ROOT / "app.py"
-
-
-def _standard_logger_warning(self, message, *args, **kwargs):
-    if self.isEnabledFor(logging.WARNING):
-        self._log(logging.WARNING, message, args, **kwargs)
 
 
 def _research_csv() -> bytes:
@@ -44,34 +29,13 @@ def _research_csv() -> bytes:
     return output.getvalue().encode("utf-8-sig")
 
 
-def test_research_csv_adapter_tab_uploads_previews_and_downloads_without_api(monkeypatch):
-    monkeypatch.setattr(logging.Logger, "warning", _standard_logger_warning)
-
-    def unexpected_keepa_call(*args, **kwargs):
-        raise AssertionError("The research CSV adapter must not initialize Keepa")
-
-    monkeypatch.setattr(KeepaExpansionClient, "__init__", unexpected_keepa_call)
-    app = AppTest.from_string("from app import render_application\nrender_application()", default_timeout=10).run()
-
-    assert not app.exception
-    assert "Shopee調査CSV取込" in [tab.label for tab in app.tabs]
-    assert any(uploader.key == "research_csv_adapter_files" for uploader in app.file_uploader)
-    assert any(area.label == "商品名リスト" for area in app.text_area)
-
-    app.file_uploader(key="research_csv_adapter_files").set_value(
-        [
-            ("first.csv", _research_csv(), "text/csv"),
-            ("second.csv", _research_csv(), "text/csv"),
-        ]
-    ).run()
-    app.button(key="research_csv_adapter_import").click().run()
-
-    assert not app.exception
-    assert app.session_state["research_csv_adapter_result"].summary["input_file_count"] == 2
-    assert app.session_state["research_csv_adapter_result"].summary["resolver_ready_count"] == 1
-    assert [button.label for button in app.download_button if "ダウンロード" in button.label][-3:] == [
-        "Resolver用TSVをダウンロード",
-        "追跡用Manifest CSVをダウンロード",
-        "保留・除外CSVをダウンロード",
-    ]
-    assert len(app.dataframe) >= 2
+def test_research_adapter_preserves_dedup_and_does_not_initialize_keepa(monkeypatch):
+    from modules.keepa_client import KeepaExpansionClient
+    from modules.research_csv_adapter import ResearchCsvInput, import_research_csvs
+    def unexpected(*args, **kwargs):
+        raise AssertionError('Research CSV import must not initialize Keepa')
+    monkeypatch.setattr(KeepaExpansionClient, '__init__', unexpected)
+    result = import_research_csvs([ResearchCsvInput('first.csv', _research_csv()),
+                                   ResearchCsvInput('second.csv', _research_csv())])
+    assert result.summary['input_file_count'] == 2
+    assert result.summary['resolver_ready_count'] == 1

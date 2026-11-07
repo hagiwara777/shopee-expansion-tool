@@ -1,6 +1,5 @@
 import csv
 from io import StringIO
-from pathlib import Path
 
 import pytest
 
@@ -40,15 +39,6 @@ from modules.product_text_safety import (
 from modules.keepa_client import KeepaClientError, KeepaExpansionClient
 
 
-def test_evidence_batch_ui_requires_explicit_enablement_and_uses_only_the_independent_approved_commit_channel():
-    app_source = (Path(__file__).resolve().parents[1] / "app.py").read_text(encoding="utf-8")
-
-    assert "ASIN_RESOLVER_APPROVED_FORMAL_MAIN_COMMIT" in app_source
-    assert "ASIN_RESOLVER_EVIDENCE_UI_ENABLED" in app_source
-    assert "asin_resolver_approved_formal_commit" not in app_source
-    assert "Evidence Batch再開ガイド" in app_source
-    assert "disabled=not evidence_prompt_action_allowed" in app_source
-    assert "disabled=not evidence_response_action_allowed" in app_source
 
 
 class FakeResolverClient:

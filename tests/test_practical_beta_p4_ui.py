@@ -1,7 +1,4 @@
-"""A01-A06 synthetic PH/SG daily operations; no browser, server or real API."""
-from dataclasses import replace
-from io import StringIO
-import csv
+"""Synthetic PH/SG shared controls; no browser, server or real API."""
 import json
 from pathlib import Path
 
@@ -9,15 +6,11 @@ import pytest
 import streamlit as st
 from streamlit.testing.v1 import AppTest
 
-from modules.beta_work_store import BetaWorkStore, WorkStoreError
-from modules.beta_workbench import BetaWorkBench
-from modules.classification_workflow import ClassificationWorkflow
-from modules.preparation_validity import PreparationSession
+from modules.beta_work_store import WorkStoreError
 from test_classification_p3 import wf, ingest, human
-from test_beta_workbench_p2 import product, selected
+from test_beta_workbench_p2 import product
 from test_sg_initial_beta import inventory
 from test_expansion_gate_handoff import offline
-from test_app_prelisting_gate import _run_gate_button, _ingredient_sidecar
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT/'tests/fixtures/browser_e2e/ph_sg_practical_p4'
@@ -70,117 +63,10 @@ def action_ui(app, key, *, note='Synthetic human result'):
     app.checkbox(key=key+'human').check().run()
 
 
-def full_app(workspaces, market):
-    script = f'from app_beta import render_beta\nrender_beta(practical_workspaces={workspaces!r})'
-    app = AppTest.from_string(script, default_timeout=30)
-    app.session_state['beta_marketplace'] = market
-    app.run()
-    assert not app.exception
-    return app
 
 
-def accept_batch(app, market, group):
-    folder = FIXTURES/market
-    upload(app, 'p4_producer', folder/(group+'_producer.json'))
-    for field, suffix in [('candidate', 'candidate.csv'), ('product_text_safety', 'text.csv')]:
-        upload(app, 'prelisting_gate_'+field+'_file', folder/(group+'_'+suffix))
-    if market == 'SG':
-        candidate_data = (folder/(group+'_candidate.csv')).read_bytes()
-        app.file_uploader(key='prelisting_gate_ingredient_safety_file').set_value(
-            ('ingredients.csv', _ingredient_sidecar(candidate_data), 'text/csv'))
-    if market == 'PH':
-        upload(app, 'prelisting_gate_image_safety_file', folder/(group+'_image.json'))
-    app.file_uploader(key='prelisting_gate_inventory_files').set_value(
-        [(market+'_inventory.csv', (folder/'inventory.csv').read_bytes(), 'text/csv')])
-    app.run()
-    assert not app.exception
-    assert 'classification_current_batch' not in app.session_state
-    _run_gate_button(app).click().run()
-    assert not app.exception and 'classification_current_batch' in app.session_state
-    key = 'p3_'+market+'_'
-    app.text_input(key=key+'shop_0').set_value('synthetic-shop').run()
-    app.checkbox(key=key+'current').check().run()
-    app.button(key=key+'ingest').click().run()
-    assert not app.exception and not app.error
-    return app.session_state[key+'workflow']
 
 
-@pytest.mark.parametrize('market', ['PH', 'SG'])
-def test_a01_a03_a04_a05_a06_same_app_restart_a_then_resolver_b(market, tmp_path, downloads):
-    workspaces = {m: {'db_path': str(tmp_path/(m+'.sqlite3')), 'shop_id':'synthetic-shop'} for m in ('PH','SG')}
-    app = full_app(workspaces, market)
-    assert next(b for b in app.button if b.label=='検索開始').disabled
-    key = 'p3_'+market+'_'
-    app.button(key=key+'create').click().run()
-    upload(app, key+'catalog', ROOT/f'tests/fixtures/browser_e2e/ph_sg_classification_p3/{market}_context.json')
-    app.run()
-    current = accept_batch(app, market, 'A')
-    assert len(current.bench.store.products()) == 10
-    subset = ['B000000001','B000000002','B000000003']
-    confirm_ui(app, key, subset)
-    assert len(current.bench.prepared_pool()) == 3
-    assert sum(r['category'] is None for r in current.bench.store.products()) == 7
-    poolkey = key+'pool_'
-    app.multiselect(key=poolkey+'selected').set_value(subset).run()
-    app.button(key=poolkey+'output_False').click().run()
-    assert not app.exception
-    rows = list(csv.DictReader(StringIO(downloads['offline CSVを取得'].decode('utf-8-sig'))))
-    assert {r['asin'] for r in rows} == set(subset)
-    assert all(r['marketplace']==market and r['listing_ready']=='FALSE'
-               and r['output_scope']=='PH_SG_P1_OFFLINE' for r in rows)
-    assert all(r['group_key']==market+'|100578|7' for r in rows)
-    assert downloads['offline TXTを取得'].startswith(b'\xef\xbb\xbf')
-    assert all(a in downloads['offline TXTを取得'].decode('utf-8-sig') for a in subset)
-    assert not current.bench.store.operations()
-    assert all(r['listing_progress']=='WAITING' for r in current.bench.store.products())
-    app.run()
-    assert not any(e.key==poolkey+'csv' for e in app.get('download_button'))
-    action_ui(app, poolkey)
-    app.button(key=poolkey+'output_True').click().run()
-    op = current.bench.store.operations()[0]
-    opkey = key+'listing_'+op['operation_id']
-    action_ui(app, opkey)
-    app.button(key=opkey+'finish').click().run()
-    assert current.bench.store.operations()[0]['state']=='UNKNOWN'
-    assert not current.bench.prepared_pool()
-    history = current.bench.store.history()
-    # New Streamlit session: no old facts/confirmations or download authority.
-    resumed = full_app(workspaces, market)
-    new = resumed.session_state[key+'workflow']
-    assert new.session.scope != current.session.scope
-    assert not new.bench.prepared_pool()
-    assert new.bench.store.operations()[0]['state']=='UNKNOWN'
-    assert new.bench.store.history()[:len(history)] == history
-    # Recovery is reachable even before current catalog/Gate material is loaded.
-    resumed.selectbox(key=opkey+'outcome').select('CANCELLED').run()
-    action_ui(resumed, opkey, note='Synthetic result checked; no actual submission')
-    resumed.button(key=opkey+'finish').click().run()
-    assert not resumed.exception and new.bench.store.operations()[0]['state']=='CANCELLED'
-    upload(resumed, key+'catalog', ROOT/f'tests/fixtures/browser_e2e/ph_sg_classification_p3/{market}_context.json')
-    resumed.run()
-    new = accept_batch(resumed, market, 'B')
-    assert len(new.bench.store.products()) == 12
-    assert not new.bench.prepared_pool()
-    confirm_ui(resumed, key, ['B000000011','B000000012'])
-    assert len(new.bench.prepared_pool()) == 2
-    assert new.bench.store.products()[-1]['batches'][0]['source_type']=='RESOLVER'
-    # A requires current material and a fresh human decision, then shares B pool.
-    accept_batch(resumed, market, 'A')
-    assert len(new.bench.prepared_pool()) == 2
-    confirm_ui(resumed, key, subset)
-    assert len(new.bench.prepared_pool()) == 5
-    resumed.button(key=key+'reload').click().run()
-    assert not resumed.exception and not new.bench.prepared_pool()
-    resumed.run()
-    assert not new.bench.prepared_pool()  # Same-content new acquisition never revives decisions.
-    assert any('要再確認' in ' '.join(map(str,d.value.to_numpy().ravel())) for d in resumed.dataframe)
-    # Country switch drops all transient state and opens only that market's DB.
-    before = new.bench.store.history()
-    other = 'SG' if market=='PH' else 'PH'
-    resumed.selectbox(key='beta_marketplace').select(other).run()
-    assert not resumed.exception and 'p4_producer_rows' not in resumed.session_state
-    assert new.bench.store.history()==before
-    assert any(b.key=='p3_'+other+'_create' for b in resumed.button)
 
 
 def controls(wf):
@@ -361,24 +247,3 @@ def test_a02_target_weapon_replay_human_review_deletion_and_wrong_market(wf, sem
     app.file_uploader(key=key+'replay').set_value(('wrong.json',json.dumps(bundle).encode(),'application/json')).run()
     app.button(key=key+'load').click().run()
     assert not app.exception and app.error and not wf.bench.prepared_pool()
-
-
-def test_a06_same_country_shop_change_discards_transient_state(tmp_path):
-    workspaces = {'PH': {'db_path':str(tmp_path/'shop-a.sqlite3'),'shop_id':'shop-a'}}
-    BetaWorkStore.create(workspaces['PH']['db_path'],marketplace='PH',shop_id='shop-a')
-    BetaWorkStore.create(tmp_path/'shop-b.sqlite3',marketplace='PH',shop_id='shop-b')
-    app = AppTest.from_string("""
-import streamlit as st
-from app_beta import render_beta
-render_beta(practical_workspaces=st.session_state['workspaces'])
-""", default_timeout=30)
-    app.session_state['workspaces'] = workspaces
-    app.run()
-    original = app.session_state['p3_PH_workflow']
-    app.session_state['p4_producer_rows'] = ({'candidate_asin':'B000000001'},)
-    # Configuration is supplied by the caller, not by an untrusted product row.
-    app.session_state['workspaces'] = {'PH': {'db_path':str(tmp_path/'shop-b.sqlite3'),'shop_id':'shop-b'}}
-    app.run()
-    assert not app.exception and 'p4_producer_rows' not in app.session_state
-    assert app.session_state['p3_PH_workflow'].session.scope.shop_id=='shop-b'
-    assert original.bench.store.products()==()

@@ -110,6 +110,22 @@ def test_next_run_discards_previous_facts_and_decisions(client_calls):
     assert len(client_calls) == 1
 
 
+@pytest.mark.parametrize('marketplace', ['PH', 'SG'])
+def test_actual_entry_market_switch_discards_old_facts_and_exports(client_calls, marketplace):
+    app = AppTest.from_file(str(ROOT/'app.py'), default_timeout=20).run()
+    app.selectbox(key='sora_marketplace').set_value(marketplace).run()
+    app.text_area(key='sora_asins').set_value('B000000001').run()
+    button(app, 'sora_verify').click().run()
+    button(app, 'sora_evaluate').click().run()
+    assert app.session_state['sora_result'].eligible_count == 1
+    assert len(app.get('download_button')) == 4
+    app.selectbox(key='sora_marketplace').set_value('SG' if marketplace == 'PH' else 'PH').run()
+    assert not app.exception
+    assert 'sora_run' not in app.session_state and 'sora_result' not in app.session_state
+    assert len(app.get('download_button')) == 0
+    assert client_calls == [('B000000001',)]
+
+
 def test_display_input_and_country_change_never_load_secrets_or_call_api(client_calls, monkeypatch):
     monkeypatch.setattr('modules.sora_ui.load_sp_api_credentials', lambda: pytest.fail('Secret read on render'))
     monkeypatch.setattr('requests.Session.request', lambda *a, **kw: pytest.fail('Network request on render'))

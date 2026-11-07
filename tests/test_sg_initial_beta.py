@@ -499,21 +499,6 @@ def test_listing_error_history_remains_recordable_after_preparation_expires(benc
     assert b'https://www.amazon.co.jp/dp/B000000001' in bench.queue_csv(queue='BRAND')
 
 
-def test_explicit_offline_entry_never_opens_legacy_ph_or_sg_runtime(tmp_path,monkeypatch):
-    import app_beta
-    from streamlit.testing.v1 import AppTest
-    def forbidden(*a,**k):
-        raise AssertionError('Legacy runtime must not be opened by offline entry')
-    monkeypatch.setattr(app_beta,'render_application',forbidden)
-    path=tmp_path/'new-work.sqlite3'
-    script='from app_beta import render_beta\n' + f"render_beta(sg_work_db={str(path)!r}, sg_work_shop='synthetic-shop')"
-    app=AppTest.from_string(script)
-    app.run(timeout=20)
-    assert not app.exception and not path.exists()
-    app.selectbox(key='beta_marketplace').select('SG').run()
-    assert not app.exception and not path.exists()
-    app.button(key='sg_work_create').click().run()
-    assert not app.exception and path.exists()
 
 
 @pytest.mark.parametrize('defect', ['missing_images', 'capture_error', 'missing_digests', 'image_error'])

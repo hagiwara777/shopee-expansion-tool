@@ -13,7 +13,8 @@ Soraから使う商品情報APIはAmazon SP-APIの読取りのみです。Keepa�
 5. 必要な本体確認を行い判定します。国別の通過ASIN TXT、要確認CSV、停止CSV、実行記録JSONを保存し、通過ASINをFROMAXへ渡します。
 
 Shopeeの商品からのASIN特定は、少数ならClaudeの一本釣り、多数ならFROMAXのKeepaで行い、特定したASINを上の入口へ入れます。
-旧「Shopee調査CSV・ChatGPT（Resolver）」は通常画面の選択肢から外しています。Resolverのコードと過去の記録は保全しています。
+旧「Shopee調査CSV・ChatGPT（Resolver）」は通常画面の選択肢から外しています。Resolverの共通処理と過去の記録は保全しています。
+旧統一画面とその専用起動は削除済みで、旧`app_beta.py`経由のP5起動も利用できません（DEC-0176）。
 
 取得途中の資料は同じ入力・同じ国・同じ画面のセッション内だけに保持し、ファイルやDBへ保存しません。
 入力・国・入口の変更、「新しい実行を始める」、画面の再読込・終了では消えます。別の商品群へ持ち越しません。
@@ -26,7 +27,8 @@ Shopeeの商品からのASIN特定は、少数ならClaudeの一本釣り、多�
 FROMAX用の認証へ自動で切り替えず、環境変数中の別の認証値も採用しません。実ファイル・値をGitHubへ追加しないでください。
 設定値の保存先は変えず、公開の手順へ秘密値や端末固有の保存先は記載しません。
 
-以下は保全した旧機能の説明です。Resolver・Expansion・P5・Keepa・Category／Brand確定・画像AI等を、通常のSora画面で使うための手順ではありません。
+以下は旧機能の履歴です。旧統一画面・その起動手順は実行できず、通常のSora画面の利用手順ではありません。
+独立したSGアプリと共通部品は残しています。過去の受入や記録を現在の実行結果には読み替えません。
 
 ## 旧 Shopee Expansion Tool Ver1
 
@@ -83,7 +85,7 @@ SG初期Beta Ver1.0の追加offline機能と再生手順は[継続作業・限�
 通常PH／SGとは別の新規作業DBを明示し、模擬Brandを使って保存・確認待ち・5状態・出力を検証します。
 このoptional入口は実API・実出品・稼働release更新を開始しません。
 
-PH / SGの普段の入口は[統一ベータ](docs/BETA_APPLICATION.md)です。
+PH / SGの当時の入口は[統一ベータ](docs/BETA_APPLICATION.md)でした。この入口はDEC-0176により削除済みです。
 共通の「対象国」プルダウンで4工程を切り替え、既存PHの保存先とSG専用のデータ・API取得枠を保持します。
 SGの[通常継続利用](docs/SG_CONTINUOUS_OPERATION.md)では、有限承認枠内で新しい商品群を画面から繰り返し受付し、
 全ELIGIBLEから完成商品のみCSV／TXTへ出力します。保存Categoryは再確認候補とし、資料変更で古い確認を失効します。
@@ -432,6 +434,8 @@ Category AI Benchmarkの独立画面は次で起動します。実行ボタン�
 スマホからChrome Remote DesktopやTailscale経由で操作する可能性を考え、UIは縦並びにしています。ただし、Ver1ではリモートアクセス機能そのものは実装していません。
 
 ## 手動テスト手順
+
+以下は旧統一画面の履歴であり、現在の`app.py`では実行できません。
 
 1. `.env` にKeepa APIキーを設定します。
 2. `streamlit run app.py` で起動します。

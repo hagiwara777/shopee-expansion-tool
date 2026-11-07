@@ -48,6 +48,24 @@ def test_runtime_creation_and_rerun_are_local_only(tmp_path,grant):
     r.close()
 
 
+def test_reopening_reuses_the_persistent_budget_and_claim_without_new_send(tmp_path, grant):
+    calls = []
+    run_path = tmp_path / 'run'
+    first = runtime.SGLiveRuntime(grant=grant, run_path=run_path, fresh_client_factory=factory(calls))
+    first.refresh_catalog()
+    ledger = run_path / 'request-ledger.json'
+    claim = tmp_path / 'claims' / f'{grant.digest}.json'
+    before = ledger.read_bytes(), claim.read_bytes()
+    first.close()
+    second = runtime.SGLiveRuntime(grant=grant, run_path=run_path, fresh_client_factory=factory(calls))
+    try:
+        assert second.ledger.data['catalog_requests'] == 1
+        assert (ledger.read_bytes(), claim.read_bytes()) == before
+        assert calls == ['fresh token', '/api/v2/product/get_category']
+    finally:
+        second.close()
+
+
 def test_new_location_or_changed_grant_cannot_reset_existing_run(tmp_path,grant):
     r=runtime.SGLiveRuntime(grant=grant,run_path=tmp_path/"run",fresh_client_factory=factory([])); r.close()
     with pytest.raises(ValueError): runtime.SGLiveRuntime(grant=grant,run_path=tmp_path/"another",fresh_client_factory=factory([]))
