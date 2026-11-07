@@ -20,7 +20,7 @@ from modules.ph_image_safety import ImageSafetyError, create_image_sidecar
 from modules.prelisting_sg_body_safety import SGBodySafetyError, body_confirmation_bytes, record_body_confirmation
 from category_mapper_test_support import _standard_logger_warning
 from test_product_text_safety import fact as text_fact
-from test_safety_shadow_comparison_ui import _deny_network_except_socketpair
+from test_offline_network_support import _deny_network_except_socketpair
 
 def result(*, title="ordinary storage box", description="ordinary description", asin="B000000001", root=1):
     row = dict(seed_asin="B000000009", candidate_asin=asin, product_title=title,

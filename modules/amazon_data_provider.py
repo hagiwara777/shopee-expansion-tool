@@ -7,9 +7,10 @@ from typing import Any
 
 KEEPA_PROVIDER = "keepa"
 KEEPA_CORE_PROVIDER = "keepa_core"
+# Retained for reading previously captured facts; this is no longer a provider.
 CANOPY_TEST_PROVIDER = "canopy_test"
 SP_API_PROVIDER = "sp_api_catalog_2022_04_01"
-SUPPORTED_AMAZON_DATA_PROVIDERS = {KEEPA_PROVIDER, KEEPA_CORE_PROVIDER, CANOPY_TEST_PROVIDER}
+SUPPORTED_AMAZON_DATA_PROVIDERS = {KEEPA_PROVIDER, KEEPA_CORE_PROVIDER}
 
 
 class AmazonDataProviderError(RuntimeError):
@@ -26,7 +27,7 @@ def normalize_amazon_data_provider(value: str | None) -> str:
     provider = (value or KEEPA_PROVIDER).strip().casefold() or KEEPA_PROVIDER
     if provider not in SUPPORTED_AMAZON_DATA_PROVIDERS:
         raise AmazonDataProviderConfigurationError(
-            "AMAZON_DATA_PROVIDER must be keepa, keepa_core, or canopy_test."
+            "AMAZON_DATA_PROVIDER must be keepa or keepa_core."
         )
     return provider
 
@@ -36,7 +37,6 @@ def create_amazon_data_client(
     *,
     keepa_api: Any | None = None,
     keepa_cache: Any | None = None,
-    canopy_transport: Any | None = None,
     request_budget: Any | None = None,
     persistent_budget: Any | None = None,
     keepa_transport: Any | None = None,
@@ -89,17 +89,4 @@ def create_amazon_data_client(
             kwargs['request_budget'] = request_budget
         return KeepaExpansionClient(**kwargs)
 
-    if request_budget is not None or persistent_budget is not None or keepa_transport is not None:
-        raise AmazonDataProviderConfigurationError('A Keepa budget is not supported by canopy_test.')
-
-    if not settings.canopy_api_key and canopy_transport is None:
-        raise AmazonDataProviderConfigurationError(
-            "CANOPY_API_KEY is required when AMAZON_DATA_PROVIDER=canopy_test."
-        )
-    from modules.canopy_client import CanopyTestClient
-
-    return CanopyTestClient(
-        api_key=settings.canopy_api_key,
-        domain="JP",
-        transport=canopy_transport,
-    )
+    raise AmazonDataProviderConfigurationError("Unsupported Amazon data provider.")

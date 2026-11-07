@@ -83,11 +83,10 @@ def test_reviewed_selectors_exist_and_shared_safety_modules_are_not_retired():
     assert not set(registry['retained_uncertain']).intersection(registry['retired'])
 
 
-def test_windows_identity_regressions_remain_available_only_in_retired_scope():
+def test_other_windows_identity_regressions_remain_available_in_retired_scope():
     registry = json.loads((ROOT / 'tests/test_scopes.json').read_text(encoding='utf-8'))
-    assert registry['retired']['tests/test_sg_beta_process_identity.py']['tests'] == [
-        'test_actual_venv_child_json_resume_and_identity_rejection',
-    ]
+    assert 'test_observation_binds_process_identity_not_ticket_label' in (
+        registry['retired']['tests/test_p5_composition.py']['tests'])
 
 
 def test_ci_keeps_core_and_protected_checks_separate():

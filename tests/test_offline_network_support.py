@@ -1,4 +1,4 @@
-"""Offline network guard used by the shared comparison tests."""
+"""Offline network guard used by shared tests."""
 import socket
 from threading import local
 

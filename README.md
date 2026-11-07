@@ -28,7 +28,7 @@ FROMAX用の認証へ自動で切り替えず、環境変数中の別の認証�
 設定値の保存先は変えず、公開の手順へ秘密値や端末固有の保存先は記載しません。
 
 以下は旧機能の履歴です。旧統一画面・その起動手順は実行できず、通常のSora画面の利用手順ではありません。
-独立したSGアプリと共通部品は残しています。過去の受入や記録を現在の実行結果には読み替えません。
+独立したSGアプリとその専用起動も削除済みです。共通部品と過去記録は残し、過去の受入を現在の実行結果には読み替えません（DEC-0177）。
 
 ## 旧 Shopee Expansion Tool Ver1
 
@@ -40,8 +40,7 @@ Shopee調査CSV取込・ASIN Resolver・Expansionで候補を発見し、国別�
 大量の候補収集はFROMAXのKeepaリサーチを主力とし、本ツールのリサーチはShopeeの商品からASINを特定するResolverに重心を置きます。
 Expansionは残し、新規開発の優先度を下げます。FROMAX CSV専用取込は追加しません（DEC-0160）。
 SGの手動入力では候補CSVと対応する成分・説明文の資料ファイルが必要です。個別商品の成分欠損だけではREVIEWにしません。
-保安ゲートの「FROMAX用NGキーワードの手動出力」から、国別の貼付用TXTと、短い英語・ブランド等の注意CSVを出せます。
-部分一致の注意点と操作は[FROMAX併用](docs/FROMAX_GATE_OPERATION.md)を参照してください。
+旧画面の「FROMAX用NGキーワードの手動出力」は削除済みです（DEC-0177）。通常のSoraの判定結果の出力は維持します。
 保安ゲートはShopee公式の監視ブランド一覧も照合します。IPRは全市場共通、Counterfeitは選択国だけをBLOCKにします。
 ブランド欄を正規化して一致を確認し、Kate SpadeでKATEを止めたり、親会社から別名の子ブランドを推測したりしません。
 承認済みの日本語別表記も使い、照合前に空白・中点・長音の表記ゆれをそろえます。誤表記や別ブランドとの競合がある候補は登録しません（DEC-0162）。
@@ -136,20 +135,9 @@ AMAZON_DATA_PROVIDER=keepa_core
 このadapterは`commerce-api-core` 0.1.xとその固定Keepa依存に対応します。ローカルcheckoutを使う場合は、
 リポジトリ直下から`python -m pip install -e ..\commerce-api-core`で同じ環境へ導入できます。
 
-Beta開発・試験時だけ、プロジェクト直下のGit管理外`.env`で次を明示するとCanopy TEST経路を
-利用できます。
-
-```dotenv
-AMAZON_DATA_PROVIDER=canopy_test
-CANOPY_API_KEY=your-local-key
-```
-
-Canopy TESTはResolver 1回最大10 ASIN、Expansion 1回最大7 requests・最大5候補です。
-retry、Keepaへのfallback、検索paginationの自動継続は行わず、結果をKeepa SQLite cacheへ
-保存しません。Resolverの確認値は`CANOPY_VERIFIED`、Candidate CSVのsourceは
-`asin_resolver_canopy_verified`となり、Keepaの`KEEPA_VERIFIED`と区別されます。
-`PRELISTING_CANDIDATE_V1`の15列schemaは変わりません。通常UIにprovider選択欄はなく、
-Canopy mode時だけ`Amazon data provider: Canopy TEST`と表示します。
+Canopy TESTの通信経路は廃止しました（DEC-0177）。取得先に指定するとエラーで停止し、
+Keepaへ自動で切り替えません。過去の資料を識別し、未対応の情報を区別するため、
+`CANOPY_VERIFIED`などの識別子は残しています。
 
 ## Ver1でできること
 
@@ -187,7 +175,7 @@ batchを開始すると、貼り付け入力をUTF-8・LF改行で不変の`sour
 
 Evidence Manifestは機械可読の成果物台帳であり、runtime artifactの受入状態は`RUNTIME_PRODUCED_PENDING_HUMAN_ACCEPTANCE`です。Excel実行記録は人間向けの補助記録であり、Manifestの代替ではありません。Evidence Batchは外部AI送信、Keepa呼び出し、商品同一性判定、検索条件を自動変更しません。legacy／非証跡モードはformalな固定30件基準実行には使用しないでください。
 
-Direct Chat Assistは、生成済みの初回・再検索プロンプトをブラウザのクリップボードへコピーし、Amazon URL検索用のChatGPTプロジェクトを開くための手動操作補助です。`AMAZON_SEARCH_PROJECT_URL` をプロジェクト直下の `.env` に任意設定するとプロジェクト起動操作を利用できます。URLが未設定でもResolver本体は通常どおり利用でき、ChatGPTへの自動貼り付け・送信・回答取得は行いません。
+旧画面のDirect Chat Assistは廃止しました（DEC-0177）。過去の説明は履歴として残します。
 
 ## Shopee調査CSV取込 Ver0.1
 
@@ -201,9 +189,8 @@ Ver0.4.3では、Keepa確認後に元Shopeeタイトル、Keepa商品タイト�
 
 ## 出品前保安ゲート Phase 4A-2
 
-判定後の[Shadow V3比較](docs/SAFETY_SHADOW_COMPARISON.md)は任意です。
-現在の商品と一致する保存済みFactの分類候補・根拠を表示し、既存Safetyや除外・CSV出力を変更しません。
-一致を確認できない資料は比較不能として扱い、追加APIを呼びません。
+旧画面の[Shadow V3比較](docs/SAFETY_SHADOW_COMPARISON.md)は廃止しました（DEC-0177）。
+保安ゲート本体の判定と停止条件は維持します。
 
 SGでは[包丁・コンタクトレンズ本体の確認](docs/SG_BODY_SAFETY.md)を行います。
 該当疑義をREVIEWで止め、商品内容・実同梱を確認した本体はEXCLUDEとし、出品候補へ出しません。
@@ -255,8 +242,9 @@ Step 8受入自体では`listing_ready=false`、SG operation INACTIVE、SG expor
 
 ### Category AI Benchmark Ver1（独立実験）
 
-Category AI Benchmarkは、現行Category Mapperの推薦を入力にせず、商品Evidenceと指定した
-Shopee Category snapshotだけからroot → child → leafを探索する独立アプリです。AI結果は
+Category AI Benchmarkの独立アプリは廃止しました（DEC-0177）。共有backendと以下の履歴は残します。
+この実験では、現行Category Mapperの推薦を入力にせず、商品Evidenceと指定した
+Shopee Category snapshotだけからroot → child → leafを探索しました。AI結果は
 Category候補であり、Safety、出品可否、正式Category確定には使用しません。
 
 Source CSV、Catalog snapshot CSV、固定request profile、任意Goldを使い、Prediction全件を
@@ -407,15 +395,8 @@ KEEPA_API_KEY=your_actual_keepa_api_key
 
 ## 起動方法
 
-SG追加機能の隔離開発版は `app_sg_candidate.py` と `scripts/Start-SGCandidate.ps1`から
-別起動できます。通常PHのDB・ショートカットを変更せず、合成再生資料でCategory AI候補・
-Brand・属性・安全資料・対象商品の武器画像検査から開発用CSV / TXTまで操作します。実APIや正式SG出力は
-有効化しません。[確認手順と到達点](docs/SG_LOCAL_REVIEW_GUIDE.md)を参照してください。
-
-SGベータ入口と手動出品準備CSV / TXTは[SGベータ](docs/SG_BETA_RELEASE.md)、
-専用ショートカット・使用データ・API枠は[SG利用環境](docs/SG_BETA_ENVIRONMENT.md)を参照してください。
-採用済み固定コード・SG専用データ・承認枠を起動前に確認します。PHの起動先を変更しません。
-MY / THは[Guardrail資料の準備状況](docs/MY_TH_GUARDRAIL_READINESS.md)にある土台を再利用する後続工程です。
+旧SG専用アプリとその起動scriptは削除済みです（DEC-0177）。
+[SGベータ](docs/SG_BETA_RELEASE.md)などの資料は履歴として保持します。
 
 ```powershell
 cd shopee-expansion-tool
@@ -423,13 +404,6 @@ cd shopee-expansion-tool
 ```
 
 ブラウザで表示された `localhost` のURLを開いて使います。
-
-Category AI Benchmarkの独立画面は次で起動します。実行ボタンはOpenAI Responses APIを
-呼び出すため、追加の実API実行は目的・モデル・件数・上限額を定めて別途明示承認を得ます。
-
-```powershell
-.\.venv\Scripts\python.exe -m streamlit run category_ai_benchmark_app.py
-```
 
 スマホからChrome Remote DesktopやTailscale経由で操作する可能性を考え、UIは縦並びにしています。ただし、Ver1ではリモートアクセス機能そのものは実装していません。
 
@@ -505,8 +479,8 @@ PH Gateでは、取得済みの商品titleまたは成分Factに当社の正式B
 Rule V2によりdeterministic BLOCKする。成分Factが`NOT_CAPTURED`または
 `PROVIDER_UNSUPPORTED`であることは、成分不存在やSafety PASSを意味せず、その欠損だけでは
 REVIEWまたはBLOCKにしない。PHのGABA ruleはアカウント保護のための当社運用上のBLOCKであり、
-Shopee公式禁止物質であるという断定ではない。Keepaを本番標準、Canopyを明示設定時だけの
-開発・試験専用providerとする方針は変わらない。
+Shopee公式禁止物質であるという断定ではない。Keepaを本番標準とし、Canopyの試験通信は廃止、
+過去資料の識別は維持する（DEC-0177）。
 
 ### Product Text Safety Fact sidecar
 

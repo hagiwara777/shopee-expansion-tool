@@ -25,7 +25,8 @@ from modules.asin_resolver import (
     verify_preview_rows,
 )
 from modules.cache import KeepaCache
-from modules.canopy_client import CANOPY_NOT_FOUND, CANOPY_VERIFIED, CanopyClientError
+from modules.amazon_data_provider import AmazonDataProviderError
+from modules.prelisting_candidate_csv import CANOPY_RESOLVER_VERIFICATION as CANOPY_VERIFIED
 from modules.ingredient_safety import (
     CAPTURED,
     INGREDIENT_SAFETY_PAYLOAD_VERSION,
@@ -37,6 +38,8 @@ from modules.product_text_safety import (
     PROVIDER_UNSUPPORTED as PRODUCT_TEXT_PROVIDER_UNSUPPORTED,
 )
 from modules.keepa_client import KeepaClientError, KeepaExpansionClient
+
+CANOPY_NOT_FOUND = "CANOPY_NOT_FOUND"
 
 
 
@@ -824,7 +827,7 @@ def test_verify_preview_rows_keeps_canopy_verification_and_product_fields_distin
 
 def test_verify_preview_rows_marks_canopy_error_without_keepa_fallback():
     client = FakeResolverClient(
-        error=CanopyClientError("Canopy failed"),
+        error=AmazonDataProviderError("Synthetic provider failure"),
         verification_label=CANOPY_VERIFIED,
         not_found_label=CANOPY_NOT_FOUND,
         product_field_prefix="canopy",

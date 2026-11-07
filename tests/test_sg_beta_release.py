@@ -133,16 +133,6 @@ def test_activation_change_during_build_closes_output(activation, ready, monkeyp
     with pytest.raises(release.SGBetaNotAdopted): build_sg_beta_preparation_files((item,), workflow=workflow)
 
 
-def test_beta_entry_before_adoption_never_opens_a_runtime(activation, preview, monkeypatch):
-    path, state = activation
-    state['markets']['SG']['operation'] = 'INACTIVE'
-    path.write_text(json.dumps(state), encoding='utf-8')
-    monkeypatch.setattr('modules.sg_live_runtime.SGLiveRuntime',
-                        lambda **kwargs: pytest.fail('Runtime must not open before adoption'))
-    app = AppTest.from_file(str(Path(__file__).resolve().parents[1] / 'app_sg_beta.py')).run()
-    assert not app.exception
-    assert any('正式採用' in text.value for text in app.info)
-    assert not app.button and not app.file_uploader and not app.get('download_button')
 
 
 def test_beta_ui_outputs_and_revocation(activation, ready, preview):

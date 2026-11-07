@@ -112,25 +112,3 @@ def test_provider_uses_v2_schema_and_parses_usage_without_losing_type():
     schema = session.calls[0][1]["json"]["text"]["format"]["schema"]
     assert schema["properties"]["prompt_version"]["const"] == VERSION
     assert "product_understood" in schema["required"]
-
-
-def test_versioned_v2_replay_connects_to_sg_suggestions_without_auto_confirm(tmp_path):
-    from pathlib import Path
-    from modules.sg_candidate_runtime import SGReplayBundle
-    from modules.category_mapper_store import CategoryMapperStore
-    from modules.category_mapper_sg import SGMapperRecommendation, generate_sg_ai_category_suggestions
-    from scripts.sg_category_diagnostic import prepare
-    base = Path(__file__).parent / "fixtures/browser_e2e/sg_candidate"
-    source, tree = prepare(base / "prelisting_gate_eligible_sg_expansion.csv", base / "catalog.csv")
-    engine = SGReplayBundle((base / "replay_leaf_v2.json").read_bytes()).category_engine()
-    assert isinstance(engine, LeafSearchEngine)
-    row = source.rows[0]
-    item = SGMapperRecommendation("SG", "EXPANSION", row.source_asin, row.candidate_asin,
-        row.product_title, row.keepa_brand, row.keepa_category, "", "GATE_ELIGIBLE")
-    store = CategoryMapperStore(tmp_path / "isolated.sqlite3")
-    store.replace_sg_category_catalog(tree)
-    batch = generate_sg_ai_category_suggestions((item,), store=store, engine=engine, catalog=tree,
-                                              profile=load_luna_request_profile())
-    assert batch.suggestions[0].is_adoptable and batch.suggestions[0].predicted_category_id == 100869
-    assert batch.suggestions[0].prediction.api_call_count == 0
-    assert not item.category_is_confirmed and not item.listing_ready
