@@ -1,8 +1,8 @@
 # 通常テストと保全した旧機能テスト
 
 Owner指示F／DEC-0163により、使わない機能だけを確かめるテストを通常実行から分ける。
-商品判定・辞書・安全条件は変更しない。DEC-0176により旧統一画面のテストだけを整理し、
-その安全確認はSoraまたは共通部品へ移す。残る旧機能テストと資料は保全する。
+商品判定・辞書・安全条件は変更しない。DEC-0176／0177により削除した旧画面・専用機能のテストを整理し、
+共通の安全確認はSoraまたは共通部品へ移す。残る旧機能テストと資料は保全する。
 
 通常実行は以下とする。`pytest.ini`でSora本体の`tests`を対象にし、`conftest.py`が
 `tests/test_scopes.json`の明示されたテスト関数だけを通常実行から外す。
@@ -15,7 +15,7 @@ python -m pytest -q
 
 ```powershell
 python -m pytest -q --test-scope=retired
-python -m pytest -q --test-scope=retired tests/test_sg_beta_process_identity.py
+python -m pytest -q --test-scope=retired tests/test_p5_composition.py
 python -m pytest -q --test-scope=all
 ```
 
@@ -27,7 +27,7 @@ python -m pytest -q --test-scope=all
 先行適用する廃止指定はP5の受入・trusted起動・実行許可・専用台帳・Windows観測、
 Shopee API／token／Google認証／Bridge、Category・Brand ID確定・Category AI・属性、
 P2〜P4の実務画面・準備pool・出品状態管理、seed ASINからのExpansion候補収集、画像AI、Evidence Batchである。
-この指定自体は試験範囲の選別であり、後のDEC-0176による旧統一画面の限定削除と区別する。
+この指定自体は試験範囲の選別であり、後のDEC-0176／0177による旧画面・専用機能の限定削除と区別する。
 環境の再構成・導入、稼働版更新は含まない。
 
 Shopee調査CSV取込、Resolver、Keepaの商品取得と資料搬送、保安ゲートの辞書・成分・説明文・電池・
@@ -48,11 +48,11 @@ Shopee調査CSV取込、Resolver、Keepaの商品取得と資料搬送、保安�
 |ExpansionからGateへのhandoff|成分・説明文の同一性と入力変更時の失効も確認する。|
 |SLS Categoryの各確認|カテゴリ依存だが既存の輸送・電池・市場分離の安全条件を扱うため残す。|
 |画像Fact・画像対象policy・Gateでの扱い|画像AIの通信テストとは分け、現行Gateが読む安全条件は残す。|
-|家電ファイル分類・研究replay、Canopy TEST|今回の廃止指定だけでは扱いを確定できないので推測で外さない。|
+|家電ファイル分類・研究replay|今回の廃止指定だけでは扱いを確定できないので推測で外さない。|
 
 指示Gの失敗2件は`test_sg_beta_process_identity.py`のパラメータ違いである。
-旧ベータの専用起動・停止のWindows観測だけを確かめ、通常app.pyの起動・Resolver・Gate・Keepaを
-確かめないため、`retired`へ分類する。待受状態や起動確認コードを修正したものではない。
+旧ベータの専用起動・停止のWindows観測だけを確かめていた。DEC-0177で専用起動とともに削除し、
+ほかのWindows観測・P5の保護確認は残す。過去の失敗を修正済みとは扱わない。
 
 CIはSora本体を1回実行し、固定版commerce-api-coreのテストを別stepで1回実行する。
 `work/ci/commerce-api-core/tests`を通常のSora本体へ混ぜず、時間・件数・成功／失敗／skipを別に数える。

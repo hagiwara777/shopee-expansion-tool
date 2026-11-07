@@ -26,12 +26,6 @@
         "test_catalog_accepts_shopee_style_zero_parent_for_root"
       ]
     },
-    "tests/test_category_ai_benchmark_ui.py": {
-      "reason": "使わないCategory AI・カテゴリ分類の候補生成と評価だけの確認。",
-      "tests": [
-        "test_standalone_benchmark_ui_renders_required_controls_without_api_call"
-      ]
-    },
     "tests/test_category_ai_core.py": {
       "reason": "使わないCategory AI・カテゴリ分類の候補生成と評価だけの確認。",
       "tests": [
@@ -60,8 +54,7 @@
         "test_exhaustion_not_claimed_when_related_root_limit_hit",
         "test_transport_failure_never_falls_back_to_others",
         "test_unlisted_id_fails_closed",
-        "test_provider_uses_v2_schema_and_parses_usage_without_losing_type",
-        "test_versioned_v2_replay_connects_to_sg_suggestions_without_auto_confirm"
+        "test_provider_uses_v2_schema_and_parses_usage_without_losing_type"
       ]
     },
     "tests/test_category_ai_openai.py": {
@@ -552,21 +545,7 @@
         "test_unaccepted_or_broken_state_closes_beta",
         "test_beta_and_preview_outputs_have_separate_meanings",
         "test_activation_change_during_build_closes_output",
-        "test_beta_entry_before_adoption_never_opens_a_runtime",
         "test_beta_ui_outputs_and_revocation"
-      ]
-    },
-    "tests/test_sg_candidate_runtime.py": {
-      "reason": "使わないCategory／画像AIの隔離replayと専用catalog接続。",
-      "tests": [
-        "test_replay_rejects_wrong_binding_or_malformed_data",
-        "test_duplicate_bundle_keys_are_rejected",
-        "test_replay_never_reuses_existing_or_production_database",
-        "test_catalog_replay_binds_shop_and_exact_category_offset",
-        "test_category_replay_is_bound_to_product_catalog_and_profile",
-        "test_replayed_image_uses_existing_transport_and_refuses_different_image",
-        "test_sg_batch_uses_country_root_selection",
-        "test_failed_batch_invalidates_unprocessed_old_reviews"
       ]
     },
     "tests/test_sg_image_inspection.py": {
@@ -624,13 +603,6 @@
         "test_paid_ai_rejects_other_product_before_any_transport"
       ]
     },
-    "tests/test_sg_live_ui.py": {
-      "reason": "使わない旧SGのCategory／Brand／画像AI live受入・専用準備出力。",
-      "tests": [
-        "test_live_ui_open_and_rerun_do_not_acquire_data",
-        "test_live_ui_invalid_grant_does_not_initialize"
-      ]
-    },
     "tests/test_sg_live_validation.py": {
       "reason": "使わない旧SGのCategory／Brand／画像AI live受入・専用準備出力。",
       "tests": [
@@ -661,12 +633,6 @@
         "test_group_ui_requires_explicit_product_confirmation",
         "test_preparation_assessment_lists_missing_steps_and_closes_exit",
         "test_failed_catalog_refresh_closes_all_preparation"
-      ]
-    },
-    "tests/test_sg_beta_process_identity.py": {
-      "reason": "使わない旧ベータ専用起動・停止のWindows観測だけの確認。通常app.py起動・Resolver・Gate・Keepaを確認しない。指示Gの2件は修正しない。",
-      "tests": [
-        "test_actual_venv_child_json_resume_and_identity_rejection"
       ]
     },
     "tests/test_asin_resolver_evidence.py": {
@@ -851,12 +817,6 @@
         "test_beta_rechecks_new_battery_signals_despite_old_gate_and_category_allow"
       ]
     },
-    "tests/test_sg_candidate_runtime.py": {
-      "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
-      "tests": [
-        "test_candidate_entry_from_files_to_group_downloads"
-      ]
-    },
     "tests/test_asin_resolver_evidence.py": {
       "reason": "共通の取得・資料搬送・安全条件も確認するため通常実行に残す。",
       "tests": [
@@ -910,7 +870,6 @@
     "tests/test_expansion_gate_handoff.py": "ExpansionとGateへの成分・説明文の同一性／失効を同時に確認するため残す。",
     "tests/test_home_appliances_files.py": "独立の家電ファイル分類の扱いは今回の廃止指定だけでは確定しないため残す。",
     "tests/test_home_appliances_research_replay.py": "独立の家電資料replayの扱いは今回の指定だけでは確定しないため残す。",
-    "tests/test_canopy_client.py": "Canopy TESTは今回の廃止指定にないため推測で外さない。",
     "tests/test_sls_category_assets.py": "カテゴリ依存だが既存の輸送・電池・市場分離の安全条件を確認する。今回の指定だけで外さない。",
     "tests/test_sls_category_lifecycle.py": "カテゴリ依存だが既存の輸送・電池・市場分離の安全条件を確認する。今回の指定だけで外さない。",
     "tests/test_sls_category_protected.py": "カテゴリ依存だが既存の輸送・電池・市場分離の安全条件を確認する。今回の指定だけで外さない。",

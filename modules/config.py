@@ -22,9 +22,7 @@ CACHE_DB_PATH = PROJECT_ROOT / "cache" / "keepa_cache.sqlite3"
 class Settings:
     keepa_api_key: str
     keepa_domain: str = DEFAULT_KEEPA_DOMAIN
-    amazon_search_project_url: str = ""
     amazon_data_provider: str = "keepa"
-    canopy_api_key: str = ""
 
 
 def load_settings() -> Settings:
@@ -38,15 +36,11 @@ def load_settings() -> Settings:
         values = {**dotenv_values(paths.ph_api_env), **os.environ}
     api_key = (values.get("KEEPA_API_KEY") or "").strip()
     domain = (values.get("KEEPA_DOMAIN") or DEFAULT_KEEPA_DOMAIN).strip() or DEFAULT_KEEPA_DOMAIN
-    amazon_search_project_url = (values.get("AMAZON_SEARCH_PROJECT_URL") or "").strip()
     amazon_data_provider = normalize_amazon_data_provider(
         values.get("AMAZON_DATA_PROVIDER") or "keepa"
     )
-    canopy_api_key = (values.get("CANOPY_API_KEY") or "").strip()
     return Settings(
         keepa_api_key=api_key,
         keepa_domain=domain,
-        amazon_search_project_url=amazon_search_project_url,
         amazon_data_provider=amazon_data_provider,
-        canopy_api_key=canopy_api_key,
     )

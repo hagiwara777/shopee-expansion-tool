@@ -87,13 +87,18 @@ def test_alias_canonical_typo_fails_closed(tmp_path):
         load_brand_monitoring("SG", tmp_path)
 
 
-def test_fromax_keeps_monitoring_and_conditional_battery_out_of_paste_list():
-    from modules.fromax_ng_export import build_fromax_ng_export
-    result = build_fromax_ng_export("SG")
-    assert "HP" not in result.keywords
-    assert "電池入り商品" not in result.keywords
-    assert any(c.term == "HP" and "完全一致" in c.reason for c in result.cautions)
-    assert any(c.term == "電池入り商品" and "条件付き" in c.reason for c in result.cautions)
+
+
+@pytest.mark.parametrize('market', ['SG', 'PH'])
+def test_exact_brand_and_conditional_battery_keep_their_gate_behavior(market):
+    rows = apply_guardrails([
+        {'brand': 'HP', 'product_title': 'ordinary storage box'},
+        {'brand': 'HP Plus', 'product_title': 'ordinary storage box'},
+        {'brand': 'Synthetic Brand', 'product_title': '電池付きの時計'},
+        {'brand': 'Synthetic Brand', 'product_title': '電池を使用しません'},
+    ], marketplace=market)
+    assert [row['guardrail_status'] for row in rows] == ['BLOCK', 'SAFE', 'BLOCK', 'REVIEW']
+    assert rows[0]['guardrail_matched_terms'] == 'HP'
 
 
 @pytest.mark.parametrize("brand", [
@@ -167,11 +172,3 @@ def test_alias_collision_after_space_and_dot_normalization_stops(tmp_path):
         {"alias": "ジ・レ ット", "canonical": "Nivea"}]}), encoding="utf-8")
     with pytest.raises(BrandMonitoringError, match="重複"):
         load_brand_monitoring("SG", tmp_path)
-
-
-def test_scoped_alias_is_not_leaked_to_ph_fromax_cautions():
-    from modules.fromax_ng_export import build_fromax_ng_export
-    sg, ph = build_fromax_ng_export("SG"), build_fromax_ng_export("PH")
-    assert any(c.term == "花王" for c in sg.cautions)
-    assert not any(c.term == "花王" for c in ph.cautions)
-    assert "花王" not in sg.keywords

@@ -1,3 +1,4 @@
+"""Legacy-shaped CSV fixture used only by Guardrail safety tests."""
 import csv
 from io import StringIO
 from typing import Iterable

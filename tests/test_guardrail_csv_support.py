@@ -1,7 +1,7 @@
 import csv
 from io import StringIO
 
-from modules.export_csv import CSV_COLUMNS, rows_to_csv
+from guardrail_csv_support import CSV_COLUMNS, rows_to_csv
 
 
 def test_rows_to_csv_uses_expected_columns_and_utf8_sig():

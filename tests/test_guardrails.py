@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 import modules.guardrails as guardrails_module
-from modules.export_csv import rows_to_csv
+from guardrail_csv_support import rows_to_csv
 from modules.guardrails import (
     ALLOWED_RISK_CATEGORIES,
     GuardrailDictionaryError,

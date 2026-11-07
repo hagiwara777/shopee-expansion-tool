@@ -57,7 +57,7 @@ def test_preflight_stops_invalid_deployment(profile,monkeypatch,change):
             if change=='not-formal' and args[0]=='merge-base':
                 raise subprocess.CalledProcessError(1,'git')
             if args[0]=='rev-parse': return 'b'*40 if change=='wrong-head' else 'a'*40
-            return ' M app_sg_beta.py' if change=='dirty' else ''
+            return ' M synthetic_changed.py' if change=='dirty' else ''
         monkeypatch.setattr(environment,'_git',git)
     elif change=='wrong-market': c['marketplace']='PH'
     elif change=='wrong-repo': c['repository_path']=str(path.parent)
@@ -86,13 +86,6 @@ def test_persistent_claim_and_spend_survive_code_release_change(tmp_path,grant,m
         runtime.SGLiveRuntime(grant=grant,run_path=tmp_path/'reset-run',claim_dir=claims)
 
 
-def test_beta_entry_forwards_persistent_root(activation,monkeypatch,tmp_path):
-    from app_sg_beta import render_sg_beta
-    import app_sg_beta
-    calls=[]
-    monkeypatch.setattr(app_sg_beta,'render_sg_live_candidate',lambda *a,**k:calls.append(k))
-    render_sg_beta(tmp_path/'grant.json',runtime_root=tmp_path/'data')
-    assert calls[0]['runtime_root']==tmp_path/'data' and calls[0]['beta_output'] is True
 
 
 @pytest.fixture

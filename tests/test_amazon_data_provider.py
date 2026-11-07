@@ -11,7 +11,6 @@ from modules.amazon_data_provider import (
     create_amazon_data_client,
     normalize_amazon_data_provider,
 )
-from modules.canopy_client import CanopyTestClient
 from modules.config import Settings
 from modules.keepa_client import KeepaExpansionClient
 
@@ -30,10 +29,10 @@ def test_provider_defaults_to_keepa_only_for_empty_configuration():
     assert normalize_amazon_data_provider("") == KEEPA_PROVIDER
 
 
-def test_provider_accepts_explicit_canopy_test_and_rejects_unknown_value():
-    assert normalize_amazon_data_provider(" canopy_test ") == CANOPY_TEST_PROVIDER
-    with pytest.raises(AmazonDataProviderConfigurationError, match="keepa, keepa_core, or canopy_test"):
-        normalize_amazon_data_provider("rainforest")
+@pytest.mark.parametrize('provider', [CANOPY_TEST_PROVIDER, 'rainforest'])
+def test_retired_and_unknown_provider_are_rejected_without_fallback(provider):
+    with pytest.raises(AmazonDataProviderConfigurationError, match="keepa or keepa_core"):
+        normalize_amazon_data_provider(provider)
 
 
 def test_factory_keeps_existing_keepa_client_as_default():
@@ -84,27 +83,17 @@ def test_provider_factory_keeps_legacy_and_persistent_budget_ports_separate(monk
 
 
 
-def test_factory_creates_canopy_only_when_explicitly_selected():
-    client = create_amazon_data_client(
-        _settings(
-            amazon_data_provider=CANOPY_TEST_PROVIDER,
-            canopy_api_key="canopy-secret",
-        ),
-        canopy_transport=lambda url, headers, timeout: {},
-    )
-
-    assert isinstance(client, CanopyTestClient)
-    assert client.provider_name == CANOPY_TEST_PROVIDER
+def test_factory_never_falls_back_when_retired_canopy_is_selected(monkeypatch):
+    monkeypatch.setattr('modules.keepa_client.KeepaExpansionClient',
+                        lambda *a, **kw: pytest.fail('Keepa fallback'))
+    with pytest.raises(AmazonDataProviderConfigurationError):
+        create_amazon_data_client(_settings(amazon_data_provider=CANOPY_TEST_PROVIDER))
 
 
 @pytest.mark.parametrize(
     "settings",
     [
         _settings(keepa_api_key=""),
-        _settings(
-            amazon_data_provider=CANOPY_TEST_PROVIDER,
-            canopy_api_key="",
-        ),
     ],
 )
 def test_factory_fails_closed_when_selected_provider_credential_is_missing(settings):
