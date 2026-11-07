@@ -1,0 +1,3 @@
+@echo off
+"<EXISTING_PYTHON_EXE>" "<FORMAL_SORA_FOLDER>\scripts\sora_launcher.py" --sp-api-env "<EXISTING_SORA_ENV_FILE>"
+if errorlevel 1 pause

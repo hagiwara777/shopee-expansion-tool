@@ -54,7 +54,7 @@ branch / HEAD / tree / 差分はGit、タスク固有状態はTask Contextと照
 | 旧Verifierの正式受入・merge、および既存契約で正式検証を要求する設置 | repo外Task Context、承認された実Trust Anchor参照、現在対象のValidate→snapshot→fresh Verify。mandatory technical gates、Summary、Owner最終承認、fresh Owner Evidenceを確認 | HOLD / HARD_STOPを保持。実環境の鍵・Anchor操作、設置・live・deployはそれぞれ別承認。旧Verifierのmerge後のValidate・snapshot・read-only Verifyも維持 |
 
 Ownerが明示したDEC-0173の切替PRとその後のOwner手動mergeは、この表の旧Verifierによるmerge手順に代えて同Decisionの手順を適用する。旧Verifier自体や、別途正式検証を必要とする設置には従来の条件を維持する。旧VerifierのHOLDをCONTINUEへ読み替えない。
-Ownerが明示したDEC-0174の**Sora正式版更新**に限り、旧Verifierによる設置確認に代えて本書の「Sora正式版の設置確認」を適用する。P5など他の設置・旧Verifier・過去の停止は変更しない。
+Ownerが明示したDEC-0174／0178の**Sora正式版更新**に限り、旧Verifierによる設置確認に代えて本書のSora更新手順を適用する。P5など他の設置・旧Verifier・過去の停止は変更しない。
 
 通常調査は既存Git・`rg`・ファイル読込で行い、新しい認可engineを設けない。
 `Verify-ContextSnapshot.ps1 -Profile read-only`は**正式なsnapshotの検証profile**であり、
@@ -106,7 +106,7 @@ Exit codeは`0=CONTINUE`、`10=HOLD`、`20=HARD_STOP`、`64=usage`、`70=interna
 | Safety／予算／商品／実運用の明示停止 | 当該商品・サービス・保存先と依存する操作 | 停止対象へ触れない、承認済みの文書・合成tests等。別task・別profileを名乗って同じ操作を再開しない |
 
 Ownerが明示したDEC-0173の署名手続き置換とOwner手動mergeは、旧Verifierの署名鍵・Anchorを使わない。旧VerifierのHOLD自体を解除せず、CI・PH／SG保護・Owner未確認・identity不一致等の停止は新方式でも維持する。
-DEC-0174のSora正式版更新も、旧VerifierのHOLDを成功に変換せず、Owner承認と別途定めた確認を行う。他の設置・P5・保安・CIの停止には流用しない。
+DEC-0174／0178のSora正式版更新も、旧VerifierのHOLDを成功に変換せず、Owner判断に基づく確認を行う。他の設置・P5・保安・CIの停止には流用しない。
 HARD_STOPも解除しない。独立性を確認できない作業は停止対象に含める。
 Ownerが全作業停止を明示した場合はそれを優先する。原因解消後は元のgateを現在対象で再評価し、
 失敗記録や実行済み消費を消さない。旧Verifierの正式VerifyがHOLDのままなら旧Verifierによる受入成功とは報告しない。
@@ -162,12 +162,16 @@ Codexはサマリー・差分・チェックの確認を準備するが、Owner�
 3. Codexはmergeせず、Owner本人がGitHubのPR画面で取り込む。Ownerの指示により権限の完全な分離は当面条件としない。共有認証では技術的な権限制御や操作主体の識別によってこの運用を保証できない。GitHub設定・権限・認証変更はそれぞれ別承認とする。
 4. 切替PRも、必須CIと採用サマリーを確認したOwnerが最終判断する。署名鍵・Trust Anchor・旧VerifierによるCONTINUEを切替条件にせず、旧Verifierの結果を成功へ読み替えない。保安・CI・identity不一致等の停止は維持する。
 
-各PRの対象head・base・変更範囲、PH／SG保護を含む必須CI、9項目の採用サマリーを現在のGitHub情報で照合する。GitHubはskipped／neutralを必須チェックの通過と扱う場合があるため、Ownerは各ジョブが明示的にsuccessであることも確認する。対象・主要リスク・CI結果が変われば確認をやり直す。Ownerが確認後に実際にmergeし、merge後は正式main・対象treeと記録を確認する。設置・実API・設定変更は別承認のまま維持する。
+各PRの対象head・base・変更範囲、PH／SG保護を含む必須CI、9項目の採用サマリーを現在のGitHub情報で照合する。GitHubはskipped／neutralを必須チェックの通過と扱う場合があるため、Ownerは各ジョブが明示的にsuccessであることも確認する。対象・主要リスク・CI結果が変われば確認をやり直す。Ownerが確認後に実際にmergeし、merge後は正式main・対象treeと記録を確認する。Sora通常起動時の更新にはDEC-0178を適用し、初回配置・他の設置・実API・設定変更は別承認のまま維持する。
 GitHub必須チェックが未適用、現在対象のCIが失敗・未完了、Ownerの確認がない場合は取り込まない。
 
-### Sora正式版の設置確認（DEC-0174）
+### Sora正式版の更新・復旧（DEC-0178）
 
-対象はOwnerが別に許可したSora正式版の更新だけであり、merge・商品取得・P5等の許可を含まない。旧署名鍵・Trust Anchor・`ShopeeGovernance`の参照、作成、復元は行わず、旧VerifierのHOLDを成功へ読み替えない。採用済みPR・CIとGitHubのOwner確認を根拠とするため、共有認証下ではOwner本人の操作とrepository identityを署名・独立Anchorで証明できない限界がある。
+新方式の初回配置とデスクトップcmdの変更はOwnerの別承認で行う。配置後の通常起動は、待受中のSoraを止めず、8510が空きと確認できた場合だけ、正式origin・main・clean・祖先関係を確認してfast-forwardを最大1回行う。条件不成立では現行版を起動し、更新前後のcommitと理由を正式版フォルダ外に記録する。ポートや更新後の状態が判別できない場合は起動しない。OwnerがGitHubで必須6チェック成功を確認して手動mergeする運用を前提とし、起動script自体は各PRのCIやOwner操作を検証しない。Python依存の導入や商品取得は行わない。[起動と直前の版への復旧](SORA_STARTUP.md)を参照する。
+
+### Sora正式版の初回・例外の手動設置確認（DEC-0174）
+
+以下はOwnerが別に許可した初回配置・例外的な手動設置のための手順であり、DEC-0178の通常自動更新には毎回適用しない。個別の承認票が対象・手順・停止条件を定める。merge・商品取得・P5等の許可を含まない。旧署名鍵・Trust Anchor・`ShopeeGovernance`の参照、作成、復元は行わず、旧VerifierのHOLDを成功へ読み替えない。採用済みPR・CIとGitHubのOwner確認を根拠とするため、共有認証下ではOwner本人の操作とrepository identityを署名・独立Anchorで証明できない限界がある。
 
 1. **対象と許可**：DEC-0173に従いOwner自身がGitHubのPR画面で取り込んだ正式repository・採用済みmainの完全なcommitとtree、設置先、`Sora起動.cmd`、停止条件、時間・回数を固定する。対象commitが承認したPR群を含み、各PRの現在対象で必須6チェックが明示的に成功し、PH・SG両方の保護確認が成功したことを確認する。branch protectionとは別に、6つのmandatory gateのCI記録について出所・内容hash・現在のhead／tree／base／設定との結合も確認する。欠落・失敗・skip・neutral・古い対象・identity不一致は停止する。各PR headとMerge後のcommitは異なり得るため、Merge結果と承認した変更・treeの対応を確認し、表示の短い版番号だけで一致扱いにしない。設置先の更新前HEAD・tree・branch・remoteを別に記録し、`git status --porcelain=v1 --untracked-files=all`が空であること、固定した採用commitへのfast-forwardが可能なことを確認する。
 2. **起動しない全体確認**：実作業用の同じ補助処理について、バックアップ・停止・更新・起動・画面確認までの全工程を対象に、実行せず入力・分岐・対象・権限・記録先・UTF-8の読込み・依存を確認するmodeを用意する。確認modeではコピー・削除・停止・fetch／更新・起動・実API・鍵／Anchor操作をしない。できたmode自体を副作用なしに検証し、同じhelperのhash・実行identity・文字コードを本番実行時に再照合する。将来の通信・コピーや画面表示の成功を事前確認のPASSへ読み替えない。失敗・不一致は最初に停止し、同一許可で再試行しない。
