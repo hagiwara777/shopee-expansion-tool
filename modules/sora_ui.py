@@ -1,4 +1,4 @@
-"""ASIN-first Sora entry, optional Resolver, and the existing safety Gate."""
+"""Two direct Sora entries, the existing safety Gate, and preserved Resolver code."""
 
 import hashlib
 
@@ -52,17 +52,18 @@ def render_sora_app():
         st.success('前回の商品資料・判定・確認結果を消しました。')
 
     st.header('1. ASINを貼る／FROMAXのKeepa CSVを入れる')
-    entry = st.radio('入力方法', ('ASINを貼る', 'FROMAXのKeepa CSV', 'Shopee調査CSV・ChatGPT（Resolver）'),
+    entry_options = ('ASINを貼る', 'FROMAXのKeepa CSV')
+    if st.session_state.get('sora_entry') not in (None, *entry_options):
+        st.session_state.pop('sora_entry', None)
+        _clear_resolver()
+    entry = st.radio('入力方法', entry_options,
                      horizontal=True, key='sora_entry')
     if st.session_state.get('sora_previous_entry') not in (None, entry):
         _clear_resolver()
     st.session_state['sora_previous_entry'] = entry
     st.caption('最大500件。商品取得は20件ずつ。取得済みの資料はこの画面内だけで保持します。'
                '入力・国・入口の変更、新しい実行、画面の再読込・終了で消えます。')
-    if entry == 'Shopee調査CSV・ChatGPT（Resolver）':
-        selected_rows, input_files = _render_resolver(marketplace)
-    else:
-        selected_rows, input_files = _render_direct_input(entry)
+    selected_rows, input_files = _render_direct_input(entry)
     _render_acquisition(selected_rows, marketplace=marketplace, input_files=input_files)
     _render_gate(marketplace)
 
@@ -266,6 +267,8 @@ def _render_gate(marketplace):
     result = st.session_state.get('sora_result')
     if result:
         st.write(f'通過{result.eligible_count}件／要確認{result.review_count}件／停止{result.exclude_count}件')
+        if any(count > 100 for count in (result.eligible_count, result.review_count, result.exclude_count)):
+            st.info('画面は先頭100件のみ。全件はCSV（要確認.csv・停止.csv・通過ASIN.txt）で確認')
         preview_rows = tuple(row for status in ('ELIGIBLE', 'REVIEW', 'EXCLUDE')
                              for row in build_prelisting_gate_preview_rows(result, final_eligibility=status))
         st.dataframe(localize_prelisting_gate_preview_rows(preview_rows), hide_index=True)

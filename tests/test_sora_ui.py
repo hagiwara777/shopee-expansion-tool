@@ -57,13 +57,21 @@ def client_calls(monkeypatch):
     return calls
 
 
+def preserved_resolver_screen():
+    import streamlit as st
+    from modules.sora_ui import _render_resolver, _render_acquisition, _render_gate
+
+    marketplace = st.selectbox('対象国', ('SG', 'PH'), key='sora_marketplace')
+    rows, files = _render_resolver(marketplace)
+    _render_acquisition(rows, marketplace=marketplace, input_files=files)
+    _render_gate(marketplace)
+
+
 @pytest.mark.parametrize('marketplace', ['PH', 'SG'])
-def test_manual_chatgpt_to_sp_api_to_gate_same_normal_screen(client_calls, marketplace):
-    app = AppTest.from_file(str(ROOT/'app.py'), default_timeout=20).run()
+def test_preserved_resolver_to_sp_api_to_gate_in_isolated_screen(client_calls, marketplace):
+    app = AppTest.from_function(preserved_resolver_screen, default_timeout=20).run()
     assert not app.exception
     assert client_calls == []
-    assert any(caption.value.startswith('版: ') for caption in app.caption)
-    app.radio(key='sora_entry').set_value('Shopee調査CSV・ChatGPT（Resolver）').run()
     app.selectbox(key='sora_marketplace').set_value(marketplace).run()
     app.text_area(key='sora_source_input').set_value('JPH-example\tA towel').run()
     button(app, 'sora_generate_prompt').click().run()
@@ -107,11 +115,31 @@ def test_display_input_and_country_change_never_load_secrets_or_call_api(client_
     monkeypatch.setattr('requests.Session.request', lambda *a, **kw: pytest.fail('Network request on render'))
     app = AppTest.from_file(str(ROOT/'app.py'), default_timeout=20).run()
     app.text_area(key='sora_asins').set_value('B000000001').run()
-    app.radio(key='sora_entry').set_value('Shopee調査CSV・ChatGPT（Resolver）').run()
-    app.text_area(key='sora_source_input').set_value('A towel').run()
-    button(app, 'sora_generate_prompt').click().run()
+    app.radio(key='sora_entry').set_value('FROMAXのKeepa CSV').run()
     app.selectbox(key='sora_marketplace').set_value('PH').run()
+    app.radio(key='sora_entry').set_value('ASINを貼る').run()
     assert not app.exception
+    assert client_calls == []
+
+
+@pytest.mark.parametrize('marketplace', ['PH', 'SG'])
+def test_normal_entry_has_only_two_options_and_discards_removed_resolver_state(client_calls, marketplace):
+    app = AppTest.from_file(str(ROOT/'app.py'), default_timeout=20)
+    app.session_state['sora_marketplace'] = marketplace
+    app.session_state['sora_entry'] = 'Shopee調査CSV・ChatGPT（Resolver）'
+    app.session_state['sora_run'] = object()
+    app.session_state['sora_result'] = object()
+    app.session_state['sora_preview'] = [{'asin': 'B000000001'}]
+    app.run()
+    assert not app.exception
+    assert app.radio(key='sora_entry').options == ['ASINを貼る', 'FROMAXのKeepa CSV']
+    assert app.radio(key='sora_entry').value == 'ASINを貼る'
+    assert any(caption.value.startswith('版: ') for caption in app.caption)
+    assert not any(b.key in {'sora_import_research', 'sora_generate_prompt', 'sora_parse_response'} for b in app.button)
+    assert not any(t.key in {'sora_source_input', 'sora_response'} for t in app.text_area)
+    assert 'sora_run' not in app.session_state and 'sora_result' not in app.session_state
+    assert 'sora_preview' not in app.session_state
+    assert len(app.get('download_button')) == 0
     assert client_calls == []
 
 
@@ -215,3 +243,49 @@ def test_partial_acquisition_only_resumes_on_separate_click_and_never_gates_pend
     app.radio(key='sora_entry').set_value('FROMAXのKeepa CSV').run()
     assert 'sora_run' not in app.session_state and 'sora_acquisition' not in app.session_state
     assert len(app.get('download_button')) == 0
+
+
+@pytest.mark.parametrize('marketplace', ['PH', 'SG'])
+@pytest.mark.parametrize(('eligible', 'review', 'exclude'), [
+    (0, 0, 0), (99, 99, 99), (100, 100, 100),
+    (101, 0, 0), (0, 101, 0), (0, 0, 101), (50, 120, 130),
+])
+def test_result_preview_notice_only_for_a_group_over_100(
+        client_calls, monkeypatch, marketplace, eligible, review, exclude):
+    from dataclasses import replace
+    from modules.sora_run import evaluate_sora_run
+
+    def synthetic_result(run, inventories, **kwargs):
+        result = evaluate_sora_run(run, inventories, **kwargs)
+        seed = result.rows[0]
+        rows = []
+        for status, count, guardrail, reasons in (
+                ('ELIGIBLE', eligible, 'SAFE', ()),
+                ('REVIEW', review, 'REVIEW', ('GUARDRAIL_REVIEW',)),
+                ('EXCLUDE', exclude, 'BLOCK', ('GUARDRAIL_BLOCK',))):
+            for _ in range(count):
+                candidate = replace(seed.candidate, candidate_asin=f'B{len(rows) + 1:09d}')
+                rows.append(replace(seed, candidate=candidate, final_eligibility=status,
+                                    guardrail_status=guardrail, reason_codes=reasons))
+        return replace(result, rows=tuple(rows), candidate_count=len(rows),
+                       eligible_count=eligible, review_count=review, exclude_count=exclude)
+
+    monkeypatch.setattr('modules.sora_ui.evaluate_sora_run', synthetic_result)
+    monkeypatch.setattr('requests.Session.request', lambda *a, **kw: pytest.fail('Live API reached'))
+    app = AppTest.from_file(str(ROOT/'app.py'), default_timeout=20).run()
+    app.selectbox(key='sora_marketplace').set_value(marketplace).run()
+    app.text_area(key='sora_asins').set_value('B000000001').run()
+    button(app, 'sora_verify').click().run()
+    button(app, 'sora_evaluate').click().run()
+    assert not app.exception
+    notice = '画面は先頭100件のみ。全件はCSV（要確認.csv・停止.csv・通過ASIN.txt）で確認'
+    assert sum(element.value == notice for element in app.info) == int(max(eligible, review, exclude) > 100)
+    preview = app.dataframe[-1].value
+    assert len(preview) == sum(min(count, 100) for count in (eligible, review, exclude))
+    if len(preview):
+        assert preview['最終判定'].value_counts().to_dict() == {
+            label: min(count, 100) for label, count in (
+                ('出品候補', eligible), ('要確認', review), ('除外', exclude)) if count
+        }
+    assert len(app.get('download_button')) == 4
+    assert client_calls == [('B000000001',)]

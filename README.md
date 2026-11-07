@@ -1,8 +1,8 @@
 # Sora
 
-FROMAXのKeepaで集めたASINをPH／SGの出品前保安ゲートに通し、FROMAX向けの通過ASINを出すツールです（DEC-0165／0171）。
+外部で特定・収集したASINをPH／SGの出品前保安ゲートに通し、FROMAX向けの通過ASINを出すツールです（DEC-0165／0171／0172）。
 保安ルールは[共通・国別・個別ASINの方針](docs/SORA_SAFETY_POLICY.md)を適用します（DEC-0167）。
-判定ルールは変えず、ASIN貼付・FROMAXのKeepa CSVを主入口にしています。
+入口は「ASINを貼る」「FROMAXのKeepa CSV」の2つです。保安判定ルールは維持しています。
 画面右上に起動中のコミット番号を表示します。商品名の会社名除外は`guardrails/brand_monitoring/title_review.json`で確認・変更できます。
 Soraから使う商品情報APIはAmazon SP-APIの読取りのみです。Keepa、Shopee API、OpenAI APIを通常操作から呼びません。
 
@@ -12,8 +12,8 @@ Soraから使う商品情報APIはAmazon SP-APIの読取りのみです。Keepa�
 4. 全件の取得処理後、候補・成分・説明文を同じ画面の保安ゲートへ渡します。途中の判定・出力は行いません。既出品CSVは任意で、Shopeeの出品エクスポートを入れます。未入力なら「重複照合は未実施」です。
 5. 必要な本体確認を行い判定します。国別の通過ASIN TXT、要確認CSV、停止CSV、実行記録JSONを保存し、通過ASINをFROMAXへ渡します。
 
-Shopeeの商品からASINを調べる場合は、副入口「Shopee調査CSV・ChatGPT（Resolver）」を選びます。
-商品名の取込→AI用プロンプト生成→ChatGPTへ手作業で貼付→返答の貼戻し・解析から、同じSP-API確認・保安ゲートへ進みます。
+Shopeeの商品からのASIN特定は、少数ならClaudeの一本釣り、多数ならFROMAXのKeepaで行い、特定したASINを上の入口へ入れます。
+旧「Shopee調査CSV・ChatGPT（Resolver）」は通常画面の選択肢から外しています。Resolverのコードと過去の記録は保全しています。
 
 取得途中の資料は同じ入力・同じ国・同じ画面のセッション内だけに保持し、ファイルやDBへ保存しません。
 入力・国・入口の変更、「新しい実行を始める」、画面の再読込・終了では消えます。別の商品群へ持ち越しません。
@@ -26,7 +26,7 @@ Shopeeの商品からASINを調べる場合は、副入口「Shopee調査CSV・C
 FROMAX用の認証へ自動で切り替えず、環境変数中の別の認証値も採用しません。実ファイル・値をGitHubへ追加しないでください。
 設定値の保存先は変えず、公開の手順へ秘密値や端末固有の保存先は記載しません。
 
-以下は保全した旧機能の説明です。Expansion・P5・Keepa・Category／Brand確定・画像AI等を、通常のSora画面で使うための手順ではありません。
+以下は保全した旧機能の説明です。Resolver・Expansion・P5・Keepa・Category／Brand確定・画像AI等を、通常のSora画面で使うための手順ではありません。
 
 ## 旧 Shopee Expansion Tool Ver1
 

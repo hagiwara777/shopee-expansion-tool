@@ -346,6 +346,35 @@ def prelisting_gate_download_source_type(source_type: str) -> str:
         raise ValueError("unsupported pre-listing gate source_type") from exc
 
 
+def _prelisting_gate_display_row(row) -> dict[str, str | int]:
+    return {
+        "candidate_asin": row.candidate.candidate_asin,
+        "product_title": row.candidate.product_title,
+        "brand": row.candidate.brand,
+        "category": row.candidate.category,
+        "guardrail_status": row.guardrail_status,
+        "guardrail_matched_terms": row.guardrail_matched_terms,
+        "guardrail_note": row.guardrail_note,
+        "existing_listing_status": row.existing_listing_status,
+        "metadata_status": row.metadata_status,
+        "final_eligibility": row.final_eligibility,
+        "reason_codes": "|".join(row.reason_codes),
+        "existing_evidence_count": len(row.existing_evidence),
+    }
+
+
+def build_prelisting_gate_export_rows(
+    result: PrelistingGateResult, *, final_eligibility: str,
+) -> tuple[dict[str, str | int], ...]:
+    """Return every ordered row for a complete Sora reason CSV."""
+    if not isinstance(result, PrelistingGateResult):
+        raise TypeError("result must be a PrelistingGateResult")
+    if final_eligibility not in _PRELISTING_GATE_FINAL_ELIGIBILITIES:
+        raise ValueError("final_eligibility is not supported")
+    return tuple(_prelisting_gate_display_row(row) for row in result.rows
+                 if row.final_eligibility == final_eligibility)
+
+
 def build_prelisting_gate_preview_rows(
     result: PrelistingGateResult,
     *,
@@ -365,22 +394,7 @@ def build_prelisting_gate_preview_rows(
     for row in result.rows:
         if row.final_eligibility != final_eligibility:
             continue
-        preview_rows.append(
-            {
-                "candidate_asin": row.candidate.candidate_asin,
-                "product_title": row.candidate.product_title,
-                "brand": row.candidate.brand,
-                "category": row.candidate.category,
-                "guardrail_status": row.guardrail_status,
-                "guardrail_matched_terms": row.guardrail_matched_terms,
-                "guardrail_note": row.guardrail_note,
-                "existing_listing_status": row.existing_listing_status,
-                "metadata_status": row.metadata_status,
-                "final_eligibility": row.final_eligibility,
-                "reason_codes": "|".join(row.reason_codes),
-                "existing_evidence_count": len(row.existing_evidence),
-            }
-        )
+        preview_rows.append(_prelisting_gate_display_row(row))
         if len(preview_rows) == limit:
             break
     return tuple(preview_rows)
