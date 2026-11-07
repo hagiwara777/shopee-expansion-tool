@@ -17,7 +17,7 @@ from modules.prelisting_candidate_csv import (
     resolver_rows_to_prelisting_candidates, rows_to_prelisting_candidate_csv,
 )
 from modules.prelisting_gate import evaluate_prelisting_gate
-from modules.prelisting_gate_ui import build_prelisting_gate_preview_rows, localize_prelisting_gate_preview_rows
+from modules.prelisting_gate_ui import build_prelisting_gate_export_rows, localize_prelisting_gate_preview_rows
 from modules.product_text_safety import (
     ProductTextSafetySidecarResult,
     facts_for_candidate_rows as text_facts, parse_product_text_safety_sidecar,
@@ -78,7 +78,7 @@ def sora_exports(run, result):
                          if row.final_eligibility == 'ELIGIBLE')
     def reason_csv(status):
         rows = localize_prelisting_gate_preview_rows(
-            build_prelisting_gate_preview_rows(result, final_eligibility=status))
+            build_prelisting_gate_export_rows(result, final_eligibility=status))
         columns = tuple(rows[0]) if rows else ('ASIN', '商品名', '理由')
         output = StringIO(newline='')
         writer = csv.DictWriter(output, fieldnames=columns, lineterminator='\n')

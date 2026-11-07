@@ -267,6 +267,8 @@ def _render_gate(marketplace):
     result = st.session_state.get('sora_result')
     if result:
         st.write(f'通過{result.eligible_count}件／要確認{result.review_count}件／停止{result.exclude_count}件')
+        if any(count > 100 for count in (result.eligible_count, result.review_count, result.exclude_count)):
+            st.info('画面は先頭100件のみ。全件はCSV（要確認.csv・停止.csv・通過ASIN.txt）で確認')
         preview_rows = tuple(row for status in ('ELIGIBLE', 'REVIEW', 'EXCLUDE')
                              for row in build_prelisting_gate_preview_rows(result, final_eligibility=status))
         st.dataframe(localize_prelisting_gate_preview_rows(preview_rows), hide_index=True)

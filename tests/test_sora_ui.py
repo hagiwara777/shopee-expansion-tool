@@ -243,3 +243,49 @@ def test_partial_acquisition_only_resumes_on_separate_click_and_never_gates_pend
     app.radio(key='sora_entry').set_value('FROMAXのKeepa CSV').run()
     assert 'sora_run' not in app.session_state and 'sora_acquisition' not in app.session_state
     assert len(app.get('download_button')) == 0
+
+
+@pytest.mark.parametrize('marketplace', ['PH', 'SG'])
+@pytest.mark.parametrize(('eligible', 'review', 'exclude'), [
+    (0, 0, 0), (99, 99, 99), (100, 100, 100),
+    (101, 0, 0), (0, 101, 0), (0, 0, 101), (50, 120, 130),
+])
+def test_result_preview_notice_only_for_a_group_over_100(
+        client_calls, monkeypatch, marketplace, eligible, review, exclude):
+    from dataclasses import replace
+    from modules.sora_run import evaluate_sora_run
+
+    def synthetic_result(run, inventories, **kwargs):
+        result = evaluate_sora_run(run, inventories, **kwargs)
+        seed = result.rows[0]
+        rows = []
+        for status, count, guardrail, reasons in (
+                ('ELIGIBLE', eligible, 'SAFE', ()),
+                ('REVIEW', review, 'REVIEW', ('GUARDRAIL_REVIEW',)),
+                ('EXCLUDE', exclude, 'BLOCK', ('GUARDRAIL_BLOCK',))):
+            for _ in range(count):
+                candidate = replace(seed.candidate, candidate_asin=f'B{len(rows) + 1:09d}')
+                rows.append(replace(seed, candidate=candidate, final_eligibility=status,
+                                    guardrail_status=guardrail, reason_codes=reasons))
+        return replace(result, rows=tuple(rows), candidate_count=len(rows),
+                       eligible_count=eligible, review_count=review, exclude_count=exclude)
+
+    monkeypatch.setattr('modules.sora_ui.evaluate_sora_run', synthetic_result)
+    monkeypatch.setattr('requests.Session.request', lambda *a, **kw: pytest.fail('Live API reached'))
+    app = AppTest.from_file(str(ROOT/'app.py'), default_timeout=20).run()
+    app.selectbox(key='sora_marketplace').set_value(marketplace).run()
+    app.text_area(key='sora_asins').set_value('B000000001').run()
+    button(app, 'sora_verify').click().run()
+    button(app, 'sora_evaluate').click().run()
+    assert not app.exception
+    notice = '画面は先頭100件のみ。全件はCSV（要確認.csv・停止.csv・通過ASIN.txt）で確認'
+    assert sum(element.value == notice for element in app.info) == int(max(eligible, review, exclude) > 100)
+    preview = app.dataframe[-1].value
+    assert len(preview) == sum(min(count, 100) for count in (eligible, review, exclude))
+    if len(preview):
+        assert preview['最終判定'].value_counts().to_dict() == {
+            label: min(count, 100) for label, count in (
+                ('出品候補', eligible), ('要確認', review), ('除外', exclude)) if count
+        }
+    assert len(app.get('download_button')) == 4
+    assert client_calls == [('B000000001',)]
