@@ -36,7 +36,7 @@ AGENTSには毎タスク必須の恒久原則、[RUNBOOK](docs/RUNBOOK_CHATGPT_C
 ## 軽量開発運用 v1・承認境界
 
 - DEC-0173のOwner手動merge方式では、Ownerが対象PRのサマリー・現在の必須CIを確認し、GitHub画面から自分でmergeする。Codexはmergeしない。権限の完全な分離は当面の条件とせず、共有認証では技術的にCodexのmergeを防げない限界を明示する。新方式とその切替の受入に署名鍵・Trust Anchorを使わない。
-- DEC-0174のSora正式版更新だけは、RUNBOOKのGit・CI・起動しない確認・実際の版表示による設置確認を使い、旧署名鍵・Trust Anchorを使わない。設置は別承認とし、旧Verifierと他の設置への条件、PH／SG保護と必須CIは維持する。
+- DEC-0174／0178のSora正式版更新はRUNBOOKの手順を使い、旧署名鍵・Trust Anchorを使わない。初回配置後の通常起動時は条件付き自動更新、初回配置・例外の手動更新は別承認とする。旧Verifierと他の設置への条件、PH／SG保護と必須CIは維持する。
 - CodexはGit・正本を確認し技術判断と検証を担う。GPTは必須の伝言役または承認者にしない。
   Ownerへ技術方式の選択を求めず、事業上の違いと確認結果を平易に説明する。
 - 読み取り・scope内local編集・testはユーザー変更とsecretを保護し、小さく可逆に進める。
@@ -49,6 +49,7 @@ AGENTSには毎タスク必須の恒久原則、[RUNBOOK](docs/RUNBOOK_CHATGPT_C
 - 費用・有料API、live API / 実商品（read-onlyも含む）、外部live書込み、復元不能な削除・上書き・移行、
   deploy、GitHub repository設定・branch protection / ruleset・Actions secret / variable、
   実環境Trust Anchor、credential / secret操作、大幅な目的・責務・満足条件変更は別の明示承認を要する。
+  Sora正式版の通常起動時の条件付き自動更新はOwner判断DEC-0178を適用し、初回配置・例外的な手動更新は別承認とする。
 - `--force` / `--force-with-lease`は原則禁止。対象branchと具体操作への明示承認なしに例外化しない。
   force pushやdirty resetを標準復旧手順にせず、承認範囲外のpush・正本化を自動実行しない。
 - 同一目的・同一リスク境界の技術工程は承認範囲内で集約し、自律継続する。承認要求前に実行可能なoffline確認を終え、
@@ -66,7 +67,7 @@ AGENTSには毎タスク必須の恒久原則、[RUNBOOK](docs/RUNBOOK_CHATGPT_C
   承認済みで独立した原因調査・安全なlocal修正・offline検証準備は継続できる。
   Task Contextで既存gate、Global State、保護capabilityを削除・緩和しない。
   Ownerが明示したDEC-0173の統合手続き置換は、旧Verifierの署名鍵・Anchorを新方式の切替条件にしない。旧VerifierのHOLDをCONTINUEへ変換せず、保安・CI・identity不一致等の停止は維持する。
-  DEC-0174のSora正式版更新も旧Verifierの結果を成功に読み替えず、合意済みの新しい設置確認を使う。旧Verifierが必要な他工程やP5の停止条件を変更しない。
+  DEC-0174／0178のSora正式版更新も旧Verifierの結果を成功に読み替えず、合意済みの更新条件を使う。旧Verifierが必要な他工程やP5の停止条件を変更しない。
 - 従来の署名付きVerifierのbootstrap repository identityはOwner受入済みrepo外Trust Anchorだけを信頼する。
   DEC-0173の切替とOwner手動mergeでは、OwnerがGitHub上で正式repositoryと対象PRを自分で確認し、Anchorを使わない。
   いずれもrepo / remote / State / Config / Task Contextの自己申告だけを期待値にしない。

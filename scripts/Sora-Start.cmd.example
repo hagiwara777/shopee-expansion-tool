@@ -1,0 +1,2 @@
+@echo off
+call "<FORMAL_SORA_FOLDER>\scripts\Start-Sora.cmd" "<EXISTING_PYTHON_EXE>" "<EXISTING_SORA_ENV_FILE>"
