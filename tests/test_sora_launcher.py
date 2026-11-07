@@ -347,6 +347,30 @@ def test_git_does_not_receive_application_credentials_or_askpass(tmp_path, monke
     assert environment['GIT_TERMINAL_PROMPT'] == '0'
 
 
+def test_desktop_example_calls_the_managed_cmd_only():
+    example = Path(launcher.__file__).with_name('Sora-Start.cmd.example').read_text(encoding='ascii')
+    lines = [line.strip() for line in example.splitlines() if line.strip() and line.strip().lower() != '@echo off']
+    assert len(lines) == 1 and lines[0].lower().startswith('call ')
+    assert '\\scripts\\Start-Sora.cmd' in lines[0]
+
+
+def test_managed_cmd_passes_existing_python_and_reference(tmp_path):
+    scripts = tmp_path / 'formal folder with spaces' / 'scripts'
+    scripts.mkdir(parents=True)
+    managed = Path(launcher.__file__).with_name('Start-Sora.cmd')
+    (scripts / managed.name).write_bytes(managed.read_bytes())
+    (scripts / 'sora_launcher.py').write_text(
+        'import json, sys\nfrom pathlib import Path\n'
+        'Path(__file__).with_name("args.json").write_text(json.dumps(sys.argv[1:]))\n', encoding='ascii')
+    desktop = tmp_path / 'desktop.cmd'
+    desktop.write_text(f'@echo off\ncall "{scripts / managed.name}" "{sys.executable}" "synthetic reference"\n',
+                       encoding='ascii')
+    result = subprocess.run(['cmd.exe', '/d', '/c', str(desktop)], input='\n',
+                            capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=20)
+    assert result.returncode == 0, result.stderr
+    assert json.loads((scripts / 'args.json').read_text()) == ['--sp-api-env', 'synthetic reference']
+
+
 def ps_quote(value):
     return "'" + str(value).replace("'", "''") + "'"
 
