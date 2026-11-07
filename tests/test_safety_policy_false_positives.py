@@ -152,6 +152,7 @@ def test_makeup_wine_color_is_not_a_drink(market, term):
     assert guarded("口紅 " + term + "入り", market=market, category=category)["guardrail_status"] == "BLOCK"
     assert guarded("口紅 " + term + "を含む", market=market, category=category)["guardrail_status"] == "BLOCK"
     assert guarded(term, market=market, category="食品・飲料 > ワイン")["guardrail_status"] == "BLOCK"
+    assert guarded(term, market=market, category="スポーツ > グリップ")["guardrail_status"] == "BLOCK"
     assert guarded(term, market=market)["guardrail_status"] == "BLOCK"
 
 

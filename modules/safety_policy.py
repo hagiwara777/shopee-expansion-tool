@@ -234,7 +234,9 @@ def _mask_makeup_wine_colors(value, row):
     """Recognize explicit color names only when the category is makeup."""
     from modules.guardrails import normalize_text
     category = normalize_text(row.get("category", ""))
-    if not re.search(r"メイクアップ|口紅|リップ|アイシャドウ|アイライナー|チーク|makeup", category):
+    nodes = (node.strip() for node in category.split(">"))
+    if not any(re.match(r"^(?:メイクアップ|口紅|リップ|アイシャドウ|アイライナー|チーク|makeup)(?:$|[・/、,\s])", node)
+               for node in nodes):
         return value
     return re.sub(r"(?:パンプキンワイン|ワイン(?:レッド|ピンク|ブラウン|パープル|色))"
                   r"(?!\s*(?:入り|付き|同梱|付属|配合|含有|を含む|を使用))",
