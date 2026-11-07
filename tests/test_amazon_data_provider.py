@@ -1,6 +1,5 @@
 from contextlib import nullcontext
 from dataclasses import replace
-from types import SimpleNamespace
 
 import pytest
 
@@ -65,36 +64,24 @@ def test_core_provider_rejects_non_sg_and_in_memory_budget_owners():
         )
 
 
-def test_sg_continuous_routes_core_and_legacy_providers_to_their_budget_ports(monkeypatch, tmp_path):
-    import app
-    import modules.sg_beta_environment as beta_environment
-    import modules.sg_continuous_runtime as continuous_runtime
+def test_provider_factory_keeps_legacy_and_persistent_budget_ports_separate(monkeypatch):
+    seen = []
+    class FakeClient:
+        def __init__(self, **kwargs):
+            seen.append(kwargs)
+    monkeypatch.setattr('modules.keepa_client.KeepaExpansionClient', FakeClient)
+    monkeypatch.setattr('modules.commerce_keepa_expansion.CommerceKeepaExpansionClient', FakeClient)
+    ledger = object()
+    create_amazon_data_client(_settings(amazon_data_provider=KEEPA_PROVIDER), request_budget=ledger)
+    create_amazon_data_client(_settings(amazon_data_provider=KEEPA_CORE_PROVIDER), persistent_budget=ledger)
+    assert seen[0]['request_budget'] is ledger and 'persistent_budget' not in seen[0]
+    assert seen[1]['persistent_budget'] is ledger and 'request_budget' not in seen[1]
+    with pytest.raises(AmazonDataProviderConfigurationError):
+        create_amazon_data_client(_settings(amazon_data_provider=KEEPA_CORE_PROVIDER), request_budget=ledger)
+    with pytest.raises(AmazonDataProviderConfigurationError):
+        create_amazon_data_client(_settings(amazon_data_provider=KEEPA_PROVIDER), persistent_budget=ledger)
 
-    class FakeRuntime:
-        def __init__(self):
-            self.grant = SimpleNamespace(digest="synthetic-policy")
-            self.run_path = (tmp_path / "continuous").resolve()
-            self.ledger = SimpleNamespace(require_current=lambda: None)
 
-    class FakePolicy:
-        @classmethod
-        def from_file(cls, path):
-            return SimpleNamespace(digest="synthetic-policy")
-
-    runtime = FakeRuntime()
-    monkeypatch.setattr(app, "st", SimpleNamespace(session_state={"sg_live_runtime": runtime}))
-    monkeypatch.setattr(beta_environment, "preflight", lambda path: {
-        "mode": "continuous", "policy_path": "synthetic-policy.json",
-        "data_root": str(tmp_path),
-    })
-    monkeypatch.setattr(continuous_runtime, "SGContinuousRuntime", FakeRuntime)
-    monkeypatch.setattr(continuous_runtime, "SGContinuousPolicy", FakePolicy)
-
-    core = app._continuous_amazon_budget("SG", "synthetic-config.json", KEEPA_CORE_PROVIDER)
-    legacy = app._continuous_amazon_budget("SG", "synthetic-config.json", KEEPA_PROVIDER)
-    assert core == {"persistent_budget": runtime.ledger}
-    assert legacy == {"request_budget": runtime.ledger}
-    assert app._continuous_amazon_budget("PH", "synthetic-config.json", KEEPA_CORE_PROVIDER) == {}
 
 
 def test_factory_creates_canopy_only_when_explicitly_selected():

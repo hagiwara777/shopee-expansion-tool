@@ -14,7 +14,7 @@ from modules.prelisting_candidate_csv import rows_to_prelisting_candidate_csv, p
 from modules.product_text_safety import rows_to_product_text_safety_sidecar
 from test_product_text_safety import candidate, fact
 from test_ph_image_safety import fact as image_fact, setup_case
-from test_app_category_mapper_sg import _sg_gate_csv, _csv_bytes
+from category_mapper_test_support import _sg_gate_csv, _csv_bytes
 from modules.prelisting_gate_csv import PRELISTING_GATE_RESULT_COLUMNS
 from test_sg_brand_confirmation_ui import preview, workflow_preview
 from test_product_review import allow, inspect

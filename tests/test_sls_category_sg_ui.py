@@ -1,7 +1,7 @@
 """Native Streamlit status display for every SG SLS state."""
 import pytest
 import logging
-from test_app_category_mapper_sg import _standard_logger_warning
+from category_mapper_test_support import _standard_logger_warning
 from streamlit.testing.v1 import AppTest
 
 

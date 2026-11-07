@@ -204,8 +204,9 @@ def test_missing_primary_category_spec_still_stops_before_start(tmp_path):
 
 
 def category_app(runtime):
-    from app_beta import render_beta
-    render_beta(p5_runtimes={runtime.scope.marketplace: runtime})
+    from modules.p5_ui import render_p5_start, render_p5_workspace
+    if render_p5_start(runtime):
+        render_p5_workspace(runtime)
 
 
 @pytest.mark.parametrize('market', ['PH', 'SG'])
@@ -218,7 +219,6 @@ def test_category_only_ui_replays_without_send_or_product_controls(tmp_path, mon
         return catalog_response(*args)
     client = make_catalog_client(rt, secrets(rt), request_json=response)
     monkeypatch.setattr(rt, 'catalog_client', lambda: client)
-    monkeypatch.setattr('app_beta.render_application', lambda *a, **k: pytest.fail('product UI reached'))
     try:
         app = AppTest.from_function(category_app, args=(rt,), default_timeout=30)
         app.session_state['beta_marketplace'] = market
