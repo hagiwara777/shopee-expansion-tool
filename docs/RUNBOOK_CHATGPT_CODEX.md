@@ -54,6 +54,7 @@ branch / HEAD / tree / 差分はGit、タスク固有状態はTask Contextと照
 | 旧Verifierの正式受入・merge、および既存契約で正式検証を要求する設置 | repo外Task Context、承認された実Trust Anchor参照、現在対象のValidate→snapshot→fresh Verify。mandatory technical gates、Summary、Owner最終承認、fresh Owner Evidenceを確認 | HOLD / HARD_STOPを保持。実環境の鍵・Anchor操作、設置・live・deployはそれぞれ別承認。旧Verifierのmerge後のValidate・snapshot・read-only Verifyも維持 |
 
 Ownerが明示したDEC-0173の切替PRとその後のOwner手動mergeは、この表の旧Verifierによるmerge手順に代えて同Decisionの手順を適用する。旧Verifier自体や、別途正式検証を必要とする設置には従来の条件を維持する。旧VerifierのHOLDをCONTINUEへ読み替えない。
+Ownerが明示したDEC-0174の**Sora正式版更新**に限り、旧Verifierによる設置確認に代えて本書の「Sora正式版の設置確認」を適用する。P5など他の設置・旧Verifier・過去の停止は変更しない。
 
 通常調査は既存Git・`rg`・ファイル読込で行い、新しい認可engineを設けない。
 `Verify-ContextSnapshot.ps1 -Profile read-only`は**正式なsnapshotの検証profile**であり、
@@ -105,6 +106,7 @@ Exit codeは`0=CONTINUE`、`10=HOLD`、`20=HARD_STOP`、`64=usage`、`70=interna
 | Safety／予算／商品／実運用の明示停止 | 当該商品・サービス・保存先と依存する操作 | 停止対象へ触れない、承認済みの文書・合成tests等。別task・別profileを名乗って同じ操作を再開しない |
 
 Ownerが明示したDEC-0173の署名手続き置換とOwner手動mergeは、旧Verifierの署名鍵・Anchorを使わない。旧VerifierのHOLD自体を解除せず、CI・PH／SG保護・Owner未確認・identity不一致等の停止は新方式でも維持する。
+DEC-0174のSora正式版更新も、旧VerifierのHOLDを成功に変換せず、Owner承認と別途定めた確認を行う。他の設置・P5・保安・CIの停止には流用しない。
 HARD_STOPも解除しない。独立性を確認できない作業は停止対象に含める。
 Ownerが全作業停止を明示した場合はそれを優先する。原因解消後は元のgateを現在対象で再評価し、
 失敗記録や実行済み消費を消さない。旧Verifierの正式VerifyがHOLDのままなら旧Verifierによる受入成功とは報告しない。
@@ -162,6 +164,19 @@ Codexはサマリー・差分・チェックの確認を準備するが、Owner�
 
 各PRの対象head・base・変更範囲、PH／SG保護を含む必須CI、9項目の採用サマリーを現在のGitHub情報で照合する。GitHubはskipped／neutralを必須チェックの通過と扱う場合があるため、Ownerは各ジョブが明示的にsuccessであることも確認する。対象・主要リスク・CI結果が変われば確認をやり直す。Ownerが確認後に実際にmergeし、merge後は正式main・対象treeと記録を確認する。設置・実API・設定変更は別承認のまま維持する。
 GitHub必須チェックが未適用、現在対象のCIが失敗・未完了、Ownerの確認がない場合は取り込まない。
+
+### Sora正式版の設置確認（DEC-0174）
+
+対象はOwnerが別に許可したSora正式版の更新だけであり、merge・商品取得・P5等の許可を含まない。旧署名鍵・Trust Anchor・`ShopeeGovernance`の参照、作成、復元は行わず、旧VerifierのHOLDを成功へ読み替えない。採用済みPR・CIとGitHubのOwner確認を根拠とするため、共有認証下ではOwner本人の操作とrepository identityを署名・独立Anchorで証明できない限界がある。
+
+1. **対象と許可**：DEC-0173に従いOwner自身がGitHubのPR画面で取り込んだ正式repository・採用済みmainの完全なcommitとtree、設置先、`Sora起動.cmd`、停止条件、時間・回数を固定する。対象commitが承認したPR群を含み、各PRの現在対象で必須6チェックが明示的に成功し、PH・SG両方の保護確認が成功したことを確認する。branch protectionとは別に、6つのmandatory gateのCI記録について出所・内容hash・現在のhead／tree／base／設定との結合も確認する。欠落・失敗・skip・neutral・古い対象・identity不一致は停止する。各PR headとMerge後のcommitは異なり得るため、Merge結果と承認した変更・treeの対応を確認し、表示の短い版番号だけで一致扱いにしない。設置先の更新前HEAD・tree・branch・remoteを別に記録し、`git status --porcelain=v1 --untracked-files=all`が空であること、固定した採用commitへのfast-forwardが可能なことを確認する。
+2. **起動しない全体確認**：実作業用の同じ補助処理について、バックアップ・停止・更新・起動・画面確認までの全工程を対象に、実行せず入力・分岐・対象・権限・記録先・UTF-8の読込み・依存を確認するmodeを用意する。確認modeではコピー・削除・停止・fetch／更新・起動・実API・鍵／Anchor操作をしない。できたmode自体を副作用なしに検証し、同じhelperのhash・実行identity・文字コードを本番実行時に再照合する。将来の通信・コピーや画面表示の成功を事前確認のPASSへ読み替えない。失敗・不一致は最初に停止し、同一許可で再試行しない。
+3. **バックアップと停止**：既存の記録や途中backupを触らず、新しい保存先に正式版を1回だけコピーする。各ファイルの成否・エラー・時間制限／中断の有無を記録し、コピー元の前後とコピー先のディレクトリ・一覧・内容を照合する。不一致なら更新しない。停止処理と同じ実行identity・権限（昇格状態を含む）で、対象ローカルポート8510の全状態のポート行を記録する。Listenだけに絞らず、State・LocalAddress／LocalPort・RemoteAddress／RemotePort・OwningProcessを確認し、取得失敗・参照不能を「空き」にしない。該当PID・開始時刻・コマンドラインと、親process／起動記録から正式版フォルダ・同じ起動cmdへの対応を照合する。相対指定の`app.py`やPIDだけで旧Soraと判断せず、停止直前にもPID・開始時刻を再照合し、その旧Soraだけを停止する。停止後は同じ権限で全状態を再取得し、旧processの終了・待受の解消・予期しない使用がないことを確認する。TIME_WAIT等の残存行も記録して稼働中の使用と区別し、判別不能なら停止する。ポートが未使用なら停止操作は行わない。別のPythonや8504には触れず、正体不明・ポート確認失敗は停止する。詳細な起動情報は秘密値を除いた非公開の作業記録に留め、機密path・秘密値を共有文書に出さない。
+4. **更新とGit照合**：更新直前の起動しない確認を通し、設置先HEAD・treeが記録した更新前の版のまま、かつcleanであることを再照合してから、別承認の範囲内で固定した採用commitへのfast-forward（`--ff-only`）を1回だけ行う。受入済みcommitと設置先の`git rev-parse HEAD`、`git rev-parse 'HEAD^{tree}'`を、それぞれGitHubで確認した採用commit・treeと比較する。`git status --porcelain=v1 --untracked-files=all`が空であることも確認する。これはGit管理外のignore対象がない証明ではなく、それらを削除・上書きせず、追加pathとの衝突を更新前に確認する。更新前の不一致・変更・衝突では更新せず停止し、更新後の不一致・変更では起動せず停止する。cleanにするためのreset・削除やforce更新はしない。
+5. **起動と表示**：更新後、同じ補助処理・実行identity・権限で起動前の起動しない確認を再実施し、HEAD・treeの採用版一致、clean、全状態のポート行を再確認する。成功した場合だけ同じ`Sora起動.cmd`を1回起動し、8510のPID・開始時刻・コマンドライン・正式版の起動元と応答を確認する。実際の画面右上の版表示を採用commitの先頭7文字と照合する。Gitの完全なcommit・treeの照合と画面確認は別に記録し、画面を開けない・版不一致・起動失敗は停止する。商品取得ボタンは押さない。作業途中の画面資料は再起動で消えるため、Ownerは必要な出力を先に保存する。
+6. **失敗と復元**：各段階の成否と実行済み範囲を記録し、失敗・部分実行・結果不明時は再試行や自動復元をせず報告する。復元は、失敗状態を保全し、照合済みbackupを使う別承認とする。設置前後のValidateは使えるが、旧Verifierによるfresh Verifyの成功・署名証明・実API成功と称しない。
+
+この節は確認手順の契約であり、補助処理・確認modeの実装済み／検証済みや実設置成功を意味しない。実作業用の補助処理と確認modeは、設置対象を固定した別工程で準備・検証する。
 
 Owner Acceptance Summaryは、採用対象、変更、非対象、既存運用影響、主要リスク、確認済みEvidence、既知制約、
 承認後の意味、rollbackの9項目を事業用語で説明します。オーナーへhash、SHA、schema等の技術判断を要求しません。
