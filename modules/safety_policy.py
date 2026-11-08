@@ -120,9 +120,15 @@ def _condition(rule, value, row, group):
         # A warning alone can also describe an aerosol or a solid.  The new
         # BLOCK is specific to a liquid identifiable in the available facts.
         details = " ".join(normalize_text(raw) for _, _, raw in _values(row, ("text",)))
+        product_kind = " ".join((title, category))
+        oil = re.search(r"(?:ヘア|クレンジング|美容|ボディ|マッサージ|ベビー|スキンケア|"
+                        r"アロマ|エッセンシャル)オイル|オイルクレンジング|精油|"
+                        r"(?:hair|cleansing|body|massage|baby|essential) oil", product_kind)
+        oil_is_liquid = oil and not re.search(r"スプレー|エアゾール|spray|aerosol", product_kind)
         liquid = (re.search(r"液体|液状|液剤|溶液|化粧水|ローション|リキッド|乳液|"
                             r"シャンプー|ボディソープ|液体洗剤|(?:^|\W)liquids?(?:$|\W)",
-                            " ".join((title, category)))
+                            product_kind)
+                  or oil_is_liquid
                   or re.search(r"(?:本品|本製品|この商品).{0,12}(?:液体|液状|液剤)|"
                                r"引火性(?:の)?液体|\bflammable liquids?\b", details))
         return action if liquid else None

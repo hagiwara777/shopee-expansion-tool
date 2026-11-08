@@ -235,6 +235,20 @@ def test_flammable_warning_blocks_identifiable_liquid_but_not_general_aerosol(wa
     assert not any(h.rule_id == "COMMON-TRANSPORT-FLAMMABLE-LIQUID" for h in evaluate_policy(aerosol, "SG"))
 
 
+@pytest.mark.parametrize("market", ["PH", "SG"])
+@pytest.mark.parametrize("title", ["ヘアオイル", "クレンジングオイル", "ボディオイル", "hair oil"])
+def test_flammable_warning_blocks_identifiable_liquid_oil(market, title):
+    liquid = _facts(title, "ビューティー", safetyWarning="火気厳禁")
+    assert any(h.rule_id == "COMMON-TRANSPORT-FLAMMABLE-LIQUID" and h.action == "BLOCK"
+               for h in evaluate_policy(liquid, market))
+
+
+@pytest.mark.parametrize("market", ["PH", "SG"])
+def test_flammable_warning_does_not_assume_an_oil_spray_is_liquid(market):
+    spray = _facts("ヘアオイルスプレー", "ヘアスプレー", safetyWarning="火気厳禁")
+    assert not any(h.rule_id == "COMMON-TRANSPORT-FLAMMABLE-LIQUID" for h in evaluate_policy(spray, market))
+
+
 def test_aerosol_does_not_become_a_liquid_merely_by_comparing_itself_to_lotion():
     aerosol = _facts("ヘアスプレー", "ヘアスプレー", description="化粧水のような潤い。火気厳禁")
     assert not any(h.rule_id == "COMMON-TRANSPORT-FLAMMABLE-LIQUID" for h in evaluate_policy(aerosol, "SG"))
