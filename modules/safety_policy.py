@@ -303,12 +303,13 @@ def _softener_only(row):
     title = normalize_text(row.get("product_title", ""))
     category = normalize_text(row.get("category", ""))
     softener = re.search(r"柔軟剤|fabric softener", title) or re.search(r"(?:^|>)\s*柔軟剤\s*$", category)
-    detergent_in_title = re.search(r"洗濯(?:用)?(?:液体|粉末)?洗剤|洗たく(?:用)?(?:液体|粉末)?洗剤|"
-                                   r"衣[料類]用(?:液体|粉末)?洗剤|おしゃれ着(?:用)?(?:液体)?洗剤|"
-                                   r"(?:洗濯|洗たく|衣料)用ジェルボール|laundry detergent", title)
+    detergent = (r"洗濯(?:用)?(?:液体|粉末)?洗剤|洗たく(?:用)?(?:液体|粉末)?洗剤|"
+                 r"衣[料類]用(?:液体|粉末)?洗剤|おしゃれ着(?:用)?(?:液体)?洗剤|"
+                 r"(?:洗濯|洗たく|衣料)用ジェルボール|(?:洗濯|洗たく|衣料用|衣類用)(?:せっけん|石けん)|"
+                 r"ランドリー洗剤|laundry detergent")
+    detergent_in_title = re.search(detergent, title)
     details = " ".join(normalize_text(raw) for _, _, raw in _values(row, ("text",)))
-    included_detergent = re.search(r"(?:洗濯(?:用)?洗剤|洗たく(?:用)?洗剤|衣料用洗剤|laundry detergent)"
-                                   r".{0,12}(?:同梱|付属|セット|付き|入り|含む)", details)
+    included_detergent = re.search(rf"(?:{detergent}).{{0,12}}(?:同梱|付属|セット|付き|入り|含む)", details)
     return bool(softener and not detergent_in_title and not included_detergent)
 
 

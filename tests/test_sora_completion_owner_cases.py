@@ -98,8 +98,9 @@ def test_softener_survives_a_laundry_parent_and_a_separate_detergent_still_stops
     assert apply_guardrails([softener], marketplace=market)[0]["guardrail_status"] == "SAFE"
     combined = _facts("柔軟剤入り洗濯用洗剤", "洗濯用洗剤 > 柔軟剤")
     assert apply_guardrails([combined], marketplace=market)[0]["guardrail_status"] == "BLOCK"
-    bundle = _facts("柔軟剤", "柔軟剤", description="洗濯用洗剤を同梱")
-    assert apply_guardrails([bundle], marketplace=market)[0]["guardrail_status"] == "BLOCK"
+    for included in ("洗濯用洗剤", "衣料用液体洗剤", "洗濯用ジェルボール", "洗濯せっけん"):
+        bundle = _facts("柔軟剤", "柔軟剤", description=included + "を同梱")
+        assert apply_guardrails([bundle], marketplace=market)[0]["guardrail_status"] == "BLOCK"
 
 
 @pytest.mark.parametrize("market", ["PH", "SG"])
