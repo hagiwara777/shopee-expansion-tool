@@ -259,8 +259,19 @@ def _mask_nonperfume_fragrance(value, row, group):
     if not re.search(r"シャンプー|トリートメント|コンディショナー|ボディソープ|洗顔|柔軟剤|"
                      r"shampoo|conditioner|body wash|fabric softener", product):
         return value
-    return re.sub(r"フレグランス|(?<![a-z0-9])fragrance(?![a-z0-9])",
-                  lambda m: " " * len(m[0]), value)
+    pattern = r"フレグランス|(?<![a-z0-9])fragrance(?![a-z0-9])"
+    product_word = r"シャンプー|トリートメント|コンディショナー|ボディソープ|洗顔|柔軟剤|shampoo|conditioner|body wash|fabric softener"
+
+    def mask_only_scent(match):
+        prefix, suffix = value[:match.start()], value[match.end():]
+        # A separately listed fragrance and wash product can be a bundle, not
+        # merely a description of the wash product's scent.
+        if (re.match(rf"\s*(?:と|[+＆&・/])\s*(?:{product_word})", suffix)
+                or re.search(rf"(?:{product_word})\s*(?:と|[+＆&・/])\s*$", prefix)):
+            return match.group()
+        return " " * len(match.group())
+
+    return re.sub(pattern, mask_only_scent, value)
 
 
 def _category_is_toy(row):
@@ -295,7 +306,10 @@ def _softener_only(row):
     detergent_in_title = re.search(r"洗濯(?:用)?(?:液体|粉末)?洗剤|洗たく(?:用)?(?:液体|粉末)?洗剤|"
                                    r"衣[料類]用(?:液体|粉末)?洗剤|おしゃれ着(?:用)?(?:液体)?洗剤|"
                                    r"(?:洗濯|洗たく|衣料)用ジェルボール|laundry detergent", title)
-    return bool(softener and not detergent_in_title)
+    details = " ".join(normalize_text(raw) for _, _, raw in _values(row, ("text",)))
+    included_detergent = re.search(r"(?:洗濯(?:用)?洗剤|洗たく(?:用)?洗剤|衣料用洗剤|laundry detergent)"
+                                   r".{0,12}(?:同梱|付属|セット|付き|入り|含む)", details)
+    return bool(softener and not detergent_in_title and not included_detergent)
 
 
 def _ingredient_entries(value):
@@ -376,6 +390,7 @@ def evaluate_policy(row, marketplace, rules=None):
     from modules.guardrails import normalize_text, _contains_rule_term, GuardrailRule
     rules = load_policy_rules() if rules is None else rules
     hits = []
+    softener_only = None
     for rule in rules:
         if "ALL" not in rule["markets"] and marketplace not in rule["markets"]:
             continue
@@ -396,7 +411,7 @@ def evaluate_policy(row, marketplace, rules=None):
             if rule["id"] == "COMMON-FINANCE":
                 value = re.sub(r"株式会社|\(株\)", lambda m: " " * len(m[0]), value)
             if rule["id"] == "COMMON-SLS-PLANT" and _cosmetic_product(row):
-                value = re.sub(r"(?<!観葉)和漢植物(?![の\s]{0,2}(?:苗|種|鉢|栽培|生体|盆栽))",
+                value = re.sub(r"(?<!観葉)和漢植物(?![の\s]{0,2}(?:本体|苗|種|鉢|栽培|生体|盆栽))",
                                lambda m: " " * len(m[0]), value)
             if rule["id"] == "COMMON-SLS-HAIRCOLOR":
                 value = re.sub(r"ヘアカラー(?=\s*ラスティング)", lambda m: " " * len(m[0]), value)
@@ -421,8 +436,11 @@ def evaluate_policy(row, marketplace, rules=None):
             for term in rule["terms"]:
                 normalized = normalize_text(term)
                 if (rule["id"] == "COMMON-SLS-LAUNDRY" and group in {"text", "category"}
-                        and normalized not in {"洗濯洗剤", "laundry detergent"} and _softener_only(row)):
-                    continue
+                        and normalized not in {"洗濯洗剤", "laundry detergent"}):
+                    if softener_only is None:
+                        softener_only = _softener_only(row)
+                    if softener_only:
+                        continue
                 toy_terms = {"PH-ORAL": {"歯ブラシ", "ハブラシ", "toothbrush"},
                              "COMMON-SLS-COIN": {"コイン", "coin", "coins"},
                              "COMMON-SLS-FOOD": {"牛乳", "milk"}}

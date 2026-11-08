@@ -98,6 +98,8 @@ def test_softener_survives_a_laundry_parent_and_a_separate_detergent_still_stops
     assert apply_guardrails([softener], marketplace=market)[0]["guardrail_status"] == "SAFE"
     combined = _facts("柔軟剤入り洗濯用洗剤", "洗濯用洗剤 > 柔軟剤")
     assert apply_guardrails([combined], marketplace=market)[0]["guardrail_status"] == "BLOCK"
+    bundle = _facts("柔軟剤", "柔軟剤", description="洗濯用洗剤を同梱")
+    assert apply_guardrails([bundle], marketplace=market)[0]["guardrail_status"] == "BLOCK"
 
 
 @pytest.mark.parametrize("market", ["PH", "SG"])
@@ -159,6 +161,8 @@ def test_scent_exclusion_does_not_release_a_perfume_named_as_a_fragrance():
     assert apply_guardrails([_facts("フレグランス", "シャンプー")], marketplace="SG")[0]["guardrail_status"] == "BLOCK"
     assert apply_guardrails([_facts("シャンプー", "シャンプー", description="香水のような香り。香水を同梱")],
                             marketplace="SG")[0]["guardrail_status"] == "BLOCK"
+    for title in ("フレグランスとシャンプーのセット", "シャンプーとフレグランスのセット", "フレグランス＋柔軟剤"):
+        assert apply_guardrails([_facts(title, "ビューティー")], marketplace="SG")[0]["guardrail_status"] == "BLOCK"
 
 
 def test_perfume_smell_comparison_may_include_a_bounded_adjective():
@@ -230,6 +234,7 @@ def test_masking_an_occurrence_never_hides_an_independent_real_hit(market):
         _facts("爪切りとジェルネイルのセット", "ネイル > 爪切り"),
         _facts("和漢植物の洗顔と観葉植物", "ビューティー > スキンケア"),
         _facts("観葉和漢植物", "ビューティー > スキンケア"),
+        _facts("和漢植物の本体と洗顔", "ビューティー > スキンケア"),
         _facts("柔軟剤と香水のセット", "柔軟剤"),
         _facts("ヘアカラーラスティング バームと染毛剤", "ビューティー"),
         _facts("食洗機用洗剤と食洗機本体", "台所用品"),
