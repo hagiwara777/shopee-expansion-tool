@@ -261,13 +261,17 @@ def _mask_nonperfume_fragrance(value, row, group):
         return value
     pattern = r"フレグランス|(?<![a-z0-9])fragrance(?![a-z0-9])"
     product_word = r"シャンプー|トリートメント|コンディショナー|ボディソープ|洗顔|柔軟剤|shampoo|conditioner|body wash|fabric softener"
+    size = r"\d+(?:\.\d+)?\s*(?:ml|l|mg|g|kg|個|本)(?:\s*[x×]\s*\d+)?"
+    separator = r"(?:と|[+＆&・/])"
 
     def mask_only_scent(match):
         prefix, suffix = value[:match.start()], value[match.end():]
         # A separately listed fragrance and wash product can be a bundle, not
         # merely a description of the wash product's scent.
-        if (re.match(rf"\s*(?:と|[+＆&・/])\s*(?:{product_word})", suffix)
-                or re.search(rf"(?:{product_word})\s*(?:と|[+＆&・/])\s*$", prefix)):
+        if (re.match(rf"\s*(?:{size})?\s*{separator}\s*(?:{product_word})", suffix)
+                or re.search(rf"(?:{product_word})\s*(?:{size})?\s*{separator}\s*$", prefix)
+                or (re.search(r"セット|(?<![a-z])set(?![a-z])", value)
+                    and re.match(rf"\s*{size}\s*(?:{product_word})\s*{size}", suffix))):
             return match.group()
         return " " * len(match.group())
 
