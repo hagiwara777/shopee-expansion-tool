@@ -270,6 +270,9 @@ def _mask_nonperfume_fragrance(value, row, group):
         # merely a description of the wash product's scent.
         if (re.match(rf"\s*(?:{size})?\s*{separator}\s*(?:{product_word})", suffix)
                 or re.search(rf"(?:{product_word})\s*(?:{size})?\s*{separator}\s*$", prefix)
+                or re.match(rf"\s*{size}\s*{separator}\s*[^。.!?！？]{{0,32}}?(?:{product_word})", suffix)
+                or (re.match(rf"\s*{size}", suffix)
+                    and re.search(rf"(?:{product_word})\s*{size}\s*{separator}\s*[^。.!?！？]{{0,32}}$", prefix))
                 or (re.search(r"セット|(?<![a-z])set(?![a-z])", value)
                     and re.match(rf"\s*{size}\s*(?:{product_word})\s*{size}", suffix))):
             return match.group()

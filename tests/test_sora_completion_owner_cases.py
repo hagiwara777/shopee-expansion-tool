@@ -173,11 +173,23 @@ def test_scent_exclusion_does_not_release_a_perfume_named_as_a_fragrance():
     "柔軟剤 500mL ＆ フレグランス 30mL",
     "フレグランス 30mL・ボディソープ",
     "フレグランス 30mL シャンプー 300mL セット",
+    "フレグランス 30mL + LUX シャンプー 300mL セット",
+    "シャンプー 300mL と ギフト用フレグランス 30mL セット",
 ])
 def test_scent_exclusion_keeps_separate_sized_fragrance_in_bundle(market, title):
     result = apply_guardrails([_facts(title, "ビューティー")], marketplace=market)[0]
     assert result["guardrail_status"] == "BLOCK"
     assert "COMMON-SLS-PERFUME" in result["guardrail_note"]
+
+
+@pytest.mark.parametrize("market", ["PH", "SG"])
+@pytest.mark.parametrize("title", [
+    "ファインフレグランス 500mL 柔軟剤",
+    "シャンプー 300mL と トリートメントのフレグランス",
+])
+def test_scent_wording_in_wash_products_is_not_a_separate_perfume(market, title):
+    result = apply_guardrails([_facts(title, "ビューティー")], marketplace=market)[0]
+    assert result["guardrail_status"] == "SAFE"
 
 
 def test_perfume_smell_comparison_may_include_a_bounded_adjective():
