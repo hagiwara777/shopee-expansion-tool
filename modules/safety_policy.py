@@ -243,7 +243,8 @@ def _mask_other_person_perfume(value):
 
 def _mask_perfume_comparisons(value):
     """A smell comparison is not a perfume; an affirmative product remains one."""
-    return re.sub(r"香水(?=のような(?:香り|香調|香気|匂い|におい))",
+    return re.sub(r"香水(?=のような(?:(?!商品|香水|フレグランス|コロン)[^。.!?！？]){0,16}"
+                  r"(?:香り|香調|香気|匂い|におい))",
                   lambda m: " " * len(m[0]), value)
 
 

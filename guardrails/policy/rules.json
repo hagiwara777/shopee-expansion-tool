@@ -1247,7 +1247,12 @@
         "アダルトグッズ",
         "adult toy",
         "sex toy",
-        "自慰用"
+        "自慰用",
+        "アダルト用品",
+        "アダルト商品",
+        "性玩具",
+        "adult product",
+        "adult products"
       ],
       "condition": "always",
       "note": "DEC-0167; Ownerの出品方針による停止",

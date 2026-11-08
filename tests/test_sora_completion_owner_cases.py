@@ -148,10 +148,24 @@ def test_adult_use_statement_is_a_stop_without_assuming_a_missing_ancestor():
     assert any(h.rule_id == "COMMON-ADULT-TOY" and h.action == "BLOCK" for h in hits)
 
 
+@pytest.mark.parametrize("market", ["PH", "SG"])
+@pytest.mark.parametrize("phrase", ["アダルト用品", "アダルト商品", "性玩具", "adult product"])
+def test_clear_adult_product_description_is_a_block(market, phrase):
+    hits = evaluate_policy(_facts("普通の商品", description=phrase), market)
+    assert any(h.rule_id == "COMMON-ADULT-TOY" and h.action == "BLOCK" for h in hits)
+
+
 def test_scent_exclusion_does_not_release_a_perfume_named_as_a_fragrance():
     assert apply_guardrails([_facts("フレグランス", "シャンプー")], marketplace="SG")[0]["guardrail_status"] == "BLOCK"
     assert apply_guardrails([_facts("シャンプー", "シャンプー", description="香水のような香り。香水を同梱")],
                             marketplace="SG")[0]["guardrail_status"] == "BLOCK"
+
+
+def test_perfume_smell_comparison_may_include_a_bounded_adjective():
+    safe = _facts("シャンプー", "シャンプー", description="まるで香水のような華やかな香り")
+    actual = _facts("シャンプー", "シャンプー", description="香水のような商品です")
+    assert apply_guardrails([safe], marketplace="SG")[0]["guardrail_status"] == "SAFE"
+    assert apply_guardrails([actual], marketplace="SG")[0]["guardrail_status"] == "BLOCK"
 
 
 @pytest.mark.parametrize("title", ["フレグランス ボディソープ", "フレグランス コンディショナー", "フレグランス 洗顔"])
