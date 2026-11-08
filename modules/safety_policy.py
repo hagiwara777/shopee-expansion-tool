@@ -328,9 +328,11 @@ def _softener_only(row):
 
 def _ingredient_entries(value):
     """Split one structured full-ingredients list without inferring from prose."""
-    value = re.sub(r"^\s*(?:全成分|成分|原材料)\s*[:：]\s*", "", value)
-    return [re.sub(r"<[^>]*>", "", html.unescape(part)).strip()
-            for part in re.split(r"[,、・;；]", value)]
+    value = re.sub(r"<br\s*/?>", "\n", html.unescape(value), flags=re.I)
+    value = re.sub(r"<[^>]*>", "", value)
+    value = re.sub(r"^\s*(?:(?:全成分|成分|原材料)\s*[:：]|"
+                   r"[【\[]\s*(?:全成分|成分|原材料)\s*[】\]]\s*[:：]?)\s*", "", value)
+    return [part.strip() for part in re.split(r"[,、・;；\r\n]", value) if part.strip()]
 
 
 def _is_ethanol_entry(value):
@@ -343,7 +345,10 @@ def _leading_ethanol_hits(row, rule):
 
     def add(field, raw, position):
         normalized = unicodedata.normalize("NFKC", raw).strip().lower()
-        parts = tuple(re.finditer(r"[^,、・;；]+", normalized))
+        normalized = re.sub(r"<br\s*/?>", "\n", html.unescape(normalized), flags=re.I)
+        normalized = re.sub(r"<[^>]*>", "", normalized)
+        parts = tuple(part for part in re.finditer(r"[^,、・;；\r\n]+", normalized)
+                      if _ingredient_entries(part.group()))
         target = parts[position - 1] if len(parts) >= position else (parts[0] if len(parts) == 1 else None)
         match = re.search(r"エタノール|ethanol", target.group()) if target else None
         if not match:
@@ -359,13 +364,15 @@ def _leading_ethanol_hits(row, rule):
         if not isinstance(values, (list, tuple)) or any(not isinstance(v, str) for v in values):
             raise SafetyPolicyError("商品情報の形式を確認できません。判定を停止しました。")
         values = tuple(unicodedata.normalize("NFKC", v).strip().lower() for v in values if v.strip())
-        if len(values) > 1 and all(len(_ingredient_entries(v)) == 1 for v in values):
-            for index, entry in enumerate(values[:2], 1):
+        parsed = [(v, _ingredient_entries(v)) for v in values]
+        if len(values) > 1 and all(len(parts) <= 1 for _, parts in parsed):
+            entries = [(raw, parts[0]) for raw, parts in parsed if parts]
+            for index, (raw, entry) in enumerate(entries[:2], 1):
                 if _is_ethanol_entry(entry):
-                    add("ingredients", entry, index)
+                    add("ingredients", raw, index)
         else:
-            for value in values:
-                for index, entry in enumerate(_ingredient_entries(value)[:2], 1):
+            for value, entries in parsed:
+                for index, entry in enumerate(entries[:2], 1):
                     if _is_ethanol_entry(entry):
                         add("ingredients", value, index)
 

@@ -128,6 +128,15 @@ def test_cologne_inside_a_category_node_is_detected_without_matching_colombia():
     (["エタノール、水、香料"], "BLOCK"), (["水、エタノール、香料"], "BLOCK"),
     (["水、グリセリン、エタノール"], "SAFE"), (["水", "グリセリン", "エタノール"], "SAFE"),
     (["水", "エタノール", "香料"], "BLOCK"),
+    (["【全成分】エタノール、水、香料"], "BLOCK"), (["[成分] 水、エタノール、香料"], "BLOCK"),
+    (["【全成分】水、グリセリン、エタノール"], "SAFE"),
+    (["【全成分】エタノール", "水", "香料"], "BLOCK"),
+    (["【全成分】", "水", "エタノール"], "BLOCK"),
+    (["【全成分】", "水", "グリセリン", "エタノール"], "SAFE"),
+    (["【全成分】\nエタノール\n水\n香料"], "BLOCK"),
+    (["全成分：水<br>エタノール<br>香料"], "BLOCK"),
+    (["【全成分】\n水\nグリセリン\nエタノール"], "SAFE"),
+    (["水<br>グリセリン<br>エタノール"], "SAFE"),
 ])
 def test_ethanol_requires_first_or_second_position_in_full_ingredients(market, ingredients, expected):
     assert apply_guardrails([_facts("普通の化粧水", ingredients=ingredients)], marketplace=market)[0]["guardrail_status"] == expected
@@ -359,6 +368,10 @@ def test_sp_api_ancestor_reaches_the_real_sora_gate_without_a_network_call(marke
 @pytest.mark.parametrize("ingredients,expected", [
     ("水、エタノール、香料", "EXCLUDE"),
     ("水、グリセリン、エタノール", "ELIGIBLE"),
+    ("【全成分】エタノール、水、香料", "EXCLUDE"),
+    ("【全成分】水、グリセリン、エタノール", "ELIGIBLE"),
+    ("【全成分】\n水\nエタノール\n香料", "EXCLUDE"),
+    ("全成分：水<br>グリセリン<br>エタノール", "ELIGIBLE"),
 ])
 def test_structured_sp_api_ingredients_reach_the_sora_gate_offline(ingredients, expected):
     from modules.asin_resolver import preview_candidates, verify_preview_rows
