@@ -971,6 +971,10 @@ def _find_home_appliance_matches(row: dict[str, Any]) -> list[GuardrailMatch]:
     outside the appliance scope are left to every other existing rule.
     """
     title = str(row.get("product_title") or "")
+    # An appliance mentioned only as the destination of a detergent is not
+    # the appliance itself.  A separate body mention remains visible.
+    title = re.sub(rf"(?:{HOME_APPLIANCE_BODY_PATTERN})(?=\s*用(?:の)?\s*(?:(?:液体|粉末|ジェル|専用)\s*)?洗剤)",
+                   lambda m: " " * len(m[0]), title, flags=re.I)
     category = str(row.get("category") or "")
     in_scope, category_in_scope = _home_appliance_scope(title, category)
     if not in_scope:
@@ -1110,6 +1114,8 @@ def _contains_term(target: str, term: str) -> bool:
 def _contains_v2_term(target: str, term: str) -> bool:
     if not term:
         return False
+    if term == "ギャバ":
+        return re.search(r"ギャバ(?!ン)", target) is not None
     if re.search(r"[a-z0-9]", term):
         pattern = rf"(?<![a-z0-9]){re.escape(term)}(?![a-z0-9])"
         return re.search(pattern, target) is not None
@@ -1342,6 +1348,8 @@ def _context_for_term(
     if not normalized_term:
         return ""
     pattern = re.escape(normalized_term)
+    if v2 and normalized_term == "ギャバ":
+        pattern = r"ギャバ(?!ン)"
     if not contains and _is_ascii_token_phrase(normalized_term):
         pattern = rf"(?<![a-z0-9]){pattern}(?![a-z0-9])"
     for field, raw in _context_values(row, fields):

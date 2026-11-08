@@ -4,6 +4,7 @@ Amazon category nodes are product evidence only. They never assign a Shopee
 category, produce SLS ALLOW, or override another Safety result.
 """
 from dataclasses import dataclass
+import html
 import json
 from pathlib import Path
 import re
@@ -17,7 +18,7 @@ POLICY_DIR = Path(__file__).resolve().parents[1] / "guardrails" / "policy"
 FIELDS = {"title", "text", "ingredients", "category", "brand", "asin"}
 CONDITIONS = {"always", "medical", "general", "spray", "mask", "weapon_attachment",
               "food", "laser", "certification", "sample", "used", "food_review", "battery",
-              "sg_knife", "ph_contact_lens"}
+              "sg_knife", "ph_contact_lens", "flammable_liquid", "leading_ethanol"}
 RISKS = {"drug_or_hemp", "medical_or_therapeutic", "regulated_ingredient", "brand_ip",
          "weapon", "weapon_related_toy", "food_restricted", "shipping_restricted",
          "tobacco_or_vape", "alcohol", "license_or_certification_required", "own_penalty_product", "other"}
@@ -115,6 +116,16 @@ def _condition(rule, value, row, group):
     title = normalize_text(row.get("product_title", ""))
     category = normalize_text(row.get("category", ""))
     context = title + " " + value
+    if condition == "flammable_liquid":
+        # A warning alone can also describe an aerosol or a solid.  The new
+        # BLOCK is specific to a liquid identifiable in the available facts.
+        details = " ".join(normalize_text(raw) for _, _, raw in _values(row, ("text",)))
+        liquid = (re.search(r"液体|液状|液剤|溶液|化粧水|ローション|リキッド|乳液|"
+                            r"シャンプー|ボディソープ|液体洗剤|(?:^|\W)liquids?(?:$|\W)",
+                            " ".join((title, category)))
+                  or re.search(r"(?:本品|本製品|この商品).{0,12}(?:液体|液状|液剤)|"
+                               r"引火性(?:の)?液体|\bflammable liquids?\b", details))
+        return action if liquid else None
     decoration = re.search(r"フィギュア|キーホルダー|キーチェーン|ペンダント|figure|keychain|pendant", context)
     if condition in {"sg_knife", "ph_contact_lens"}:
         # A bare accessory name is not proof that it contains the body.  Keep
@@ -230,6 +241,115 @@ def _mask_other_person_perfume(value):
     return value
 
 
+def _mask_perfume_comparisons(value):
+    """A smell comparison is not a perfume; an affirmative product remains one."""
+    return re.sub(r"香水(?=のような(?:香り|香調|香気|匂い|におい))",
+                  lambda m: " " * len(m[0]), value)
+
+
+def _mask_nonperfume_fragrance(value, row, group):
+    """Only generic fragrance wording on an identifiable wash/softener product."""
+    if group != "title":
+        return value
+    from modules.guardrails import normalize_text
+    product = normalize_text(row.get("product_title", ""))
+    # Require the title itself to identify the product.  A conflicting
+    # category alone must not turn a product explicitly named fragrance into SAFE.
+    if not re.search(r"シャンプー|トリートメント|コンディショナー|ボディソープ|洗顔|柔軟剤|"
+                     r"shampoo|conditioner|body wash|fabric softener", product):
+        return value
+    return re.sub(r"フレグランス|(?<![a-z0-9])fragrance(?![a-z0-9])",
+                  lambda m: " " * len(m[0]), value)
+
+
+def _category_is_toy(row):
+    from modules.guardrails import normalize_text
+    nodes = [n.strip() for n in normalize_text(row.get("category", "")).split(">")]
+    return any(re.fullmatch(r"おもちゃ|玩具|人形・ドール|ドール・人形|人形|ドール|ままごと|"
+                            r"ままごと・ごっこ遊び|おままごと|toys(?: & games)?|dolls|pretend play",
+                            node) for node in nodes)
+
+
+def _nail_tool(row):
+    from modules.guardrails import normalize_text
+    product = normalize_text(row.get("product_title", ""))
+    category = normalize_text(row.get("category", ""))
+    return bool(re.search(r"爪切り|つめ切り|爪やすり|爪ヤスリ|ネイルファイル|"
+                          r"nail clipper|nail file", product + " " + category))
+
+
+def _cosmetic_product(row):
+    from modules.guardrails import normalize_text
+    product = normalize_text(row.get("product_title", ""))
+    category = normalize_text(row.get("category", ""))
+    return bool(re.search(r"化粧|洗顔|美容液|シャンプー|スキンケア|cosmetic|skin care",
+                          product + " " + category))
+
+
+def _softener_only(row):
+    from modules.guardrails import normalize_text
+    title = normalize_text(row.get("product_title", ""))
+    category = normalize_text(row.get("category", ""))
+    softener = re.search(r"柔軟剤|fabric softener", title) or re.search(r"(?:^|>)\s*柔軟剤\s*$", category)
+    detergent_in_title = re.search(r"洗濯(?:用)?(?:液体|粉末)?洗剤|洗たく(?:用)?(?:液体|粉末)?洗剤|"
+                                   r"衣[料類]用(?:液体|粉末)?洗剤|おしゃれ着(?:用)?(?:液体)?洗剤|"
+                                   r"(?:洗濯|洗たく|衣料)用ジェルボール|laundry detergent", title)
+    return bool(softener and not detergent_in_title)
+
+
+def _ingredient_entries(value):
+    """Split one structured full-ingredients list without inferring from prose."""
+    value = re.sub(r"^\s*(?:全成分|成分|原材料)\s*[:：]\s*", "", value)
+    return [re.sub(r"<[^>]*>", "", html.unescape(part)).strip()
+            for part in re.split(r"[,、・;；]", value)]
+
+
+def _is_ethanol_entry(value):
+    return bool(re.fullmatch(r"(?:無水)?エタノール(?:\s*\([^)]{0,30}\))?|ethanol", value.strip()))
+
+
+def _leading_ethanol_hits(row, rule):
+    """Only structured ingredients or a confirmed headed list can set order."""
+    hits = []
+
+    def add(field, raw, position):
+        normalized = unicodedata.normalize("NFKC", raw).strip().lower()
+        parts = tuple(re.finditer(r"[^,、・;；]+", normalized))
+        target = parts[position - 1] if len(parts) >= position else (parts[0] if len(parts) == 1 else None)
+        match = re.search(r"エタノール|ethanol", target.group()) if target else None
+        if not match:
+            return
+        start, end = target.start() + match.start(), target.start() + match.end()
+        note = (rule["note"] + f"; 全成分の{position}番目; 該当箇所[{field}]: "
+                f"「{excerpt_at(normalized, start, end)}」")
+        hits.append(PolicyHit(rule["id"], match.group(), "BLOCK", rule["risk"], field, note, rule["source"]))
+
+    structured = row.get("ingredients")
+    if structured is not None:
+        values = (structured,) if isinstance(structured, str) else structured
+        if not isinstance(values, (list, tuple)) or any(not isinstance(v, str) for v in values):
+            raise SafetyPolicyError("商品情報の形式を確認できません。判定を停止しました。")
+        values = tuple(unicodedata.normalize("NFKC", v).strip().lower() for v in values if v.strip())
+        if len(values) > 1 and all(len(_ingredient_entries(v)) == 1 for v in values):
+            for index, entry in enumerate(values[:2], 1):
+                if _is_ethanol_entry(entry):
+                    add("ingredients", entry, index)
+        else:
+            for value in values:
+                for index, entry in enumerate(_ingredient_entries(value)[:2], 1):
+                    if _is_ethanol_entry(entry):
+                        add("ingredients", value, index)
+
+    for _, field, raw in _values(row, ("text",)):
+        original = unicodedata.normalize("NFKC", raw).strip().lower()
+        for start, end in ingredient_spans(original):
+            section = original[start:end]
+            for index, entry in enumerate(_ingredient_entries(section)[:2], 1):
+                if _is_ethanol_entry(entry):
+                    add(field, section, index)
+    return hits
+
+
 def _mask_makeup_wine_colors(value, row):
     """Recognize explicit color names only when the category is makeup."""
     from modules.guardrails import normalize_text
@@ -258,6 +378,9 @@ def evaluate_policy(row, marketplace, rules=None):
     for rule in rules:
         if "ALL" not in rule["markets"] and marketplace not in rule["markets"]:
             continue
+        if rule["condition"] == "leading_ethanol":
+            hits.extend(_leading_ethanol_hits(row, rule))
+            continue
         for group, field, raw in _values(row, rule["fields"]):
             is_ingredient_policy_text = rule["id"] == "COMMON-COSMETIC-INGREDIENT" and group == "text"
             # Section boundaries need their original line/HTML structure.  The
@@ -269,17 +392,50 @@ def evaluate_policy(row, marketplace, rules=None):
                           "COMMON-SLS-PLANT": r"植物(?:由来|性|エキス|オイル|アロマ)"}
             if rule["id"] in exclusions:
                 value = re.sub(exclusions[rule["id"]], lambda m: " " * len(m[0]), value)
+            if rule["id"] == "COMMON-FINANCE":
+                value = re.sub(r"株式会社|\(株\)", lambda m: " " * len(m[0]), value)
+            if rule["id"] == "COMMON-SLS-PLANT" and _cosmetic_product(row):
+                value = re.sub(r"(?<!観葉)和漢植物(?![の\s]{0,2}(?:苗|種|鉢|栽培|生体|盆栽))",
+                               lambda m: " " * len(m[0]), value)
+            if rule["id"] == "COMMON-SLS-HAIRCOLOR":
+                value = re.sub(r"ヘアカラー(?=\s*ラスティング)", lambda m: " " * len(m[0]), value)
+            if rule["id"] == "PH-SLS":
+                from modules.guardrails import normalize_text
+                category = normalize_text(row.get("category", ""))
+                if re.search(r"入浴剤|バスソルト|bath salts?", category):
+                    value = re.sub(r"(?:食添|食品添加物)\s*[→⇒>]\s*(?:特号|特級)\s*[→⇒>]\s*肥料",
+                                   lambda m: m[0][:-2] + "  ", value)
             value = _mask_usage_cautions(value, field, rule["id"])
-            if rule["id"] == "COMMON-SLS-PERFUME" and group == "text":
-                value = _mask_other_person_perfume(value)
+            if rule["id"] == "COMMON-SLS-PERFUME":
+                if group == "text":
+                    value = _mask_other_person_perfume(value)
+                if group in {"title", "text"}:
+                    value = _mask_perfume_comparisons(value)
+                value = _mask_nonperfume_fragrance(value, row, group)
+                value = re.sub(r"コロンビア|セミコロン|コロン記号|コロンと(?=$|した|丸|転が|かわい|可愛)",
+                               lambda m: " " * len(m[0]), value)
             if rule["id"] == "COMMON-ALCOHOL-DRINK" and group in {"title", "text"}:
                 value = _mask_makeup_wine_colors(value, row)
             sections = ingredient_spans(original) if is_ingredient_policy_text else ()
             for term in rule["terms"]:
                 normalized = normalize_text(term)
+                if (rule["id"] == "COMMON-SLS-LAUNDRY" and group in {"text", "category"}
+                        and normalized not in {"洗濯洗剤", "laundry detergent"} and _softener_only(row)):
+                    continue
+                toy_terms = {"PH-ORAL": {"歯ブラシ", "ハブラシ", "toothbrush"},
+                             "COMMON-SLS-COIN": {"コイン", "coin", "coins"},
+                             "COMMON-SLS-FOOD": {"牛乳", "milk"}}
+                if normalized in toy_terms.get(rule["id"], ()) and _category_is_toy(row):
+                    continue
+                if (rule["id"] == "COMMON-SLS-NAIL"
+                        and normalized in {"ネイル", "ネイルケア", "ネイル用具", "nail care"}
+                        and _nail_tool(row)):
+                    continue
                 if rule["id"] == "COMMON-SLS-PLANT-OTHER" and term == "種子" and group not in {"title", "category"}:
                     continue
-                if group == "category" and rule["id"] not in {"SG-AMULET", "COMMON-SLS-PLANT"}:
+                cologne_category = (rule["id"] == "COMMON-SLS-PERFUME"
+                                    and ("コロン" in normalized or "cologne" in normalized))
+                if group == "category" and rule["id"] not in {"SG-AMULET", "COMMON-SLS-PLANT"} and not cologne_category:
                     if not (normalized == value if ">" in normalized else normalized in [n.strip() for n in value.split(">")]):
                         continue
                 if group in {"brand", "asin"} and value != normalized:

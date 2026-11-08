@@ -358,6 +358,24 @@
       "source": "internal_rule"
     },
     {
+      "id": "PH-SG-COMMUNITY-EISAI-ALIAS",
+      "markets": [
+        "PH",
+        "SG"
+      ],
+      "action": "BLOCK",
+      "risk": "brand_ip",
+      "fields": [
+        "brand"
+      ],
+      "terms": [
+        "Eisai"
+      ],
+      "condition": "always",
+      "note": "DEC-0179; 既存Community NG「エーザイ」のOwner指定英字別名。公式IPRへの追加ではない。",
+      "source": "internal_rule"
+    },
+    {
       "id": "COMMON-SUPPLEMENT",
       "markets": [
         "ALL"
@@ -377,6 +395,39 @@
       ],
       "condition": "always",
       "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-SUPPLEMENT-CATEGORY",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "food_restricted",
+      "fields": [
+        "category"
+      ],
+      "terms": [
+        "サプリ",
+        "サプリメント",
+        "健康食品",
+        "健康食品・サプリメント",
+        "ダイエットサプリ",
+        "ダイエットサプリメント",
+        "フィッシュオイル",
+        "機能性表示食品",
+        "dietary supplements",
+        "food supplements",
+        "fish oil supplements",
+        "weight loss supplements",
+        "サプリメント・ビタミン",
+        "ビタミン・サプリメント",
+        "ダイエット・サプリメント",
+        "栄養補助食品",
+        "栄養補助食品・サプリメント"
+      ],
+      "condition": "always",
+      "note": "DEC-0179; Ownerの出品方針に基づく共通停止。",
       "source": "internal_rule"
     },
     {
@@ -664,6 +715,50 @@
       ],
       "condition": "always",
       "note": "DEC-0167; Ownerの出品方針による要確認。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-TRANSPORT-FLAMMABLE-LIQUID",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text",
+        "category"
+      ],
+      "terms": [
+        "火気注意",
+        "火気厳禁",
+        "引火性",
+        "flammable liquid",
+        "引火性液体",
+        "引火性の液体",
+        "flammable liquids"
+      ],
+      "condition": "flammable_liquid",
+      "note": "DEC-0179; Ownerの出品方針に基づく共通停止。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-TRANSPORT-ETHANOL-LEADING",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "ingredients",
+        "text"
+      ],
+      "terms": [
+        "エタノール",
+        "ethanol"
+      ],
+      "condition": "leading_ethanol",
+      "note": "DEC-0179; Ownerの出品方針に基づく共通停止。",
       "source": "internal_rule"
     },
     {
@@ -1151,10 +1246,33 @@
         "大人のおもちゃ",
         "アダルトグッズ",
         "adult toy",
-        "sex toy"
+        "sex toy",
+        "自慰用"
       ],
       "condition": "always",
       "note": "DEC-0167; Ownerの出品方針による停止",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-ADULT-CATEGORY",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "other",
+      "fields": [
+        "category"
+      ],
+      "terms": [
+        "アダルト",
+        "アダルト商品",
+        "アダルト用品",
+        "アダルトグッズ",
+        "Adult Products",
+        "Adult Store"
+      ],
+      "condition": "always",
+      "note": "DEC-0179; Ownerの出品方針に基づく共通停止。",
       "source": "internal_rule"
     },
     {
@@ -1181,7 +1299,16 @@
         "オードトワレ",
         "eau de parfum",
         "eau de toilette",
-        "Perfumes & Fragrances"
+        "Perfumes & Fragrances",
+        "コロン",
+        "オーデコロン",
+        "オードコロン",
+        "cologne",
+        "eau de cologne",
+        "アフターシェーブコロン",
+        "アフターシャワーコロン",
+        "ボディコロン",
+        "ヘアコロン"
       ],
       "condition": "always",
       "note": "DEC-0167; SLS表2026-09-17のNO商品群を検出。AmazonカテゴリによるShopeeカテゴリ自動割当・ALLOW生成は行わない。。SLS輸送確認。",
@@ -1375,7 +1502,30 @@
       "terms": [
         "洗濯洗剤",
         "laundry detergent",
-        "Laundry Detergent"
+        "Laundry Detergent",
+        "洗濯用洗剤",
+        "洗たく洗剤",
+        "洗たく用洗剤",
+        "衣料用洗剤",
+        "衣類用洗剤",
+        "おしゃれ着洗剤",
+        "おしゃれ着用洗剤",
+        "洗濯せっけん",
+        "洗濯石けん",
+        "洗たくせっけん",
+        "衣料用せっけん",
+        "衣類用せっけん",
+        "ランドリー洗剤",
+        "衣料用液体洗剤",
+        "衣類用液体洗剤",
+        "洗濯用液体洗剤",
+        "洗たく用液体洗剤",
+        "おしゃれ着用液体洗剤",
+        "衣料用粉末洗剤",
+        "洗濯用粉末洗剤",
+        "洗濯用ジェルボール",
+        "洗たく用ジェルボール",
+        "衣料用ジェルボール"
       ],
       "condition": "always",
       "note": "DEC-0167; SLS表2026-09-17のNO商品群を検出。AmazonカテゴリによるShopeeカテゴリ自動割当・ALLOW生成は行わない。。SLS輸送確認。",
@@ -2053,6 +2203,41 @@
       ],
       "condition": "medical",
       "note": "DEC-0159 / DEC-0164 / DEC-0167; 医薬品・医療機器・医薬部外品の肯定表示によるOwnerの出品除外。直接の否定文を区別する。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-MEDICAL-SCAR-CARE",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "title",
+        "text",
+        "category"
+      ],
+      "terms": [
+        "傷あとケア",
+        "傷跡ケア",
+        "傷あとケアテープ",
+        "傷跡ケアテープ",
+        "術後ケア",
+        "手術後ケア",
+        "手術後の傷あと",
+        "シリコーンジェルシート",
+        "シリコンジェルシート",
+        "scar care",
+        "postoperative scar care",
+        "silicone scar sheet",
+        "傷あとのケア",
+        "傷跡のケア",
+        "術後のケア",
+        "手術後のケア",
+        "術後用テープ"
+      ],
+      "condition": "medical",
+      "note": "DEC-0179; Ownerの出品方針に基づく共通停止。",
       "source": "internal_rule"
     },
     {
