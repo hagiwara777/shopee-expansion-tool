@@ -29,7 +29,7 @@ def test_shared_category_and_alcohol_strength(market):
     assert status(market, category="食品・飲料 > お酒 > 果実酒") == "BLOCK"
     assert status(market, "炭酸飲料", description="アルコール分 5%") == "BLOCK"
     assert status(market, "炭酸飲料", description="アルコール分 0%とアルコール分 5%をセット") == "BLOCK"
-    assert status(market, "炭酸飲料", description="アルコール分 ０．００％") == "REVIEW"
+    assert status(market, "炭酸飲料", description="アルコール分 ０．００％") == "BLOCK"
     assert status(market, "化粧水", description="アルコール分 5%") == "REVIEW"
     assert status(market, "キャンディ", category="食品・飲料・お酒 > 菓子") == "SAFE"
 

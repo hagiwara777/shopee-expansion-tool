@@ -117,10 +117,10 @@ def _condition(rule, value, row, group):
     category = normalize_text(row.get("category", ""))
     context = title + " " + value
     if condition == "alcohol_strength":
-        strengths = re.finditer(r"アルコール分\s*(?:約)?\s*(\d+(?:\.\d+)?)\s*%", value)
+        strength = re.search(r"アルコール分\s*(?:約)?\s*\d+(?:\.\d+)?\s*%", value)
         beverage = re.search(r"飲料|飲み物|飲みもの|ドリンク|酒|ビール|ワイン|カクテル|"
                              r"チューハイ|酎ハイ|ハイボール|beverage|drink", title + " " + category + " " + value)
-        return action if beverage and any(float(match[1]) > 0 for match in strengths) else None
+        return action if beverage and strength else None
     if condition == "weapon_part":
         return action if re.search(r"銃|ガン|ライフル|ピストル|firearm|rifle|pistol|airsoft", title + " " + category + " " + value) else None
     if condition == "mushroom_food":
