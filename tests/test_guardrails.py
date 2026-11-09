@@ -929,12 +929,15 @@ def test_every_sg_safety_baseline_term_preserves_scope_and_current_owner_action(
         marketplace="SG",
     )[0]
 
+    # DEC-0181 promotes pesticide/insecticide to BLOCK and adds gum categories.
     assert title_row["guardrail_status"] == (
-        "REVIEW" if rule["term"] in {"medical supply", "medical claim", "therapeutic claim", "medicinal claim", "pesticide", "pesticides", "insecticide", "insecticides", "water beads"} else "BLOCK"
+        "REVIEW" if rule["term"] in {"medical supply", "medical claim", "therapeutic claim", "medicinal claim", "water beads"} else "BLOCK"
     )
     assert rule["term"] in title_row["guardrail_matched_terms"].split("|")
     assert brand_row["guardrail_status"] == "SAFE"
-    assert category_row["guardrail_status"] == "SAFE"
+    assert category_row["guardrail_status"] == (
+        "BLOCK" if rule["term"] in {"chewing gum", "bubble gum", "チューイングガム"} else "SAFE"
+    )
 
 
 def test_sg_safety_baseline_review_does_not_override_existing_block():

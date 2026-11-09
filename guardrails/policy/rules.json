@@ -797,13 +797,6 @@
         "text"
       ],
       "terms": [
-        "殺虫剤",
-        "農薬",
-        "除草剤",
-        "pesticide",
-        "pesticides",
-        "insecticide",
-        "insecticides",
         "毒物",
         "劇物"
       ],
@@ -1033,7 +1026,9 @@
         "象牙",
         "剥製",
         "wildlife product",
-        "animal product"
+        "animal product",
+        "べっ甲",
+        "鼈甲"
       ],
       "condition": "always",
       "note": "DEC-0167; Ownerの出品方針による停止",
@@ -1176,7 +1171,23 @@
         "酒類",
         "ビール",
         "ワイン",
-        "日本酒"
+        "日本酒",
+        "梅酒",
+        "焼酎",
+        "ウイスキー",
+        "ウィスキー",
+        "ブランデー",
+        "ウォッカ",
+        "リキュール",
+        "果実酒",
+        "洋酒",
+        "清酒",
+        "紹興酒",
+        "泡盛",
+        "チューハイ",
+        "酎ハイ",
+        "ハイボール",
+        "シャンパン"
       ],
       "condition": "always",
       "note": "DEC-0167; Ownerの出品方針による停止",
@@ -1206,7 +1217,18 @@
         "electric cigarettes",
         "e-cigarette",
         "e-juice",
-        "vape pod"
+        "vape pod",
+        "タバコ",
+        "たばこ",
+        "煙草",
+        "葉巻",
+        "シガー",
+        "シガリロ",
+        "刻みたばこ",
+        "キセル",
+        "喫煙具",
+        "喫煙パイプ",
+        "シガレットケース"
       ],
       "condition": "always",
       "note": "DEC-0167; Ownerの出品方針による停止",
@@ -1702,12 +1724,14 @@
       "risk": "food_restricted",
       "fields": [
         "title",
-        "text"
+        "text",
+        "category"
       ],
       "terms": [
         "チューイングガム",
         "chewing gum",
-        "bubble gum"
+        "bubble gum",
+        "ガム"
       ],
       "condition": "always",
       "note": "DEC-0167; Ownerの出品方針による停止",
@@ -1952,7 +1976,12 @@
         "dental floss",
         "mouthwash",
         "orthodontic",
-        "Oral Care"
+        "Oral Care",
+        "舌クリーナー",
+        "舌ブラシ",
+        "歯間ブラシ",
+        "タフトブラシ",
+        "入れ歯洗浄剤"
       ],
       "condition": "always",
       "note": "DEC-0167; Ownerの出品方針による停止",
@@ -2737,6 +2766,408 @@
       ],
       "condition": "always",
       "note": "DEC-0167; 既存PH-D070～PH-D072の包丁停止を維持。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-TRANSPORT-PESTICIDE",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "殺虫剤",
+        "農薬",
+        "除草剤",
+        "pesticide",
+        "pesticides",
+        "insecticide",
+        "insecticides"
+      ],
+      "condition": "always",
+      "note": "DEC-0181; Ownerの指定商品群を停止。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-ALCOHOL-CATEGORY",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "alcohol",
+      "fields": [
+        "category"
+      ],
+      "terms": [
+        "お酒"
+      ],
+      "condition": "always",
+      "note": "DEC-0181; Ownerの指定商品群を停止。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-ALCOHOL-STRENGTH",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "alcohol",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "アルコール分"
+      ],
+      "condition": "alcohol_strength",
+      "note": "DEC-0181; Ownerの指定商品群を停止。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-DISEASE-TEST",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "title",
+        "text",
+        "category"
+      ],
+      "terms": [
+        "HIV",
+        "抗原検査キット",
+        "PCR検査キット",
+        "PCR 検査キット",
+        "新型コロナ 検査キット",
+        "新型コロナ検査キット"
+      ],
+      "condition": "always",
+      "note": "DEC-0181; Ownerの指定商品群を停止。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "SG-GENERAL-KNIFE",
+      "markets": [
+        "SG"
+      ],
+      "action": "BLOCK",
+      "risk": "weapon",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "ナイフ",
+        "knife"
+      ],
+      "condition": "always",
+      "note": "DEC-0181; Ownerの指定商品群を停止。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "SG-WEAPON-ADDITIONAL",
+      "markets": [
+        "SG"
+      ],
+      "action": "BLOCK",
+      "risk": "weapon",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "モデルガン",
+        "模造刀",
+        "居合刀",
+        "ガスガン",
+        "電動ガン",
+        "ガスブローバック",
+        "特殊警棒",
+        "警棒",
+        "タクティカルペン",
+        "ピッキングツール"
+      ],
+      "condition": "always",
+      "note": "DEC-0181; Ownerの指定商品群を停止。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "SG-WEAPON-PART",
+      "markets": [
+        "SG"
+      ],
+      "action": "BLOCK",
+      "risk": "weapon",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "マガジン",
+        "弾倉",
+        "銃身"
+      ],
+      "condition": "weapon_part",
+      "note": "DEC-0181; Ownerの指定商品群を停止。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "SG-ELECTRIC-VEHICLE",
+      "markets": [
+        "SG"
+      ],
+      "action": "BLOCK",
+      "risk": "other",
+      "fields": [
+        "title",
+        "text",
+        "category"
+      ],
+      "terms": [
+        "電動キックボード",
+        "電動アシスト自転車",
+        "e-bike"
+      ],
+      "condition": "always",
+      "note": "DEC-0181; Ownerの指定商品群を停止。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "SG-PETFOOD",
+      "markets": [
+        "SG"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "text",
+        "category"
+      ],
+      "terms": [
+        "ドッグフード",
+        "キャットフード",
+        "ペットフード"
+      ],
+      "condition": "always",
+      "note": "DEC-0181; Ownerの指定商品群を停止。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "SG-ANIMAL-FAT",
+      "markets": [
+        "SG"
+      ],
+      "action": "BLOCK",
+      "risk": "food_restricted",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "ラード",
+        "牛脂",
+        "ヘット"
+      ],
+      "condition": "always",
+      "note": "DEC-0181; Ownerの指定商品群を停止。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "SG-MAGNETIC-PUTTY",
+      "markets": [
+        "SG"
+      ],
+      "action": "BLOCK",
+      "risk": "other",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "マグネットパテ",
+        "磁石スライム",
+        "magnetic putty"
+      ],
+      "condition": "always",
+      "note": "DEC-0181; Ownerの指定商品群を停止。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "SG-RESTRICTED-ELECTRONICS",
+      "markets": [
+        "SG"
+      ],
+      "action": "BLOCK",
+      "risk": "other",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "レーダー探知機",
+        "スクランブラー"
+      ],
+      "condition": "always",
+      "note": "DEC-0181; Ownerの指定商品群を停止。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "SG-HUMAN-HAIR",
+      "markets": [
+        "SG"
+      ],
+      "action": "BLOCK",
+      "risk": "other",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "人毛",
+        "human hair"
+      ],
+      "condition": "always",
+      "note": "DEC-0181; Ownerの指定商品群を停止。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "SG-MUSHROOM",
+      "markets": [
+        "SG"
+      ],
+      "action": "BLOCK",
+      "risk": "food_restricted",
+      "fields": [
+        "title",
+        "text",
+        "category"
+      ],
+      "terms": [
+        "しいたけ",
+        "椎茸",
+        "きのこ",
+        "キノコ",
+        "まいたけ",
+        "舞茸",
+        "しめじ",
+        "なめこ",
+        "えのき",
+        "きくらげ",
+        "マッシュルーム",
+        "トリュフ"
+      ],
+      "condition": "mushroom_food",
+      "note": "DEC-0181; Ownerの指定商品群を停止。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "PH-TOY-WEAPON-DIRECT",
+      "markets": [
+        "PH"
+      ],
+      "action": "BLOCK",
+      "risk": "weapon_related_toy",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "水鉄砲",
+        "BB弾"
+      ],
+      "condition": "always",
+      "note": "DEC-0181; Ownerの指定商品群を停止。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "PH-TOY-WEAPON-CONTEXT",
+      "markets": [
+        "PH"
+      ],
+      "action": "BLOCK",
+      "risk": "weapon_related_toy",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "銃",
+        "ピストル",
+        "ライフル",
+        "ガン"
+      ],
+      "condition": "toy_weapon",
+      "note": "DEC-0181; Ownerの指定商品群を停止。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "PH-TATTOO",
+      "markets": [
+        "PH"
+      ],
+      "action": "BLOCK",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "タトゥーマシン",
+        "タトゥー針",
+        "アートメイク",
+        "刺青"
+      ],
+      "condition": "always",
+      "note": "DEC-0181; Ownerの指定商品群を停止。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "PH-PET-DRUG",
+      "markets": [
+        "PH"
+      ],
+      "action": "BLOCK",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "ノミ",
+        "ダニ",
+        "駆虫薬"
+      ],
+      "condition": "pet_drug",
+      "note": "DEC-0181; Ownerの指定商品群を停止。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "PH-COSMETIC-MASK",
+      "markets": [
+        "PH"
+      ],
+      "action": "BLOCK",
+      "risk": "other",
+      "fields": [
+        "title",
+        "text",
+        "category"
+      ],
+      "terms": [
+        "フェイスマスク",
+        "シートマスク",
+        "フェイスパック",
+        "シートパック"
+      ],
+      "condition": "always",
+      "note": "DEC-0181; Ownerの指定商品群を停止。",
       "source": "internal_rule"
     }
   ]
