@@ -743,25 +743,6 @@
       "source": "internal_rule"
     },
     {
-      "id": "COMMON-TRANSPORT-ETHANOL-LEADING",
-      "markets": [
-        "ALL"
-      ],
-      "action": "BLOCK",
-      "risk": "shipping_restricted",
-      "fields": [
-        "ingredients",
-        "text"
-      ],
-      "terms": [
-        "エタノール",
-        "ethanol"
-      ],
-      "condition": "leading_ethanol",
-      "note": "DEC-0179; Ownerの出品方針に基づく共通停止。",
-      "source": "internal_rule"
-    },
-    {
       "id": "COMMON-TRANSPORT-OXIDIZER",
       "markets": [
         "ALL"
@@ -1530,10 +1511,30 @@
         "洗濯用粉末洗剤",
         "洗濯用ジェルボール",
         "洗たく用ジェルボール",
-        "衣料用ジェルボール"
+        "衣料用ジェルボール",
+        "柔軟剤",
+        "柔軟仕上げ剤",
+        "fabric softener"
       ],
       "condition": "always",
-      "note": "DEC-0167; SLS表2026-09-17のNO商品群を検出。AmazonカテゴリによるShopeeカテゴリ自動割当・ALLOW生成は行わない。。SLS輸送確認。",
+      "note": "DEC-0167 / DEC-0180; Ownerの方針による衣料用洗剤・柔軟剤の共通停止。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-SLS-LAUNDRY-CATEGORY",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "category"
+      ],
+      "terms": [
+        "洗濯・仕上げ剤"
+      ],
+      "condition": "always",
+      "note": "DEC-0180; Ownerの方針による洗濯・仕上げ剤カテゴリの共通停止。",
       "source": "internal_rule"
     },
     {

@@ -4,7 +4,6 @@ Amazon category nodes are product evidence only. They never assign a Shopee
 category, produce SLS ALLOW, or override another Safety result.
 """
 from dataclasses import dataclass
-import html
 import json
 from pathlib import Path
 import re
@@ -18,7 +17,7 @@ POLICY_DIR = Path(__file__).resolve().parents[1] / "guardrails" / "policy"
 FIELDS = {"title", "text", "ingredients", "category", "brand", "asin"}
 CONDITIONS = {"always", "medical", "general", "spray", "mask", "weapon_attachment",
               "food", "laser", "certification", "sample", "used", "food_review", "battery",
-              "sg_knife", "ph_contact_lens", "flammable_liquid", "leading_ethanol"}
+              "sg_knife", "ph_contact_lens", "flammable_liquid"}
 RISKS = {"drug_or_hemp", "medical_or_therapeutic", "regulated_ingredient", "brand_ip",
          "weapon", "weapon_related_toy", "food_restricted", "shipping_restricted",
          "tobacco_or_vape", "alcohol", "license_or_certification_required", "own_penalty_product", "other"}
@@ -311,81 +310,6 @@ def _cosmetic_product(row):
                           product + " " + category))
 
 
-def _softener_only(row):
-    from modules.guardrails import normalize_text
-    title = normalize_text(row.get("product_title", ""))
-    category = normalize_text(row.get("category", ""))
-    softener = re.search(r"柔軟剤|fabric softener", title) or re.search(r"(?:^|>)\s*柔軟剤\s*$", category)
-    detergent = (r"洗濯(?:用)?(?:液体|粉末)?洗剤|洗たく(?:用)?(?:液体|粉末)?洗剤|"
-                 r"衣[料類]用(?:液体|粉末)?洗剤|おしゃれ着(?:用)?(?:液体)?洗剤|"
-                 r"(?:洗濯|洗たく|衣料)用ジェルボール|(?:洗濯|洗たく|衣料用|衣類用)(?:せっけん|石けん)|"
-                 r"ランドリー洗剤|laundry detergent")
-    detergent_in_title = re.search(detergent, title)
-    details = " ".join(normalize_text(raw) for _, _, raw in _values(row, ("text",)))
-    included_detergent = re.search(rf"(?:{detergent}).{{0,12}}(?:同梱|付属|セット|付き|入り|含む)", details)
-    return bool(softener and not detergent_in_title and not included_detergent)
-
-
-def _ingredient_entries(value):
-    """Split one structured full-ingredients list without inferring from prose."""
-    value = re.sub(r"<br\s*/?>", "\n", html.unescape(value), flags=re.I)
-    value = re.sub(r"<[^>]*>", "", value)
-    value = re.sub(r"^\s*(?:(?:全成分|成分|原材料)\s*[:：]|"
-                   r"[【\[]\s*(?:全成分|成分|原材料)\s*[】\]]\s*[:：]?)\s*", "", value)
-    return [part.strip() for part in re.split(r"[,、・;；\r\n]", value) if part.strip()]
-
-
-def _is_ethanol_entry(value):
-    return bool(re.fullmatch(r"(?:無水)?エタノール(?:\s*\([^)]{0,30}\))?|ethanol", value.strip()))
-
-
-def _leading_ethanol_hits(row, rule):
-    """Only structured ingredients or a confirmed headed list can set order."""
-    hits = []
-
-    def add(field, raw, position):
-        normalized = unicodedata.normalize("NFKC", raw).strip().lower()
-        normalized = re.sub(r"<br\s*/?>", "\n", html.unescape(normalized), flags=re.I)
-        normalized = re.sub(r"<[^>]*>", "", normalized)
-        parts = tuple(part for part in re.finditer(r"[^,、・;；\r\n]+", normalized)
-                      if _ingredient_entries(part.group()))
-        target = parts[position - 1] if len(parts) >= position else (parts[0] if len(parts) == 1 else None)
-        match = re.search(r"エタノール|ethanol", target.group()) if target else None
-        if not match:
-            return
-        start, end = target.start() + match.start(), target.start() + match.end()
-        note = (rule["note"] + f"; 全成分の{position}番目; 該当箇所[{field}]: "
-                f"「{excerpt_at(normalized, start, end)}」")
-        hits.append(PolicyHit(rule["id"], match.group(), "BLOCK", rule["risk"], field, note, rule["source"]))
-
-    structured = row.get("ingredients")
-    if structured is not None:
-        values = (structured,) if isinstance(structured, str) else structured
-        if not isinstance(values, (list, tuple)) or any(not isinstance(v, str) for v in values):
-            raise SafetyPolicyError("商品情報の形式を確認できません。判定を停止しました。")
-        values = tuple(unicodedata.normalize("NFKC", v).strip().lower() for v in values if v.strip())
-        parsed = [(v, _ingredient_entries(v)) for v in values]
-        if len(values) > 1 and all(len(parts) <= 1 for _, parts in parsed):
-            entries = [(raw, parts[0]) for raw, parts in parsed if parts]
-            for index, (raw, entry) in enumerate(entries[:2], 1):
-                if _is_ethanol_entry(entry):
-                    add("ingredients", raw, index)
-        else:
-            for value, entries in parsed:
-                for index, entry in enumerate(entries[:2], 1):
-                    if _is_ethanol_entry(entry):
-                        add("ingredients", value, index)
-
-    for _, field, raw in _values(row, ("text",)):
-        original = unicodedata.normalize("NFKC", raw).strip().lower()
-        for start, end in ingredient_spans(original):
-            section = original[start:end]
-            for index, entry in enumerate(_ingredient_entries(section)[:2], 1):
-                if _is_ethanol_entry(entry):
-                    add(field, section, index)
-    return hits
-
-
 def _mask_makeup_wine_colors(value, row):
     """Recognize explicit color names only when the category is makeup."""
     from modules.guardrails import normalize_text
@@ -411,12 +335,8 @@ def evaluate_policy(row, marketplace, rules=None):
     from modules.guardrails import normalize_text, _contains_rule_term, GuardrailRule
     rules = load_policy_rules() if rules is None else rules
     hits = []
-    softener_only = None
     for rule in rules:
         if "ALL" not in rule["markets"] and marketplace not in rule["markets"]:
-            continue
-        if rule["condition"] == "leading_ethanol":
-            hits.extend(_leading_ethanol_hits(row, rule))
             continue
         for group, field, raw in _values(row, rule["fields"]):
             is_ingredient_policy_text = rule["id"] == "COMMON-COSMETIC-INGREDIENT" and group == "text"
@@ -435,7 +355,8 @@ def evaluate_policy(row, marketplace, rules=None):
                 value = re.sub(r"(?<!観葉)和漢植物(?![の\s]{0,2}(?:本体|苗|種|鉢|栽培|生体|盆栽))",
                                lambda m: " " * len(m[0]), value)
             if rule["id"] == "COMMON-SLS-HAIRCOLOR":
-                value = re.sub(r"ヘアカラー(?=\s*ラスティング)", lambda m: " " * len(m[0]), value)
+                value = re.sub(r"ヘアカラー(?=\s*(?:ラスティング|の色落ち))",
+                               lambda m: " " * len(m[0]), value)
             if rule["id"] == "PH-SLS":
                 from modules.guardrails import normalize_text
                 category = normalize_text(row.get("category", ""))
@@ -456,12 +377,6 @@ def evaluate_policy(row, marketplace, rules=None):
             sections = ingredient_spans(original) if is_ingredient_policy_text else ()
             for term in rule["terms"]:
                 normalized = normalize_text(term)
-                if (rule["id"] == "COMMON-SLS-LAUNDRY" and group in {"text", "category"}
-                        and normalized not in {"洗濯洗剤", "laundry detergent"}):
-                    if softener_only is None:
-                        softener_only = _softener_only(row)
-                    if softener_only:
-                        continue
                 toy_terms = {"PH-ORAL": {"歯ブラシ", "ハブラシ", "toothbrush"},
                              "COMMON-SLS-COIN": {"コイン", "coin", "coins"},
                              "COMMON-SLS-FOOD": {"牛乳", "milk"}}
@@ -475,7 +390,10 @@ def evaluate_policy(row, marketplace, rules=None):
                     continue
                 cologne_category = (rule["id"] == "COMMON-SLS-PERFUME"
                                     and ("コロン" in normalized or "cologne" in normalized))
-                if group == "category" and rule["id"] not in {"SG-AMULET", "COMMON-SLS-PLANT"} and not cologne_category:
+                softener_category = (rule["id"] == "COMMON-SLS-LAUNDRY"
+                                     and normalized in {"柔軟剤", "柔軟仕上げ剤", "fabric softener"})
+                if (group == "category" and rule["id"] not in {"SG-AMULET", "COMMON-SLS-PLANT"}
+                        and not cologne_category and not softener_category):
                     if not (normalized == value if ">" in normalized else normalized in [n.strip() for n in value.split(">")]):
                         continue
                 if group in {"brand", "asin"} and value != normalized:
