@@ -18,7 +18,7 @@ FIELDS = {"title", "text", "ingredients", "category", "brand", "asin"}
 CONDITIONS = {"always", "medical", "general", "spray", "mask", "weapon_attachment",
               "food", "laser", "certification", "sample", "used", "food_review", "battery",
               "sg_knife", "ph_contact_lens", "flammable_liquid", "alcohol_strength",
-              "weapon_part", "mushroom_food", "toy_weapon", "pet_drug"}
+              "weapon_part", "mushroom_food", "toy_weapon", "pet_drug", "ph_weapon_decoration"}
 RISKS = {"drug_or_hemp", "medical_or_therapeutic", "regulated_ingredient", "brand_ip",
          "weapon", "weapon_related_toy", "food_restricted", "shipping_restricted",
          "tobacco_or_vape", "alcohol", "license_or_certification_required", "own_penalty_product", "other"}
@@ -124,8 +124,10 @@ def _condition(rule, value, row, group):
     if condition == "weapon_part":
         return action if re.search(r"銃|ガン|ライフル|ピストル|firearm|rifle|pistol|airsoft", title + " " + category + " " + value) else None
     if condition == "mushroom_food":
+        # DEC-0181 follow-up: processed foods containing mushrooms also stop.
         food = re.search(r"食品|食材|食用|食料|青果|野菜|乾燥|干し|冷凍|調理|料理|スープ|だし|出汁|"
-                         r"食べ|生鮮|grocery|food|edible|dried", title + " " + category + " " + value)
+                         r"食べ|生鮮|ご飯|ごはん|炊き込み|パスタ|ソース|カレー|レトルト|缶詰|味噌汁|"
+                         r"みそ汁|調味料|佃煮|漬け|grocery|food|edible|dried", title + " " + category + " " + value)
         return action if food else None
     if condition == "toy_weapon":
         return action if _category_is_toy(row) or re.search(r"おもちゃ|玩具|(?:^|\W)toys?(?:$|\W)", context) else None
@@ -183,6 +185,10 @@ def _condition(rule, value, row, group):
         if cosmetic or hair_category:
             return None
         return "REVIEW"
+    if condition == "ph_weapon_decoration":
+        # PH lists weapon keychains, pendants and figures as prohibited
+        # imports, so the shared decoration REVIEW becomes BLOCK there.
+        return action if decoration else None
     if condition == "weapon_attachment":
         if not decoration:
             return None
@@ -354,18 +360,28 @@ def _mask_official_gap_exclusions(value, rule_id, row):
     patterns = []
     if rule_id in {"COMMON-TOBACCO", "COMMON-GENERAL-TITLE-tobacco_or_vape",
                    "COMMON-GENERAL-TEXT-tobacco_or_vape"}:
-        patterns.append(r"シガーソケット|(?:タバコ|たばこ|煙草)(?:臭|の(?:におい|匂い|臭い))")
+        # DEC-0181 follow-up: a smell or stain being removed is not tobacco,
+        # in the product title as well as in the description.
+        patterns.append(r"シガーソケット|(?:タバコ|たばこ|煙草)(?:臭|ヤニ|の\s*(?:におい|匂い|臭い|ニオイ|ヤニ))")
     if rule_id == "COMMON-ALCOHOL-DRINK":
         drink = (r"梅酒|焼酎|ウイスキー|ウィスキー|ブランデー|ウォッカ|リキュール|果実酒|洋酒|"
                  r"清酒|紹興酒|泡盛|チューハイ|酎ハイ|ハイボール|シャンパン")
         patterns.append(rf"(?:{drink})\s*(?:用(?:の)?\s*)?(?:グラス|コップ|カップ|瓶|びん|ボトル|容器)")
+        # Colour names such as champagne gold describe a colour, not a drink.
+        patterns.append(r"シャンパン(?=\s*(?:ゴールド|ピンク|ベージュ|シルバー|ブラウン|カラー|色))")
     if rule_id == "SG-GENERAL-KNIFE":
-        patterns.append(r"バターナイフ|butter[ -]+knife|(?:kitchen|chef)[ -]+knife[ -]+"
+        patterns.append(r"バターナイフ|butter[ -]+knife|(?:kitchen|chef|cook)(?:['’]s)?[ -]+knife[ -]+"
                         r"(?:sharpener|case|sheath|holder|storage)\b")
+        # Sharpening tools are not knives; another knife occurrence still blocks.
+        patterns.append(r"ナイフ(?=\s*(?:用(?:の)?\s*)?(?:研ぎ器|研ぎ|シャープナー|砥石))"
+                        r"|knife[ -]+sharpener")
         from modules.guardrails import normalize_text
         kind = normalize_text(row.get("product_title", "")) + " " + normalize_text(row.get("category", "")) + " " + value
         if re.search(r"飾り|装飾|雑貨|フィギュア|キーホルダー|ペンダント|figure|keychain|pendant", kind):
             patterns.append(r"ナイフ(?:型|柄|の形)|knife[ -]+(?:shaped|pattern)")
+    if rule_id == "COMMON-TRANSPORT-PESTICIDE":
+        # "No insecticide ingredient" describes the absence of the product.
+        patterns.append(r"殺虫(?:成分|剤)?\s*(?:は|が)?\s*(?:不使用|無配合|ゼロ|なし|無し|フリー)")
     if rule_id == "SG-GUM":
         patterns.append(r"ガムテープ|ガムシロップ|アラビアガム")
     if rule_id == "SG-WEAPON-PART":
@@ -374,6 +390,9 @@ def _mask_official_gap_exclusions(value, rule_id, row):
         patterns.append(r"(?:ラード|牛脂|ヘット)\s*(?:は|が)?\s*(?:不使用|無添加|未使用)")
     if rule_id == "SG-MUSHROOM":
         patterns.append(r"きのこの山(?=$|[\s(、,.。!！?？+＆&]|と|セット|チョコレート|チョコ|お菓子|菓子)")
+        # A truffle chocolate is a confection, not a mushroom.
+        patterns.append(r"トリュフ(?=\s*(?:チョコ|ショコラ))|(?<=チョコ)\s*トリュフ|(?<=チョコレート)\s*トリュフ"
+                        r"|(?<=ショコラ)\s*トリュフ")
         from modules.guardrails import normalize_text
         kind = normalize_text(row.get("product_title", "")) + " " + normalize_text(row.get("category", "")) + " " + value
         if re.search(r"おもちゃ|玩具|雑貨|飾り|装飾|フィギュア|キーホルダー|ぬいぐるみ|toy|figure", kind):

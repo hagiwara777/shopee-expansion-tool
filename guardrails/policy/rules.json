@@ -563,6 +563,32 @@
       "source": "internal_rule"
     },
     {
+      "id": "PH-WEAPON-DECORATION",
+      "markets": [
+        "PH"
+      ],
+      "action": "BLOCK",
+      "risk": "weapon_related_toy",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "剣",
+        "刀",
+        "銃",
+        "武器",
+        "ナイフ",
+        "sword",
+        "gun",
+        "weapon",
+        "knife"
+      ],
+      "condition": "ph_weapon_decoration",
+      "note": "DEC-0181; PH公式の輸入禁制品（武器付きのキーチェーン・ペンダント・フィギュア等）をBLOCK。SGは共通ルールの扱いを維持。",
+      "source": "shopee_policy"
+    },
+    {
       "id": "COMMON-FIRE-FUEL",
       "markets": [
         "ALL"
@@ -2289,7 +2315,10 @@
       ],
       "terms": [
         "contact lenses",
-        "コンタクトレンズ"
+        "コンタクトレンズ",
+        "カラコン",
+        "カラーコンタクト",
+        "カラーコンタクトレンズ"
       ],
       "condition": "medical",
       "note": "DEC-0159 / DEC-0164 / DEC-0170; 医療機器表示停止を維持。注意書きで外す・着用者への明確な指示だけを除外。",
@@ -2786,7 +2815,9 @@
         "pesticide",
         "pesticides",
         "insecticide",
-        "insecticides"
+        "insecticides",
+        "殺虫",
+        "ゴキジェット"
       ],
       "condition": "always",
       "note": "DEC-0181; Ownerの指定商品群を停止。",
@@ -2891,7 +2922,12 @@
         "特殊警棒",
         "警棒",
         "タクティカルペン",
-        "ピッキングツール"
+        "ピッキングツール",
+        "護身用",
+        "カーボンアロー",
+        "アーチェリー矢",
+        "アーチェリー用矢",
+        "アーチェリーの矢"
       ],
       "condition": "always",
       "note": "DEC-0181; Ownerの指定商品群を停止。",

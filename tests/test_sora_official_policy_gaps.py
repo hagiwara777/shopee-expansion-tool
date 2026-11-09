@@ -175,3 +175,73 @@ def test_new_market_specific_rules_stay_in_their_market():
     for rule_id, term, intended, other in cases:
         assert any(h.rule_id == rule_id and h.action == "BLOCK" for h in evaluate_policy({"product_title": term}, intended))
         assert not any(h.rule_id == rule_id for h in evaluate_policy({"product_title": term}, other))
+
+
+# DEC-0181 follow-up found by Claude's re-check of PR #178 (synthetic names).
+@pytest.mark.parametrize("market", ["PH", "SG"])
+@pytest.mark.parametrize("title", ["シャンパンゴールド 口紅", "シャンパンピンク アイシャドウ",
+                                  "シャンパンベージュ ファンデーション", "シャンパンカラー リボン"])
+def test_champagne_colour_names_are_not_alcohol(market, title):
+    hits = evaluate_policy({"product_title": title}, market)
+    assert not any(h.rule_id == "COMMON-ALCOHOL-DRINK" for h in hits)
+
+
+@pytest.mark.parametrize("market", ["PH", "SG"])
+def test_champagne_drink_and_colour_with_drink_still_block(market):
+    assert status(market, "シャンパン 750ml") == "BLOCK"
+    assert status(market, "シャンパンゴールド ラベル の シャンパン") == "BLOCK"
+    # Another rule's stop on the same colour-named product is kept.
+    assert status(market, "シャンパンゴールド ネイル ポリッシュ") == "BLOCK"
+
+
+def test_truffle_chocolate_is_not_a_mushroom_but_truffle_food_stops():
+    for title in ("ゴディバ トリュフ チョコレート", "チョコレート トリュフ 12粒", "トリュフショコラ"):
+        assert not any(h.rule_id == "SG-MUSHROOM" for h in evaluate_policy({"product_title": title, "category": "食品 > チョコレート"}, "SG"))
+    assert status("SG", "黒トリュフ 瓶詰め", category="食品") == "BLOCK"
+
+
+def test_processed_foods_with_mushrooms_stop_in_sg():
+    for title in ("マッシュルーム スープ", "きのこご飯の素 3合", "しいたけ入り 調味料", "きのこ パスタソース"):
+        assert status("SG", title) == "BLOCK", title
+    assert status("SG", "きのこの山 チョコ", category="食品 > お菓子") == "SAFE"
+    assert status("SG", "キノコ型 ぬいぐるみ", category="おもちゃ") == "SAFE"
+
+
+@pytest.mark.parametrize("market", ["PH", "SG"])
+def test_tobacco_smell_in_title_and_text_is_not_tobacco(market):
+    assert status(market, "タバコ臭 消臭 スプレー", description="タバコのニオイを消臭") != "BLOCK"
+    assert status(market, "タバコのヤニ取り クリーナー") == "SAFE"
+    assert status(market, "タバコ臭 消臭剤 と 葉巻 セット") == "BLOCK"
+
+
+def test_knife_sharpeners_are_not_knives_but_knife_sets_stop():
+    for title in ("ナイフ 研ぎ器 シャープナー", "ナイフ用砥石 1000番", "ナイフシャープナー"):
+        assert not any(h.rule_id == "SG-GENERAL-KNIFE" for h in evaluate_policy({"product_title": title}, "SG")), title
+    assert status("SG", "ペティナイフ と ナイフシャープナー セット") == "BLOCK"
+
+
+@pytest.mark.parametrize("market", ["PH", "SG"])
+def test_insecticide_products_named_without_the_word_insecticide(market):
+    assert status(market, "アース製薬 ゴキジェットプロ 殺虫スプレー") == "BLOCK"
+    assert status(market, "アース製薬 ゴキジェットプロ") == "BLOCK"
+    assert status(market, "虫よけ 殺虫成分不使用 ハーブ") == "SAFE"
+
+
+def test_sg_self_defence_and_arrows():
+    for title in ("護身用 スティック 伸縮", "カーボンアロー 12本", "アーチェリー用矢"):
+        assert status("SG", title) == "BLOCK", title
+    assert not any(h.rule_id == "SG-WEAPON-ADDITIONAL" for h in evaluate_policy({"product_title": "カーボンアロー"}, "PH"))
+
+
+@pytest.mark.parametrize("market", ["PH", "SG"])
+@pytest.mark.parametrize("title", ["カラコン ワンデー 度あり", "カラーコンタクト 2week", "カラーコンタクトレンズ"])
+def test_colour_contact_lens_names_block(market, title):
+    assert status(market, title) == "BLOCK"
+
+
+def test_ph_weapon_decorations_block_while_sg_keeps_shared_handling():
+    for title in ("ナイフ キーホルダー ミニ", "剣 フィギュア", "銃 ペンダント"):
+        assert status("PH", title) == "BLOCK", title
+        assert not any(h.rule_id == "PH-WEAPON-DECORATION" for h in evaluate_policy({"product_title": title}, "SG"))
+    assert status("SG", "剣 フィギュア") == "REVIEW"
+    assert status("PH", "ハート キーホルダー") == "SAFE"

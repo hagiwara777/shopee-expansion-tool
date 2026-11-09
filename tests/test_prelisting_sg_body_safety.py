@@ -58,7 +58,9 @@ def confirm(candidates, text=None, *, outcome="BODY_PRESENT", family="KNIFE", co
 def test_names_are_suspicion_never_confirmed_body(title, family):
     _, candidates, text = case(title)
     result = run(candidates, text)
-    expected = "EXCLUDE" if title in {"Contact lenses", "Contact lens case", "コンタクトレンズ保存ケース", "Kitchen knife", "三徳包丁セット"} else "REVIEW"
+    # DEC-0181: a knife itself and colour contact names (カラコン) are Owner BLOCKs in SG.
+    expected = "EXCLUDE" if title in {"Contact lenses", "Contact lens case", "コンタクトレンズ保存ケース", "Kitchen knife",
+                                      "三徳包丁セット", "Cook’s knife", "カラコン 2枚"} else "REVIEW"
     assert result.rows[0].final_eligibility == expected
     assert "SG_BODY_REVIEW" in result.rows[0].reason_codes
     assert body_checks(candidates, text)[0]["outcome"] == "UNRESOLVED"
