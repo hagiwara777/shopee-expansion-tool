@@ -35,7 +35,9 @@ def test_exclusions_do_not_hide_another_positive_statement(market, phrase):
     "adult only", "R18", "18禁", "違法", "illegal", "脱税", "盗品"])
 def test_general_words_are_title_block_and_description_review(market, term):
     assert guarded(term, market=market)["guardrail_status"] == "BLOCK"
-    assert guarded(market=market, description=term)["guardrail_status"] == "REVIEW"
+    # DEC-0181 treats the specific tobacco product term as BLOCK in text too.
+    expected = "BLOCK" if term == "タバコ" else "REVIEW"
+    assert guarded(market=market, description=term)["guardrail_status"] == expected
 
 
 @pytest.mark.parametrize("market", ["SG", "PH"])
