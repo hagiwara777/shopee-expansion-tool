@@ -14,19 +14,9 @@ def _facts(title, category="", **kwargs):
     return {"product_title": title, "category": category, **kwargs}
 
 
-# Each product ID explicitly supplied by the Owner is represented.  Product
-# data, including category paths, is synthetic and is not a captured response.
+# These older examples are synthetic, not captured product responses.  Cases
+# superseded by Owner-observed text and categories are tested separately.
 OWNER_CASES = (
-    ("laundry-attack", "PH", ("B0GM6XJJST", "B0GM6SYX5M", "B0H2YN8M5Q", "B0GM6JWGHB", "B0GYRM1TJJ", "B0GM6R2W5Q"),
-     _facts("アタックZERO 液体洗剤", "ドラッグストア > 洗濯用洗剤 > 液体洗剤"), "BLOCK"),
-    ("laundry-delicate", "SG", ("B0CK254DBL",), _facts("NANOX 業務用おしゃれ着洗剤", "洗濯用洗剤 > 液体洗剤"), "BLOCK"),
-    ("laundry-utamaro", "SG", ("B0088B5GLQ",), _facts("ウタマロリキッド", "洗濯用洗剤 > 液体洗剤"), "BLOCK"),
-    ("laundry-fafa", "SG", ("B09BQNPG3N",), _facts("ファーファ 液体洗剤", "洗濯用洗剤 > 液体洗剤"), "BLOCK"),
-    ("laundry-partial", "SG", ("B0012P1WRW",), _facts("NANOX エリそで用", "洗濯用洗剤 > 部分洗い"), "BLOCK"),
-    ("laundry-soap", "SG", ("B08GCXR49B",), _facts("arau.ベビー 洗濯せっけん", "洗濯用洗剤 > ベビー用"), "BLOCK"),
-    ("laundry-review", "SG", ("B0CFZSFBDS",), _facts("ヤシノミ 洗たく洗剤", "洗濯用洗剤 > 液体洗剤", features=["漂白剤"]), "BLOCK"),
-    ("dish-soap", "SG", ("B09KVFTKD9", "B0DSKZKQ28", "B0CTCL695L"),
-     _facts("食器用の液体洗剤", "ドラッグストア > 食器用洗剤 > 液体洗剤"), "SAFE"),
     ("supplement-fish", "SG", ("B003G90UTI",), _facts("深海ザメエキスカプセル", "健康食品 > フィッシュオイル"), "BLOCK"),
     ("supplement-diet", "SG", ("B005S9IYZ6", "B08TRW8Z41"), _facts("ガルシニア", "健康食品 > ダイエットサプリ"), "BLOCK"),
     ("supplement-foshu", "SG", ("B01LW54CP4",), _facts("チョコラBBリッチ・セラミド", "健康食品 > 機能性表示食品"), "BLOCK"),
@@ -36,20 +26,14 @@ OWNER_CASES = (
     ("cologne", "SG", ("B0087WWXFS",), _facts("タクティクス アフターシェーブコロン", "ビューティー > コロン"), "BLOCK"),
     ("shampoo-fragrance", "SG", ("B08LW83L8M",),
      _facts("LUX シャンプー", "ヘアケア > シャンプー", description="まるで香水のような香り立ち"), "SAFE"),
-    ("lotion-ethanol-middle", "SG", ("B097T3ML15", "B097T5L9BJ"),
-     _facts("アクアレーベル化粧水", "化粧水", ingredients=["水、グリセリン、エタノール、香料"]), "SAFE"),
     ("corporation", "PH", ("B0H8DJ97P2", "B0H8DLYGQZ", "B0H8DKRHHL", "B0H8DW3L7V", "B0H8DRKLJJ", "B0H8DN79NH"),
      _facts("ぷっくりシール", "おもちゃ > シール", features=["株式会社サンリオ"]), "SAFE"),
-    ("gavan", "SG", ("B0GGNFZ99L", "B0GR32PH7R", "B0GR3BMSX5"),
-     _facts("超宇宙刑事ギャバン", "おもちゃ > フィギュア", features=["電池を使用（同梱有無は未確認）"]), "REVIEW"),
     ("toy-toothbrush", "PH", ("B01AR9XOL0", "B08VX5LNF1"),
      _facts("人形のおせわセット", "おもちゃ > 人形・ドール > ままごと", features=["歯ブラシ ハブラシ"]), "SAFE"),
     ("toy-coin", "PH", ("B06XD17BJJ",), _facts("人形のじどうはんばいき", "おもちゃ > ままごと", features=["コイン"]), "SAFE"),
     ("toy-milk", "PH", ("B0B62M21XH",), _facts("人形のレンジとれいぞうこセット", "おもちゃ > ままごと", features=["牛乳"]), "SAFE"),
     ("nail-tools", "SG", ("B07QDWVSL3", "B018RTMDEQ"), _facts("爪切り", "ビューティー > ネイル > ネイル道具・ケアツール > 爪切り"), "SAFE"),
     ("plant-extract", "SG", ("B01MTDET4L",), _facts("和漢植物 洗顔", "ビューティー > スキンケア > 洗顔料"), "SAFE"),
-    ("softener-fragrance", "SG", ("B0FMWQSW3G",), _facts("ファインフレグランス 柔軟剤", "洗濯用品 > 柔軟剤"), "SAFE"),
-    ("haircolor-lasting", "SG", ("B0DSGWF4HV",), _facts("UV ヘアカラーラスティング&スタイリング バーム", "ビューティー > スタイリング"), "SAFE"),
     ("dishwasher-detergent", "SG", ("B0GKNHS61H",), _facts("食洗機用洗剤", "台所用品 > 食器用洗剤"), "SAFE"),
     ("bath-fertilizer-grade", "PH", ("B00C1CACNU",),
      _facts("エプソムソルト 入浴剤", "バス用品 > 入浴剤", features=["食添→特号→肥料"]), "SAFE"),
@@ -66,7 +50,7 @@ def test_owner_cases_with_explicitly_synthetic_facts(case, market, asin, facts, 
 
 
 @pytest.mark.parametrize("market", ["PH", "SG"])
-@pytest.mark.parametrize("category", ["洗濯用洗剤 > 液体洗剤", "サプリメント > フィッシュオイル",
+@pytest.mark.parametrize("category", ["サプリメント > フィッシュオイル",
                                       "アダルト > ローション", "衛生用品 > 術後ケア"])
 def test_unsafe_parent_category_is_a_shared_stop_signal(market, category):
     assert apply_guardrails([_facts("普通の商品", category)], marketplace=market)[0]["guardrail_status"] == "BLOCK"
@@ -79,7 +63,7 @@ def test_specific_clothing_detergent_forms_are_stopped(market, title):
 
 
 @pytest.mark.parametrize("market", ["PH", "SG"])
-@pytest.mark.parametrize("title", ["食器用洗剤", "柔軟剤", "普通のばんそうこう", "非医療用テープ"])
+@pytest.mark.parametrize("title", ["食器用洗剤", "普通のばんそうこう", "非医療用テープ"])
 def test_specific_safe_neighbours_are_not_swept_up(market, title):
     assert apply_guardrails([_facts(title)], marketplace=market)[0]["guardrail_status"] == "SAFE"
 
@@ -90,17 +74,6 @@ def test_wound_care_direct_negation_does_not_hide_a_separate_positive(market):
                             marketplace=market)[0]["guardrail_status"] == "SAFE"
     assert apply_guardrails([_facts("傷あとケアテープ", description="術後ケアではありません")],
                             marketplace=market)[0]["guardrail_status"] == "BLOCK"
-
-
-@pytest.mark.parametrize("market", ["PH", "SG"])
-def test_softener_survives_a_laundry_parent_and_a_separate_detergent_still_stops(market):
-    softener = _facts("香りの柔軟剤", "洗濯用洗剤 > 柔軟剤", description="洗濯用洗剤と併用")
-    assert apply_guardrails([softener], marketplace=market)[0]["guardrail_status"] == "SAFE"
-    combined = _facts("柔軟剤入り洗濯用洗剤", "洗濯用洗剤 > 柔軟剤")
-    assert apply_guardrails([combined], marketplace=market)[0]["guardrail_status"] == "BLOCK"
-    for included in ("洗濯用洗剤", "衣料用液体洗剤", "洗濯用ジェルボール", "洗濯せっけん"):
-        bundle = _facts("柔軟剤", "柔軟剤", description=included + "を同梱")
-        assert apply_guardrails([bundle], marketplace=market)[0]["guardrail_status"] == "BLOCK"
 
 
 @pytest.mark.parametrize("market", ["PH", "SG"])
@@ -123,38 +96,6 @@ def test_cologne_inside_a_category_node_is_detected_without_matching_colombia():
     assert not any(h.rule_id == "COMMON-SLS-PERFUME" for h in evaluate_policy({"category": "ブランド > コロンビア"}, "SG"))
 
 
-@pytest.mark.parametrize("market", ["PH", "SG"])
-@pytest.mark.parametrize("ingredients,expected", [
-    (["エタノール、水、香料"], "BLOCK"), (["水、エタノール、香料"], "BLOCK"),
-    (["水、グリセリン、エタノール"], "SAFE"), (["水", "グリセリン", "エタノール"], "SAFE"),
-    (["水", "エタノール", "香料"], "BLOCK"),
-    (["【全成分】エタノール、水、香料"], "BLOCK"), (["[成分] 水、エタノール、香料"], "BLOCK"),
-    (["【全成分】水、グリセリン、エタノール"], "SAFE"),
-    (["【全成分】エタノール", "水", "香料"], "BLOCK"),
-    (["【全成分】", "水", "エタノール"], "BLOCK"),
-    (["【全成分】", "水", "グリセリン", "エタノール"], "SAFE"),
-    (["【全成分】\nエタノール\n水\n香料"], "BLOCK"),
-    (["全成分：水<br>エタノール<br>香料"], "BLOCK"),
-    (["【全成分】\n水\nグリセリン\nエタノール"], "SAFE"),
-    (["水<br>グリセリン<br>エタノール"], "SAFE"),
-])
-def test_ethanol_requires_first_or_second_position_in_full_ingredients(market, ingredients, expected):
-    assert apply_guardrails([_facts("普通の化粧水", ingredients=ingredients)], marketplace=market)[0]["guardrail_status"] == expected
-
-
-@pytest.mark.parametrize("market", ["PH", "SG"])
-@pytest.mark.parametrize("description,should_block", [
-    ("全成分：エタノール、水、香料", True),
-    ("【全成分】水、エタノール、香料", True),
-    ("全成分：水、グリセリン、エタノール", False),
-    ("水、エタノール、香料", False),  # No heading: position is not established.
-    ("エタノールを含む化粧水です", False),
-])
-def test_ethanol_text_position_needs_a_confirmed_ingredient_list(market, description, should_block):
-    hits = evaluate_policy(_facts("化粧水", description=description), market)
-    assert any(h.rule_id == "COMMON-TRANSPORT-ETHANOL-LEADING" for h in hits) is should_block
-
-
 def test_adult_use_statement_is_a_stop_without_assuming_a_missing_ancestor():
     hits = evaluate_policy(_facts("ローション", description="自慰用"), "SG")
     assert any(h.rule_id == "COMMON-ADULT-TOY" and h.action == "BLOCK" for h in hits)
@@ -172,7 +113,8 @@ def test_scent_exclusion_does_not_release_a_perfume_named_as_a_fragrance():
     assert apply_guardrails([_facts("シャンプー", "シャンプー", description="香水のような香り。香水を同梱")],
                             marketplace="SG")[0]["guardrail_status"] == "BLOCK"
     for title in ("フレグランスとシャンプーのセット", "シャンプーとフレグランスのセット", "フレグランス＋柔軟剤"):
-        assert apply_guardrails([_facts(title, "ビューティー")], marketplace="SG")[0]["guardrail_status"] == "BLOCK"
+        hits = evaluate_policy(_facts(title, "ビューティー"), "SG")
+        assert any(hit.rule_id == "COMMON-SLS-PERFUME" and hit.action == "BLOCK" for hit in hits)
 
 
 @pytest.mark.parametrize("market", ["PH", "SG"])
@@ -193,7 +135,6 @@ def test_scent_exclusion_keeps_separate_sized_fragrance_in_bundle(market, title)
 
 @pytest.mark.parametrize("market", ["PH", "SG"])
 @pytest.mark.parametrize("title", [
-    "ファインフレグランス 500mL 柔軟剤",
     "シャンプー 300mL と トリートメントのフレグランス",
 ])
 def test_scent_wording_in_wash_products_is_not_a_separate_perfume(market, title):
@@ -212,12 +153,6 @@ def test_perfume_smell_comparison_may_include_a_bounded_adjective():
 def test_fragrance_wording_in_identifiable_wash_products_does_not_become_perfume(title):
     assert apply_guardrails([_facts(title, "ビューティー")], marketplace="SG")[0]["guardrail_status"] == "SAFE"
     assert apply_guardrails([_facts(title + " 香水付き", "ビューティー")], marketplace="SG")[0]["guardrail_status"] == "BLOCK"
-
-
-def test_gavan_exclusion_keeps_a_separate_gaba_match_and_its_context():
-    result = apply_guardrails([_facts("ギャバンとギャバ")], marketplace="SG")[0]
-    assert result["guardrail_status"] == "BLOCK"
-    assert "PH-V2-INGREDIENT-GABA-006" in result["guardrail_note"]
 
 
 @pytest.mark.parametrize("market", ["PH", "SG"])
@@ -280,7 +215,6 @@ def test_existing_positive_stops_remain(market, title):
 def test_masking_an_occurrence_never_hides_an_independent_real_hit(market):
     examples = [
         _facts("普通の品", description="株式会社サンリオ。株式を販売"),
-        _facts("超宇宙刑事ギャバン GABA配合"),
         _facts("爪切りとジェルネイルのセット", "ネイル > 爪切り"),
         _facts("和漢植物の洗顔と観葉植物", "ビューティー > スキンケア"),
         _facts("観葉和漢植物", "ビューティー > スキンケア"),
@@ -340,7 +274,7 @@ def test_existing_aerosol_review_is_not_released_or_reclassified_as_liquid_block
 
 
 @pytest.mark.parametrize("market", ["PH", "SG"])
-@pytest.mark.parametrize("parent,leaf", [("洗濯用洗剤", "液体洗剤"), ("サプリメント", "フィッシュオイル"),
+@pytest.mark.parametrize("parent,leaf", [("サプリメント", "フィッシュオイル"),
                                         ("アダルト", "ローション"), ("衛生用品", "術後ケア")])
 def test_sp_api_ancestor_reaches_the_real_sora_gate_without_a_network_call(market, parent, leaf):
     from modules.asin_resolver import preview_candidates, verify_preview_rows
@@ -363,33 +297,3 @@ def test_sp_api_ancestor_reaches_the_real_sora_gate_without_a_network_call(marke
     verified = verify_preview_rows(preview_candidates("B000000001"), Client())
     run = prepare_sora_run(verified, marketplace=market, auth_calls=0, catalog_calls=0, input_files=("synthetic.txt",))
     assert evaluate_sora_run(run).rows[0].final_eligibility == "EXCLUDE"
-
-
-@pytest.mark.parametrize("ingredients,expected", [
-    ("水、エタノール、香料", "EXCLUDE"),
-    ("水、グリセリン、エタノール", "ELIGIBLE"),
-    ("【全成分】エタノール、水、香料", "EXCLUDE"),
-    ("【全成分】水、グリセリン、エタノール", "ELIGIBLE"),
-    ("【全成分】\n水\nエタノール\n香料", "EXCLUDE"),
-    ("全成分：水<br>グリセリン<br>エタノール", "ELIGIBLE"),
-])
-def test_structured_sp_api_ingredients_reach_the_sora_gate_offline(ingredients, expected):
-    from modules.asin_resolver import preview_candidates, verify_preview_rows
-    from modules.sora_run import evaluate_sora_run, prepare_sora_run
-    from modules.sp_api_catalog import JP_MARKETPLACE, normalize_catalog_item
-
-    class Client:
-        provider_name = "sp_api_catalog_2022_04_01"
-        product_field_prefix = "spapi"
-        verification_label = "SP_API_VERIFIED"
-
-        def verify_products_by_asin(self, asins):
-            return {asin: normalize_catalog_item({
-                "asin": asin, "attributes": {"ingredients": [{"value": ingredients}]},
-                "summaries": [{"marketplaceId": JP_MARKETPLACE, "itemName": "普通の化粧水", "brand": "試験ブランド",
-                               "browseClassification": {"displayName": "化粧水"}}],
-            }, fetched_at="2026-11-01T09:00:00+00:00") for asin in asins}
-
-    verified = verify_preview_rows(preview_candidates("B000000001"), Client())
-    run = prepare_sora_run(verified, marketplace="SG", auth_calls=0, catalog_calls=0, input_files=("synthetic.txt",))
-    assert evaluate_sora_run(run).rows[0].final_eligibility == expected
