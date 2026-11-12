@@ -397,6 +397,9 @@ def _mask_official_gap_exclusions(value, rule_id, row):
         # DEC-0182: a case or holder for eye drops / plasters is an accessory.
         patterns.append(r"(?:目薬|点眼薬|絆創膏|ばんそうこう|バンソウコウ)"
                         r"(?=\s*(?:用(?:の)?\s*)?(?:ケース|ホルダー|ポーチ|入れ|容器|スタンド|ディスペンサー|補助))")
+    if rule_id == "COMMON-AEROSOL":
+        # DEC-0182: an air-duster gun is a tool, not a gas can (PH-TOY-WEAPON-CONTEXT lists it too).
+        patterns.append(r"エアー?ダスターガン")
     if rule_id == "COMMON-COLD-FOOD":
         patterns.append(r"チルドレン")
     if rule_id == "PH-OUTDOOR-KNIFE":
