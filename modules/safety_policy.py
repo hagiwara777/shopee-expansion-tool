@@ -18,7 +18,8 @@ FIELDS = {"title", "text", "ingredients", "category", "brand", "asin"}
 CONDITIONS = {"always", "medical", "general", "spray", "mask", "weapon_attachment",
               "food", "laser", "certification", "sample", "used", "food_review", "battery",
               "sg_knife", "ph_contact_lens", "flammable_liquid", "alcohol_strength",
-              "weapon_part", "mushroom_food", "toy_weapon", "pet_drug", "ph_weapon_decoration"}
+              "weapon_part", "mushroom_food", "toy_weapon", "pet_drug", "ph_weapon_decoration",
+              "pet_food_category"}
 RISKS = {"drug_or_hemp", "medical_or_therapeutic", "regulated_ingredient", "brand_ip",
          "weapon", "weapon_related_toy", "food_restricted", "shipping_restricted",
          "tobacco_or_vape", "alcohol", "license_or_certification_required", "own_penalty_product", "other"}
@@ -121,6 +122,12 @@ def _condition(rule, value, row, group):
         beverage = re.search(r"飲料|飲み物|飲みもの|ドリンク|酒|ビール|ワイン|カクテル|"
                              r"チューハイ|酎ハイ|ハイボール|beverage|drink", title + " " + category + " " + value)
         return action if beverage and strength else None
+    if condition == "pet_food_category":
+        # DEC-0182: the top "ペット用品" node alone is not a food; a later node
+        # (フード・おやつ・ごはん・ミルク) shows the product is pet food.
+        nodes = [node.strip() for node in category.split(">")]
+        return action if any(re.search(r"フード|おやつ|ごはん|ご飯|ミルク|ジャーキー|(?<![a-z])(?:food|treats?|snacks?)(?![a-z])", node)
+                             for node in nodes[1:]) else None
     if condition == "weapon_part":
         return action if re.search(r"銃|ガン|ライフル|ピストル|firearm|rifle|pistol|airsoft", title + " " + category + " " + value) else None
     if condition == "mushroom_food":
@@ -382,6 +389,22 @@ def _mask_official_gap_exclusions(value, rule_id, row):
     if rule_id == "COMMON-TRANSPORT-PESTICIDE":
         # "No insecticide ingredient" describes the absence of the product.
         patterns.append(r"殺虫(?:成分|剤)?\s*(?:は|が)?\s*(?:不使用|無配合|ゼロ|なし|無し|フリー)")
+    if rule_id == "COMMON-TRANSPORT-PESTICIDE":
+        # DEC-0182: a mosquito-coil holder or case is not the coil itself.
+        patterns.append(r"蚊取り?線香(?=\s*(?:用(?:の)?\s*)?(?:ケース|ホルダー|皿|スタンド|入れ|立て|容器))"
+                        r"|蚊とり線香(?=\s*(?:用(?:の)?\s*)?(?:ケース|ホルダー|皿|スタンド|入れ|立て|容器))")
+    if rule_id == "COMMON-MEDICAL-DISPLAY":
+        # DEC-0182: a case or holder for eye drops / plasters is an accessory.
+        patterns.append(r"(?:目薬|点眼薬|絆創膏|ばんそうこう|バンソウコウ)"
+                        r"(?=\s*(?:用(?:の)?\s*)?(?:ケース|ホルダー|ポーチ|入れ|容器|スタンド|ディスペンサー|補助))")
+    if rule_id == "COMMON-AEROSOL":
+        # DEC-0182: an air-duster gun is a tool, not a gas can (PH-TOY-WEAPON-CONTEXT lists it too).
+        patterns.append(r"エアー?ダスターガン")
+    if rule_id == "COMMON-COLD-FOOD":
+        patterns.append(r"チルドレン")
+    if rule_id == "PH-OUTDOOR-KNIFE":
+        # DEC-0182: sharpening tools are not knives (same as SG-GENERAL-KNIFE).
+        patterns.append(r"ナイフ(?=\s*(?:用(?:の)?\s*)?(?:研ぎ器|研ぎ|シャープナー|砥石))|knife[ -]+sharpener")
     if rule_id == "SG-GUM":
         patterns.append(r"ガムテープ|ガムシロップ|アラビアガム")
     if rule_id == "SG-WEAPON-PART":

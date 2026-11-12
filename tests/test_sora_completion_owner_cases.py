@@ -63,14 +63,20 @@ def test_specific_clothing_detergent_forms_are_stopped(market, title):
 
 
 @pytest.mark.parametrize("market", ["PH", "SG"])
-@pytest.mark.parametrize("title", ["食器用洗剤", "普通のばんそうこう", "非医療用テープ"])
+@pytest.mark.parametrize("title", ["食器用洗剤", "非医療用テープ"])
 def test_specific_safe_neighbours_are_not_swept_up(market, title):
     assert apply_guardrails([_facts(title)], marketplace=market)[0]["guardrail_status"] == "SAFE"
 
 
 @pytest.mark.parametrize("market", ["PH", "SG"])
+def test_ordinary_plasters_are_stopped_since_dec_0182(market):
+    # DEC-0182 (Owner, 2026-11-12) replaces the DEC-0180 note that ordinary plasters pass.
+    assert apply_guardrails([_facts("普通のばんそうこう")], marketplace=market)[0]["guardrail_status"] == "BLOCK"
+
+
+@pytest.mark.parametrize("market", ["PH", "SG"])
 def test_wound_care_direct_negation_does_not_hide_a_separate_positive(market):
-    assert apply_guardrails([_facts("普通のばんそうこう", description="術後ケアではありません")],
+    assert apply_guardrails([_facts("非医療用テープ", description="術後ケアではありません")],
                             marketplace=market)[0]["guardrail_status"] == "SAFE"
     assert apply_guardrails([_facts("傷あとケアテープ", description="術後ケアではありません")],
                             marketplace=market)[0]["guardrail_status"] == "BLOCK"

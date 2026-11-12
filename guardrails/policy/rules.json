@@ -643,7 +643,19 @@
         "ライセンスキー",
         "オンラインサービス利用券",
         "チケット",
-        "バウチャー"
+        "バウチャー",
+        "旅行券",
+        "図書カード",
+        "クオカード",
+        "QUOカード",
+        "食事券",
+        "お食事券",
+        "宿泊券",
+        "ギフトチケット",
+        "Amazonギフト",
+        "アマゾンギフト",
+        "ギフトコード",
+        "Eメールタイプ"
       ],
       "condition": "always",
       "note": "DEC-0167; Ownerの出品方針による停止",
@@ -670,7 +682,22 @@
         "高圧ガス",
         "窒素ガス",
         "火気と高温に注意",
-        "aerosol"
+        "aerosol",
+        "カセットガス",
+        "カセットボンベ",
+        "ガスボンベ",
+        "ガス缶",
+        "OD缶",
+        "噴射剤",
+        "ヘアムース",
+        "ラッカースプレー",
+        "アクリルスプレー",
+        "塗料スプレー",
+        "スプレー塗料",
+        "ペイントスプレー",
+        "缶スプレー",
+        "エアダスター",
+        "エアーダスター"
       ],
       "condition": "always",
       "note": "DEC-0164/0167; SLS輸送確認：エアゾール・高圧ガス。正式な発送適合の保証ではない。",
@@ -915,7 +942,15 @@
         "腐敗しやすい",
         "変質しやすい",
         "perishable",
-        "keep refrigerated"
+        "keep refrigerated",
+        "納豆",
+        "キムチ",
+        "チルド",
+        "冷蔵食品",
+        "冷蔵品",
+        "クール便",
+        "生麺",
+        "生パスタ"
       ],
       "condition": "food_review",
       "note": "DEC-0167; Ownerの出品方針による要確認",
@@ -2260,7 +2295,17 @@
         "第2類医薬品",
         "第3類医薬品",
         "育毛",
-        "薬用"
+        "薬用",
+        "目薬",
+        "点眼薬",
+        "点眼液",
+        "絆創膏",
+        "ばんそうこう",
+        "バンソウコウ",
+        "滅菌ガーゼ",
+        "医療用ガーゼ",
+        "松葉杖",
+        "松葉づえ"
       ],
       "condition": "medical",
       "note": "DEC-0159 / DEC-0164 / DEC-0167; 医薬品・医療機器・医薬部外品の肯定表示によるOwnerの出品除外。直接の否定文を区別する。",
@@ -2817,7 +2862,16 @@
         "insecticide",
         "insecticides",
         "殺虫",
-        "ゴキジェット"
+        "ゴキジェット",
+        "駆除剤",
+        "殺鼠剤",
+        "殺そ剤",
+        "蚊取り線香",
+        "蚊取線香",
+        "蚊とり線香",
+        "渦巻香",
+        "燻煙剤",
+        "バルサン"
       ],
       "condition": "always",
       "note": "DEC-0181; Ownerの指定商品群を停止。",
@@ -2989,7 +3043,19 @@
       "terms": [
         "ドッグフード",
         "キャットフード",
-        "ペットフード"
+        "ペットフード",
+        "猫用おやつ",
+        "犬用おやつ",
+        "ペット用おやつ",
+        "ペットのおやつ",
+        "犬のおやつ",
+        "猫のおやつ",
+        "ちゅ〜る",
+        "チュール",
+        "ウェットフード",
+        "ドライフード",
+        "犬用ごはん",
+        "猫用ごはん"
       ],
       "condition": "always",
       "note": "DEC-0181; Ownerの指定商品群を停止。",
@@ -3204,6 +3270,146 @@
       ],
       "condition": "always",
       "note": "DEC-0181; Ownerの指定商品群を停止。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "SG-PETFOOD-CATEGORY",
+      "markets": [
+        "SG"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "category"
+      ],
+      "terms": [
+        "ペット用品"
+      ],
+      "condition": "pet_food_category",
+      "note": "DEC-0182; SGのペットフード発送禁止（2026-03-30〜）。ペット用品配下のフード・おやつ類カテゴリを停止。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "SG-MEDICAL-PROTECTIVE",
+      "markets": [
+        "SG"
+      ],
+      "action": "BLOCK",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "医療用手袋",
+        "医療用グローブ",
+        "検査用手袋",
+        "診察用手袋",
+        "メディカルグローブ",
+        "防護服",
+        "防護ガウン",
+        "サージカルガウン",
+        "アイソレーションガウン",
+        "医療用ガウン"
+      ],
+      "condition": "medical",
+      "note": "DEC-0182; SGで医療機器扱いとなる医療用手袋・防護服類をOwner方針で停止。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "SG-DISPOSABLE-GLOVE",
+      "markets": [
+        "SG"
+      ],
+      "action": "REVIEW",
+      "risk": "medical_or_therapeutic",
+      "fields": [
+        "title"
+      ],
+      "terms": [
+        "ニトリル手袋",
+        "ニトリルグローブ",
+        "使い捨て手袋",
+        "使い捨てグローブ",
+        "使い捨てゴム手袋",
+        "使い捨てビニール手袋",
+        "ディスポ手袋",
+        "ディスポーザブル手袋",
+        "プラスチック手袋"
+      ],
+      "condition": "always",
+      "note": "DEC-0182; 使い捨て手袋は医療用の場合SGで医療機器扱い。用途（医療用か否か）を確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "PH-OUTDOOR-KNIFE",
+      "markets": [
+        "PH"
+      ],
+      "action": "BLOCK",
+      "risk": "weapon",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "アウトドアナイフ",
+        "サバイバルナイフ",
+        "フォールディングナイフ",
+        "折りたたみナイフ",
+        "折り畳みナイフ",
+        "ハンティングナイフ",
+        "シースナイフ",
+        "タクティカルナイフ",
+        "バタフライナイフ",
+        "登山ナイフ",
+        "狩猟ナイフ",
+        "outdoor knife",
+        "survival knife",
+        "folding knife",
+        "hunting knife",
+        "tactical knife",
+        "butterfly knife"
+      ],
+      "condition": "always",
+      "note": "DEC-0182; PHで刃物（包丁以外）を停止。研ぎ器の語は除く。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "SG-MEAT-PROCESSED",
+      "markets": [
+        "SG"
+      ],
+      "action": "REVIEW",
+      "risk": "food_restricted",
+      "fields": [
+        "title"
+      ],
+      "terms": [
+        "ビーフ",
+        "ポーク",
+        "チキン",
+        "牛肉",
+        "豚肉",
+        "鶏肉",
+        "ハンバーグ",
+        "ミートボール",
+        "ミートソース",
+        "牛丼",
+        "豚丼",
+        "肉まん",
+        "餃子",
+        "ギョーザ",
+        "焼売",
+        "シュウマイ",
+        "唐揚げ",
+        "から揚げ",
+        "チャーシュー",
+        "肉じゃが",
+        "カレー"
+      ],
+      "condition": "food_review",
+      "note": "DEC-0182; SGは肉類・肉入り加工食品の持込制限あり。肉の有無を確認（ジャーキー等の明示語は従来のSG-MEATでBLOCK）。",
       "source": "internal_rule"
     }
   ]
