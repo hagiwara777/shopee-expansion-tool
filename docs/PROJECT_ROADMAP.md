@@ -75,7 +75,7 @@ SGは[通常継続利用](SG_CONTINUOUS_OPERATION.md)で新商品群を同じ画
 PH / SGの普段の入口は[統一アプリ](BETA_APPLICATION.md)とし、1つの対象国選択で既存4工程を使う（DEC-0128）。
 国別の保存先・認証・消費記録を保持し、MY / THの追加は後続市場runtime工程で行う。
 画像AI対象選択も共通処理＋国別設定とし、PH / SGの現行PH条件とMY / THの初期設定を用意する（DEC-0123）。
-THの市場runtime・Safety・出品接続はSG機能統一後の後続工程とする。MYはDEC-0183の範囲（Sora経路のみ）に限る。
+THの市場runtime・Safety・出品接続はSG機能統一後の後続工程とする。MYはDEC-0183／0184の範囲（Sora経路のみ）に限る。
 
 出品支援ツールの目的は、安全に出品準備できるASIN数を少ない人手で増やすことである。
 

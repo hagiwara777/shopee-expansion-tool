@@ -12,6 +12,7 @@ from modules.prelisting_sg_body_safety_ui import render_sg_body_review
 from modules.research_csv_adapter import ResearchCsvInput, import_research_csvs
 from modules.sora_acquisition import SoraAcquisition
 from modules.sora_input import SoraInputError, parse_asin_text, parse_fromax_keepa_csv
+from modules.sora_markets import SORA_MARKETS, SORA_MARKET_ORDER, market_ng_incomplete
 from modules.sora_run import evaluate_sora_run, prepare_sora_run, sora_exports
 from modules.sora_version import RUNNING_VERSION
 from modules.sp_api_catalog import SpApiCatalogClient, SpApiCatalogError, load_sp_api_credentials, planned_catalog_calls
@@ -41,7 +42,7 @@ def render_sora_app():
     title_column.title('Sora')
     version_column.caption(f'版: {RUNNING_VERSION}', text_alignment='right')
     st.caption('FROMAXのKeepaでASINを集める → Soraで商品情報・保安確認 → 通過ASINをFROMAXへ')
-    marketplace = st.selectbox('対象国', ('SG', 'PH'), key='sora_marketplace')
+    marketplace = st.selectbox('対象国', SORA_MARKET_ORDER, key='sora_marketplace')
     if st.session_state.get('sora_previous_marketplace') not in {None, marketplace}:
         _clear_resolver()
         st.session_state.pop('sora_source_fingerprint', None)
@@ -224,12 +225,18 @@ def _render_gate(marketplace):
         st.info('ASIN確認が終わると、候補・成分・説明文をここへ渡します。ファイルの再アップロードは不要です。')
         return
     st.caption('商品情報は日本のAmazonから取得。長い説明本文が取得できない商品があります。通過は出品許可や輸送適合の保証ではありません。')
+    if market_ng_incomplete(marketplace):
+        st.warning(f'{marketplace}は国別の禁止設定が未完成のため、「通過」は出ません。通過になる商品も要確認として表示し、'
+                   '通過ASIN.txtは空になります。共通ルールで止まる商品は停止のままです。')
     if run.unverified_row_count:
         st.warning(f'取得できなかった{run.unverified_row_count}行は判定対象から外しました。通過ASINへは含めません。')
+    inventory_supported = SORA_MARKETS[marketplace].inventory_check
     inventory_files = tuple(st.file_uploader('既出品CSV（任意・照合する場合は対象国の全ショップ分）',
-        type=['csv'], accept_multiple_files=True, key='sora_inventory') or ())
+        type=['csv'], accept_multiple_files=True, key='sora_inventory') or ()) if inventory_supported else ()
     inventories = []
-    if not inventory_files:
+    if not inventory_supported:
+        st.info(f'{marketplace}の既出品CSVによる重複照合は未対応です（重複照合は未実施）。')
+    elif not inventory_files:
         st.info('重複照合は未実施')
     else:
         expected_shops = st.number_input('対象国の全ショップ数', min_value=1, value=1, step=1, key='sora_shop_count')

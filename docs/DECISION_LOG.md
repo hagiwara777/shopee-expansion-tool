@@ -2199,3 +2199,12 @@
 - MY禁止設定の完成まで: 保安ゲートの最終判定で通過（ELIGIBLE）になる商品も要確認（REVIEW）に降格し、通過ASINの出力は空にする。共通ルールによる停止（EXCLUDE）は維持する。解除は、MYの国別辞書と偽造品ブランドリストの追加、整合テスト、新しいDecisionによる`no-my-eligible-before-my-ng-rules`の削除を要する。
 - 置換: 上記に反するCURRENT_WORK／PROJECT_ROADMAP／MY_TH_GUARDRAIL_READINESSの「MY／THは未着手」「MYはPH・SG共通実務Beta受入後」の記述を、MYについて置換する。DEC-0123のMY画像対象設定の準備は保持する。
 - 検証・承認: 本Decisionは着手の許可であり、MYの実装完了・禁止設定の十分性・公式規制への適合を保証しない。実装は別PRで行い、Owner手動merge、実API・実商品・正式版更新の別承認を維持する。
+
+## DEC-0184 — MYのSora経路の実装方針（通過なし・国別設定の分離）
+
+- 日付・根拠: 2026-11-12。DEC-0183の許可に基づき、Fable 5.2の設計案（読み取り専用）を踏まえてClaudeが実装した。MYの禁止設定は別タスクで作成するため、本Decisionは「通過を出さない」構造と、PH／SGを変えない境界を定める。
+- 国の集約: `modules/sora_markets.py`をSora経路（画面・実行・保安ゲート・保安判定）だけが参照する市場プロファイルとする。SG→PH→MYの順で既定はSG。国別辞書・偽造品リスト・SG本体確認・禁止設定の完成・既出品照合の有無を持つ。既存の`{"PH","SG"}`固定（作業台、カテゴリ、P5、既出品CSV解析、保護テスト対象の公開定数）は広げない。
+- 判定: MYは国別辞書（禁止ブランドCSV・危険語CSV）なしで評価し、PH／SGの辞書や偽造品リストへfallbackしない。共通ルール、公式IPR・自社共通ブランド・別表記、共通V2 BLOCK、既存のMY Community NG資料、SLS共有電池REVIEW、家電方針は適用する（止める方向のみ）。SG／PH専用ルールは適用しない。`load_brand_monitoring("MY")`の既定動作（エラー）は変えず、`without_country_list=True`の明示指定でだけMYを許す。
+- 安全弁: 出品前保安ゲートの最終段で、国別設定が未完成の市場のELIGIBLEをREVIEWに降格し、理由`MARKET_NG_RULES_INCOMPLETE`を付ける。EXCLUDEと既存REVIEWは変えない。`sora_exports`でも、未完成市場にELIGIBLEがあれば例外とし、通過ASINは必ず空にする。`guardrail_status`の意味は変えない（辞書結果とゲート判定を分ける）。画面にはMYで通過が出ない旨を常時表示する。
+- 範囲外: MYの既出品CSVによる重複照合は未対応（選択時は「未実施」と表示。MYでの既出品照合を要求するとゲートは停止する）。SLSカテゴリ条件（MY 2,162レコード）の判定接続、MY用国別辞書、偽造品ブランドリスト、THは対象外。
+- 解除条件: MYの国別辞書と偽造品ブランドリストの追加、整合テスト、新しいDecisionによる`no-my-eligible-before-my-ng-rules`の削除。本Decisionは実装済みであること、MYの規制適合や運用開始を意味しない。
