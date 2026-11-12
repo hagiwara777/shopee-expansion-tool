@@ -58,7 +58,7 @@ P5の[操作別preflight](P5_CONNECTION.md)はDEC-0148を適用し、未使用At
 商品群はCategory／Brand別に整理してASINを手動で既存出品ツールへ渡し、属性値の共通性・適用可否はユーザーが確認する。
 C04限定AUTO_RULEとP5実務受入の完成条件・工程順は変更しない。
 固定PH基準（DEC-0116）は[既存機能の回帰基準](PH_BETA_MARKET_PARITY.md)として保持する。
-MY／TW／TH追加は共通実務Beta受入後。MYは販売価格・貨物価格・送料等に基づく税務確認を国別工程で整理する。
+TW／TH追加は共通実務Beta受入後。MYのSora経路追加はDEC-0183によりOwner指示で着手でき、通過はMY禁止設定の完成まで出さない。MYは販売価格・貨物価格・送料等に基づく税務確認を国別工程で整理する。
 
 Amazon.co.jp本体の価格帯と平均レビュー評価は[Beta前MUSTのF1/F2](CANDIDATE_PRICE_RATING_FILTERS.md)とする（DEC-0138）。
 共通の取得後選別・既存Candidate CSV互換を最小範囲とする。実装はDEC-0143を参照する。
@@ -75,7 +75,7 @@ SGは[通常継続利用](SG_CONTINUOUS_OPERATION.md)で新商品群を同じ画
 PH / SGの普段の入口は[統一アプリ](BETA_APPLICATION.md)とし、1つの対象国選択で既存4工程を使う（DEC-0128）。
 国別の保存先・認証・消費記録を保持し、MY / THの追加は後続市場runtime工程で行う。
 画像AI対象選択も共通処理＋国別設定とし、PH / SGの現行PH条件とMY / THの初期設定を用意する（DEC-0123）。
-MY / THの市場runtime・Safety・出品接続はSG機能統一後の後続工程とする。
+THの市場runtime・Safety・出品接続はSG機能統一後の後続工程とする。MYはDEC-0183の範囲（Sora経路のみ）に限る。
 
 出品支援ツールの目的は、安全に出品準備できるASIN数を少ない人手で増やすことである。
 
@@ -282,7 +282,7 @@ DECISION_LOG読込軽量化はPR #91、ShopeeCatalogClient marketplace-neutral�
 7. **SG SLS runtime（offline最小runtime正式採用済み）** — PR #107 / DEC-0109でoffline成果をformal mainへ採用済み。production / live acceptance、Attribute、出口開放、SG operation変更を含まない。
 8. **SG Minimum Beta完成判定（Step 8正式採用済み）** — `COMPLETION_GATE_PASS_CANDIDATE`で示したDEC-0111の半自動完成線をOwner最終承認後にPR #110で正式採用した（DEC-0112）。Gate `ELIGIBLE`、人間確認済みCategory・Brand / No Brand、SLS `ALLOW`候補、Seller Centerの必須Attribute・商品固有条件確認済みの商品だけを少量手動出品する。未解決停止は出品しない。read-only auditで追加Beta MUST実装は確認されていない。Step 8のmerge後検証は完了済み。
 9. **SG実運用（Step 9 / 専用少量ベータ）** — DEC-0127に基づきSG ACTIVEと専用手動準備出力を採用する。固定release・専用起動先・コード外の永続DB / API枠を使い、PH環境を維持する。端末設置と実行結果はrepo外Task Context / Git外Evidenceを参照する。新規API枠は具体的対象・取得数・費用の承認を要する。自動出品・通常DB移行・MY / TH開始は含まない。
-10. **MY展開** — 共通Source / Catalog基盤を再利用し、MY固有Safety、source identity、production確認だけを追加する。MY runtimeを先行有効化しない。
+10. **MY展開** — 共通Source / Catalog基盤を再利用し、MY固有Safety、source identity、production確認だけを追加する。MY runtimeを先行有効化しない（DEC-0183のSora経路追加はoperation INACTIVEのまま、禁止設定の完成まで通過なし）。
 11. **TH展開** — 同じ共通基盤を再利用し、TH固有差分だけを追加する。TH runtimeを先行有効化しない。
 
 MY / THの具体的な着手順は将来のEvidenceと事業優先順位で変更できるものとし、今回固定しすぎない。
@@ -397,7 +397,7 @@ DEC-0049の`BETA_AFTER_CANDIDATE`、DB化、他市場展開、出品後商品改
 2. PH Beta運用を継続し、`ph.beta.operation`をprotected capabilityとして回帰保護する。
 3. SGはoperation ACTIVE / development ALLOWEDとし、専用少量ベータだけを利用する（DEC-0127）。SG Category Mapper Minimum Betaのoffline実装はPR #82でformal mainへ統合済みであり、`sg.safety.baseline`はprotected capabilityとして維持する。
 4. SG Brand / SLS runtime / Handoffへ戻る条件は、SG Category Mapper Minimum Betaとは別の設計Gate、PH/SG保護gate成立、別タスク開始承認である。
-5. MY / THはNOT_STARTEDを維持し、capabilityを先行定義しない。
+5. THはNOT_STARTEDを維持する。MYはINACTIVE / ALLOWED（DEC-0183）とし、MY / THともcapabilityを先行定義しない。
 
 Governance CIはbranch protectionと独立してmandatory checkを評価する。初期checkは
 `governance.validate`、`governance.ps51`、`governance.ps7`、`tests.offline`、`protected.ph`、`protected.sg`。

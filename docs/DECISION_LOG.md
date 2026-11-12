@@ -2190,3 +2190,12 @@
 - 置換: DEC-0180に記した「普通のばんそうこう…はこれだけでは停止しない」を、絆創膏・ばんそうこうについて置換し、Owner方針（医薬品・医療機器・医薬部外品は全国で出品しない）に合わせて停止とする。非医療用テープや広い衛生用品カテゴリは従来どおり。
 - 実装上の判断: 絆創膏・滅菌ガーゼ・松葉杖はBLOCK、肉入り加工食品・要冷蔵食品・使い捨て手袋はREVIEWとした（Ownerの「止める（または要確認）」の解釈。Ownerは報告後に変更を指示できる）。SGのペットフード停止は公式記事の発送禁止に合わせSGに限定し、PHは既存の`COMMON-PETFOOD`の語のみとする。日焼け止めスプレー等の単なる「スプレー」は、Ownerの選択どおり今回は追加しない（本文・成分欄のLPG・DME等の既存語は従来どおり要確認）。
 - 検証・承認: 語・市場・別用途・止めすぎの対照を合成fixtureで確認し、PH／SGの保護テストを変更しない。取得欄の欠落、現物の同定、公式禁止全件への網羅、実商品判定や稼働版の効果は保証しない。Owner手動merge、実API・実商品・正式版更新の別承認を維持する。
+
+## DEC-0183 — MYのSora経路追加を許可し、MY禁止設定の完成まで通過を出さない
+
+- 日付・根拠: 2026-11-12。Ownerは、SoraへMY（マレーシア）を追加することをClaudeに指示し、MYの禁止設定（国別の禁止語・ブランド等）は今回のタスク完了後に改めて行うと示した。従来の`no-my-th-product-work`と`development_policy: NOT_STARTED`は、この指示までMYの着手を止める停止条件だった。
+- 変更: `governance/state.json`のMYを`INACTIVE / ALLOWED`にする。operationはINACTIVEのままで、ACTIVEにはしない（運用開始は別判断）。`no-my-th-product-work`を、THの着手禁止を維持する`no-th-product-work`と、MY禁止設定の完成まで通過を出さない`no-my-eligible-before-my-ng-rules`に置換する。THの着手禁止は変えない。PH／SGのoperation・development policy・protected capability（`ph.beta.operation`、`sg.safety.baseline`）・必須CIは弱めない。MY用のcapabilityは先行定義しない。
+- 許可範囲: MYをSora経路（対象国の選択、ASIN確認、出品前保安ゲート、出力）に追加する実装に着手できる。MYのブランド偽造品リスト・国別辞書・禁止語は別タスクで作成し、PH／SGの規則やIDをコピーしない。この判断はMYの運用開始、実API、実商品、出品、THへの拡張を許可しない。
+- MY禁止設定の完成まで: 保安ゲートの最終判定で通過（ELIGIBLE）になる商品も要確認（REVIEW）に降格し、通過ASINの出力は空にする。共通ルールによる停止（EXCLUDE）は維持する。解除は、MYの国別辞書と偽造品ブランドリストの追加、整合テスト、新しいDecisionによる`no-my-eligible-before-my-ng-rules`の削除を要する。
+- 置換: 上記に反するCURRENT_WORK／PROJECT_ROADMAP／MY_TH_GUARDRAIL_READINESSの「MY／THは未着手」「MYはPH・SG共通実務Beta受入後」の記述を、MYについて置換する。DEC-0123のMY画像対象設定の準備は保持する。
+- 検証・承認: 本Decisionは着手の許可であり、MYの実装完了・禁止設定の十分性・公式規制への適合を保証しない。実装は別PRで行い、Owner手動merge、実API・実商品・正式版更新の別承認を維持する。
