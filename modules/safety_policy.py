@@ -402,6 +402,9 @@ def _mask_official_gap_exclusions(value, rule_id, row):
         patterns.append(r"エアー?ダスターガン")
     if rule_id == "COMMON-COLD-FOOD":
         patterns.append(r"チルドレン")
+    if rule_id == "COMMON-OFFICIAL-REVIEW":
+        # DEC-0187: a licence case is not a licence; camouflage-pattern fashion keeps its own words.
+        patterns.append(r"運転免許証(?=\s*(?:用(?:の)?\s*)?(?:ケース|入れ|カバー|ホルダー|サイズ))")
     if rule_id == "COMMON-SLS-AROMA":
         # DEC-0186: an aroma-oil scent or ingredient in another product is not the oil itself.
         patterns.append(r"(?:天然)?(?:精油|アロマオイル)(?=\s*(?:配合|入り|入|使用|の香り|ブレンドの香り|成分))")

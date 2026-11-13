@@ -86,6 +86,7 @@ AGENTSには毎タスク必須の恒久原則、[RUNBOOK](docs/RUNBOOK_CHATGPT_C
 ## Component boundary・検証
 
 - Product Finder、Guardrail、ASIN Resolverの責務を分離し、承認済みscope変更なしに統合・拡張しない。
+- NG（停止・要確認）の追加・変更は`NG/README.md`の手順だけを使い、同じPRで`python scripts/build_ng_ledger.py`により台帳を再生成する。
 - 変更後は実行可能な限りpytestを行う。実Keepa APIと外部APIを使うE2Eは明示承認なしに実行しない。
   作業中は関連テストだけを行い、最終差分の通常全体テストは統合前に1回とする（DEC-0163）。
   廃止機能専用だけを通常実行から分け、共有・混在・判断不明のテストとPH／SG保護を残す。

@@ -1,7 +1,7 @@
 group,id,markets,action,target,basis,note,source_file
 保安ルール,COMMON-DRUG,ALL,BLOCK,CBD、大麻、マリファナ、ヘンプ、Hemp、ガンビル、Gambir、Sativa、Cannabis、アヘン、コカイン、ケタミン、ブフォテニン,自分の方針,DEC-0167; Ownerの出品方針による停止,guardrails/policy/rules.json
 保安ルール,COMMON-RYUKAKUSAN,ALL,BLOCK,龍角散,自分の方針,DEC-0167; Ownerの出品方針による停止,guardrails/policy/rules.json
-保安ルール,COMMON-GENERAL-TITLE-other,ALL,BLOCK,偽物、fake、replica、コピー品、アダルト、adult only、R18、18禁、違法、illegal、脱税、盗品,自分の方針,DEC-0167; Ownerの出品方針による停止,guardrails/policy/rules.json
+保安ルール,COMMON-GENERAL-TITLE-other,ALL,BLOCK,偽物、fake、replica、コピー品、アダルト、adult only、R18、18禁、違法、illegal、脱税、盗品、スーパーコピー、N級品、S級品,自分の方針,DEC-0167; Ownerの出品方針による停止,guardrails/policy/rules.json
 保安ルール,COMMON-GENERAL-TEXT-other,ALL,REVIEW,偽物、fake、replica、コピー品、アダルト、adult only、R18、18禁、違法、illegal、脱税、盗品,自分の方針,DEC-0167; Ownerの出品方針による要確認,guardrails/policy/rules.json
 保安ルール,COMMON-GENERAL-TITLE-medical_or_therapeutic,ALL,BLOCK,医薬品、medicine、処方箋、prescription,自分の方針,DEC-0167; Ownerの出品方針による停止,guardrails/policy/rules.json
 保安ルール,COMMON-GENERAL-TEXT-medical_or_therapeutic,ALL,REVIEW,医薬品、medicine、処方箋、prescription,自分の方針,DEC-0167; Ownerの出品方針による要確認,guardrails/policy/rules.json
@@ -44,9 +44,9 @@ group,id,markets,action,target,basis,note,source_file
 保安ルール,COMMON-FORMULA,ALL,BLOCK,粉ミルク、乳児用調製粉乳、infant formula、ステージ1粉乳、ステージ2粉乳、3歳以下の乳製品,自分の方針,DEC-0167; Ownerの出品方針による停止,guardrails/policy/rules.json
 保安ルール,COMMON-INFANT-DAIRY-UNKNOWN,ALL,REVIEW,乳幼児用乳製品、幼児用乳製品、toddler milk,自分の方針,DEC-0167; Ownerの出品方針による要確認,guardrails/policy/rules.json
 保安ルール,COMMON-ANIMAL,ALL,BLOCK,野生動物製品、動物製品、象牙、剥製、wildlife product、animal product、べっ甲、鼈甲,自分の方針,DEC-0167; Ownerの出品方針による停止,guardrails/policy/rules.json
-保安ルール,COMMON-LOTTERY,ALL,BLOCK,宝くじ、スロットマシン、lottery ticket、slot machine,自分の方針,DEC-0167; Ownerの出品方針による停止,guardrails/policy/rules.json
+保安ルール,COMMON-LOTTERY,ALL,BLOCK,宝くじ、スロットマシン、lottery ticket、slot machine、パチスロ実機、スロット実機、パチンコ実機,自分の方針,DEC-0167; Ownerの出品方針による停止,guardrails/policy/rules.json
 保安ルール,COMMON-FINANCE,ALL,BLOCK,株券、株式、有価証券、クレジットカード、デビットカード、通貨、紙幣、記念硬貨、currency、credit card、debit card、securities,自分の方針,DEC-0167; Ownerの出品方針による停止,guardrails/policy/rules.json
-保安ルール,COMMON-OFFICIAL,ALL,BLOCK,政府のバッジ、警察バッジ、軍のバッジ、勲章、警察制服、軍服、政府文書、身分証明書、警察の制服、軍の制服、police badge、military uniform、police uniform,自分の方針,DEC-0167; Ownerの出品方針による停止,guardrails/policy/rules.json
+保安ルール,COMMON-OFFICIAL,ALL,BLOCK,政府のバッジ、警察バッジ、軍のバッジ、勲章、警察制服、軍服、政府文書、身分証明書、警察の制服、軍の制服、police badge、military uniform、police uniform、警察手帳、ポリスバッジ、警察 バッジ、ポリス バッジ、運転免許証 レプリカ、免許証レプリカ,自分の方針,DEC-0167; Ownerの出品方針による停止,guardrails/policy/rules.json
 保安ルール,COMMON-MERCURY,ALL,BLOCK,水銀体温計、水銀を含む、mercury thermometer,自分の方針,DEC-0167; Ownerの出品方針による停止,guardrails/policy/rules.json
 保安ルール,COMMON-MERCURY-UNKNOWN,ALL,REVIEW,水銀、mercury,自分の方針,DEC-0167; Ownerの出品方針による要確認。SLS輸送確認。,guardrails/policy/rules.json
 保安ルール,COMMON-ALCOHOL-DRINK,ALL,BLOCK,アルコール飲料、alcoholic beverage、alcoholic beverages、酒類、ビール、ワイン、日本酒、梅酒、焼酎、ウイスキー、ウィスキー、ブランデー、ウォッカ、リキュール、果実酒、洋酒、清酒、紹興酒、泡盛、チューハイ、酎ハイ、ハイボール、シャンパン,自分の方針,DEC-0167; Ownerの出品方針による停止,guardrails/policy/rules.json
@@ -81,12 +81,12 @@ group,id,markets,action,target,basis,note,source_file
 保安ルール,PH-ORAL,PH,BLOCK,歯ブラシ、ハブラシ、歯磨き粉、歯みがき粉、歯磨剤、デンタルフロス、マウスウォッシュ、矯正用品、マウスピース、toothbrush、toothpaste、dental floss、mouthwash、orthodontic、Oral Care、舌クリーナー、舌ブラシ、歯間ブラシ、タフトブラシ、入れ歯洗浄剤,自分の方針,DEC-0167; Ownerの出品方針による停止,guardrails/policy/rules.json
 保安ルール,PH-GAMBLING,PH,BLOCK,トランプ、サイコロ、ルーレット、ポーカーチップ、カジノチップ、playing cards、dice、roulette、poker chips,自分の方針,DEC-0167; Ownerの出品方針による停止,guardrails/policy/rules.json
 保安ルール,PH-NEEDLE,PH,BLOCK,ダーマローラー、マイクロニードル、タトゥー用針、眉タトゥー用針、tattoo needle、microblading needle、derma roller、microneedle,自分の方針,DEC-0167; Ownerの出品方針による停止,guardrails/policy/rules.json
-保安ルール,PH-OTHER,PH,BLOCK,免税品、ペット用の薬、動物用医薬品、pet medicine、ナンバープレート、政府のステッカー、ICCステッカー、テロをテーマにした玩具、HIV検査キット、COVID-19検査キット、COVID19検査キット、COVID-19 test kit、COVID19 test kit、HIV test kit、ワクチン、FDA警告フェイスマスク、タバコの付属品、電子タバコの付属品、免税、duty free,自分の方針,DEC-0167; Ownerの出品方針による停止,guardrails/policy/rules.json
+保安ルール,PH-OTHER,PH,BLOCK,免税品、ペット用の薬、動物用医薬品、pet medicine、ナンバープレート、政府のステッカー、ICCステッカー、テロをテーマにした玩具、HIV検査キット、COVID-19検査キット、COVID19検査キット、COVID-19 test kit、COVID19 test kit、HIV test kit、ワクチン、FDA警告フェイスマスク、タバコの付属品、電子タバコの付属品、免税、duty free、ICC ステッカー、icc sticker、テロリスト,自分の方針,DEC-0167; Ownerの出品方針による停止,guardrails/policy/rules.json
 保安ルール,PH-CERTIFICATION,PH,BLOCK,PSマーク、ICCマーク、PS認証、ICC認証,自分の方針,DEC-0167; Ownerの出品方針による停止,guardrails/policy/rules.json
-保安ルール,PH-USED,PH,BLOCK,ベビー用品、下着、化粧品、コンタクトレンズ、baby product、underwear、cosmetics、contact lens,自分の方針,DEC-0167; Ownerの出品方針による停止,guardrails/policy/rules.json
+保安ルール,PH-USED,PH,BLOCK,ベビー用品、下着、化粧品、コンタクトレンズ、baby product、underwear、cosmetics、contact lens、ブラジャー、ショーツ、ランジェリー,自分の方針,DEC-0167; Ownerの出品方針による停止,guardrails/policy/rules.json
 保安ルール,PH-SLS,PH,BLOCK,潤滑剤、性機能向上、肥料、投資用貴金属、投資用プラチナ、投資用金、投資用銀、投資用ダイヤ、投資用翡翠、lubricant、performance enhancement、fertilizer、investment precious metal、exhaust、触媒コンバーター、排気管、CNGガスキット、潤滑ゼリー、潤滑ローション、ラブローション、精力剤、媚薬、インゴット、金地金、銀地金、地金、裸石、ルースストーン、ダイヤモンドルース、マフラーカッター、エキゾースト,自分の方針,DEC-0167; Ownerの出品方針による停止。SLS輸送確認。,guardrails/policy/rules.json
 保安ルール,TH-TW-FOOD,TH/TW,BLOCK,食品、食品・飲料、food、food & beverages、grocery、スナック、飲料,自分の方針,DEC-0167; Ownerの出品方針による停止,guardrails/policy/rules.json
-保安ルール,COMMON-MEDICAL-DISPLAY,ALL,BLOCK,COVID-19 test kit、COVID19 test kit、HIV test kit、OTC、OTC drug、OTC drugs、OTC medicine、condom、condoms、diagnostic test kit、hair growth、hair loss、hypodermic needle、medical device、medical devices、medicated、prescription drug、prescription drugs、prescription medicine、quasi drug、quasi drugs、quasi-drug、quasi-drugs、コンドーム、一般用医薬品、体温計、処方薬、医療機器、医療用医薬品、医療用針、医薬部外品、市販薬、指定医薬部外品、指定第2類医薬品、有効成分、注射針、発毛促進、第1類医薬品、第2類医薬品、第3類医薬品、育毛、薬用、目薬、点眼薬、点眼液、絆創膏、ばんそうこう、バンソウコウ、滅菌ガーゼ、医療用ガーゼ、松葉杖、松葉づえ,自分の方針,DEC-0159 / DEC-0164 / DEC-0167; 医薬品・医療機器・医薬部外品の肯定表示によるOwnerの出品除外。直接の否定文を区別する。,guardrails/policy/rules.json
+保安ルール,COMMON-MEDICAL-DISPLAY,ALL,BLOCK,COVID-19 test kit、COVID19 test kit、HIV test kit、OTC、OTC drug、OTC drugs、OTC medicine、condom、condoms、diagnostic test kit、hair growth、hair loss、hypodermic needle、medical device、medical devices、medicated、prescription drug、prescription drugs、prescription medicine、quasi drug、quasi drugs、quasi-drug、quasi-drugs、コンドーム、一般用医薬品、体温計、処方薬、医療機器、医療用医薬品、医療用針、医薬部外品、市販薬、指定医薬部外品、指定第2類医薬品、有効成分、注射針、発毛促進、第1類医薬品、第2類医薬品、第3類医薬品、育毛、薬用、目薬、点眼薬、点眼液、絆創膏、ばんそうこう、バンソウコウ、滅菌ガーゼ、医療用ガーゼ、松葉杖、松葉づえ、磁気ネックレス、磁気ブレスレット、磁気治療、ピップエレキバン,自分の方針,DEC-0159 / DEC-0164 / DEC-0167; 医薬品・医療機器・医薬部外品の肯定表示によるOwnerの出品除外。直接の否定文を区別する。,guardrails/policy/rules.json
 保安ルール,COMMON-MEDICAL-SCAR-CARE,ALL,BLOCK,傷あとケア、傷跡ケア、傷あとケアテープ、傷跡ケアテープ、術後ケア、手術後ケア、手術後の傷あと、シリコーンジェルシート、シリコンジェルシート、scar care、postoperative scar care、silicone scar sheet、傷あとのケア、傷跡のケア、術後のケア、手術後のケア、術後用テープ,自分の方針,DEC-0179; Ownerの出品方針に基づく共通停止。,guardrails/policy/rules.json
 保安ルール,COMMON-CONTACT-LENSES,SG/PH,BLOCK,contact lenses、コンタクトレンズ、カラコン、カラーコンタクト、カラーコンタクトレンズ,Shopee公式,DEC-0159 / DEC-0164 / DEC-0170; 医療機器表示停止を維持。注意書きで外す・着用者への明確な指示だけを除外。,guardrails/policy/rules.json
 保安ルール,COMMON-CONTACT-LENSES-OTHER-MARKETS,MY/TH/TW,BLOCK,contact lenses、コンタクトレンズ,自分の方針,DEC-0159; 全市場の医療機器を出品除外とするOwner方針。,guardrails/policy/rules.json
@@ -135,6 +135,8 @@ group,id,markets,action,target,basis,note,source_file
 保安ルール,SG-TOY-GUN,SG,REVIEW,ウォーターガン、トイガン、おもちゃの銃、ゴム鉄砲、輪ゴム銃、toy gun、トイブラスター、toy blaster、銃型おもちゃ,Shopee公式,DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 Toys > Blasters & Toy Guns。既存のSG判断（水鉄砲は要確認）に合わせ要確認。,guardrails/policy/rules.json
 保安ルール,SG-SLS-BATTERY-TOOL,SG,REVIEW,バッテリー充電器、バッテリーチャージャー、バッテリーテスター,Shopee公式,DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 Vehicular Tools > Battery Tools。充電器単体は既存の電池判断に合わせ要確認。,guardrails/policy/rules.json
 保安ルール,PH-PRECIOUS-REVIEW,PH,REVIEW,純金、純銀、翡翠、ヒスイ、ジェイド,Shopee公式,DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 PHのInvestment Precious Metals（投資用の金・銀・翡翠）。宝飾品か投資用かを確認。,guardrails/policy/rules.json
+保安ルール,COMMON-SLS-VEHICLE,ALL,BLOCK,自動車本体、車両本体、中古車、中古バイク、バイク本体,Shopee公式,DEC-0187; Shopee販売規制ガイド（SG p4／PH p9）の品目で、代表商品名が止まらなかったもの。 車・バイク本体（SGの販売禁止品目「車」、SLSのAutomobiles／MotorcyclesもNO）。,guardrails/policy/rules.json
+保安ルール,COMMON-OFFICIAL-REVIEW,ALL,REVIEW,迷彩服、自衛隊、軍用、米軍、暗視スコープ、ナイトビジョン、運転免許証,Shopee公式,DEC-0187; Shopee販売規制ガイド（SG p4／PH p9）の品目で、代表商品名が止まらなかったもの。 政府・警察・軍の制服に酷似した品、軍事機器。ファッションの迷彩柄や免許証ケースと区別するため要確認。,guardrails/policy/rules.json
 コード内のルール,CODE-QUASI-DRUG,ALL,BLOCK,医薬部外品・薬用・有効成分・medicated などの表示（否定文は区別）,自分の方針,QUASI_DRUG_TERMS,modules/guardrails.py
 コード内のルール,CODE-HOME-APPLIANCE,ALL,BLOCK,家電本体・電動の商品（未確定は要確認。受動的な付属品は対象外）,自分の方針,DEC-0166,modules/home_appliances_classifier.py
 コード内のルール,CODE-BATTERY-PRESENCE,ALL,BLOCK,電池入り・電池付属の商品（電池別売の明記は区別）,自分の方針,電池入りは出品しない,modules/battery_presence.py

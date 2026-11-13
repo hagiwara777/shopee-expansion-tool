@@ -1,0 +1,79 @@
+# 意図的に複数の行に書いてある語（1行1語・NFKC小文字）。新しい語を足すときは、PRに理由を書く。
+# 2026-11-13時点の既存の重なりを一括で登録（DEC-0187）。以後の追加は1語ずつ判断する。
+18禁
+adult only
+adult products
+alcohol
+cigarette
+condom
+condoms
+contact lens
+covid-19 test kit
+covid19 test kit
+fake
+flammable liquid
+gaba
+gun
+hair growth
+hair loss
+hemp
+hiv test kit
+illegal
+knife
+medicated
+medicine
+power bank
+powerbank
+prescription
+quasi drug
+quasi drugs
+quasi-drug
+quasi-drugs
+r18
+replica
+setting spray
+sex toy
+sword
+weapon
+おもちゃの銃
+アダルト
+アダルトグッズ
+アダルト商品
+アダルト用品
+アルコール
+カセットガス
+カラコン
+カラーコンタクト
+コピー品
+コンタクトレンズ
+コンドーム
+サプリ
+サプリメント
+セッティングスプレー
+タバコ
+ナイフ
+ペットフード
+メイクキープスプレー
+モバイルバッテリー
+リチウムイオン電池
+健康食品
+偽物
+処方箋
+刀
+剣
+医薬品
+医薬部外品
+大人のおもちゃ
+引火性
+弾薬
+指定医薬部外品
+有効成分
+武器
+火薬
+発毛促進
+盗品
+育毛
+脱税
+薬用
+違法
+銃

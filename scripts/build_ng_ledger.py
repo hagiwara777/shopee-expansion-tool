@@ -16,6 +16,7 @@ import csv
 import io
 import json
 import sys
+import unicodedata
 from collections import Counter
 from pathlib import Path
 
@@ -288,8 +289,67 @@ def render_markdown(rows: list[dict[str, str]]) -> str:
         "SLS発送可否は、Shopeeのカテゴリが確定した後のカテゴリ対応画面でだけ使われ、Soraの保安ゲートには接続していません。",
         "SLSの表はSG・PH・MYだけを載せています（TH・TW・VN・BRの表は保存済みですが、着手時に載せます）。",
         "",
+        "## 同じ語が2か所にある場合",
+        "",
+        "自分たちで書いたルール（保安ルール・国別辞書・電池・成分・自社方針ブランド）で、同じ語が複数の行にあるものは",
+        "`NG/overlaps.csv` に出ます。新しい重なりができるとテストが失敗します。1つにまとめるか、意図的な重なり",
+        "（例：商品名は停止・説明文は要確認）なら `NG/overlaps_accepted.txt` に語を足します。",
+        "",
     ]
     return "\n".join(lines)
+
+
+# Groups whose rows we write ourselves.  Shopee's own lists (IPR, Counterfeit, title check),
+# community reports and SLS tables overlap by nature and are not checked here.
+AUTHORED_GROUPS = ("保安ルール", "国別の危険語", "国別の禁止ブランド", "電池の確認", "成分・事実による停止",
+                   "ブランド（自社方針）")
+ACCEPTED_OVERLAPS = OUT_DIR / "overlaps_accepted.txt"
+
+
+def _terms(row: dict[str, str]) -> list[str]:
+    if row["group"] == "成分・事実による停止":
+        return [row["target"].split(": ", 1)[-1]]
+    return row["target"].split(TERM_SEPARATOR) if row["group"] == "保安ルール" else [row["target"]]
+
+
+def _markets_overlap(left: str, right: str) -> bool:
+    a, b = set(left.split("/")), set(right.split("/"))
+    return "ALL" in a or "ALL" in b or bool(a & b)
+
+
+def overlaps(rows: list[dict[str, str]]) -> dict[str, list[dict[str, str]]]:
+    """The same word written in two or more of our own rows that apply to a common market."""
+    index: dict[str, list[dict[str, str]]] = {}
+    for row in rows:
+        if row["group"] not in AUTHORED_GROUPS:
+            continue
+        for term in _terms(row):
+            key = unicodedata.normalize("NFKC", term).strip().lower()
+            if key and row not in index.setdefault(key, []):
+                index[key].append(row)
+    found = {}
+    for key, items in index.items():
+        if len({item["id"] for item in items}) < 2:
+            continue
+        if any(_markets_overlap(a["markets"], b["markets"]) for i, a in enumerate(items) for b in items[i + 1:]):
+            found[key] = items
+    return dict(sorted(found.items()))
+
+
+def render_overlaps(found: dict[str, list[dict[str, str]]]) -> str:
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, lineterminator="\n")
+    writer.writerow(("term", "rows"))
+    for key, items in found.items():
+        writer.writerow((key, " | ".join(f"{i['id']}[{i['markets']} {i['action']}]" for i in items)))
+    return buffer.getvalue()
+
+
+def accepted_overlaps() -> set[str]:
+    if not ACCEPTED_OVERLAPS.is_file():
+        return set()
+    return {line.strip() for line in ACCEPTED_OVERLAPS.read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.startswith("#")}
 
 
 def main() -> int:
@@ -300,7 +360,13 @@ def main() -> int:
     if unclaimed:
         print("NG ledger: files under guardrails/ are not placed in the ledger: " + ", ".join(unclaimed), file=sys.stderr)
         return 1
-    outputs = {OUT_DIR / "LEDGER.md": render_markdown(rows), OUT_DIR / "ledger.csv": render_csv(rows)}
+    outputs = {OUT_DIR / "LEDGER.md": render_markdown(rows), OUT_DIR / "ledger.csv": render_csv(rows),
+               OUT_DIR / "overlaps.csv": render_overlaps(overlaps(rows))}
+    new_overlaps = sorted(set(overlaps(rows)) - accepted_overlaps())
+    if new_overlaps:
+        print("NG ledger: the same word is now written in two places (see NG/overlaps.csv). Merge them into one "
+              "rule, or add the word to NG/overlaps_accepted.txt with the reason in the PR: " + ", ".join(new_overlaps),
+              file=sys.stderr)
     if args.check:
         stale = [path.name for path, text in outputs.items()
                  if not path.is_file() or path.read_text(encoding="utf-8") != text]
