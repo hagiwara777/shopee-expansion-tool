@@ -3570,7 +3570,7 @@
       "markets": [
         "SG"
       ],
-      "action": "BLOCK",
+      "action": "REVIEW",
       "risk": "shipping_restricted",
       "fields": [
         "title",
@@ -3578,20 +3578,18 @@
         "category"
       ],
       "terms": [
-        "水鉄砲",
         "ウォーターガン",
         "トイガン",
         "おもちゃの銃",
         "ゴム鉄砲",
         "輪ゴム銃",
-        "water gun",
         "toy gun",
         "トイブラスター",
         "toy blaster",
         "銃型おもちゃ"
       ],
       "condition": "always",
-      "note": "DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 Toys > Blasters & Toy Guns。",
+      "note": "DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 Toys > Blasters & Toy Guns。既存のSG判断（水鉄砲は要確認）に合わせ要確認。",
       "source": "shopee_policy"
     },
     {
@@ -3599,7 +3597,7 @@
       "markets": [
         "SG"
       ],
-      "action": "BLOCK",
+      "action": "REVIEW",
       "risk": "shipping_restricted",
       "fields": [
         "title",
@@ -3608,12 +3606,10 @@
       "terms": [
         "バッテリー充電器",
         "バッテリーチャージャー",
-        "バッテリーテスター",
-        "battery charger",
-        "battery tester"
+        "バッテリーテスター"
       ],
       "condition": "always",
-      "note": "DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 Vehicular Tools > Battery Tools。",
+      "note": "DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 Vehicular Tools > Battery Tools。充電器単体は既存の電池判断に合わせ要確認。",
       "source": "shopee_policy"
     },
     {

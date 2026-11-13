@@ -132,8 +132,8 @@ group,id,markets,action,target,basis,note,source_file
 保安ルール,COMMON-SLS-SETTING-SPRAY,ALL,BLOCK,メイクキープミスト、メイクキープスプレー、フィックスミスト、フィクシングミスト、セッティングスプレー、セッティングミスト、化粧崩れ防止ミスト、化粧崩れ防止スプレー、setting spray,Shopee公式,DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 メイク仕上げ用スプレー（Setting & Finishing Spray）。,guardrails/policy/rules.json
 保安ルール,COMMON-SLS-ADULT,ALL,BLOCK,大人のおもちゃ、ラブグッズ、sex toy、sex toys,Shopee公式,DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 Sexual Wellness > Sex Toys。,guardrails/policy/rules.json
 保安ルール,COMMON-SLS-CAR-CHECK,ALL,REVIEW,カーワックス、車用ワックス、洗車、カーシャンプー、ガラス撥水、撥水剤、油膜取り、ガラコ、タイヤワックス、タイヤチェーン、燃料フィルター、燃料ポンプ、ピストンリング、エンジンピストン,Shopee公式,DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 SLSで「Shopeeと要確認」の車用品（洗車・ワックス・撥水・タイヤ・燃料系）。,guardrails/policy/rules.json
-保安ルール,SG-TOY-GUN,SG,BLOCK,水鉄砲、ウォーターガン、トイガン、おもちゃの銃、ゴム鉄砲、輪ゴム銃、water gun、toy gun、トイブラスター、toy blaster、銃型おもちゃ,Shopee公式,DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 Toys > Blasters & Toy Guns。,guardrails/policy/rules.json
-保安ルール,SG-SLS-BATTERY-TOOL,SG,BLOCK,バッテリー充電器、バッテリーチャージャー、バッテリーテスター、battery charger、battery tester,Shopee公式,DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 Vehicular Tools > Battery Tools。,guardrails/policy/rules.json
+保安ルール,SG-TOY-GUN,SG,REVIEW,ウォーターガン、トイガン、おもちゃの銃、ゴム鉄砲、輪ゴム銃、toy gun、トイブラスター、toy blaster、銃型おもちゃ,Shopee公式,DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 Toys > Blasters & Toy Guns。既存のSG判断（水鉄砲は要確認）に合わせ要確認。,guardrails/policy/rules.json
+保安ルール,SG-SLS-BATTERY-TOOL,SG,REVIEW,バッテリー充電器、バッテリーチャージャー、バッテリーテスター,Shopee公式,DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 Vehicular Tools > Battery Tools。充電器単体は既存の電池判断に合わせ要確認。,guardrails/policy/rules.json
 保安ルール,PH-PRECIOUS-REVIEW,PH,REVIEW,純金、純銀、翡翠、ヒスイ、ジェイド,Shopee公式,DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 PHのInvestment Precious Metals（投資用の金・銀・翡翠）。宝飾品か投資用かを確認。,guardrails/policy/rules.json
 コード内のルール,CODE-QUASI-DRUG,ALL,BLOCK,医薬部外品・薬用・有効成分・medicated などの表示（否定文は区別）,自分の方針,QUASI_DRUG_TERMS,modules/guardrails.py
 コード内のルール,CODE-HOME-APPLIANCE,ALL,BLOCK,家電本体・電動の商品（未確定は要確認。受動的な付属品は対象外）,自分の方針,DEC-0166,modules/home_appliances_classifier.py

@@ -46,9 +46,9 @@ def test_sls_check_with_shopee_car_care_needs_confirmation(market, title):
 
 
 def test_market_specific_sls_groups():
-    assert status("SG", "水鉄砲 大容量") == "BLOCK"
+    assert status("SG", "トイガン ハンドガン型 おもちゃ") == "REVIEW"
     assert status("SG", "鼻うがい 洗浄器 ハナクリーン") == "BLOCK"
-    assert status("SG", "バッテリー充電器 車用 12V") == "BLOCK"
+    assert status("SG", "バッテリー充電器 車用 12V") == "REVIEW"
     assert status("PH", "潤滑ゼリー ローション 100ml") == "BLOCK"
     assert status("PH", "純銀 インゴット 100g") == "BLOCK"
     assert status("PH", "マフラーカッター オーバル ステンレス") == "BLOCK"

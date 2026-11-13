@@ -8,7 +8,7 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 
 | グループ | 停止 | 要確認 | その他 | 元ファイル |
 |---|---:|---:|---:|---|
-| 保安ルール | 109 | 27 | 0 | `guardrails/policy/rules.json` |
+| 保安ルール | 107 | 29 | 0 | `guardrails/policy/rules.json` |
 | コード内のルール | 5 | 2 | 0 | `modules/battery_presence.py`<br>`modules/guardrails.py`<br>`modules/home_appliances_classifier.py`<br>`modules/prelisting_sg_body_safety.py`<br>ほか3件 |
 | ブランド（IPR） | 138 | 0 | 0 | `guardrails/brand_monitoring/ipr.json` |
 | ブランド（Counterfeit） | 673 | 0 | 0 | `guardrails/brand_monitoring/counterfeit_ph.json`<br>`guardrails/brand_monitoring/counterfeit_sg.json` |
@@ -30,7 +30,7 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 | 全ての国 | 221 | 70 |
 | MY | 185 | 24 |
 | PH | 469 | 28 |
-| SG | 667 | 137 |
+| SG | 665 | 139 |
 | TH | 14 | 0 |
 | TW | 25 | 0 |
 | VN | 2 | 0 |
@@ -172,8 +172,8 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 | COMMON-SLS-SETTING-SPRAY | ALL | 停止 | メイクキープミスト、メイクキープスプレー、フィックスミスト、フィクシングミスト、セッティングスプレー、セッティングミスト、化粧崩れ防止ミスト、化粧崩れ防止スプレー ほか1語 | Shopee公式 | DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 メイク仕上げ用スプレー（Setting & Finishing Spray）。 |
 | COMMON-SLS-ADULT | ALL | 停止 | 大人のおもちゃ、ラブグッズ、sex toy、sex toys | Shopee公式 | DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 Sexual Wellness > Sex Toys。 |
 | COMMON-SLS-CAR-CHECK | ALL | 要確認 | カーワックス、車用ワックス、洗車、カーシャンプー、ガラス撥水、撥水剤、油膜取り、ガラコ ほか6語 | Shopee公式 | DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 SLSで「Shopeeと要確認」の車用品（洗車・ワックス・撥水・タイヤ・燃料系）。 |
-| SG-TOY-GUN | SG | 停止 | 水鉄砲、ウォーターガン、トイガン、おもちゃの銃、ゴム鉄砲、輪ゴム銃、water gun、toy gun ほか3語 | Shopee公式 | DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 Toys > Blasters & Toy Guns。 |
-| SG-SLS-BATTERY-TOOL | SG | 停止 | バッテリー充電器、バッテリーチャージャー、バッテリーテスター、battery charger、battery tester | Shopee公式 | DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 Vehicular Tools > Battery Tools。 |
+| SG-TOY-GUN | SG | 要確認 | ウォーターガン、トイガン、おもちゃの銃、ゴム鉄砲、輪ゴム銃、toy gun、トイブラスター、toy blaster ほか1語 | Shopee公式 | DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 Toys > Blasters & Toy Guns。既存のSG判断（水鉄砲は要確認）に合わせ要確認。 |
+| SG-SLS-BATTERY-TOOL | SG | 要確認 | バッテリー充電器、バッテリーチャージャー、バッテリーテスター | Shopee公式 | DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 Vehicular Tools > Battery Tools。充電器単体は既存の電池判断に合わせ要確認。 |
 | PH-PRECIOUS-REVIEW | PH | 要確認 | 純金、純銀、翡翠、ヒスイ、ジェイド | Shopee公式 | DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 PHのInvestment Precious Metals（投資用の金・銀・翡翠）。宝飾品か投資用かを確認。 |
 
 ## コード内のルール
