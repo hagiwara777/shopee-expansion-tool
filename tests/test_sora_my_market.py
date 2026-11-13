@@ -1,4 +1,4 @@
-"""DEC-0183: MY on the Sora path never reports a pass until the MY NG settings are done.
+"""DEC-0189: configured Sora markets pass without country CSV dictionaries.
 
 Synthetic fixtures only; not MY regulation coverage, an MY NG dictionary, or live acceptance.
 """
@@ -58,32 +58,29 @@ def test_market_profiles_are_consistent_with_the_files_that_exist():
             with pytest.raises(GuardrailDictionaryError):
                 load_guardrail_dictionaries(marketplace=code)
         if market.ng_configured:
-            # Turning the hold off requires the market's own dictionaries and counterfeit list.
-            assert market.country_dictionaries and market.country_counterfeit_list
-    assert market_ng_incomplete('MY') and not market_ng_incomplete('SG') and not market_ng_incomplete('PH')
-    assert not market_ng_incomplete('TH')  # unsupported markets are rejected elsewhere, not "held"
+            assert market.country_counterfeit_list
+    assert not any(market_ng_incomplete(code) for code in SORA_MARKETS)
     assert [normalize_sora_market(v) for v in ('my', ' MY ', 'ＭＹ')] == ['MY'] * 3
-    assert all(normalize_sora_market(v) is None for v in ('TH', 'TW', 'VN', 'JP', '', None, 5))
+    assert all(normalize_sora_market(v) is None for v in ('VN', 'JP', '', None, 5))
 
 
-def test_my_clean_product_is_held_for_review_and_exports_no_pass():
+def test_my_clean_product_passes_with_a_missing_size_note():
     run = run_for()
     result = evaluate_sora_run(run)
     row = result.rows[0]
     assert (result.marketplace, row.marketplace) == ('MY', 'MY')
     assert row.guardrail_status == 'SAFE'            # the dictionary result itself is untouched
-    assert row.final_eligibility == 'REVIEW'
-    assert row.reason_codes[-1] == MARKET_NG_INCOMPLETE_REASON
-    assert (result.eligible_count, result.review_count, result.exclude_count) == (0, 1, 0)
+    assert row.final_eligibility == 'ELIGIBLE'
+    assert MARKET_NG_INCOMPLETE_REASON not in row.reason_codes
+    assert 'サイズ情報なし' in row.guardrail_note
+    assert (result.eligible_count, result.review_count, result.exclude_count) == (1, 0, 0)
     outputs = sora_exports(run, result)
-    assert outputs['通過ASIN.txt'] == b''
-    assert json.loads(outputs['実行記録.json'])['通過'] == 0
-    assert 'B000000001' in outputs['要確認.csv'].decode('utf-8-sig')
-    labels = localize_prelisting_gate_preview_rows(build_prelisting_gate_export_rows(result, final_eligibility='REVIEW'))
-    assert '禁止設定が未完成' in json.dumps(labels, ensure_ascii=False)
+    assert outputs['通過ASIN.txt'] == b'B000000001\n'
+    assert json.loads(outputs['実行記録.json'])['通過'] == 1
 
 
-def test_second_line_of_defence_refuses_an_eligible_my_result():
+def test_second_line_of_defence_refuses_an_unconfigured_market_result(monkeypatch):
+    monkeypatch.setitem(SORA_MARKETS, 'MY', replace(SORA_MARKETS['MY'], ng_configured=False))
     run = run_for()
     result = evaluate_sora_run(run)
     forged_row = replace(result.rows[0], final_eligibility='ELIGIBLE')
@@ -99,14 +96,14 @@ def test_second_line_of_defence_refuses_an_eligible_my_result():
     ({'bullet_point': [{'value': '医薬部外品'}]}, 'EXCLUDE', False),
     ({'batteries_included': [{'value': True}]}, 'EXCLUDE', False),
     ({'safety_warning': [{'value': 'LPG 高圧ガス'}]}, 'REVIEW', False),
-    ({}, 'REVIEW', True),
+    ({}, 'ELIGIBLE', False),
 ])
 def test_my_keeps_common_stops_and_only_demotes_would_be_passes(attributes, expected, held):
     result = evaluate_sora_run(run_for(attributes))
     row = result.rows[0]
     assert row.final_eligibility == expected
     assert (MARKET_NG_INCOMPLETE_REASON in row.reason_codes) is held
-    assert result.eligible_count == 0
+    assert result.eligible_count == (expected == 'ELIGIBLE')
 
 
 @pytest.mark.parametrize('marketplace', ['PH', 'SG'])
@@ -118,7 +115,7 @@ def test_ph_sg_results_are_unchanged_and_never_carry_the_new_reason(marketplace)
         assert b'B000000001' in sora_exports(run_for(attributes, marketplace), result)['通過ASIN.txt'] or expected != 'ELIGIBLE'
 
 
-@pytest.mark.parametrize('bad', ['TH', 'TW', 'VN', 'JP', '', 'my2', None, 5])
+@pytest.mark.parametrize('bad', ['VN', 'JP', '', 'my2', None, 5])
 def test_unsupported_markets_are_still_rejected(bad):
     run = run_for(marketplace='SG')
     with pytest.raises(ValueError):
@@ -140,18 +137,17 @@ def test_my_gate_refuses_listing_check_and_sg_body_confirmations():
                                  check_existing_listings=False, sg_body_confirmations={})
 
 
-def test_brand_monitoring_for_my_is_opt_in_and_never_borrows_another_country_list():
-    with pytest.raises(BrandMonitoringError):
-        load_brand_monitoring('MY')  # existing behaviour: not a monitored market without the explicit opt-in
-    with pytest.raises(BrandMonitoringError):
-        load_brand_monitoring('TH', without_country_list=True)
-    monitoring = load_brand_monitoring('MY', without_country_list=True)
+def test_brand_monitoring_for_my_uses_its_own_list():
+    monitoring = load_brand_monitoring('MY')
     scopes = {rule.scope for rule in monitoring.rules}
-    assert scopes == {'ALL', 'COMPANY'}
+    assert scopes == {'ALL', 'COMPANY', 'MY'}
+    assert monitoring.matches('Hada Labo')
+    assert load_brand_monitoring('MY', without_country_list=True).matches('Hada Labo')
     ipr = set(json.loads((BRAND_DIR / 'ipr.json').read_text(encoding='utf-8'))['brands'])
     shared = set(json.loads((BRAND_DIR / 'company.json').read_text(encoding='utf-8'))['brands']) | ipr
     sg_only = next(b for b in json.loads((BRAND_DIR / 'counterfeit_sg.json').read_text(encoding='utf-8'))['brands']
                    if b not in shared and b not in json.loads(
+                       (BRAND_DIR / 'counterfeit_my.json').read_text(encoding='utf-8'))['brands'] and b not in json.loads(
                        (BRAND_DIR / 'counterfeit_ph.json').read_text(encoding='utf-8'))['brands'])
     row = {'product_title': '普通のタオル', 'brand': sg_only, 'category': 'タオル'}
     assert apply_guardrails([row], marketplace='SG')[0]['guardrail_status'] == 'BLOCK'

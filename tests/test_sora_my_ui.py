@@ -1,4 +1,4 @@
-"""DEC-0184: the real Sora screen offers MY, but MY never shows a pass. Offline, no live API."""
+"""DEC-0189: the real Sora screen passes configured MY/TH/TW goods. Offline only."""
 import logging
 from pathlib import Path
 
@@ -51,29 +51,30 @@ def client_calls(monkeypatch):
     return calls
 
 
-def test_screen_offers_my_last_and_keeps_sg_as_default(client_calls):
+def test_screen_offers_five_markets_and_keeps_sg_as_default(client_calls):
     app = AppTest.from_file(str(ROOT/'app.py'), default_timeout=20).run()
     assert not app.exception
     selector = app.selectbox(key='sora_marketplace')
-    assert list(selector.options) == ['SG', 'PH', 'MY']
+    assert list(selector.options) == ['SG', 'PH', 'MY', 'TH', 'TW']
     assert selector.value == 'SG'
 
 
-def test_my_run_shows_no_pass_and_a_notice(client_calls):
+@pytest.mark.parametrize('marketplace', ['MY', 'TH', 'TW'])
+def test_configured_market_shows_a_pass(client_calls, marketplace):
     app = AppTest.from_file(str(ROOT/'app.py'), default_timeout=20).run()
-    app.selectbox(key='sora_marketplace').set_value('MY').run()
+    app.selectbox(key='sora_marketplace').set_value(marketplace).run()
     app.text_area(key='sora_asins').set_value('B000000001').run()
     button(app, 'sora_verify').click().run()
     assert not app.exception
     warnings = ' '.join(w.value for w in app.warning)
-    assert '国別の禁止設定が未完成' in warnings and '通過」は出ません' in warnings
+    assert '国別の禁止設定が未完成' not in warnings
     assert any('重複照合は未対応' in info.value for info in app.info)
     button(app, 'sora_evaluate').click().run()
     assert not app.exception
     summary = [m.value for m in app.markdown if '通過' in m.value and '件' in m.value]
-    assert any(v.startswith('通過0件／要確認1件／停止0件') for v in summary), summary
+    assert any(v.startswith('通過1件／要確認0件／停止0件') for v in summary), summary
     preview = app.dataframe[-1].value
-    assert set(preview['最終判定']) == {'要確認'}
+    assert set(preview['最終判定']) == {'出品候補'}
     assert client_calls == [('B000000001',)]
 
 

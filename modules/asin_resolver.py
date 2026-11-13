@@ -1019,6 +1019,9 @@ def _verified_row(
             "ingredient_safety_fact": ingredient_payload,
             "product_text_safety_fact": product_text_payload,
             "ph_image_safety_fact": image_payload,
+            "package_measurements": (keepa_product.get("package_measurements")
+                if status == FOUND and product_field_prefix == "spapi" and isinstance(keepa_product, dict)
+                else None),
             "candidate_observation": (keepa_product.get('candidate_observation')
                 if status == FOUND and product_field_prefix == 'keepa' and isinstance(keepa_product, dict)
                 else None),

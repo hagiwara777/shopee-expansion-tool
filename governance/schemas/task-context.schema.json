@@ -13,7 +13,7 @@
     "scope": {
       "type": "object", "additionalProperties": false, "required": ["markets", "component_ids", "purpose"],
       "properties": {
-        "markets": {"type": "array", "uniqueItems": true, "items": {"enum": ["PH", "SG", "MY", "TH"]}},
+        "markets": {"type": "array", "uniqueItems": true, "items": {"enum": ["PH", "SG", "MY", "TH", "TW"]}},
         "component_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z][a-z0-9.-]*$"}},
         "purpose": {"type": "string", "minLength": 1, "maxLength": 500}
       }

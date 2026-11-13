@@ -2252,3 +2252,33 @@
 - SGの既存食品方針: `SG-MEAT`／`SG-ANIMAL-FAT`／`SG-MUSHROOM`／`SG-FOOD`はcontentを維持し、DEC-0181等の原材料を含む食品の停止を解除しない。Ownerの追加指示による「contentの対象欄を変えない」の例外として、`SG-ANIMAL-FAT`と`SG-MUSHROOM`だけに`ingredients`を追加する。動物性脂肪は成分欄での一致に限り`food`と同じ食品判定が成立した場合だけBLOCKし、食品と確認できない場合・石けん等はその成分だけで停止しない。商品名・説明文は従来の`always`、きのこは従来の`mushroom_food`を維持する。他のcontentの対象欄は変えない。
 - 置換と保護: DEC-0164／0167〜0170／0175／0179〜0182／0186の該当item群に説明文・成分を使う部分と、今回分割した語の所属だけを置換する。既存の他のcontent停止、医薬部外品、電池・家電、ブランド、SG本体確認、BLOCK優先、資料対応、市場分離、PH／SG protectedと必須6チェックを維持する。MYの通過なし・TH未着手を解除しない。
 - 検証・承認・限界: 指定された通過例・停止例、食品の成分欄のラード／しいたけエキス、石けんの牛脂、scope不正の拒否、itemの間接的な文章読込禁止を合成データで検証する。保護テストは変更せず、仕様との衝突では停止して報告する。itemの識別語が商品名・カテゴリに取得されなければ未検出となる残余リスクを受容し、合成成功を実商品全件・実画面の成功へ昇格しない。Owner手動merge、実API・実商品・例外の手動設置の別承認を維持する。通常revertまたは新Decisionで戻し、既存履歴・ユーザー差分を保全する。
+
+## DEC-0189 — MY・TH・TWのSora国別保安判定と通過出力、運用状態との分離
+
+- 日付・根拠: 2026-11-13。Owner提示のShopee販売規制ガイドMY／TH／TW（2026-08-13版）と本タスクのOwner決定。DEC-0188と公式Counterfeit MY／TH／TW資産の採用を前提とする。現地ライセンスが必要な品目は出品しない。これは法令・ガイド全体の独立監査や実商品の運用受入ではない。
+- 市場と判定: Soraの順はSG、PH、MY、TH、TW（SG既定）。MY／TH／TWの`ng_configured=True`、`country_counterfeit_list=True`、`country_dictionaries=False`、`inventory_check=False`、`sg_body_safety=False`。国別CSVの有無を禁止設定の完成条件とせず、`rules.json`と各国Counterfeit一覧を使う。未設定市場だけの通過降格・出力拒否を保持する。DEC-0183／0184のMY一律通過禁止とTH着手禁止、DEC-0188のその維持部分を、このSora限定範囲で置換する。
+- 商品ルールの正本: 全ID・国・scope・action・全語・条件・対象欄は`guardrails/policy/rules.json`、一覧は再生成した`NG/ledger.csv`／`NG/LEDGER.md`。新規itemは商品名・カテゴリだけ（カテゴリ専用規則はカテゴリだけ）、新規contentは商品名・説明文・成分。既存規則の対象欄は広げない。各市場の停止を他の国へ推定コピーしない。
+- MY: 食品の豚・酒・牛肉・家禽等を成分まで止める`MY-HALAL-FOOD`（content／BLOCK／food）を追加。食品以外に適用せず、ハラール認証や成分欠損時の適合を推定しない。`MY-SUGAR-RICE`はitem／BLOCK／foodで米の語境界を使い、米粉・米ぬか・米国・玄米茶等を米そのものと扱わない。`MY-RICE-SNACK`と`MY-PORK-OTHER`はitem／REVIEW。`MY-KNIFE`、`MY-EYEWEAR`、`MY-SYRINGE-SHAPE`はitem／BLOCK。眼鏡のケース・拭き・クロス・クリーナー・チェーン・ストラップ等の出現箇所を除き、別に眼鏡本体を含むセットは止める。`MY-SAFETY-HELMET`はitem／REVIEWで自転車・バイク用を除く。`MY-WEIGHT-GAIN`、`MY-RELIGIOUS`、`MY-APHRODISIAC`はcontent／BLOCK。「増量」だけは体重・ビタミン・サプリ等の文脈を要し、通常の増量包装を除く。
+- MY容積重量: `MY-VOLUMETRIC`を語ルールではなくSoraの判定処理に追加する。取得済みJP attributesの`item_package_dimensions`／`item_package_weight`を優先し、無ければ`item_dimensions`／`item_weight`を使う。寸法cmの積÷6000＝容積重量kgが実重量kgを上回ればREVIEWとし、理由へ両方の値・使用項目名を記す。cm・mm・m・inch・feet、kg・g・lb・ozを換算する。片方欠損、不正・非正数・不明単位、矛盾する複数値は「サイズ情報なし」を記録してその理由だけでは通過を妨げない。別のBLOCKを解除せず、MYだけに適用し、追加のAPI呼出しや固定15列Candidateの変更はしない。
+- TH／TW: `TH-TW-COSMETICS`（item／BLOCK）で最上位ビューティー2区分と指定化粧品の商品名を止める。文具のクリップをリップと誤認しない。最上位ドラッグストアは共通の`TH-TW-DRUGSTORE`（item／REVIEW）とする。THは`TH-ELECTRIC`、`TH-CAR-PARTS`、`TH-LICENSE-OTHER`をitem／BLOCK、`TH-CHEMICAL`をitem／REVIEW。TWは`TW-HEALTHCARE`（カテゴリ中の医療・衛生・ヘルスケア）、`TW-BABY`、`TW-HAIR-IRON`、`TW-SUNGLASSES`、`TW-BLADE`、`TW-FLEA`、`TW-BEAUTY-DEVICE`、`TW-TAMPON`、`TW-LICENSE-ELECTRIC`、`TW-SAFETY-HELMET`をitem／BLOCK、`TW-BLADE-REVIEW`をitem／REVIEWとする。コテはヘア用、パチンコは玩具の投石器を示す文脈に限定する。隠しカメラは`MY-TW-SPY-CAMERA`（item／BLOCK）へ共通化。
+- 既存規則の拡張: `SG-MAGNETIC-PUTTY`と`SG-RADIO`はSG→SG／MY／TH／TW。`PH-TOY-WEAPON-DIRECT`／`PH-TOY-WEAPON-CONTEXT`はPH→PH／MY／TW。`PH-PRECIOUS-REVIEW`はPH→PH／TH。`SG-SPECIFIC`から磁性粘土だけを`SG-MAGNETIC-CLAY`（SG／MY／TH／TW）、錠前破りだけを`SG-LOCK-PICKING`（SG／MY／TW）へ、`SG-WEAPON-ADDITIONAL`からピッキングツールだけを`SG-PICKING-TOOL`（SG／MY／TW）へ分ける。いずれも元のscope・対象欄・動作・条件を維持し、SGの他の語を追加国へ広げない。
+- 作らない規則: THの玩具・フィギュアは数量制限だけなので一律停止を作らない。共通の医薬・電池・マスク・コンタクト・酒類・たばこ・武器・アダルト等で足りる群を重複新設しない。TH／TW食品の`TH-TW-FOOD`は定義・scope・対象欄・語・action・conditionを変更しない。既存の食品最上位「食品・飲料・お酒」もその食品条件で判定できるよう、当該IDだけカテゴリノード照合を補う（最上位「食品」以外の収納用品等へ広げない）。共通エアゾール疑義は従来のREVIEWで非通過を維持し、今回BLOCKへ変更しない。
+- ブランド: MY／TH／TWの公式Counterfeit資産を各国の完全一致へ接続する。TWの英字＋漢字の並記は別々の完全な照合名へ分け、英字内の空白を保つ。同じ公式並記からの別表記は競合に数えず、別ブランド同士のalias競合は拒否する。正規化と外側のブランド名を維持し、Kose Cosmeportからソフティモ等の子ブランドへ推定を広げない。元の公式JSONと承認済みaliases.jsonは変更しない。
+- 台帳・意図的重複: 3か国のCounterfeitをSUPPORT_FILESからブランド行へ移し、TWは判定と同じ分解後の名を載せる。SLS台帳対象をSG／PH／MY→SG／PH／MY／TH／TWにする（Soraの発送許可には接続しない）。`NG/overlaps_accepted.txt`に理由付きで9語だけを追加する。無線機／トランシーバー／walkie talkieはcontentと国別itemの別対象欄、洋酒／ワイン／ブランデー／リキュールは酒本体とMY食品成分、純金はPHの投資用REVIEWとTHの停止、香水は共通停止とTH／TWの化粧品停止のため。重複検出方式は変更しない。
+- 運用状態の境界: MY／TH／TWはINACTIVE／ALLOWEDのまま。受入済みcapabilityは作らず、capabilities.jsonは変更しない。ACTIVE化は各国でOwnerが実商品50〜100件を画面から3回完成確認した後の別タスクとする。Soraの通過とGovernance operationを分離し、INACTIVEのまま通過と4出力を検証する。Sora以外の市場開発・運用接続は再開しない。実API・実商品・費用・出品・例外的手動設置の承認境界を維持する。
+
+Ownerが例外として許可した保護テスト・Governance変更は次だけとする。PH／SG、検証エンジンの受入条件、mandatory CIは維持し、これ以外の保護テストとの衝突では停止して報告する。
+
+| ファイル・対象 | 変更前 | 変更後 |
+|---|---|---|
+| `tests/test_safety_policy.py` の旧 `test_future_market_common_rules_do_not_enable_runtime` | MYブランド読込がValueError | `test_future_market_common_rules_and_my_country_brands`へ改名、MY一覧でHada Laboが一致。ナイアシンアミドBLOCK・GABA停止・MY普通の食品は非停止・TH普通の食品はBLOCKの4期待は同一 |
+| `tests/test_brand_monitoring.py` の旧 `test_kao_alias_obeys_country_list_and_does_not_start_taiwan_runtime` | TWブランド読込がBrandMonitoringError | `test_kao_alias_obeys_country_lists_including_taiwan`へ改名、TWで花王／Kaoが一致。SG一致・PH不一致・Kao alias markets `["SG","TW"]`は同一 |
+| `tests/test_governance_v2.py::test_gv2_config_001_machine_state_and_manifest_validate` | MY INACTIVE／ALLOWED、TH INACTIVE／NOT_STARTED、TWなし | MY同一、TH INACTIVE／ALLOWED、TW INACTIVE／ALLOWEDを追加。PH／SGとactive_task非保存の期待は同一 |
+| `governance/state.json` markets | MY INACTIVE／ALLOWED、TH INACTIVE／NOT_STARTED、TWなし | MY同一、TH INACTIVE／ALLOWED、TW INACTIVE／ALLOWED。PH／SG・capabilities・open_items・rollback_targetは同一 |
+| 同ファイルの停止条件2つ | `no-my-eligible-before-my-ng-rules`、`no-th-product-work` | `no-my-th-tw-active-before-owner-completion`、`no-my-th-tw-product-work-outside-sora`。他の3条件は同一 |
+| `governance/schemas/state.schema.json` | marketsのrequired／propertiesはPH・SG・MY・TH | TWをrequired／propertiesへ追加。marketの値制約は同一 |
+| `governance/schemas/task-context.schema.json` | scope.marketsのenumはPH・SG・MY・TH | TWをenumへ追加。他の制約は同一 |
+| `governance/manifest.json` state schemaのsha256 | `b454af8991ae7d5dd12124b3b2a2ef7f77448b26a2cd1f7302b604c48d585abe` | `2701eb6f3959d1450ec357fc9829fc4415fb71b647e87b320a7ae6f8a273ae85` |
+| 同ファイルのtask-context schemaのsha256 | `10a324f2e43b1e48fb8a8f9f720a99855f98794866b1e163dd46dfc8143ff6d7` | `6ff025511554a8553ae55ccc0fa3726809104d85a0e4881fdae73f2e4de5c83e` |
+
+- 検証・限界: 食品成分と非食品除外、商品語と付属品、カテゴリ最上位／途中階層、指定された国だけへの拡張、英字／漢字ブランドと非推定、容積重量の単位・fallback・欠損・BLOCK優先、3か国の通過出力と画面操作を合成データで検証する。itemは取得された商品名・カテゴリに種類が無ければ見逃し得る。成分・寸法が取得できない場合に適合を保証しない。原資料の全項目網羅と実商品50〜100件×3回はOwnerの後続確認であり、offline検証をその成功へ読み替えない。OwnerがPRを統合し、Codexはmergeしない。通常revertまたは新Decisionで戻し、既存データ・履歴・ユーザー差分を保全する。

@@ -12,9 +12,12 @@ from modules.match_context import excerpt_at
 
 
 CONFIG_DIR = Path(__file__).resolve().parents[1] / "guardrails" / "brand_monitoring"
-COUNTRY_FILES = {"SG": "counterfeit_sg.json", "PH": "counterfeit_ph.json"}
+COUNTRY_FILES = {
+    "SG": "counterfeit_sg.json", "PH": "counterfeit_ph.json",
+    "MY": "counterfeit_my.json", "TH": "counterfeit_th.json", "TW": "counterfeit_tw.json",
+}
 ALIAS_MARKETS = frozenset({"SG", "PH", "MY", "TH", "TW"})
-NO_COUNTRY_LIST_MARKETS = frozenset({"MY"})
+NO_COUNTRY_LIST_MARKETS = frozenset()
 
 
 class BrandMonitoringError(ValueError):
@@ -44,6 +47,19 @@ def normalize_brand(value: str) -> str:
 
 def primary_brand(value: str) -> str:
     return " ".join(re.sub(r"\([^()]*\)", "", normalize_brand(value)).split())
+
+
+def country_brand_names(value: str, marketplace: str) -> tuple[str, ...]:
+    """TW's paired Latin/Chinese official names are two complete identities.
+
+    Spaces within a Latin name stay intact. No child brand or spelling is
+    inferred. The ledger uses this same decomposition as the runtime.
+    """
+    if marketplace == "TW":
+        pair = re.fullmatch(r"([A-Za-z][^\u3400-\u9fff]+?)\s+([\u3400-\u9fff].*)", value.strip())
+        if pair:
+            return tuple(part.strip() for part in pair.groups())
+    return (value,)
 
 
 @dataclass(frozen=True)
@@ -149,9 +165,10 @@ def load_brand_monitoring(
     *,
     without_country_list: bool = False,
 ) -> BrandMonitoring:
-    """``without_country_list`` is an explicit opt-in for a market that has no
-    country counterfeit list yet (MY, DEC-0183).  It never borrows another
-    country's list; only the shared IPR, company, alias and title settings apply.
+    """Every configured market reads its own official counterfeit list.
+
+    The explicit no-list option is reserved for future unconfigured markets;
+    it cannot disable an existing country's list.
     """
     if marketplace not in COUNTRY_FILES and not (without_country_list and marketplace in NO_COUNTRY_LIST_MARKETS):
         raise BrandMonitoringError("監視ブランド照合の対象市場ではありません。")
@@ -185,7 +202,8 @@ def _compile_brand_monitoring(marketplace: str, sources: tuple[tuple[str, str], 
                 or not isinstance(brands, list) or not brands
                 or any(not isinstance(v, str) or not v.strip() or "\n" in v or "\r" in v for v in brands)):
             raise BrandMonitoringError(f"監視ブランド設定が不正です: {filename}")
-        rules.extend(MonitoringBrand(v, scope, filename) for v in brands)
+        rules.extend(MonitoringBrand(name, scope, filename) for v in brands
+                     for name in country_brand_names(v, scope))
     company = _read("company.json", texts["company.json"])
     if (company.get("scope") != "COMPANY" or company.get("decision") != "DEC-0167"
             or not isinstance(company.get("brands"), list) or not company["brands"]
@@ -196,6 +214,7 @@ def _compile_brand_monitoring(marketplace: str, sources: tuple[tuple[str, str], 
     if not isinstance(raw_aliases, list):
         raise BrandMonitoringError("監視ブランドの別表記設定が不正です。")
     known = {normalize_brand(rule.term) for rule in rules}
+    official_pairs = []
     if raw_aliases:
         # Shared aliases may target a brand active only in the other country.
         # Check references against existing official files, without applying
@@ -204,7 +223,14 @@ def _compile_brand_monitoring(marketplace: str, sources: tuple[tuple[str, str], 
             other = _read(filename, texts[filename]).get("brands")
             if not isinstance(other, list) or any(not isinstance(v, str) for v in other):
                 raise BrandMonitoringError(f"監視ブランド設定が不正です: {filename}")
-            known.update(normalize_brand(v) for v in other)
+            market = next(m for m, name in COUNTRY_FILES.items() if name == filename)
+            known.update(normalize_brand(name) for v in other for name in country_brand_names(v, market))
+    # Paired names are the same official brand, so their approved alias does
+    # not conflict with a different official brand. Other collisions still fail.
+    for value in _read(COUNTRY_FILES["TW"], texts[COUNTRY_FILES["TW"]])["brands"]:
+        names = country_brand_names(value, "TW")
+        if len(names) == 2:
+            official_pairs.append({normalize_brand(n) for n in names})
     aliases = {}
     seen_aliases = set()
     for item in raw_aliases:
@@ -224,10 +250,15 @@ def _compile_brand_monitoring(marketplace: str, sources: tuple[tuple[str, str], 
         seen_aliases.add(key)
         if canonical not in known:
             raise BrandMonitoringError("監視ブランドの別表記の参照先が公式設定にありません。")
-        if key in known and key != canonical:
+        if key in known and key != canonical and not any({key, canonical} <= pair for pair in official_pairs):
             raise BrandMonitoringError("監視ブランドの別表記が別の公式ブランドと競合しています。")
         if markets is None or marketplace in markets:
             aliases[key] = canonical
+    if marketplace == "TW":
+        for value in _read(country_file, texts[country_file])["brands"]:
+            names = country_brand_names(value, "TW")
+            if len(names) == 2:
+                aliases[normalize_brand(value)] = normalize_brand(names[0])
     title_config = _read("title_review.json", texts["title_review.json"])
     if (set(title_config) != {"schema", "company_names", "ambiguous_names"}
             or title_config.get("schema") != "SORA_TITLE_BRAND_REVIEW_V1"):

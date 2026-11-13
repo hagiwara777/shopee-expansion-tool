@@ -1971,7 +1971,10 @@
       "id": "SG-RADIO",
       "scope": "content",
       "markets": [
-        "SG"
+        "SG",
+        "MY",
+        "TH",
+        "TW"
       ],
       "action": "BLOCK",
       "risk": "license_or_certification_required",
@@ -1987,7 +1990,7 @@
         "two-way radio"
       ],
       "condition": "always",
-      "note": "DEC-0167; Ownerの出品方針による停止",
+      "note": "DEC-0167; Ownerの出品方針による停止 DEC-0189; 指定された追加国にも適用。",
       "source": "internal_rule"
     },
     {
@@ -2003,7 +2006,6 @@
         "text"
       ],
       "terms": [
-        "磁性粘土",
         "護身用ペン",
         "護身用バトン",
         "護身用スティック",
@@ -2017,7 +2019,6 @@
         "手裏剣",
         "カーボン矢",
         "クロスボウ",
-        "錠前破り",
         "電動スクーター",
         "電子スクーター",
         "ホバーボード",
@@ -3177,7 +3178,6 @@
         "特殊警棒",
         "警棒",
         "タクティカルペン",
-        "ピッキングツール",
         "護身用",
         "カーボンアロー",
         "アーチェリー矢",
@@ -3290,7 +3290,10 @@
       "id": "SG-MAGNETIC-PUTTY",
       "scope": "content",
       "markets": [
-        "SG"
+        "SG",
+        "MY",
+        "TH",
+        "TW"
       ],
       "action": "BLOCK",
       "risk": "other",
@@ -3304,7 +3307,7 @@
         "magnetic putty"
       ],
       "condition": "always",
-      "note": "DEC-0181; Ownerの指定商品群を停止。",
+      "note": "DEC-0181; Ownerの指定商品群を停止。 DEC-0189; 指定された追加国にも適用。",
       "source": "internal_rule"
     },
     {
@@ -3383,7 +3386,9 @@
       "id": "PH-TOY-WEAPON-DIRECT",
       "scope": "content",
       "markets": [
-        "PH"
+        "PH",
+        "MY",
+        "TW"
       ],
       "action": "BLOCK",
       "risk": "weapon_related_toy",
@@ -3396,14 +3401,16 @@
         "BB弾"
       ],
       "condition": "always",
-      "note": "DEC-0181; Ownerの指定商品群を停止。",
+      "note": "DEC-0181; Ownerの指定商品群を停止。 DEC-0189; 指定された追加国にも適用。",
       "source": "internal_rule"
     },
     {
       "id": "PH-TOY-WEAPON-CONTEXT",
       "scope": "content",
       "markets": [
-        "PH"
+        "PH",
+        "MY",
+        "TW"
       ],
       "action": "BLOCK",
       "risk": "weapon_related_toy",
@@ -3418,7 +3425,7 @@
         "ガン"
       ],
       "condition": "toy_weapon",
-      "note": "DEC-0181; Ownerの指定商品群を停止。",
+      "note": "DEC-0181; Ownerの指定商品群を停止。 DEC-0189; 指定された追加国にも適用。",
       "source": "internal_rule"
     },
     {
@@ -3786,7 +3793,8 @@
       "id": "PH-PRECIOUS-REVIEW",
       "scope": "item",
       "markets": [
-        "PH"
+        "PH",
+        "TH"
       ],
       "action": "REVIEW",
       "risk": "shipping_restricted",
@@ -3801,7 +3809,7 @@
         "ジェイド"
       ],
       "condition": "always",
-      "note": "DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 PHのInvestment Precious Metals（投資用の金・銀・翡翠）。宝飾品か投資用かを確認。",
+      "note": "DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 PHのInvestment Precious Metals（投資用の金・銀・翡翠）。宝飾品か投資用かを確認。 DEC-0189; 指定された追加国にも適用。",
       "source": "shopee_policy"
     },
     {
@@ -3849,6 +3857,841 @@
       "condition": "always",
       "note": "DEC-0187; Shopee販売規制ガイド（SG p4／PH p9）の品目で、代表商品名が止まらなかったもの。 政府・警察・軍の制服に酷似した品、軍事機器。ファッションの迷彩柄や免許証ケースと区別するため要確認。",
       "source": "shopee_policy"
+    },
+    {
+      "id": "SG-MAGNETIC-CLAY",
+      "scope": "content",
+      "markets": [
+        "SG",
+        "MY",
+        "TH",
+        "TW"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "磁性粘土"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止 DEC-0189; この語だけ対象国を拡張。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "SG-LOCK-PICKING",
+      "scope": "content",
+      "markets": [
+        "SG",
+        "MY",
+        "TW"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "錠前破り"
+      ],
+      "condition": "always",
+      "note": "DEC-0167; Ownerの出品方針による停止 DEC-0189; この語だけ対象国を拡張。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "SG-PICKING-TOOL",
+      "scope": "content",
+      "markets": [
+        "SG",
+        "MY",
+        "TW"
+      ],
+      "action": "BLOCK",
+      "risk": "weapon",
+      "fields": [
+        "title",
+        "text"
+      ],
+      "terms": [
+        "ピッキングツール"
+      ],
+      "condition": "always",
+      "note": "DEC-0181; Ownerの指定商品群を停止。 DEC-0189; この語だけ対象国を拡張。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "MY-HALAL-FOOD",
+      "scope": "content",
+      "markets": [
+        "MY"
+      ],
+      "action": "BLOCK",
+      "risk": "food_restricted",
+      "fields": [
+        "title",
+        "text",
+        "ingredients"
+      ],
+      "terms": [
+        "豚",
+        "豚肉",
+        "ポーク",
+        "pork",
+        "ラード",
+        "lard",
+        "豚脂",
+        "豚骨",
+        "とんこつ",
+        "チャーシュー",
+        "ベーコン",
+        "ハム",
+        "ゼラチン",
+        "gelatin",
+        "酒",
+        "みりん",
+        "味醂",
+        "洋酒",
+        "ラム酒",
+        "ブランデー",
+        "リキュール",
+        "ワイン",
+        "酒精",
+        "アルコール",
+        "alcohol",
+        "牛肉",
+        "ビーフ",
+        "beef",
+        "牛脂",
+        "鶏肉",
+        "チキン",
+        "chicken",
+        "家禽",
+        "肉エキス",
+        "ポークエキス",
+        "チキンエキス",
+        "ビーフエキス"
+      ],
+      "condition": "food",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。食品だけに適用。ハラール認証の有無を推定しない。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "MY-PORK-OTHER",
+      "scope": "item",
+      "markets": [
+        "MY"
+      ],
+      "action": "REVIEW",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "豚毛",
+        "猪毛",
+        "boar bristle"
+      ],
+      "condition": "always",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "MY-SUGAR-RICE",
+      "scope": "item",
+      "markets": [
+        "MY"
+      ],
+      "action": "BLOCK",
+      "risk": "food_restricted",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "砂糖",
+        "上白糖",
+        "グラニュー糖",
+        "三温糖",
+        "米",
+        "お米",
+        "白米",
+        "玄米",
+        "精米",
+        "無洗米",
+        "もち米"
+      ],
+      "condition": "food",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。米の語境界と食品条件を使う。米粉・米ぬか・米国等を除く。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "MY-RICE-SNACK",
+      "scope": "item",
+      "markets": [
+        "MY"
+      ],
+      "action": "REVIEW",
+      "risk": "food_restricted",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "米菓",
+        "せんべい",
+        "煎餅",
+        "あられ",
+        "おかき"
+      ],
+      "condition": "always",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "MY-KNIFE",
+      "scope": "item",
+      "markets": [
+        "MY"
+      ],
+      "action": "BLOCK",
+      "risk": "weapon",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "包丁",
+        "kitchen knife",
+        "ナイフ",
+        "knife",
+        "短剣",
+        "dagger"
+      ],
+      "condition": "always",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "MY-EYEWEAR",
+      "scope": "item",
+      "markets": [
+        "MY"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "メガネ",
+        "眼鏡",
+        "めがね",
+        "老眼鏡",
+        "リーディンググラス",
+        "ブルーライトカットメガネ",
+        "ブルーライトカット眼鏡",
+        "PCメガネ",
+        "度付き",
+        "度付きサングラス",
+        "eyeglasses",
+        "reading glasses"
+      ],
+      "condition": "eyewear",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。ケース・拭き・クロス・クリーナー・チェーン・ストラップ等の付属品を除く。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "MY-WEIGHT-GAIN",
+      "scope": "content",
+      "markets": [
+        "MY"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "text",
+        "ingredients"
+      ],
+      "terms": [
+        "体重増加",
+        "増量",
+        "weight gain"
+      ],
+      "condition": "weight_gain",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。増量だけは体重増加用ビタミン等の文脈に限定し、通常の増量包装を除く。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "MY-SYRINGE-SHAPE",
+      "scope": "item",
+      "markets": [
+        "MY"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "注射器型",
+        "注射器の形",
+        "シリンジ型",
+        "syringe pen"
+      ],
+      "condition": "always",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "MY-RELIGIOUS",
+      "scope": "content",
+      "markets": [
+        "MY"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "text",
+        "ingredients"
+      ],
+      "terms": [
+        "コーラン",
+        "クルアーン",
+        "Quran",
+        "Koran",
+        "アッラー",
+        "Allah"
+      ],
+      "condition": "always",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "MY-TW-SPY-CAMERA",
+      "scope": "item",
+      "markets": [
+        "MY",
+        "TW"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "隠しカメラ",
+        "スパイカメラ",
+        "小型カメラ 盗撮",
+        "hidden camera",
+        "spy camera"
+      ],
+      "condition": "always",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "MY-SAFETY-HELMET",
+      "scope": "item",
+      "markets": [
+        "MY"
+      ],
+      "action": "REVIEW",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "安全ヘルメット",
+        "作業用ヘルメット",
+        "工事用ヘルメット",
+        "hard hat"
+      ],
+      "condition": "safety_helmet",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。自転車・バイク用は除く。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "MY-APHRODISIAC",
+      "scope": "content",
+      "markets": [
+        "MY"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "text",
+        "ingredients"
+      ],
+      "terms": [
+        "精力剤",
+        "精力増強",
+        "強精"
+      ],
+      "condition": "always",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "TH-TW-COSMETICS",
+      "scope": "item",
+      "markets": [
+        "TH",
+        "TW"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "ビューティー",
+        "ラグジュアリービューティー",
+        "化粧水",
+        "乳液",
+        "美容液",
+        "美容クリーム",
+        "フェイスクリーム",
+        "洗顔",
+        "クレンジング",
+        "シャンプー",
+        "コンディショナー",
+        "ヘアトリートメント",
+        "日焼け止め",
+        "ファンデーション",
+        "化粧下地",
+        "リップ",
+        "口紅",
+        "マスカラ",
+        "アイライナー",
+        "アイシャドウ",
+        "チーク",
+        "フェイスパウダー",
+        "コンシーラー",
+        "ボディソープ",
+        "ボディローション",
+        "ハンドクリーム",
+        "ヘアオイル",
+        "ヘアワックス",
+        "香水"
+      ],
+      "condition": "root_category_or_title",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。カテゴリは最上位のビューティー2区分だけ。その他の語は商品名で判定。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "TH-TW-DRUGSTORE",
+      "scope": "item",
+      "markets": [
+        "TH",
+        "TW"
+      ],
+      "action": "REVIEW",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "category"
+      ],
+      "terms": [
+        "ドラッグストア"
+      ],
+      "condition": "root_category",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。最上位カテゴリだけ。別の停止があれば停止を優先。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "TH-ELECTRIC",
+      "scope": "item",
+      "markets": [
+        "TH"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "家電&カメラ",
+        "パソコン・周辺機器",
+        "大型家電",
+        "AC100V",
+        "コンセント式",
+        "電源コード",
+        "USB給電",
+        "ACアダプター"
+      ],
+      "condition": "root_category_or_title",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。カテゴリは指定の最上位3区分だけ。その他の語は商品名で判定。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "TH-CAR-PARTS",
+      "scope": "item",
+      "markets": [
+        "TH"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "category"
+      ],
+      "terms": [
+        "車&バイク"
+      ],
+      "condition": "root_category",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "TH-CHEMICAL",
+      "scope": "item",
+      "markets": [
+        "TH"
+      ],
+      "action": "REVIEW",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "洗剤",
+        "除菌剤",
+        "殺菌剤",
+        "消臭剤",
+        "芳香剤",
+        "接着剤",
+        "塗料",
+        "溶剤"
+      ],
+      "condition": "always",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。ライセンス対象の範囲が広いため要確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "TH-LICENSE-OTHER",
+      "scope": "item",
+      "markets": [
+        "TH"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "ドローン",
+        "drone",
+        "トランシーバー",
+        "無線機",
+        "walkie talkie",
+        "GPS",
+        "GPSトラッカー",
+        "発信機",
+        "ジャマー",
+        "電波遮断",
+        "仏像",
+        "仏具",
+        "美術品",
+        "骨董品",
+        "アンティーク",
+        "純金",
+        "金貨",
+        "トランプ",
+        "playing cards",
+        "肥料",
+        "fertilizer",
+        "矯正用マウスピース",
+        "マウスピース",
+        "包丁",
+        "kitchen knife",
+        "ノーズシークレット",
+        "タイ国旗",
+        "Giffarine"
+      ],
+      "condition": "always",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "TW-HEALTHCARE",
+      "scope": "item",
+      "markets": [
+        "TW"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "category"
+      ],
+      "terms": [
+        "ヘルスケア",
+        "医療",
+        "衛生用品"
+      ],
+      "condition": "category_contains",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。カテゴリのどの階層でも指定語を含めば停止。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "TW-BABY",
+      "scope": "item",
+      "markets": [
+        "TW"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "ベビーフード",
+        "離乳食",
+        "チャイルドシート",
+        "ベビーカー",
+        "ウォーキングチェア",
+        "歩行器",
+        "ベビーチェア",
+        "ハイチェア",
+        "子供用自転車",
+        "キッズバイク",
+        "子供用スケートボード"
+      ],
+      "condition": "always",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "TW-HAIR-IRON",
+      "scope": "item",
+      "markets": [
+        "TW"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "ヘアアイロン",
+        "カールアイロン",
+        "ストレートアイロン",
+        "コテ",
+        "hair iron"
+      ],
+      "condition": "hair_iron",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。コテは商品名・カテゴリがヘア用を示す場合だけ。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "TW-SUNGLASSES",
+      "scope": "item",
+      "markets": [
+        "TW"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "サングラス",
+        "sunglasses"
+      ],
+      "condition": "always",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "TW-BLADE",
+      "scope": "item",
+      "markets": [
+        "TW"
+      ],
+      "action": "BLOCK",
+      "risk": "weapon",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "包丁",
+        "ナイフ",
+        "刃物",
+        "刀",
+        "剣",
+        "おもちゃの刀",
+        "日本刀",
+        "ダーツ",
+        "darts",
+        "クロスボウ",
+        "ナックルダスター",
+        "パチンコ",
+        "フラットドリル"
+      ],
+      "condition": "tw_blade",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。パチンコは玩具の投石器を示す文脈だけ。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "TW-BLADE-REVIEW",
+      "scope": "item",
+      "markets": [
+        "TW"
+      ],
+      "action": "REVIEW",
+      "risk": "weapon",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "はさみ",
+        "ハサミ",
+        "カッター",
+        "カミソリ"
+      ],
+      "condition": "always",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "TW-FLEA",
+      "scope": "item",
+      "markets": [
+        "TW"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "ノミ取り",
+        "ノミ・ダニ",
+        "蚤",
+        "flea"
+      ],
+      "condition": "always",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "TW-BEAUTY-DEVICE",
+      "scope": "item",
+      "markets": [
+        "TW"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "光美容器",
+        "LED美顔器",
+        "美顔器",
+        "脱毛器",
+        "光脱毛"
+      ],
+      "condition": "always",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "TW-TAMPON",
+      "scope": "item",
+      "markets": [
+        "TW"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "タンポン",
+        "tampon"
+      ],
+      "condition": "always",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "TW-LICENSE-ELECTRIC",
+      "scope": "item",
+      "markets": [
+        "TW"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "USBメモリ",
+        "USB電源",
+        "USB充電器",
+        "ACアダプター",
+        "テレビ",
+        "テレビボックス",
+        "冷蔵庫",
+        "エアコン",
+        "除湿機",
+        "電動マッサージ機",
+        "マッサージ器",
+        "ドライブレコーダー",
+        "ハンドスピナー",
+        "火災報知器",
+        "火災警報器",
+        "消火器",
+        "プリメインアンプ",
+        "GPS",
+        "トランシーバー",
+        "無線機"
+      ],
+      "condition": "always",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "TW-SAFETY-HELMET",
+      "scope": "item",
+      "markets": [
+        "TW"
+      ],
+      "action": "BLOCK",
+      "risk": "license_or_certification_required",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "安全ヘルメット",
+        "ヘルメット"
+      ],
+      "condition": "always",
+      "note": "DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。",
+      "source": "internal_rule"
     }
   ]
 }

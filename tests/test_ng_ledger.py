@@ -67,3 +67,17 @@ def test_overlap_detection_finds_a_word_added_to_two_rules():
     # Different markets do not overlap.
     sg, ph = dict(extra, markets="SG"), dict(twin, markets="PH")
     assert "テスト専用の重複語" not in ledger.overlaps(rows + [sg, ph])
+
+
+def test_my_th_tw_lists_and_sls_are_listed_and_taiwan_names_match_runtime():
+    import json
+    from modules.brand_monitoring import country_brand_names
+    rows, _ = ledger.build()
+    for market in ("MY", "TH", "TW"):
+        name = f"counterfeit_{market.lower()}.json"
+        assert "brand_monitoring/" + name not in ledger.SUPPORT_FILES
+        data = json.loads((ROOT / "guardrails/brand_monitoring" / name).read_text(encoding="utf8"))
+        expected = {name for brand in data["brands"] for name in country_brand_names(brand, market)}
+        assert expected == {r["target"] for r in rows if r["source_file"].endswith("/" + name)}
+        assert any(r["group"] == "SLS発送可否（カテゴリ）" and r["markets"] == market for r in rows)
+    assert {"SHISEIDO", "資生堂"} <= {r["target"] for r in rows if r["markets"] == "TW"}

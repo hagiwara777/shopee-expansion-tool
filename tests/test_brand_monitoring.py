@@ -129,7 +129,7 @@ def test_long_vowel_glyphs_are_equivalent_but_presence_remains_meaningful():
     assert normalize_brand("ビオレ") != normalize_brand("ヒオレ")
 
 
-def test_kao_alias_obeys_country_list_and_does_not_start_taiwan_runtime():
+def test_kao_alias_obeys_country_lists_including_taiwan():
     sg, ph = load_brand_monitoring("SG"), load_brand_monitoring("PH")
     assert sg.matches("花 王") and sg.matches("Kao")
     assert not ph.matches("花王") and not ph.matches("Kao")
@@ -138,8 +138,8 @@ def test_kao_alias_obeys_country_list_and_does_not_start_taiwan_runtime():
         assert apply_guardrails([{"brand": brand, "product_title": "Synthetic item"}], marketplace="PH")[0]["guardrail_status"] == "SAFE"
     records = json.loads((CONFIG_DIR / "aliases.json").read_text(encoding="utf-8"))["aliases"]
     assert next(r for r in records if r["canonical"] == "Kao")["markets"] == ["SG", "TW"]
-    with pytest.raises(BrandMonitoringError):
-        load_brand_monitoring("TW")
+    tw = load_brand_monitoring("TW")
+    assert tw.matches("花王") and tw.matches("Kao")
 
 
 def test_approved_alias_inventory_excludes_competing_name_and_resolves_official_references():

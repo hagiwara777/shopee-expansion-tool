@@ -8,10 +8,11 @@
     "schema_version": {"const": "2.0.0"},
     "config_version": {"const": "2.0.0"},
     "markets": {
-      "type": "object", "additionalProperties": false, "required": ["PH", "SG", "MY", "TH"],
+      "type": "object", "additionalProperties": false, "required": ["PH", "SG", "MY", "TH", "TW"],
       "properties": {
         "PH": {"$ref": "#/$defs/market"}, "SG": {"$ref": "#/$defs/market"},
-        "MY": {"$ref": "#/$defs/market"}, "TH": {"$ref": "#/$defs/market"}
+        "MY": {"$ref": "#/$defs/market"}, "TH": {"$ref": "#/$defs/market"},
+        "TW": {"$ref": "#/$defs/market"}
       }
     },
     "capabilities": {"type": "object", "minProperties": 1, "propertyNames": {"pattern": "^[a-z][a-z0-9.-]*$"}, "additionalProperties": {"$ref": "#/$defs/capabilityState"}},

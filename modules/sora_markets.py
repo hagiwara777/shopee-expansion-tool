@@ -1,13 +1,13 @@
-"""Sora market profiles (DEC-0183).
+"""Sora market profiles (DEC-0183 / DEC-0189).
 
 This is the one place that says which markets the Sora path handles and how
 complete each market's own NG settings are.  It is read only by the Sora path
 (screen, run, gate, guardrail evaluation).  Existing PH/SG-only modules keep
 their own constants and are intentionally not widened here.
 
-MY has no country dictionaries and no country counterfeit-brand list yet.  Until
-the Owner finishes the MY NG settings, the gate never reports a pass for MY
-(see ``MARKET_NG_INCOMPLETE_REASON``).
+Country CSV dictionaries and completed NG settings are independent: MY/TH/TW
+use rules.json and their own counterfeit lists. Governance operation remains
+INACTIVE until separate Owner acceptance; it does not control this Sora path.
 """
 from dataclasses import dataclass
 import unicodedata
@@ -35,10 +35,12 @@ class SoraMarket:
 SORA_MARKETS = {
     "SG": SoraMarket("SG", True, True, True, True, True),
     "PH": SoraMarket("PH", True, True, False, True, True),
-    "MY": SoraMarket("MY", False, False, False, False, False),
+    "MY": SoraMarket("MY", False, True, False, True, False),
+    "TH": SoraMarket("TH", False, True, False, True, False),
+    "TW": SoraMarket("TW", False, True, False, True, False),
 }
 # Screen order.  The first entry is the default market and must stay SG.
-SORA_MARKET_ORDER = ("SG", "PH", "MY")
+SORA_MARKET_ORDER = ("SG", "PH", "MY", "TH", "TW")
 
 
 def normalize_sora_market(value):

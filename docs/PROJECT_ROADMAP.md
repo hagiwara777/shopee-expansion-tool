@@ -2,6 +2,11 @@
 
 ## 当面の全体目標と優先順
 
+DEC-0189により、SoraはMY・TH・TWの国別ルールとCounterfeit一覧を評価し、条件を満たす商品は通過を出す。
+MYの容積重量超過は要確認とし、TH／TWの化粧品・食品を止める。3か国ともGovernanceはINACTIVE／ALLOWEDを維持する。
+次はOwnerが各国で実商品50〜100件を画面から3回確認し、その後のACTIVE化を別タスクで判断する。
+Sora以外の市場runtime・出品接続は開始せず、PH／SG保護・必須CI・実APIの個別承認を維持する。
+
 DEC-0167の共通保安ルール整備とOwnerによる比較（ルベル100件SG／PH・SG47 ASIN）は完了した。
 DEC-0171の独立した入口／500件／残件再開／既出品表示を整備し、指定したSG47件・ルベル100件SG／PHのASIN別実機比較は一致した。
 Soraの通常更新はDEC-0178の起動時fast-forwardとし、新方式の初回配置は対象・手順を確認して別承認を得る。500件実機確認とその後の両市場の反復実務確認は、実APIの個別承認を維持する。
@@ -282,7 +287,7 @@ DECISION_LOG読込軽量化はPR #91、ShopeeCatalogClient marketplace-neutral�
 7. **SG SLS runtime（offline最小runtime正式採用済み）** — PR #107 / DEC-0109でoffline成果をformal mainへ採用済み。production / live acceptance、Attribute、出口開放、SG operation変更を含まない。
 8. **SG Minimum Beta完成判定（Step 8正式採用済み）** — `COMPLETION_GATE_PASS_CANDIDATE`で示したDEC-0111の半自動完成線をOwner最終承認後にPR #110で正式採用した（DEC-0112）。Gate `ELIGIBLE`、人間確認済みCategory・Brand / No Brand、SLS `ALLOW`候補、Seller Centerの必須Attribute・商品固有条件確認済みの商品だけを少量手動出品する。未解決停止は出品しない。read-only auditで追加Beta MUST実装は確認されていない。Step 8のmerge後検証は完了済み。
 9. **SG実運用（Step 9 / 専用少量ベータ）** — DEC-0127に基づきSG ACTIVEと専用手動準備出力を採用する。固定release・専用起動先・コード外の永続DB / API枠を使い、PH環境を維持する。端末設置と実行結果はrepo外Task Context / Git外Evidenceを参照する。新規API枠は具体的対象・取得数・費用の承認を要する。自動出品・通常DB移行・MY / TH開始は含まない。
-10. **MY展開** — 共通Source / Catalog基盤を再利用し、MY固有Safety、source identity、production確認だけを追加する。MY runtimeを先行有効化しない（DEC-0183のSora経路追加はoperation INACTIVEのまま、禁止設定の完成まで通過なし）。
+10. **MY展開** — 共通Source / Catalog基盤を再利用し、MY固有Safety、source identity、production確認だけを追加する。MY runtimeを先行有効化しない（DEC-0189のSora国別判定はoperation INACTIVEのまま通過を出せる。実商品によるOwner完成確認は別）。
 11. **TH展開** — 同じ共通基盤を再利用し、TH固有差分だけを追加する。TH runtimeを先行有効化しない。
 
 MY / THの具体的な着手順は将来のEvidenceと事業優先順位で変更できるものとし、今回固定しすぎない。
@@ -397,7 +402,7 @@ DEC-0049の`BETA_AFTER_CANDIDATE`、DB化、他市場展開、出品後商品改
 2. PH Beta運用を継続し、`ph.beta.operation`をprotected capabilityとして回帰保護する。
 3. SGはoperation ACTIVE / development ALLOWEDとし、専用少量ベータだけを利用する（DEC-0127）。SG Category Mapper Minimum Betaのoffline実装はPR #82でformal mainへ統合済みであり、`sg.safety.baseline`はprotected capabilityとして維持する。
 4. SG Brand / SLS runtime / Handoffへ戻る条件は、SG Category Mapper Minimum Betaとは別の設計Gate、PH/SG保護gate成立、別タスク開始承認である。
-5. THはNOT_STARTEDを維持する。MYはINACTIVE / ALLOWED（DEC-0183）とし、MY / THともcapabilityを先行定義しない。
+5. MY・TH・TWはINACTIVE / ALLOWED（DEC-0189）。Sora以外の市場runtimeを先行開始せず、受入済みcapabilityを作らない。
 
 Governance CIはbranch protectionと独立してmandatory checkを評価する。初期checkは
 `governance.validate`、`governance.ps51`、`governance.ps7`、`tests.offline`、`protected.ph`、`protected.sg`。
