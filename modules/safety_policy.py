@@ -402,6 +402,15 @@ def _mask_official_gap_exclusions(value, rule_id, row):
         patterns.append(r"エアー?ダスターガン")
     if rule_id == "COMMON-COLD-FOOD":
         patterns.append(r"チルドレン")
+    if rule_id == "COMMON-SLS-AROMA":
+        # DEC-0186: an aroma-oil scent or ingredient in another product is not the oil itself.
+        patterns.append(r"(?:天然)?(?:精油|アロマオイル)(?=\s*(?:配合|入り|入|使用|の香り|ブレンドの香り|成分))")
+    if rule_id == "COMMON-SLS-CAROIL":
+        patterns.append(r"(?:cpu|熱伝導|サーマル|シリコン放熱)\s*グリ[スー]+ス?|グリスガン用?ノズル")
+    if rule_id == "COMMON-SLS-FOOD":
+        patterns.append(r"豆乳(?=\s*(?:イソフラボン|発酵液|ローション|クリーム|洗顔|乳液|化粧水|美容|パック|ボディ|ハンド|石鹸|せっけん|ソープ|シャンプー))")
+    if rule_id == "COMMON-SLS-CAR-CHECK":
+        patterns.append(r"洗車(?=\s*(?:ブラシ|スポンジ|タオル|クロス|バケツ|グローブ|ミット))")
     if rule_id == "PH-OUTDOOR-KNIFE":
         # DEC-0182: sharpening tools are not knives (same as SG-GENERAL-KNIFE).
         patterns.append(r"ナイフ(?=\s*(?:用(?:の)?\s*)?(?:研ぎ器|研ぎ|シャープナー|砥石))|knife[ -]+sharpener")

@@ -8,7 +8,7 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 
 | グループ | 停止 | 要確認 | その他 | 元ファイル |
 |---|---:|---:|---:|---|
-| 保安ルール | 104 | 25 | 0 | `guardrails/policy/rules.json` |
+| 保安ルール | 107 | 29 | 0 | `guardrails/policy/rules.json` |
 | コード内のルール | 5 | 2 | 0 | `modules/battery_presence.py`<br>`modules/guardrails.py`<br>`modules/home_appliances_classifier.py`<br>`modules/prelisting_sg_body_safety.py`<br>ほか3件 |
 | ブランド（IPR） | 138 | 0 | 0 | `guardrails/brand_monitoring/ipr.json` |
 | ブランド（Counterfeit） | 673 | 0 | 0 | `guardrails/brand_monitoring/counterfeit_ph.json`<br>`guardrails/brand_monitoring/counterfeit_sg.json` |
@@ -27,10 +27,10 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 
 | 国 | 停止 | 要確認 |
 |---|---:|---:|
-| 全ての国 | 218 | 69 |
+| 全ての国 | 221 | 70 |
 | MY | 185 | 24 |
-| PH | 469 | 27 |
-| SG | 665 | 137 |
+| PH | 469 | 28 |
+| SG | 665 | 139 |
 | TH | 14 | 0 |
 | TW | 25 | 0 |
 | VN | 2 | 0 |
@@ -59,7 +59,7 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 | COMMON-SUPPLEMENT | ALL | 停止 | サプリ、サプリメント、健康食品、dietary supplement、food supplement | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | COMMON-SUPPLEMENT-CATEGORY | ALL | 停止 | サプリ、サプリメント、健康食品、健康食品・サプリメント、ダイエットサプリ、ダイエットサプリメント、フィッシュオイル、機能性表示食品 ほか9語 | 自分の方針 | DEC-0179; Ownerの出品方針に基づく共通停止。 |
 | COMMON-POWERBANK | ALL | 停止 | モバイルバッテリー、power bank、powerbank | Shopee公式 | DEC-0167; Ownerの出品方針による停止。旧PH-D073/PH-D074/PH-D075の停止を共通化。。SLS輸送確認。 |
-| COMMON-BATTERY-SINGLE | ALL | 停止 | リチウム電池単体、リチウムイオン電池単体、交換用電池、ボタン電池、コイン電池、乾電池、ノートPC用バッテリー、カメラ用バッテリー ほか2語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止。SLS輸送確認。 |
+| COMMON-BATTERY-SINGLE | ALL | 停止 | リチウム電池単体、リチウムイオン電池単体、交換用電池、ボタン電池、コイン電池、乾電池、ノートPC用バッテリー、カメラ用バッテリー ほか12語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止。SLS輸送確認。 |
 | COMMON-LITHIUM-SIGNAL | ALL | 要確認 | リチウム電池、リチウムイオン電池、lithium battery、lithium ion battery | 自分の方針 | DEC-0167; Ownerの出品方針による要確認。SLS輸送確認。 |
 | COMMON-WEAPON | ALL | 停止 | スタンガン、電気スタンナー、催涙スプレー、stun gun、stun guns、pepper spray、firearm、firearms ほか13語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | COMMON-WEAPON-DECORATION | ALL | 停止 | 剣、刀、銃、武器、ナイフ、sword、gun、weapon ほか1語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
@@ -104,11 +104,11 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 | COMMON-SLS-LAUNDRY | ALL | 停止 | 洗濯洗剤、laundry detergent、Laundry Detergent、洗濯用洗剤、洗たく洗剤、洗たく用洗剤、衣料用洗剤、衣類用洗剤 ほか21語 | 自分の方針 | DEC-0167 / DEC-0180; Ownerの方針による衣料用洗剤・柔軟剤の共通停止。 |
 | COMMON-SLS-LAUNDRY-CATEGORY | ALL | 停止 | 洗濯・仕上げ剤 | 自分の方針 | DEC-0180; Ownerの方針による洗濯・仕上げ剤カテゴリの共通停止。 |
 | COMMON-SLS-PAINT | ALL | 停止 | 油絵の具、油絵具、oil paint | 自分の方針 | DEC-0167; SLS表2026-09-17のNO商品群を検出。AmazonカテゴリによるShopeeカテゴリ自動割当・ALLOW生成は行わない。。SLS輸送確認。 |
-| COMMON-SLS-CAROIL | ALL | 停止 | 自動車用オイル、エンジンオイル、ブレーキフルード、クーラント、モーターオイル、engine oil、motor oil、brake fluid ほか1語 | 自分の方針 | DEC-0167; SLS表2026-09-17のNO商品群を検出。AmazonカテゴリによるShopeeカテゴリ自動割当・ALLOW生成は行わない。。SLS輸送確認。 |
+| COMMON-SLS-CAROIL | ALL | 停止 | 自動車用オイル、エンジンオイル、ブレーキフルード、クーラント、モーターオイル、engine oil、motor oil、brake fluid ほか9語 | 自分の方針 | DEC-0167; SLS表2026-09-17のNO商品群を検出。AmazonカテゴリによるShopeeカテゴリ自動割当・ALLOW生成は行わない。。SLS輸送確認。 |
 | COMMON-SLS-COIN | ALL | 停止 | コイン、coin、coins | 自分の方針 | DEC-0167; SLS表2026-09-17のNO商品群を検出。AmazonカテゴリによるShopeeカテゴリ自動割当・ALLOW生成は行わない。。SLS輸送確認。 |
 | COMMON-SLS-PLANT | ALL | 停止 | 植物、plants | 自分の方針 | DEC-0167; SLS表2026-09-17のNO商品群を検出。AmazonカテゴリによるShopeeカテゴリ自動割当・ALLOW生成は行わない。。SLS輸送確認。 DEC-0168; 商品名・カテゴリに限定し植物由来・植物性・植物エキス・植物オイル・植物アロマを除く。 |
-| COMMON-SLS-PLANT-OTHER | ALL | 停止 | 種子、園芸用土、培養土、種まき用、生きた動物、生体販売、seeds、gardening soil | 自分の方針 | DEC-0167 / DEC-0168 / DEC-0170; 種子は商品名・カテゴリのみ、種子油・種子エキス・種子オイルを除外。他の土・生体等の対象欄と停止は維持。SLS輸送確認。 |
-| COMMON-SLS-FOOD | ALL | 停止 | 食用油、牛乳、乳製品、鶏卵、生卵、卵、豆腐、アイスクリーム ほか16語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
+| COMMON-SLS-PLANT-OTHER | ALL | 停止 | 種子、園芸用土、培養土、種まき用、生きた動物、生体販売、seeds、gardening soil ほか5語 | 自分の方針 | DEC-0167 / DEC-0168 / DEC-0170; 種子は商品名・カテゴリのみ、種子油・種子エキス・種子オイルを除外。他の土・生体等の対象欄と停止は維持。SLS輸送確認。 |
+| COMMON-SLS-FOOD | ALL | 停止 | 食用油、牛乳、乳製品、鶏卵、生卵、卵、豆腐、アイスクリーム ほか27語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | SG-GUM | SG | 停止 | チューイングガム、chewing gum、bubble gum、ガム | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | SG-MEAT | SG | 停止 | 肉入り、牛肉入り、豚肉入り、鶏肉入り、ビーフジャーキー、ポークジャーキー、サラミ、ソーセージ ほか9語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | SG-RADIO | SG | 停止 | 通信機器、無線機、トランシーバー、walkie talkie、two-way radio | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
@@ -117,14 +117,14 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 | SG-KITCHEN-KNIFE | SG | 停止 | 包丁、kitchen knife、chef knife | 自分の方針 | DEC-0129 / DEC-0167; SGの包丁本体を停止し、付属品の本体・同梱確認を維持する。 |
 | SG-LASER | SG | 停止 | レーザーポインター、laser pointer | 自分の方針 | DEC-0167; Ownerの出品方針による停止。SLS輸送確認。 |
 | SG-FOOD | SG | 停止 | 未殺菌乳、殺菌していない乳製品、non-pasteurised dairy、野生キノコ、wild mushroom | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
-| SG-NASAL | SG | 停止 | 鼻のケア、鼻腔洗浄、鼻洗浄、ベビーオーラルケア、鼻吸い器、車用芳香剤、車用香水、車載スピーカー ほか5語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止。SLS輸送確認。 |
+| SG-NASAL | SG | 停止 | 鼻のケア、鼻腔洗浄、鼻洗浄、ベビーオーラルケア、鼻吸い器、車用芳香剤、車用香水、車載スピーカー ほか12語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止。SLS輸送確認。 |
 | PH-ORAL | PH | 停止 | 歯ブラシ、ハブラシ、歯磨き粉、歯みがき粉、歯磨剤、デンタルフロス、マウスウォッシュ、矯正用品 ほか12語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | PH-GAMBLING | PH | 停止 | トランプ、サイコロ、ルーレット、ポーカーチップ、カジノチップ、playing cards、dice、roulette ほか1語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | PH-NEEDLE | PH | 停止 | ダーマローラー、マイクロニードル、タトゥー用針、眉タトゥー用針、tattoo needle、microblading needle、derma roller、microneedle | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | PH-OTHER | PH | 停止 | 免税品、ペット用の薬、動物用医薬品、pet medicine、ナンバープレート、政府のステッカー、ICCステッカー、テロをテーマにした玩具 ほか12語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | PH-CERTIFICATION | PH | 停止 | PSマーク、ICCマーク、PS認証、ICC認証 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | PH-USED | PH | 停止 | ベビー用品、下着、化粧品、コンタクトレンズ、baby product、underwear、cosmetics、contact lens | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
-| PH-SLS | PH | 停止 | 潤滑剤、性機能向上、肥料、投資用貴金属、投資用プラチナ、投資用金、投資用銀、投資用ダイヤ ほか9語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止。SLS輸送確認。 |
+| PH-SLS | PH | 停止 | 潤滑剤、性機能向上、肥料、投資用貴金属、投資用プラチナ、投資用金、投資用銀、投資用ダイヤ ほか23語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止。SLS輸送確認。 |
 | TH-TW-FOOD | TH/TW | 停止 | 食品、食品・飲料、food、food & beverages、grocery、スナック、飲料 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | COMMON-MEDICAL-DISPLAY | ALL | 停止 | COVID-19 test kit、COVID19 test kit、HIV test kit、OTC、OTC drug、OTC drugs、OTC medicine、condom ほか44語 | 自分の方針 | DEC-0159 / DEC-0164 / DEC-0167; 医薬品・医療機器・医薬部外品の肯定表示によるOwnerの出品除外。直接の否定文を区別する。 |
 | COMMON-MEDICAL-SCAR-CARE | ALL | 停止 | 傷あとケア、傷跡ケア、傷あとケアテープ、傷跡ケアテープ、術後ケア、手術後ケア、手術後の傷あと、シリコーンジェルシート ほか9語 | 自分の方針 | DEC-0179; Ownerの出品方針に基づく共通停止。 |
@@ -168,6 +168,13 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 | SG-DISPOSABLE-GLOVE | SG | 要確認 | ニトリル手袋、ニトリルグローブ、使い捨て手袋、使い捨てグローブ、使い捨てゴム手袋、使い捨てビニール手袋、ディスポ手袋、ディスポーザブル手袋 ほか1語 | 自分の方針 | DEC-0182; 使い捨て手袋は医療用の場合SGで医療機器扱い。用途（医療用か否か）を確認。 |
 | PH-OUTDOOR-KNIFE | PH | 停止 | アウトドアナイフ、サバイバルナイフ、フォールディングナイフ、折りたたみナイフ、折り畳みナイフ、ハンティングナイフ、シースナイフ、タクティカルナイフ ほか9語 | 自分の方針 | DEC-0182; PHで刃物（包丁以外）を停止。研ぎ器の語は除く。 |
 | SG-MEAT-PROCESSED | SG | 要確認 | ビーフ、ポーク、チキン、牛肉、豚肉、鶏肉、ハンバーグ、ミートボール ほか13語 | 自分の方針 | DEC-0182; SGは肉類・肉入り加工食品の持込制限あり。肉の有無を確認（ジャーキー等の明示語は従来のSG-MEATでBLOCK）。 |
+| COMMON-SLS-AROMA | ALL | 停止 | アロマオイル、精油、aroma oil | Shopee公式 | DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 エッセンシャルオイル類。配合・香り表示は除く。 |
+| COMMON-SLS-SETTING-SPRAY | ALL | 停止 | メイクキープミスト、メイクキープスプレー、フィックスミスト、フィクシングミスト、セッティングスプレー、セッティングミスト、化粧崩れ防止ミスト、化粧崩れ防止スプレー ほか1語 | Shopee公式 | DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 メイク仕上げ用スプレー（Setting & Finishing Spray）。 |
+| COMMON-SLS-ADULT | ALL | 停止 | 大人のおもちゃ、ラブグッズ、sex toy、sex toys | Shopee公式 | DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 Sexual Wellness > Sex Toys。 |
+| COMMON-SLS-CAR-CHECK | ALL | 要確認 | カーワックス、車用ワックス、洗車、カーシャンプー、ガラス撥水、撥水剤、油膜取り、ガラコ ほか6語 | Shopee公式 | DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 SLSで「Shopeeと要確認」の車用品（洗車・ワックス・撥水・タイヤ・燃料系）。 |
+| SG-TOY-GUN | SG | 要確認 | ウォーターガン、トイガン、おもちゃの銃、ゴム鉄砲、輪ゴム銃、toy gun、トイブラスター、toy blaster ほか1語 | Shopee公式 | DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 Toys > Blasters & Toy Guns。既存のSG判断（水鉄砲は要確認）に合わせ要確認。 |
+| SG-SLS-BATTERY-TOOL | SG | 要確認 | バッテリー充電器、バッテリーチャージャー、バッテリーテスター | Shopee公式 | DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 Vehicular Tools > Battery Tools。充電器単体は既存の電池判断に合わせ要確認。 |
+| PH-PRECIOUS-REVIEW | PH | 要確認 | 純金、純銀、翡翠、ヒスイ、ジェイド | Shopee公式 | DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 PHのInvestment Precious Metals（投資用の金・銀・翡翠）。宝飾品か投資用かを確認。 |
 
 ## コード内のルール
 

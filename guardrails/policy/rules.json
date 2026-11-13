@@ -471,7 +471,17 @@
         "ノートPC用バッテリー",
         "カメラ用バッテリー",
         "lithium battery pack",
-        "battery pack"
+        "battery pack",
+        "互換バッテリー",
+        "交換バッテリー",
+        "交換用バッテリー",
+        "予備バッテリー",
+        "バイク用バッテリー",
+        "車用バッテリー",
+        "カーバッテリー",
+        "時計用電池",
+        "充電池",
+        "リチウムイオン電池"
       ],
       "condition": "battery",
       "note": "DEC-0167; Ownerの出品方針による停止。SLS輸送確認。",
@@ -1662,7 +1672,15 @@
         "engine oil",
         "motor oil",
         "brake fluid",
-        "coolant"
+        "coolant",
+        "グリス",
+        "グリース",
+        "潤滑油",
+        "潤滑スプレー",
+        "防錆潤滑剤",
+        "チェーンルブ",
+        "grease",
+        "chain lube"
       ],
       "condition": "always",
       "note": "DEC-0167; SLS表2026-09-17のNO商品群を検出。AmazonカテゴリによるShopeeカテゴリ自動割当・ALLOW生成は行わない。。SLS輸送確認。",
@@ -1728,7 +1746,12 @@
         "生きた動物",
         "生体販売",
         "seeds",
-        "gardening soil"
+        "gardening soil",
+        "球根",
+        "野菜の種",
+        "花の種",
+        "ハーブの種",
+        "固定種"
       ],
       "condition": "always",
       "note": "DEC-0167 / DEC-0168 / DEC-0170; 種子は商品名・カテゴリのみ、種子油・種子エキス・種子オイルを除外。他の土・生体等の対象欄と停止は維持。SLS輸送確認。",
@@ -1770,7 +1793,18 @@
         "ice cream",
         "frozen food",
         "processed meat",
-        "seafood"
+        "seafood",
+        "豆乳",
+        "アーモンドミルク",
+        "オーツミルク",
+        "ライスミルク",
+        "ソイミルク",
+        "植物性ミルク",
+        "マタニティミルク",
+        "妊婦用ミルク",
+        "almond milk",
+        "oat milk",
+        "soy milk"
       ],
       "condition": "food",
       "note": "DEC-0167; Ownerの出品方針による停止",
@@ -2004,7 +2038,14 @@
         "Baby Oral Care",
         "car air freshener",
         "car perfume",
-        "car speaker"
+        "car speaker",
+        "鼻うがい",
+        "ハナノア",
+        "ベビー歯みがき",
+        "ベビー用歯みがき",
+        "赤ちゃん用歯みがき",
+        "乳歯用",
+        "ベビー歯ブラシ"
       ],
       "condition": "always",
       "note": "DEC-0167; Ownerの出品方針による停止。SLS輸送確認。",
@@ -2210,7 +2251,21 @@
         "exhaust",
         "触媒コンバーター",
         "排気管",
-        "CNGガスキット"
+        "CNGガスキット",
+        "潤滑ゼリー",
+        "潤滑ローション",
+        "ラブローション",
+        "精力剤",
+        "媚薬",
+        "インゴット",
+        "金地金",
+        "銀地金",
+        "地金",
+        "裸石",
+        "ルースストーン",
+        "ダイヤモンドルース",
+        "マフラーカッター",
+        "エキゾースト"
       ],
       "condition": "always",
       "note": "DEC-0167; Ownerの出品方針による停止。SLS輸送確認。",
@@ -3411,6 +3466,172 @@
       "condition": "food_review",
       "note": "DEC-0182; SGは肉類・肉入り加工食品の持込制限あり。肉の有無を確認（ジャーキー等の明示語は従来のSG-MEATでBLOCK）。",
       "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-SLS-AROMA",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "アロマオイル",
+        "精油",
+        "aroma oil"
+      ],
+      "condition": "always",
+      "note": "DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 エッセンシャルオイル類。配合・香り表示は除く。",
+      "source": "shopee_policy"
+    },
+    {
+      "id": "COMMON-SLS-SETTING-SPRAY",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "メイクキープミスト",
+        "メイクキープスプレー",
+        "フィックスミスト",
+        "フィクシングミスト",
+        "セッティングスプレー",
+        "セッティングミスト",
+        "化粧崩れ防止ミスト",
+        "化粧崩れ防止スプレー",
+        "setting spray"
+      ],
+      "condition": "always",
+      "note": "DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 メイク仕上げ用スプレー（Setting & Finishing Spray）。",
+      "source": "shopee_policy"
+    },
+    {
+      "id": "COMMON-SLS-ADULT",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "大人のおもちゃ",
+        "ラブグッズ",
+        "sex toy",
+        "sex toys"
+      ],
+      "condition": "always",
+      "note": "DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 Sexual Wellness > Sex Toys。",
+      "source": "shopee_policy"
+    },
+    {
+      "id": "COMMON-SLS-CAR-CHECK",
+      "markets": [
+        "ALL"
+      ],
+      "action": "REVIEW",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "カーワックス",
+        "車用ワックス",
+        "洗車",
+        "カーシャンプー",
+        "ガラス撥水",
+        "撥水剤",
+        "油膜取り",
+        "ガラコ",
+        "タイヤワックス",
+        "タイヤチェーン",
+        "燃料フィルター",
+        "燃料ポンプ",
+        "ピストンリング",
+        "エンジンピストン"
+      ],
+      "condition": "always",
+      "note": "DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 SLSで「Shopeeと要確認」の車用品（洗車・ワックス・撥水・タイヤ・燃料系）。",
+      "source": "shopee_policy"
+    },
+    {
+      "id": "SG-TOY-GUN",
+      "markets": [
+        "SG"
+      ],
+      "action": "REVIEW",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "text",
+        "category"
+      ],
+      "terms": [
+        "ウォーターガン",
+        "トイガン",
+        "おもちゃの銃",
+        "ゴム鉄砲",
+        "輪ゴム銃",
+        "toy gun",
+        "トイブラスター",
+        "toy blaster",
+        "銃型おもちゃ"
+      ],
+      "condition": "always",
+      "note": "DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 Toys > Blasters & Toy Guns。既存のSG判断（水鉄砲は要確認）に合わせ要確認。",
+      "source": "shopee_policy"
+    },
+    {
+      "id": "SG-SLS-BATTERY-TOOL",
+      "markets": [
+        "SG"
+      ],
+      "action": "REVIEW",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title",
+        "category"
+      ],
+      "terms": [
+        "バッテリー充電器",
+        "バッテリーチャージャー",
+        "バッテリーテスター"
+      ],
+      "condition": "always",
+      "note": "DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 Vehicular Tools > Battery Tools。充電器単体は既存の電池判断に合わせ要確認。",
+      "source": "shopee_policy"
+    },
+    {
+      "id": "PH-PRECIOUS-REVIEW",
+      "markets": [
+        "PH"
+      ],
+      "action": "REVIEW",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title"
+      ],
+      "terms": [
+        "純金",
+        "純銀",
+        "翡翠",
+        "ヒスイ",
+        "ジェイド"
+      ],
+      "condition": "always",
+      "note": "DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 PHのInvestment Precious Metals（投資用の金・銀・翡翠）。宝飾品か投資用かを確認。",
+      "source": "shopee_policy"
     }
   ]
 }
