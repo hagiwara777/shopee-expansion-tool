@@ -23,7 +23,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 GUARDRAILS = ROOT / "guardrails"
 OUT_DIR = ROOT / "NG"
-COLUMNS = ("group", "id", "markets", "action", "target", "basis", "note", "source_file")
+COLUMNS = ("group", "id", "markets", "action", "scope", "target", "basis", "note", "source_file")
 
 BASIS = {
     "shopee_policy": "Shopee公式",
@@ -96,7 +96,8 @@ def _policy_rows(used: set[str]) -> list[dict[str, str]]:
     for rule in json.loads(path.read_text(encoding="utf-8"))["rules"]:
         terms = rule["terms"]
         rows.append({"group": "保安ルール", "id": rule["id"], "markets": "/".join(rule["markets"]),
-                     "action": rule["action"], "target": TERM_SEPARATOR.join(terms), "basis": BASIS[rule["source"]],
+                     "action": rule["action"], "scope": rule["scope"],
+                     "target": TERM_SEPARATOR.join(terms), "basis": BASIS[rule["source"]],
                      "note": rule["note"], "source_file": _rel(path)})
     return rows
 
@@ -250,6 +251,7 @@ def render_markdown(rows: list[dict[str, str]]) -> str:
         "Soraが「停止」「要確認」を出す根拠の一覧です。`python scripts/build_ng_ledger.py` が",
         "`guardrails/` のファイルとコード内のルールから作ります。**このファイルを直接直しても判定は変わりません。**",
         "直すときは「元ファイル」を直し、もう一度このスクリプトを実行します。全行は `NG/ledger.csv` にあります。",
+        "保安ルールの `scope` は `item`（物そのもの）／`content`（中身・表示）です。他の元資産にはこの区分を付けず空欄にします。",
         "",
         "## 全体（グループ別の件数）",
         "",
@@ -275,9 +277,9 @@ def render_markdown(rows: list[dict[str, str]]) -> str:
         label = "全ての国" if market == "ALL" else market
         lines.append(f"| {label} | {per_market[market]['BLOCK']} | {per_market[market]['REVIEW']} |")
     for group in ("保安ルール", "コード内のルール", "成分・事実による停止"):
-        lines += ["", f"## {group}", "", "| ID | 国 | 動作 | 対象 | 根拠 | メモ |", "|---|---|---|---|---|---|"]
+        lines += ["", f"## {group}", "", "| ID | 国 | 動作 | scope | 対象 | 根拠 | メモ |", "|---|---|---|---|---|---|---|"]
         for row in groups.get(group, []):
-            cells = [row["id"], row["markets"], ACTION.get(row["action"], row["action"]), _short(row["target"]),
+            cells = [row["id"], row["markets"], ACTION.get(row["action"], row["action"]), row.get("scope", ""), _short(row["target"]),
                      row["basis"], row["note"]]
             lines.append("| " + " | ".join(cell.replace("|", "／").replace("\n", " ") for cell in cells) + " |")
     lines += [

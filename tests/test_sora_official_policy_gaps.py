@@ -82,8 +82,9 @@ def test_sg_requested_categories_block():
 
 @pytest.mark.parametrize("text", ["アウトドアナイフ", "キシリトールガム", "モデルガン", "電動キックボード",
                                   "ドッグフード", "ラード", "マグネットパテ", "レーダー探知機", "人毛ウィッグ"])
-def test_sg_requested_terms_also_block_in_product_text(text):
-    assert status("SG", description=text) == "BLOCK"
+def test_sg_content_terms_block_but_item_terms_ignore_product_text(text):
+    expected = "SAFE" if text in {"キシリトールガム", "ドッグフード"} else "BLOCK"
+    assert status("SG", description=text) == expected
 
 
 @pytest.mark.parametrize("title,category", [
@@ -142,8 +143,9 @@ def test_ph_toy_exclusions_do_not_hide_an_independent_weapon():
 
 @pytest.mark.parametrize("text", ["水鉄砲", "おもちゃのピストル", "舌クリーナー", "タトゥー針",
                                   "犬のノミ・ダニ駆除", "フェイスマスク"])
-def test_ph_requested_terms_also_block_in_product_text(text):
-    assert status("PH", description=text) == "BLOCK"
+def test_ph_content_terms_block_but_item_terms_ignore_product_text(text):
+    expected = "SAFE" if text in {"舌クリーナー", "フェイスマスク"} else "BLOCK"
+    assert status("PH", description=text) == expected
 
 
 def test_ph_pet_category_provides_animal_context_and_oral_category_is_read():

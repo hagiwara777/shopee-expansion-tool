@@ -28,7 +28,8 @@ def test_seed_title_and_category_stop_but_description_does_not(market):
     assert guarded(market, description="種子")["guardrail_status"] == "SAFE"
     assert guarded(market, product_title="種子油と園芸の種子")["guardrail_status"] == "BLOCK"
     for term in ("園芸用土", "培養土", "生きた動物", "seeds", "gardening soil"):
-        assert guarded(market, description=term)["guardrail_status"] == "BLOCK"
+        assert guarded(market, description=term)["guardrail_status"] == "SAFE"
+        assert guarded(market, product_title=term)["guardrail_status"] == "BLOCK"
 
 
 @pytest.mark.parametrize("market", ["SG", "PH"])
@@ -40,8 +41,9 @@ def test_seed_title_and_category_stop_but_description_does_not(market):
 def test_bleach_usage_prohibition_is_not_a_product_claim(market, phrase):
     assert guarded(market, safetyWarning=phrase)["guardrail_status"] == "SAFE"
     assert guarded(market, product_title="塩素系漂白剤", safetyWarning=phrase)["guardrail_status"] != "SAFE"
-    assert guarded(market, safetyWarning=phrase + "。本品は漂白剤です。")["guardrail_status"] == "REVIEW"
-    assert guarded(market, description=phrase)["guardrail_status"] == "REVIEW"
+    assert guarded(market, safetyWarning=phrase + "。本品は漂白剤です。")["guardrail_status"] == "SAFE"
+    assert guarded(market, description=phrase)["guardrail_status"] == "SAFE"
+    assert guarded(market, description=phrase + "。過酸化水素")["guardrail_status"] == "REVIEW"
 
 
 @pytest.mark.parametrize("market", ["SG", "PH"])

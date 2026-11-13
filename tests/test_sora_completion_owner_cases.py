@@ -86,9 +86,9 @@ def test_wound_care_direct_negation_does_not_hide_a_separate_positive(market):
 @pytest.mark.parametrize("phrase", ["コロン", "オーデコロン", "オードコロン", "cologne", "eau de cologne",
                                     "アフターシェーブコロン", "アフターシャワーコロン", "ボディコロン", "ヘアコロン"])
 @pytest.mark.parametrize("field", ["product_title", "description", "category"])
-def test_cologne_is_blocked_in_each_requested_field(market, phrase, field):
+def test_cologne_item_scope_reads_only_title_and_category(market, phrase, field):
     assert any(h.action == "BLOCK" and h.rule_id == "COMMON-SLS-PERFUME"
-               for h in evaluate_policy({field: phrase}, market))
+               for h in evaluate_policy({field: phrase}, market)) == (field != "description")
 
 
 @pytest.mark.parametrize("phrase", ["コロンビア", "Columbia", "コロンとした形", "ころんとした形", "セミコロン", "コロン記号"])
@@ -117,7 +117,7 @@ def test_clear_adult_product_description_is_a_block(market, phrase):
 def test_scent_exclusion_does_not_release_a_perfume_named_as_a_fragrance():
     assert apply_guardrails([_facts("フレグランス", "シャンプー")], marketplace="SG")[0]["guardrail_status"] == "BLOCK"
     assert apply_guardrails([_facts("シャンプー", "シャンプー", description="香水のような香り。香水を同梱")],
-                            marketplace="SG")[0]["guardrail_status"] == "BLOCK"
+                            marketplace="SG")[0]["guardrail_status"] == "SAFE"
     for title in ("フレグランスとシャンプーのセット", "シャンプーとフレグランスのセット", "フレグランス＋柔軟剤"):
         hits = evaluate_policy(_facts(title, "ビューティー"), "SG")
         assert any(hit.rule_id == "COMMON-SLS-PERFUME" and hit.action == "BLOCK" for hit in hits)
@@ -148,11 +148,11 @@ def test_scent_wording_in_wash_products_is_not_a_separate_perfume(market, title)
     assert result["guardrail_status"] == "SAFE"
 
 
-def test_perfume_smell_comparison_may_include_a_bounded_adjective():
+def test_perfume_description_does_not_establish_the_item_type():
     safe = _facts("シャンプー", "シャンプー", description="まるで香水のような華やかな香り")
     actual = _facts("シャンプー", "シャンプー", description="香水のような商品です")
     assert apply_guardrails([safe], marketplace="SG")[0]["guardrail_status"] == "SAFE"
-    assert apply_guardrails([actual], marketplace="SG")[0]["guardrail_status"] == "BLOCK"
+    assert apply_guardrails([actual], marketplace="SG")[0]["guardrail_status"] == "SAFE"
 
 
 @pytest.mark.parametrize("title", ["フレグランス ボディソープ", "フレグランス コンディショナー", "フレグランス 洗顔"])
