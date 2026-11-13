@@ -49,3 +49,21 @@ def test_ledger_csv_carries_every_policy_term_for_research_filters():
     for rule in json.loads((ROOT / "guardrails/policy/rules.json").read_text(encoding="utf-8"))["rules"]:
         assert all(ledger.TERM_SEPARATOR not in term for term in rule["terms"])
         assert rows[rule["id"]]["target"].split(ledger.TERM_SEPARATOR) == rule["terms"]
+
+
+def test_no_new_word_is_written_in_two_places():
+    # DEC-0187: one NG decision lives in one place. Intended overlaps are listed by hand.
+    rows, _ = ledger.build()
+    assert sorted(set(ledger.overlaps(rows)) - ledger.accepted_overlaps()) == []
+    assert (ROOT / "NG" / "overlaps.csv").read_text(encoding="utf-8") == ledger.render_overlaps(ledger.overlaps(rows))
+
+
+def test_overlap_detection_finds_a_word_added_to_two_rules():
+    rows, _ = ledger.build()
+    extra = dict(rows[0], id="TEST-DUPLICATE", target="テスト専用の重複語")
+    twin = dict(extra, id="TEST-DUPLICATE-2")
+    found = ledger.overlaps(rows + [extra, twin])
+    assert "テスト専用の重複語" in found
+    # Different markets do not overlap.
+    sg, ph = dict(extra, markets="SG"), dict(twin, markets="PH")
+    assert "テスト専用の重複語" not in ledger.overlaps(rows + [sg, ph])

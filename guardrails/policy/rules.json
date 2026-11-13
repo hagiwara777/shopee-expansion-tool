@@ -74,7 +74,10 @@
         "違法",
         "illegal",
         "脱税",
-        "盗品"
+        "盗品",
+        "スーパーコピー",
+        "N級品",
+        "S級品"
       ],
       "condition": "general",
       "note": "DEC-0167; Ownerの出品方針による停止",
@@ -1120,7 +1123,10 @@
         "宝くじ",
         "スロットマシン",
         "lottery ticket",
-        "slot machine"
+        "slot machine",
+        "パチスロ実機",
+        "スロット実機",
+        "パチンコ実機"
       ],
       "condition": "always",
       "note": "DEC-0167; Ownerの出品方針による停止",
@@ -1179,7 +1185,13 @@
         "軍の制服",
         "police badge",
         "military uniform",
-        "police uniform"
+        "police uniform",
+        "警察手帳",
+        "ポリスバッジ",
+        "警察 バッジ",
+        "ポリス バッジ",
+        "運転免許証 レプリカ",
+        "免許証レプリカ"
       ],
       "condition": "always",
       "note": "DEC-0167; Ownerの出品方針による停止",
@@ -2171,7 +2183,10 @@
         "タバコの付属品",
         "電子タバコの付属品",
         "免税",
-        "duty free"
+        "duty free",
+        "ICC ステッカー",
+        "icc sticker",
+        "テロリスト"
       ],
       "condition": "always",
       "note": "DEC-0167; Ownerの出品方針による停止",
@@ -2217,7 +2232,10 @@
         "baby product",
         "underwear",
         "cosmetics",
-        "contact lens"
+        "contact lens",
+        "ブラジャー",
+        "ショーツ",
+        "ランジェリー"
       ],
       "condition": "used",
       "note": "DEC-0167; Ownerの出品方針による停止",
@@ -2360,7 +2378,11 @@
         "滅菌ガーゼ",
         "医療用ガーゼ",
         "松葉杖",
-        "松葉づえ"
+        "松葉づえ",
+        "磁気ネックレス",
+        "磁気ブレスレット",
+        "磁気治療",
+        "ピップエレキバン"
       ],
       "condition": "medical",
       "note": "DEC-0159 / DEC-0164 / DEC-0167; 医薬品・医療機器・医薬部外品の肯定表示によるOwnerの出品除外。直接の否定文を区別する。",
@@ -3631,6 +3653,50 @@
       ],
       "condition": "always",
       "note": "DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 PHのInvestment Precious Metals（投資用の金・銀・翡翠）。宝飾品か投資用かを確認。",
+      "source": "shopee_policy"
+    },
+    {
+      "id": "COMMON-SLS-VEHICLE",
+      "markets": [
+        "ALL"
+      ],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title"
+      ],
+      "terms": [
+        "自動車本体",
+        "車両本体",
+        "中古車",
+        "中古バイク",
+        "バイク本体"
+      ],
+      "condition": "always",
+      "note": "DEC-0187; Shopee販売規制ガイド（SG p4／PH p9）の品目で、代表商品名が止まらなかったもの。 車・バイク本体（SGの販売禁止品目「車」、SLSのAutomobiles／MotorcyclesもNO）。",
+      "source": "shopee_policy"
+    },
+    {
+      "id": "COMMON-OFFICIAL-REVIEW",
+      "markets": [
+        "ALL"
+      ],
+      "action": "REVIEW",
+      "risk": "other",
+      "fields": [
+        "title"
+      ],
+      "terms": [
+        "迷彩服",
+        "自衛隊",
+        "軍用",
+        "米軍",
+        "暗視スコープ",
+        "ナイトビジョン",
+        "運転免許証"
+      ],
+      "condition": "always",
+      "note": "DEC-0187; Shopee販売規制ガイド（SG p4／PH p9）の品目で、代表商品名が止まらなかったもの。 政府・警察・軍の制服に酷似した品、軍事機器。ファッションの迷彩柄や免許証ケースと区別するため要確認。",
       "source": "shopee_policy"
     }
   ]

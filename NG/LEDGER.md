@@ -8,7 +8,7 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 
 | グループ | 停止 | 要確認 | その他 | 元ファイル |
 |---|---:|---:|---:|---|
-| 保安ルール | 107 | 29 | 0 | `guardrails/policy/rules.json` |
+| 保安ルール | 108 | 30 | 0 | `guardrails/policy/rules.json` |
 | コード内のルール | 5 | 2 | 0 | `modules/battery_presence.py`<br>`modules/guardrails.py`<br>`modules/home_appliances_classifier.py`<br>`modules/prelisting_sg_body_safety.py`<br>ほか3件 |
 | ブランド（IPR） | 138 | 0 | 0 | `guardrails/brand_monitoring/ipr.json` |
 | ブランド（Counterfeit） | 673 | 0 | 0 | `guardrails/brand_monitoring/counterfeit_ph.json`<br>`guardrails/brand_monitoring/counterfeit_sg.json` |
@@ -27,7 +27,7 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 
 | 国 | 停止 | 要確認 |
 |---|---:|---:|
-| 全ての国 | 221 | 70 |
+| 全ての国 | 222 | 71 |
 | MY | 185 | 24 |
 | PH | 469 | 28 |
 | SG | 665 | 139 |
@@ -41,7 +41,7 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 |---|---|---|---|---|---|
 | COMMON-DRUG | ALL | 停止 | CBD、大麻、マリファナ、ヘンプ、Hemp、ガンビル、Gambir、Sativa ほか5語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | COMMON-RYUKAKUSAN | ALL | 停止 | 龍角散 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
-| COMMON-GENERAL-TITLE-other | ALL | 停止 | 偽物、fake、replica、コピー品、アダルト、adult only、R18、18禁 ほか4語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
+| COMMON-GENERAL-TITLE-other | ALL | 停止 | 偽物、fake、replica、コピー品、アダルト、adult only、R18、18禁 ほか7語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | COMMON-GENERAL-TEXT-other | ALL | 要確認 | 偽物、fake、replica、コピー品、アダルト、adult only、R18、18禁 ほか4語 | 自分の方針 | DEC-0167; Ownerの出品方針による要確認 |
 | COMMON-GENERAL-TITLE-medical_or_therapeutic | ALL | 停止 | 医薬品、medicine、処方箋、prescription | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | COMMON-GENERAL-TEXT-medical_or_therapeutic | ALL | 要確認 | 医薬品、medicine、処方箋、prescription | 自分の方針 | DEC-0167; Ownerの出品方針による要確認 |
@@ -84,9 +84,9 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 | COMMON-FORMULA | ALL | 停止 | 粉ミルク、乳児用調製粉乳、infant formula、ステージ1粉乳、ステージ2粉乳、3歳以下の乳製品 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | COMMON-INFANT-DAIRY-UNKNOWN | ALL | 要確認 | 乳幼児用乳製品、幼児用乳製品、toddler milk | 自分の方針 | DEC-0167; Ownerの出品方針による要確認 |
 | COMMON-ANIMAL | ALL | 停止 | 野生動物製品、動物製品、象牙、剥製、wildlife product、animal product、べっ甲、鼈甲 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
-| COMMON-LOTTERY | ALL | 停止 | 宝くじ、スロットマシン、lottery ticket、slot machine | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
+| COMMON-LOTTERY | ALL | 停止 | 宝くじ、スロットマシン、lottery ticket、slot machine、パチスロ実機、スロット実機、パチンコ実機 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | COMMON-FINANCE | ALL | 停止 | 株券、株式、有価証券、クレジットカード、デビットカード、通貨、紙幣、記念硬貨 ほか4語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
-| COMMON-OFFICIAL | ALL | 停止 | 政府のバッジ、警察バッジ、軍のバッジ、勲章、警察制服、軍服、政府文書、身分証明書 ほか5語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
+| COMMON-OFFICIAL | ALL | 停止 | 政府のバッジ、警察バッジ、軍のバッジ、勲章、警察制服、軍服、政府文書、身分証明書 ほか11語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | COMMON-MERCURY | ALL | 停止 | 水銀体温計、水銀を含む、mercury thermometer | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | COMMON-MERCURY-UNKNOWN | ALL | 要確認 | 水銀、mercury | 自分の方針 | DEC-0167; Ownerの出品方針による要確認。SLS輸送確認。 |
 | COMMON-ALCOHOL-DRINK | ALL | 停止 | アルコール飲料、alcoholic beverage、alcoholic beverages、酒類、ビール、ワイン、日本酒、梅酒 ほか15語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
@@ -121,12 +121,12 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 | PH-ORAL | PH | 停止 | 歯ブラシ、ハブラシ、歯磨き粉、歯みがき粉、歯磨剤、デンタルフロス、マウスウォッシュ、矯正用品 ほか12語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | PH-GAMBLING | PH | 停止 | トランプ、サイコロ、ルーレット、ポーカーチップ、カジノチップ、playing cards、dice、roulette ほか1語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | PH-NEEDLE | PH | 停止 | ダーマローラー、マイクロニードル、タトゥー用針、眉タトゥー用針、tattoo needle、microblading needle、derma roller、microneedle | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
-| PH-OTHER | PH | 停止 | 免税品、ペット用の薬、動物用医薬品、pet medicine、ナンバープレート、政府のステッカー、ICCステッカー、テロをテーマにした玩具 ほか12語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
+| PH-OTHER | PH | 停止 | 免税品、ペット用の薬、動物用医薬品、pet medicine、ナンバープレート、政府のステッカー、ICCステッカー、テロをテーマにした玩具 ほか15語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | PH-CERTIFICATION | PH | 停止 | PSマーク、ICCマーク、PS認証、ICC認証 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
-| PH-USED | PH | 停止 | ベビー用品、下着、化粧品、コンタクトレンズ、baby product、underwear、cosmetics、contact lens | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
+| PH-USED | PH | 停止 | ベビー用品、下着、化粧品、コンタクトレンズ、baby product、underwear、cosmetics、contact lens ほか3語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | PH-SLS | PH | 停止 | 潤滑剤、性機能向上、肥料、投資用貴金属、投資用プラチナ、投資用金、投資用銀、投資用ダイヤ ほか23語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止。SLS輸送確認。 |
 | TH-TW-FOOD | TH/TW | 停止 | 食品、食品・飲料、food、food & beverages、grocery、スナック、飲料 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
-| COMMON-MEDICAL-DISPLAY | ALL | 停止 | COVID-19 test kit、COVID19 test kit、HIV test kit、OTC、OTC drug、OTC drugs、OTC medicine、condom ほか44語 | 自分の方針 | DEC-0159 / DEC-0164 / DEC-0167; 医薬品・医療機器・医薬部外品の肯定表示によるOwnerの出品除外。直接の否定文を区別する。 |
+| COMMON-MEDICAL-DISPLAY | ALL | 停止 | COVID-19 test kit、COVID19 test kit、HIV test kit、OTC、OTC drug、OTC drugs、OTC medicine、condom ほか48語 | 自分の方針 | DEC-0159 / DEC-0164 / DEC-0167; 医薬品・医療機器・医薬部外品の肯定表示によるOwnerの出品除外。直接の否定文を区別する。 |
 | COMMON-MEDICAL-SCAR-CARE | ALL | 停止 | 傷あとケア、傷跡ケア、傷あとケアテープ、傷跡ケアテープ、術後ケア、手術後ケア、手術後の傷あと、シリコーンジェルシート ほか9語 | 自分の方針 | DEC-0179; Ownerの出品方針に基づく共通停止。 |
 | COMMON-CONTACT-LENSES | SG/PH | 停止 | contact lenses、コンタクトレンズ、カラコン、カラーコンタクト、カラーコンタクトレンズ | Shopee公式 | DEC-0159 / DEC-0164 / DEC-0170; 医療機器表示停止を維持。注意書きで外す・着用者への明確な指示だけを除外。 |
 | COMMON-CONTACT-LENSES-OTHER-MARKETS | MY/TH/TW | 停止 | contact lenses、コンタクトレンズ | 自分の方針 | DEC-0159; 全市場の医療機器を出品除外とするOwner方針。 |
@@ -175,6 +175,8 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 | SG-TOY-GUN | SG | 要確認 | ウォーターガン、トイガン、おもちゃの銃、ゴム鉄砲、輪ゴム銃、toy gun、トイブラスター、toy blaster ほか1語 | Shopee公式 | DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 Toys > Blasters & Toy Guns。既存のSG判断（水鉄砲は要確認）に合わせ要確認。 |
 | SG-SLS-BATTERY-TOOL | SG | 要確認 | バッテリー充電器、バッテリーチャージャー、バッテリーテスター | Shopee公式 | DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 Vehicular Tools > Battery Tools。充電器単体は既存の電池判断に合わせ要確認。 |
 | PH-PRECIOUS-REVIEW | PH | 要確認 | 純金、純銀、翡翠、ヒスイ、ジェイド | Shopee公式 | DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 PHのInvestment Precious Metals（投資用の金・銀・翡翠）。宝飾品か投資用かを確認。 |
+| COMMON-SLS-VEHICLE | ALL | 停止 | 自動車本体、車両本体、中古車、中古バイク、バイク本体 | Shopee公式 | DEC-0187; Shopee販売規制ガイド（SG p4／PH p9）の品目で、代表商品名が止まらなかったもの。 車・バイク本体（SGの販売禁止品目「車」、SLSのAutomobiles／MotorcyclesもNO）。 |
+| COMMON-OFFICIAL-REVIEW | ALL | 要確認 | 迷彩服、自衛隊、軍用、米軍、暗視スコープ、ナイトビジョン、運転免許証 | Shopee公式 | DEC-0187; Shopee販売規制ガイド（SG p4／PH p9）の品目で、代表商品名が止まらなかったもの。 政府・警察・軍の制服に酷似した品、軍事機器。ファッションの迷彩柄や免許証ケースと区別するため要確認。 |
 
 ## コード内のルール
 
@@ -206,3 +208,9 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 上の表は件数だけです。1件ずつの内容は `NG/ledger.csv` を表計算ソフトで開いて絞り込みます。
 SLS発送可否は、Shopeeのカテゴリが確定した後のカテゴリ対応画面でだけ使われ、Soraの保安ゲートには接続していません。
 SLSの表はSG・PH・MYだけを載せています（TH・TW・VN・BRの表は保存済みですが、着手時に載せます）。
+
+## 同じ語が2か所にある場合
+
+自分たちで書いたルール（保安ルール・国別辞書・電池・成分・自社方針ブランド）で、同じ語が複数の行にあるものは
+`NG/overlaps.csv` に出ます。新しい重なりができるとテストが失敗します。1つにまとめるか、意図的な重なり
+（例：商品名は停止・説明文は要確認）なら `NG/overlaps_accepted.txt` に語を足します。
