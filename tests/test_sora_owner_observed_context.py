@@ -24,9 +24,9 @@ def test_observed_laundry_category_stops_as_an_ancestor(market):
 @pytest.mark.parametrize("market", ["PH", "SG"])
 @pytest.mark.parametrize("term", ["柔軟剤", "柔軟仕上げ剤", "fabric softener"])
 @pytest.mark.parametrize("field", ["product_title", "description", "features", "shortDescription", "safetyWarning", "itemHighlights", "category"])
-def test_owner_softener_terms_stop_in_each_requested_field(market, term, field):
+def test_softener_item_scope_stops_only_title_or_category(market, term, field):
     hits = evaluate_policy({field: term}, market)
-    assert any(hit.rule_id == "COMMON-SLS-LAUNDRY" and hit.action == "BLOCK" for hit in hits)
+    assert any(hit.rule_id == "COMMON-SLS-LAUNDRY" and hit.action == "BLOCK" for hit in hits) == (field in {"product_title", "category"})
 
 
 @pytest.mark.parametrize("market", ["PH", "SG"])
