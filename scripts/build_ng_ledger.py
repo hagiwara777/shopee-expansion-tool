@@ -66,6 +66,15 @@ SLS_LEDGER_MARKETS = ("SG", "PH", "MY")
 SUPPORT_PREFIXES = ("sls_market_categories/provenance/",)
 
 
+# Policy terms are joined with this separator in ledger.csv (all terms); LEDGER.md shows the first 8.
+TERM_SEPARATOR = "、"
+
+
+def _short(target: str, limit: int = 8) -> str:
+    terms = target.split(TERM_SEPARATOR)
+    return TERM_SEPARATOR.join(terms[:limit]) + (f" ほか{len(terms) - limit}語" if len(terms) > limit else "")
+
+
 def _rel(path: Path) -> str:
     return path.relative_to(ROOT).as_posix()
 
@@ -85,9 +94,8 @@ def _policy_rows(used: set[str]) -> list[dict[str, str]]:
     rows = []
     for rule in json.loads(path.read_text(encoding="utf-8"))["rules"]:
         terms = rule["terms"]
-        shown = "、".join(terms[:8]) + (f" ほか{len(terms) - 8}語" if len(terms) > 8 else "")
         rows.append({"group": "保安ルール", "id": rule["id"], "markets": "/".join(rule["markets"]),
-                     "action": rule["action"], "target": shown, "basis": BASIS[rule["source"]],
+                     "action": rule["action"], "target": TERM_SEPARATOR.join(terms), "basis": BASIS[rule["source"]],
                      "note": rule["note"], "source_file": _rel(path)})
     return rows
 
@@ -268,7 +276,7 @@ def render_markdown(rows: list[dict[str, str]]) -> str:
     for group in ("保安ルール", "コード内のルール", "成分・事実による停止"):
         lines += ["", f"## {group}", "", "| ID | 国 | 動作 | 対象 | 根拠 | メモ |", "|---|---|---|---|---|---|"]
         for row in groups.get(group, []):
-            cells = [row["id"], row["markets"], ACTION.get(row["action"], row["action"]), row["target"],
+            cells = [row["id"], row["markets"], ACTION.get(row["action"], row["action"]), _short(row["target"]),
                      row["basis"], row["note"]]
             lines.append("| " + " | ".join(cell.replace("|", "／").replace("\n", " ") for cell in cells) + " |")
     lines += [

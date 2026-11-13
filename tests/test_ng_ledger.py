@@ -39,3 +39,13 @@ def test_building_the_ledger_does_not_touch_the_sources():
     before = {p: p.read_bytes() for p in (ROOT / "guardrails").rglob("*") if p.is_file()}
     ledger.build()
     assert before == {p: p.read_bytes() for p in (ROOT / "guardrails").rglob("*") if p.is_file()}
+
+
+def test_ledger_csv_carries_every_policy_term_for_research_filters():
+    # Research skills pre-filter with ledger.csv, so no policy term may be cut off there.
+    import json
+    rows = {r["id"]: r for r in csv.DictReader((ROOT / "NG" / "ledger.csv").open(encoding="utf-8", newline=""))
+            if r["group"] == "保安ルール"}
+    for rule in json.loads((ROOT / "guardrails/policy/rules.json").read_text(encoding="utf-8"))["rules"]:
+        assert all(ledger.TERM_SEPARATOR not in term for term in rule["terms"])
+        assert rows[rule["id"]]["target"].split(ledger.TERM_SEPARATOR) == rule["terms"]
