@@ -4,7 +4,7 @@
   "markets": {
     "PH": {"operation": "ACTIVE", "development_policy": "ALLOWED"},
     "SG": {"operation": "ACTIVE", "development_policy": "ALLOWED"},
-    "MY": {"operation": "INACTIVE", "development_policy": "NOT_STARTED"},
+    "MY": {"operation": "INACTIVE", "development_policy": "ALLOWED"},
     "TH": {"operation": "INACTIVE", "development_policy": "NOT_STARTED"}
   },
   "capabilities": {
@@ -24,7 +24,8 @@
   },
   "stop_condition_ids": [
     "no-external-api-without-approval",
-    "no-my-th-product-work",
+    "no-my-eligible-before-my-ng-rules",
+    "no-th-product-work",
     "no-publication-without-approval",
     "preserve-ph-operation"
   ],
