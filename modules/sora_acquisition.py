@@ -4,6 +4,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 
 from modules.asin_resolver import verify_preview_rows
+from modules.sora_markets import SORA_MARKETS
 from modules.sp_api_catalog import CATALOG_BATCH_SIZE, SpApiCatalogError, planned_catalog_calls
 
 
@@ -34,7 +35,7 @@ class SoraAcquisition:
 
     def __post_init__(self):
         self.rows = tuple(deepcopy(self.rows))
-        if self.marketplace not in {'SG', 'PH'}:
+        if self.marketplace not in SORA_MARKETS:
             raise ValueError('対象国を確認してください。')
         planned_catalog_calls(self.asins)
         if not self.rows or len({r['row_id'] for r in self.rows}) != len(self.rows):

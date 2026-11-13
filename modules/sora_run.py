@@ -17,6 +17,7 @@ from modules.prelisting_candidate_csv import (
     resolver_rows_to_prelisting_candidates, rows_to_prelisting_candidate_csv,
 )
 from modules.prelisting_gate import evaluate_prelisting_gate
+from modules.sora_markets import SORA_MARKETS, market_ng_incomplete
 from modules.prelisting_gate_ui import build_prelisting_gate_export_rows, localize_prelisting_gate_preview_rows
 from modules.product_text_safety import (
     ProductTextSafetySidecarResult,
@@ -40,7 +41,7 @@ class SoraRun:
 
 
 def prepare_sora_run(verified_rows, *, marketplace, auth_calls, catalog_calls, input_files=()):
-    if marketplace not in {"PH", "SG"}:
+    if marketplace not in SORA_MARKETS:
         raise ValueError("対象国を確認してください。")
     verified_rows = tuple(verified_rows)
     converted = resolver_rows_to_prelisting_candidates(verified_rows)
@@ -74,6 +75,10 @@ def evaluate_sora_run(run, inventories=(), *, body_confirmations=None):
 def sora_exports(run, result):
     if result.marketplace != run.marketplace:
         raise ValueError("出力の対象国が一致しません。")
+    if market_ng_incomplete(run.marketplace) and (
+            result.eligible_count or any(row.final_eligibility == 'ELIGIBLE' for row in result.rows)):
+        # DEC-0183: second line of defence behind the gate's own hold.
+        raise ValueError("この国の禁止設定が未完成のため、通過ASINを出力できません。")
     eligible = '\n'.join(row.candidate.candidate_asin for row in result.rows
                          if row.final_eligibility == 'ELIGIBLE')
     def reason_csv(status):

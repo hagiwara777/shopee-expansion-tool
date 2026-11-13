@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import unicodedata
 from typing import Any, Iterable, Mapping
 
@@ -17,6 +17,12 @@ from modules.listing_inventory_parser import (
     build_existing_asin_index,
     normalize_marketplace,
     validate_inventory_filename_marketplace,
+)
+from modules.sora_markets import (
+    MARKET_NG_INCOMPLETE_REASON,
+    SORA_MARKETS,
+    market_ng_incomplete,
+    normalize_sora_market,
 )
 from modules.prelisting_candidate_csv import (
     EXPANSION_SOURCE_TYPE,
@@ -112,11 +118,13 @@ def evaluate_prelisting_gate(
     """
 
     try:
-        normalized_marketplace = _normalize_supported_marketplace(marketplace, "marketplace")
+        normalized_marketplace = _normalize_gate_marketplace(marketplace, "marketplace")
         candidate_rows = _validate_candidates(candidates)
         inventory_results = tuple(inventories)
         if type(check_existing_listings) is not bool:
             raise PrelistingGateError("重複照合の実施指定が不正です。")
+        if check_existing_listings and not SORA_MARKETS[normalized_marketplace].inventory_check:
+            raise PrelistingGateError(f"{normalized_marketplace}の既出品照合は未対応です。")
         if check_existing_listings:
             _validate_expected_shop_count(expected_shop_count)
             _validate_inventories(
@@ -146,7 +154,7 @@ def evaluate_prelisting_gate(
             result = apply_sg_body_safety(result, candidates, product_text_safety, sg_body_confirmations)
         elif sg_body_confirmations is not None:
             raise PrelistingGateError("SG本体確認記録を別市場へ適用できません。")
-        return result
+        return _hold_when_market_ng_incomplete(result)
     except PrelistingGateError:
         raise
     except Exception as exc:
@@ -567,6 +575,45 @@ def _build_result(
         exclude_count=exclude_count,
         rows=rows,
     )
+
+
+def _hold_when_market_ng_incomplete(result: PrelistingGateResult) -> PrelistingGateResult:
+    """DEC-0183: no pass for a market whose NG settings are not finished.
+
+    Only ELIGIBLE rows change (to REVIEW, with a reason code); EXCLUDE and
+    existing REVIEW rows keep their decision.  PH/SG are never touched.
+    """
+    if not market_ng_incomplete(result.marketplace):
+        return result
+    rows = tuple(
+        replace(
+            row,
+            final_eligibility="REVIEW",
+            reason_codes=row.reason_codes + (MARKET_NG_INCOMPLETE_REASON,),
+            guardrail_note=(f"{row.guardrail_note} | DEC-0183 {result.marketplace}: "
+                            "国別の禁止設定が未完成のため、通過にせず要確認にしました。").strip(" |"),
+        )
+        if row.final_eligibility == "ELIGIBLE" else row
+        for row in result.rows
+    )
+    held = _build_result(result.marketplace, rows)
+    if held.eligible_count:
+        raise PrelistingGateError("国別設定が未完成の市場で通過を出せません。")
+    return held
+
+
+def _normalize_gate_marketplace(value: Any, context: str) -> str:
+    """The market being evaluated: PH/SG as before, plus Sora markets (MY).
+
+    Existing-listing evidence keeps the strict PH/SG normalization below.
+    """
+    try:
+        return _normalize_supported_marketplace(value, context)
+    except PrelistingGateError:
+        sora_market = normalize_sora_market(value)
+        if sora_market is None:
+            raise
+        return sora_market
 
 
 def _normalize_supported_marketplace(value: Any, context: str) -> str:

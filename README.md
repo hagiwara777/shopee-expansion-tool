@@ -1,6 +1,7 @@
 # Sora
 
 外部で特定・収集したASINをPH／SGの出品前保安ゲートに通し、FROMAX向けの通過ASINを出すツールです（DEC-0165／0171／0172）。
+MY（マレーシア）も対象国に選べますが、MY用の禁止設定が未完成のため「通過」は出ません（通過になる商品も要確認。DEC-0183／0184）。
 保安ルールは[共通・国別・個別ASINの方針](docs/SORA_SAFETY_POLICY.md)を適用します（DEC-0167／0179／0180／0181）。
 入口は「ASINを貼る」「FROMAXのKeepa CSV」の2つです。
 画面右上に起動中のコミット番号を表示します。商品名の会社名除外は`guardrails/brand_monitoring/title_review.json`で確認・変更できます。

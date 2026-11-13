@@ -24,8 +24,8 @@ DEC-0181により、Owner指定のたばこ・酒・農薬・検査キット等�
 合成した代表例による確認であり、公式一覧の独立監査・全実商品での検出保証ではない。
 DEC-0182により、Shopee公式記事との照合で見つかった駆除剤・缶やガス系・目薬・絆創膏類・ギフト券・要冷蔵食品・
 SGのペットフード／医療用手袋／肉入り加工食品・PHのアウトドアナイフの穴を、市場別範囲を保って塞ぐ。
-DEC-0183により、MYのSora経路への追加を許可する。MYの禁止設定は別タスクで作成し、完成までMYは「通過」を出さず、
-通過になる商品も要確認とする。THの着手禁止、PH／SG保護と必須CIは維持する。
+DEC-0183／0184により、SoraでMYを対象国に選べる。MYの禁止設定は別タスクで作成し、完成までMYは「通過」を出さず、
+通過になる商品も要確認とする（出力の通過ASINは空）。THの着手禁止、PH／SG保護と必須CIは維持する。
 
 現在の完成線はDEC-0165、入口はDEC-0171／0172を適用する。呼び名はSoraとし、通常app.pyはASIN確認と出品前保安ゲートを使う。
 Soraは外部で特定・収集したASINをPH／SGの保安判定後にFROMAXへ渡す。
@@ -245,7 +245,7 @@ Shadowの既知の後続確認は比較表示の実用性と比較不能事例�
 稼働環境更新・実商品・API利用は別の明示承認を要し、Resolver／Mapper内部接続へ自動拡張しない。
 未採用のShadow／Keepa／分類接続成果を、この方針の採用によって正式成果へ昇格しない。
 TW／THの市場runtime開始はPH・SG共通実務Beta受入後に別scopeで判断する。
-MYはDEC-0183により、Sora経路への追加に限りOwner指示で着手できる（運用開始ではなく、MY用の禁止設定が完成するまで通過を出さない）。
+MYはDEC-0183／0184により、Sora経路の対象国に選べる（運用開始ではなく、MY用の禁止設定が完成するまで通過を出さない）。
 過去の固定基準は[PH Beta市場展開](PH_BETA_MARKET_PARITY.md)、新しい完成基準・順序はDEC-0137の完成条件を参照する。
 
 ## 旧工程で成立済みの成果と保護境界（履歴）
@@ -256,7 +256,7 @@ MYはDEC-0183により、Sora経路への追加に限りOwner指示で着手で�
 - 通常PH画面内のPH / SG Category Mapperは共通の市場選択入口と確認手順を使用する（DEC-0115）。
   Category検索・採用の表記を揃え、PHのグループ確認とSGの商品単位確認を維持する。
   SGのAI候補・Brand確認結果保存・CSV / TXT出力は未提供として表示し、機能を有効化しない。
-- PHはACTIVE / ALLOWED、SGはACTIVE / ALLOWED、MYはINACTIVE / ALLOWED（DEC-0183）、THはINACTIVE / NOT_STARTED。
+- PHはACTIVE / ALLOWED、SGはACTIVE / ALLOWED、MYはINACTIVE / ALLOWED（DEC-0183／0184）、THはINACTIVE / NOT_STARTED。
   `ph.beta.operation`と`sg.safety.baseline`はACCEPTED。
 - SG production Category source確認、catalog import offline成果、6実商品の人間Category確認・
   保存・再利用・current ID / path / leaf再validationは正式採用済み（DEC-0093 / DEC-0098 / DEC-0103）。
@@ -340,7 +340,7 @@ Brand / No Brand・SLS live acceptanceとSeller Center E2Eは未実施。
 production API / DB / schema、Bridge / credential変更、runtime切替、deploy、
 専用環境の範囲を超える出口開放、自動確定・出品は別scope・別途明示承認を要する。
 新しいAPI枠は具体的対象・取得数・費用の明示承認を要し、過去枠をリセットしない。
-MY / THは画像対象設定・共通選択契約を準備する。THの市場runtime / Safety / 出品接続は未着手とする。MYはDEC-0183の範囲（Sora経路のみ・禁止設定の完成まで通過なし）に限り着手でき、運用開始は含まない。未実施事項だけを新しいBeta MUSTへ昇格しない。
+MY / THは画像対象設定・共通選択契約を準備する。THの市場runtime / Safety / 出品接続は未着手とする。MYはDEC-0183／0184の範囲（Sora経路のみ・禁止設定の完成まで通過なし）に限り、運用開始は含まない。未実施事項だけを新しいBeta MUSTへ昇格しない。
 
 共通Catalog / Access Token Sourceの既存責務は維持する。Mapper側refreshは行わず、
 Source明示ON時のsilent fallbackを許さない。Bridge全面書込み障害時の旧token無効化は保証しない。
@@ -352,6 +352,7 @@ A1の正式採用と効果評価が終わるまでA2・Bを保留し、その後
 
 ## Required Decisions
 
+- DEC-0184 — MYのSora経路の実装方針（市場プロファイル、国別辞書なしの評価、通過降格の安全弁、範囲外）。
 - DEC-0183 — MYのSora経路追加の許可範囲、MY禁止設定の完成までの通過禁止と停止条件の置換。
 - DEC-0182 — 公式記事との照合で見つかったSG／PHの穴の修正範囲と、止める／要確認の区別、市場別の限定。
 - DEC-0181 — Owner指定の共通／SG／PH停止項目と、別用途・既存停止の境界。

@@ -14,6 +14,7 @@ from modules.match_context import excerpt_at
 CONFIG_DIR = Path(__file__).resolve().parents[1] / "guardrails" / "brand_monitoring"
 COUNTRY_FILES = {"SG": "counterfeit_sg.json", "PH": "counterfeit_ph.json"}
 ALIAS_MARKETS = frozenset({"SG", "PH", "MY", "TH", "TW"})
+NO_COUNTRY_LIST_MARKETS = frozenset({"MY"})
 
 
 class BrandMonitoringError(ValueError):
@@ -142,8 +143,17 @@ def _read(name: str, text: str) -> dict:
         raise BrandMonitoringError(f"監視ブランド設定を読めません: {name}") from exc
 
 
-def load_brand_monitoring(marketplace: str, config_dir: str | Path | None = None) -> BrandMonitoring:
-    if marketplace not in COUNTRY_FILES:
+def load_brand_monitoring(
+    marketplace: str,
+    config_dir: str | Path | None = None,
+    *,
+    without_country_list: bool = False,
+) -> BrandMonitoring:
+    """``without_country_list`` is an explicit opt-in for a market that has no
+    country counterfeit list yet (MY, DEC-0183).  It never borrows another
+    country's list; only the shared IPR, company, alias and title settings apply.
+    """
+    if marketplace not in COUNTRY_FILES and not (without_country_list and marketplace in NO_COUNTRY_LIST_MARKETS):
         raise BrandMonitoringError("監視ブランド照合の対象市場ではありません。")
     base = Path(config_dir) if config_dir is not None else CONFIG_DIR
     sources = []
@@ -165,7 +175,10 @@ def _compile_brand_monitoring(marketplace: str, sources: tuple[tuple[str, str], 
     """
     texts = dict(sources)
     rules = []
-    for filename, scope in (("ipr.json", "ALL"), (COUNTRY_FILES[marketplace], marketplace)):
+    country_file = COUNTRY_FILES.get(marketplace)
+    for filename, scope in (("ipr.json", "ALL"), (country_file, marketplace)):
+        if filename is None:
+            continue
         data = _read(filename, texts[filename])
         brands = data.get("brands")
         if (data.get("scope") != scope or not isinstance(data.get("source_url"), str)
@@ -187,7 +200,7 @@ def _compile_brand_monitoring(marketplace: str, sources: tuple[tuple[str, str], 
         # Shared aliases may target a brand active only in the other country.
         # Check references against existing official files, without applying
         # that country's rules to the selected market.
-        for filename in set(COUNTRY_FILES.values()) - {COUNTRY_FILES[marketplace]}:
+        for filename in set(COUNTRY_FILES.values()) - {country_file}:
             other = _read(filename, texts[filename]).get("brands")
             if not isinstance(other, list) or any(not isinstance(v, str) for v in other):
                 raise BrandMonitoringError(f"監視ブランド設定が不正です: {filename}")

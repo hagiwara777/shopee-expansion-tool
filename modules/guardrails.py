@@ -12,6 +12,7 @@ from modules.safety_policy import SafetyPolicyError, load_policy_rules, evaluate
 from modules.battery_presence import assess_battery_presence
 from modules.match_context import excerpt_at
 from modules.brand_monitoring import BrandMonitoringError, load_brand_monitoring
+from modules.sora_markets import market_without_country_dictionaries
 from modules.home_appliances_classifier import (
     A as HOME_APPLIANCE_A,
     B as HOME_APPLIANCE_B,
@@ -193,14 +194,27 @@ def apply_guardrails(
     *,
     marketplace: str = "SG",
 ) -> list[dict[str, str]]:
-    normalized_marketplace = _normalize_marketplace(marketplace)
+    normalized_marketplace = _normalize_apply_marketplace(marketplace)
+    # DEC-0183: a Sora market without country dictionaries (MY) is evaluated
+    # with the shared settings only.  It never borrows another country's
+    # dictionaries or counterfeit list; its gate result is held by the market
+    # profile until the Owner finishes that market's NG settings.
+    no_country_dictionaries = market_without_country_dictionaries(normalized_marketplace)
     try:
-        monitoring = load_brand_monitoring(normalized_marketplace)
+        monitoring = (
+            load_brand_monitoring(normalized_marketplace, without_country_list=True)
+            if no_country_dictionaries
+            else load_brand_monitoring(normalized_marketplace)
+        )
     except BrandMonitoringError as exc:
         raise GuardrailDictionaryError(str(exc)) from exc
-    dictionaries = load_guardrail_dictionaries(
-        dictionary_dir,
-        marketplace=normalized_marketplace,
+    dictionaries = (
+        GuardrailDictionaries(brand_rules=[], keyword_rules=[])
+        if no_country_dictionaries
+        else load_guardrail_dictionaries(
+            dictionary_dir,
+            marketplace=normalized_marketplace,
+        )
     )
     v2_rules = load_deterministic_block_rules_v2(dictionary_dir)
     try:
@@ -214,7 +228,7 @@ def apply_guardrails(
         raise GuardrailDictionaryError(f"Community NG asset is invalid: {exc}") from exc
     sls_shared_battery_rules = (
         load_sls_shared_battery_rules(base_dir)
-        if normalized_marketplace in SLS_SHARED_RUNTIME_MARKETPLACES
+        if normalized_marketplace in SLS_SHARED_RUNTIME_MARKETPLACES or no_country_dictionaries
         else []
     )
     guarded_rows: list[dict[str, str]] = []
@@ -541,6 +555,14 @@ def evaluate_deterministic_blocks_v2(
             f"unsupported V2 evaluator pair: {rule.fact_field}/{rule.operator}"
         )
     return matches
+
+
+def _normalize_apply_marketplace(marketplace: Any) -> str:
+    """Existing PH/SG normalization, plus Sora markets without country dictionaries."""
+    candidate = unicodedata.normalize("NFKC", str(marketplace)).strip().upper()
+    if market_without_country_dictionaries(candidate):
+        return candidate
+    return _normalize_marketplace(marketplace)
 
 
 def _normalize_marketplace(marketplace: Any) -> str:
