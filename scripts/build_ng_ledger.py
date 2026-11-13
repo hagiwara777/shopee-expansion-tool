@@ -60,6 +60,10 @@ SUPPORT_FILES = (
     "sls_shared/README.md", "sls_market_categories/README.md",
     "sls_market_categories/.gitattributes", "sls_market_categories/source-lock.json",
     "sls_market_categories/canonical.manifest.json",
+    # Shopee's Counterfeit lists for MY/TH/TW are stored but not read by Sora yet.  They move
+    # to _brand_rows when the MY/TH/TW gate work (DEC-0189) starts reading them.
+    "brand_monitoring/counterfeit_my.json", "brand_monitoring/counterfeit_th.json",
+    "brand_monitoring/counterfeit_tw.json",
 )
 # SLS tables listed row by row.  TH/TW/VN/BR tables are kept in the repository but are not
 # listed until those markets are worked on.
