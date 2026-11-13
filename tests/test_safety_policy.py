@@ -147,13 +147,12 @@ def test_ph_contact_lens_body_and_accessory_are_distinct():
     assert guarded("Contact lenses case", market="PH")["guardrail_status"] == "BLOCK"
 
 
-def test_future_market_common_rules_do_not_enable_runtime():
+def test_future_market_common_rules_and_my_country_brands():
     assert evaluate_policy({"product_title": "ナイアシンアミド 美容液"}, "MY")[0].action == "BLOCK"
     assert evaluate_deterministic_blocks_v2({"ingredients": ["GABA"]}, load_deterministic_block_rules_v2(), marketplace="MY")
     assert not evaluate_policy({"product_title": "普通の食品"}, "MY")
     assert evaluate_policy({"product_title": "普通の食品"}, "TH")[0].action == "BLOCK"
-    with pytest.raises(ValueError):
-        load_brand_monitoring("MY")
+    assert load_brand_monitoring("MY").matches("Hada Labo")
 
 
 @pytest.mark.parametrize("market", ["SG", "PH"])

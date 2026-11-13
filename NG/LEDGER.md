@@ -9,10 +9,10 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 
 | グループ | 停止 | 要確認 | その他 | 元ファイル |
 |---|---:|---:|---:|---|
-| 保安ルール | 108 | 32 | 0 | `guardrails/policy/rules.json` |
-| コード内のルール | 5 | 2 | 0 | `modules/battery_presence.py`<br>`modules/guardrails.py`<br>`modules/home_appliances_classifier.py`<br>`modules/prelisting_sg_body_safety.py`<br>ほか3件 |
+| 保安ルール | 134 | 38 | 0 | `guardrails/policy/rules.json` |
+| コード内のルール | 5 | 3 | 0 | `modules/battery_presence.py`<br>`modules/guardrails.py`<br>`modules/home_appliances_classifier.py`<br>`modules/prelisting_sg_body_safety.py`<br>ほか4件 |
 | ブランド（IPR） | 138 | 0 | 0 | `guardrails/brand_monitoring/ipr.json` |
-| ブランド（Counterfeit） | 673 | 0 | 0 | `guardrails/brand_monitoring/counterfeit_ph.json`<br>`guardrails/brand_monitoring/counterfeit_sg.json` |
+| ブランド（Counterfeit） | 1525 | 0 | 0 | `guardrails/brand_monitoring/counterfeit_my.json`<br>`guardrails/brand_monitoring/counterfeit_ph.json`<br>`guardrails/brand_monitoring/counterfeit_sg.json`<br>`guardrails/brand_monitoring/counterfeit_th.json`<br>ほか1件 |
 | ブランド（自社方針） | 12 | 0 | 0 | `guardrails/brand_monitoring/company.json` |
 | ブランド（商品名の確認） | 0 | 47 | 0 | `guardrails/brand_monitoring/title_review.json` |
 | ブランド（別表記） | 0 | 0 | 77 | `guardrails/brand_monitoring/aliases.json` |
@@ -22,18 +22,18 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 | 成分・事実による停止 | 7 | 0 | 0 | `guardrails/deterministic_block_rules_v2.csv` |
 | 仲間内報告（ASIN） | 46 | 0 | 0 | `guardrails/community_ng/marketplace_asin_blocks.csv` |
 | 仲間内報告（ブランド） | 54 | 0 | 0 | `guardrails/community_ng/marketplace_brand_blocks.csv` |
-| SLS発送可否（カテゴリ） | 516 | 31 | 0 | `guardrails/sls_market_categories/markets` |
+| SLS発送可否（カテゴリ） | 1167 | 171 | 0 | `guardrails/sls_market_categories/markets` |
 
 ## 国別の件数（停止／要確認）
 
 | 国 | 停止 | 要確認 |
 |---|---:|---:|
-| 全ての国 | 222 | 73 |
-| MY | 185 | 24 |
+| 全ての国 | 222 | 74 |
+| MY | 671 | 27 |
 | PH | 469 | 28 |
-| SG | 665 | 139 |
-| TH | 14 | 0 |
-| TW | 25 | 0 |
+| SG | 668 | 139 |
+| TH | 352 | 128 |
+| TW | 746 | 49 |
 | VN | 2 | 0 |
 
 ## 保安ルール
@@ -114,8 +114,8 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 | COMMON-SLS-FOOD | ALL | 停止 | item | 食用油、牛乳、乳製品、鶏卵、生卵、卵、豆腐、アイスクリーム ほか29語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | SG-GUM | SG | 停止 | item | チューイングガム、chewing gum、bubble gum、ガム | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | SG-MEAT | SG | 停止 | content | 肉入り、牛肉入り、豚肉入り、鶏肉入り、ビーフジャーキー、ポークジャーキー、サラミ、ソーセージ ほか9語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
-| SG-RADIO | SG | 停止 | content | 通信機器、無線機、トランシーバー、walkie talkie、two-way radio | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
-| SG-SPECIFIC | SG | 停止 | content | 磁性粘土、護身用ペン、護身用バトン、護身用スティック、自己防衛用スティック、self defence baton、self defense pen、ダガー ほか21語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
+| SG-RADIO | SG/MY/TH/TW | 停止 | content | 通信機器、無線機、トランシーバー、walkie talkie、two-way radio | 自分の方針 | DEC-0167; Ownerの出品方針による停止 DEC-0189; 指定された追加国にも適用。 |
+| SG-SPECIFIC | SG | 停止 | content | 護身用ペン、護身用バトン、護身用スティック、自己防衛用スティック、self defence baton、self defense pen、ダガー、銃剣 ほか19語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | SG-AMULET | SG | 停止 | item | お守り | 自分の方針 | DEC-0168; SGのお守り商品だけを停止。お守りください／お守り下さいを除く。 |
 | SG-KITCHEN-KNIFE | SG | 停止 | content | 包丁、kitchen knife、chef knife | 自分の方針 | DEC-0129 / DEC-0167; SGの包丁本体を停止し、付属品の本体・同梱確認を維持する。 |
 | SG-LASER | SG | 停止 | content | レーザーポインター、laser pointer | 自分の方針 | DEC-0167; Ownerの出品方針による停止。SLS輸送確認。 |
@@ -152,17 +152,17 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 | COMMON-ALCOHOL-STRENGTH | ALL | 停止 | content | アルコール分 | 自分の方針 | DEC-0181; Ownerの指定商品群を停止。 |
 | COMMON-DISEASE-TEST | ALL | 停止 | content | HIV、抗原検査キット、PCR検査キット、PCR 検査キット、新型コロナ 検査キット、新型コロナ検査キット | 自分の方針 | DEC-0181; Ownerの指定商品群を停止。 |
 | SG-GENERAL-KNIFE | SG | 停止 | content | ナイフ、knife | 自分の方針 | DEC-0181; Ownerの指定商品群を停止。 |
-| SG-WEAPON-ADDITIONAL | SG | 停止 | content | モデルガン、模造刀、居合刀、ガスガン、電動ガン、ガスブローバック、特殊警棒、警棒 ほか7語 | 自分の方針 | DEC-0181; Ownerの指定商品群を停止。 |
+| SG-WEAPON-ADDITIONAL | SG | 停止 | content | モデルガン、模造刀、居合刀、ガスガン、電動ガン、ガスブローバック、特殊警棒、警棒 ほか6語 | 自分の方針 | DEC-0181; Ownerの指定商品群を停止。 |
 | SG-WEAPON-PART | SG | 停止 | content | マガジン、弾倉、銃身 | 自分の方針 | DEC-0181; Ownerの指定商品群を停止。 |
 | SG-ELECTRIC-VEHICLE | SG | 停止 | content | 電動キックボード、電動アシスト自転車、e-bike | 自分の方針 | DEC-0181; Ownerの指定商品群を停止。 |
 | SG-PETFOOD | SG | 停止 | item | ドッグフード、キャットフード、ペットフード、猫用おやつ、犬用おやつ、ペット用おやつ、ペットのおやつ、犬のおやつ ほか7語 | 自分の方針 | DEC-0181; Ownerの指定商品群を停止。 |
 | SG-ANIMAL-FAT | SG | 停止 | content | ラード、牛脂、ヘット | 自分の方針 | DEC-0181; Ownerの指定商品群を停止。; DEC-0188: 成分欄も照合（食品のみ） |
-| SG-MAGNETIC-PUTTY | SG | 停止 | content | マグネットパテ、磁石スライム、magnetic putty | 自分の方針 | DEC-0181; Ownerの指定商品群を停止。 |
+| SG-MAGNETIC-PUTTY | SG/MY/TH/TW | 停止 | content | マグネットパテ、磁石スライム、magnetic putty | 自分の方針 | DEC-0181; Ownerの指定商品群を停止。 DEC-0189; 指定された追加国にも適用。 |
 | SG-RESTRICTED-ELECTRONICS | SG | 停止 | content | レーダー探知機、スクランブラー | 自分の方針 | DEC-0181; Ownerの指定商品群を停止。 |
 | SG-HUMAN-HAIR | SG | 停止 | content | 人毛、human hair | 自分の方針 | DEC-0181; Ownerの指定商品群を停止。 |
 | SG-MUSHROOM | SG | 停止 | content | しいたけ、椎茸、きのこ、キノコ、まいたけ、舞茸、しめじ、なめこ ほか4語 | 自分の方針 | DEC-0181; Ownerの指定商品群を停止。; DEC-0188: 成分欄も照合（食品のみ） |
-| PH-TOY-WEAPON-DIRECT | PH | 停止 | content | 水鉄砲、BB弾 | 自分の方針 | DEC-0181; Ownerの指定商品群を停止。 |
-| PH-TOY-WEAPON-CONTEXT | PH | 停止 | content | 銃、ピストル、ライフル、ガン | 自分の方針 | DEC-0181; Ownerの指定商品群を停止。 |
+| PH-TOY-WEAPON-DIRECT | PH/MY/TW | 停止 | content | 水鉄砲、BB弾 | 自分の方針 | DEC-0181; Ownerの指定商品群を停止。 DEC-0189; 指定された追加国にも適用。 |
+| PH-TOY-WEAPON-CONTEXT | PH/MY/TW | 停止 | content | 銃、ピストル、ライフル、ガン | 自分の方針 | DEC-0181; Ownerの指定商品群を停止。 DEC-0189; 指定された追加国にも適用。 |
 | PH-TATTOO | PH | 停止 | content | タトゥーマシン、タトゥー針、アートメイク、刺青 | 自分の方針 | DEC-0181; Ownerの指定商品群を停止。 |
 | PH-PET-DRUG | PH | 停止 | content | ノミ、ダニ、駆虫薬 | 自分の方針 | DEC-0181; Ownerの指定商品群を停止。 |
 | PH-COSMETIC-MASK | PH | 停止 | item | フェイスマスク、シートマスク、フェイスパック、シートパック | 自分の方針 | DEC-0181; Ownerの指定商品群を停止。 |
@@ -177,9 +177,41 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 | COMMON-SLS-CAR-CHECK | ALL | 要確認 | item | カーワックス、車用ワックス、洗車、カーシャンプー、ガラス撥水、撥水剤、油膜取り、ガラコ ほか6語 | Shopee公式 | DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 SLSで「Shopeeと要確認」の車用品（洗車・ワックス・撥水・タイヤ・燃料系）。 |
 | SG-TOY-GUN | SG | 要確認 | content | ウォーターガン、トイガン、おもちゃの銃、ゴム鉄砲、輪ゴム銃、toy gun、トイブラスター、toy blaster ほか1語 | Shopee公式 | DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 Toys > Blasters & Toy Guns。既存のSG判断（水鉄砲は要確認）に合わせ要確認。 |
 | SG-SLS-BATTERY-TOOL | SG | 要確認 | item | バッテリー充電器、バッテリーチャージャー、バッテリーテスター | Shopee公式 | DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 Vehicular Tools > Battery Tools。充電器単体は既存の電池判断に合わせ要確認。 |
-| PH-PRECIOUS-REVIEW | PH | 要確認 | item | 純金、純銀、翡翠、ヒスイ、ジェイド | Shopee公式 | DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 PHのInvestment Precious Metals（投資用の金・銀・翡翠）。宝飾品か投資用かを確認。 |
+| PH-PRECIOUS-REVIEW | PH/TH | 要確認 | item | 純金、純銀、翡翠、ヒスイ、ジェイド | Shopee公式 | DEC-0186; SLSで発送不可（NO）のShopeeカテゴリに当たる商品群を語で止める（カテゴリ番号は使わない）。 PHのInvestment Precious Metals（投資用の金・銀・翡翠）。宝飾品か投資用かを確認。 DEC-0189; 指定された追加国にも適用。 |
 | COMMON-SLS-VEHICLE | ALL | 停止 | item | 自動車本体、車両本体、中古車、中古バイク、バイク本体 | Shopee公式 | DEC-0187; Shopee販売規制ガイド（SG p4／PH p9）の品目で、代表商品名が止まらなかったもの。 車・バイク本体（SGの販売禁止品目「車」、SLSのAutomobiles／MotorcyclesもNO）。 |
 | COMMON-OFFICIAL-REVIEW | ALL | 要確認 | item | 迷彩服、自衛隊、軍用、米軍、暗視スコープ、ナイトビジョン、運転免許証 | Shopee公式 | DEC-0187; Shopee販売規制ガイド（SG p4／PH p9）の品目で、代表商品名が止まらなかったもの。 政府・警察・軍の制服に酷似した品、軍事機器。ファッションの迷彩柄や免許証ケースと区別するため要確認。 |
+| SG-MAGNETIC-CLAY | SG/MY/TH/TW | 停止 | content | 磁性粘土 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 DEC-0189; この語だけ対象国を拡張。 |
+| SG-LOCK-PICKING | SG/MY/TW | 停止 | content | 錠前破り | 自分の方針 | DEC-0167; Ownerの出品方針による停止 DEC-0189; この語だけ対象国を拡張。 |
+| SG-PICKING-TOOL | SG/MY/TW | 停止 | content | ピッキングツール | 自分の方針 | DEC-0181; Ownerの指定商品群を停止。 DEC-0189; この語だけ対象国を拡張。 |
+| MY-HALAL-FOOD | MY | 停止 | content | 豚、豚肉、ポーク、pork、ラード、lard、豚脂、豚骨 ほか29語 | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。食品だけに適用。ハラール認証の有無を推定しない。 |
+| MY-PORK-OTHER | MY | 要確認 | item | 豚毛、猪毛、boar bristle | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。 |
+| MY-SUGAR-RICE | MY | 停止 | item | 砂糖、上白糖、グラニュー糖、三温糖、米、お米、白米、玄米 ほか3語 | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。米の語境界と食品条件を使う。米粉・米ぬか・米国等を除く。 |
+| MY-RICE-SNACK | MY | 要確認 | item | 米菓、せんべい、煎餅、あられ、おかき | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。 |
+| MY-KNIFE | MY | 停止 | item | 包丁、kitchen knife、ナイフ、knife、短剣、dagger | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。 |
+| MY-EYEWEAR | MY | 停止 | item | メガネ、眼鏡、めがね、老眼鏡、リーディンググラス、ブルーライトカットメガネ、ブルーライトカット眼鏡、PCメガネ ほか4語 | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。ケース・拭き・クロス・クリーナー・チェーン・ストラップ等の付属品を除く。 |
+| MY-WEIGHT-GAIN | MY | 停止 | content | 体重増加、増量、weight gain | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。増量だけは体重増加用ビタミン等の文脈に限定し、通常の増量包装を除く。 |
+| MY-SYRINGE-SHAPE | MY | 停止 | item | 注射器型、注射器の形、シリンジ型、syringe pen | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。 |
+| MY-RELIGIOUS | MY | 停止 | content | コーラン、クルアーン、Quran、Koran、アッラー、Allah | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。 |
+| MY-TW-SPY-CAMERA | MY/TW | 停止 | item | 隠しカメラ、スパイカメラ、小型カメラ 盗撮、hidden camera、spy camera | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。 |
+| MY-SAFETY-HELMET | MY | 要確認 | item | 安全ヘルメット、作業用ヘルメット、工事用ヘルメット、hard hat | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。自転車・バイク用は除く。 |
+| MY-APHRODISIAC | MY | 停止 | content | 精力剤、精力増強、強精 | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。 |
+| TH-TW-COSMETICS | TH/TW | 停止 | item | ビューティー、ラグジュアリービューティー、化粧水、乳液、美容液、美容クリーム、フェイスクリーム、洗顔 ほか21語 | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。カテゴリは最上位のビューティー2区分だけ。その他の語は商品名で判定。 |
+| TH-TW-DRUGSTORE | TH/TW | 要確認 | item | ドラッグストア | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。最上位カテゴリだけ。別の停止があれば停止を優先。 |
+| TH-ELECTRIC | TH | 停止 | item | 家電&カメラ、パソコン・周辺機器、大型家電、AC100V、コンセント式、電源コード、USB給電、ACアダプター | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。カテゴリは指定の最上位3区分だけ。その他の語は商品名で判定。 |
+| TH-CAR-PARTS | TH | 停止 | item | 車&バイク | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。 |
+| TH-CHEMICAL | TH | 要確認 | item | 洗剤、除菌剤、殺菌剤、消臭剤、芳香剤、接着剤、塗料、溶剤 | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。ライセンス対象の範囲が広いため要確認。 |
+| TH-LICENSE-OTHER | TH | 停止 | item | ドローン、drone、トランシーバー、無線機、walkie talkie、GPS、GPSトラッカー、発信機 ほか20語 | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。 |
+| TW-HEALTHCARE | TW | 停止 | item | ヘルスケア、医療、衛生用品 | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。カテゴリのどの階層でも指定語を含めば停止。 |
+| TW-BABY | TW | 停止 | item | ベビーフード、離乳食、チャイルドシート、ベビーカー、ウォーキングチェア、歩行器、ベビーチェア、ハイチェア ほか3語 | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。 |
+| TW-HAIR-IRON | TW | 停止 | item | ヘアアイロン、カールアイロン、ストレートアイロン、コテ、hair iron | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。コテは商品名・カテゴリがヘア用を示す場合だけ。 |
+| TW-SUNGLASSES | TW | 停止 | item | サングラス、sunglasses | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。 |
+| TW-BLADE | TW | 停止 | item | 包丁、ナイフ、刃物、刀、剣、おもちゃの刀、日本刀、ダーツ ほか5語 | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。パチンコは玩具の投石器を示す文脈だけ。 |
+| TW-BLADE-REVIEW | TW | 要確認 | item | はさみ、ハサミ、カッター、カミソリ | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。 |
+| TW-FLEA | TW | 停止 | item | ノミ取り、ノミ・ダニ、蚤、flea | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。 |
+| TW-BEAUTY-DEVICE | TW | 停止 | item | 光美容器、LED美顔器、美顔器、脱毛器、光脱毛 | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。 |
+| TW-TAMPON | TW | 停止 | item | タンポン、tampon | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。 |
+| TW-LICENSE-ELECTRIC | TW | 停止 | item | USBメモリ、USB電源、USB充電器、ACアダプター、テレビ、テレビボックス、冷蔵庫、エアコン ほか12語 | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。 |
+| TW-SAFETY-HELMET | TW | 停止 | item | 安全ヘルメット、ヘルメット | 自分の方針 | DEC-0189; Shopee販売規制ガイド2026-08-13版とOwner決定2026-11-13。 |
 
 ## コード内のルール
 
@@ -189,7 +221,8 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 | CODE-HOME-APPLIANCE | ALL | 停止 |  | 家電本体・電動の商品（未確定は要確認。受動的な付属品は対象外） | 自分の方針 | DEC-0166 |
 | CODE-BATTERY-PRESENCE | ALL | 停止 |  | 電池入り・電池付属の商品（電池別売の明記は区別） | 自分の方針 | 電池入りは出品しない |
 | CODE-SG-BODY | SG | 要確認 |  | SGの本体・実同梱の確認が必要な商品 | 自分の方針 | SG本体確認 |
-| CODE-MARKET-NG-INCOMPLETE | MY | 要確認 |  | 国別の禁止設定が未完成の国は、通過を出さず全件要確認 | 自分の方針 | DEC-0183／0184 |
+| CODE-MARKET-NG-INCOMPLETE | ALL | 要確認 |  | 国別の禁止設定が未完成の国だけ、通過候補を要確認にする | 自分の方針 | DEC-0183／0184／0189（SG・PH・MY・TH・TWは設定済み） |
+| MY-VOLUMETRIC | MY | 要確認 |  | 容積重量kg＝縦cm×横cm×高さcm÷6000 が実重量kgを上回る商品 | 自分の方針 | DEC-0189; 梱包値を優先、商品値へfallback。欠損時は通過を妨げずサイズ情報なしと記録 |
 | CODE-SLS-CATEGORY-PH | PH | 停止 |  | Shopeeカテゴリ確定後、SLSで発送不可のカテゴリ（Sora保安ゲートには未接続） | Shopee公式 | カテゴリ対応画面のみ |
 | CODE-SLS-CATEGORY-SG | SG | 停止 |  | Shopeeカテゴリ確定後、SLSで発送不可のカテゴリ（Sora保安ゲートには未接続） | Shopee公式 | カテゴリ対応画面のみ |
 
@@ -210,7 +243,7 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 ブランド、国別辞書、仲間内報告、SLS発送可否（発送不可・要確認のカテゴリ）は件数が多いため、
 上の表は件数だけです。1件ずつの内容は `NG/ledger.csv` を表計算ソフトで開いて絞り込みます。
 SLS発送可否は、Shopeeのカテゴリが確定した後のカテゴリ対応画面でだけ使われ、Soraの保安ゲートには接続していません。
-SLSの表はSG・PH・MYだけを載せています（TH・TW・VN・BRの表は保存済みですが、着手時に載せます）。
+SLSの表はSG・PH・MY・TH・TWを載せています（VN・BRは保存済みで後続工程）。
 
 ## 同じ語が2か所にある場合
 

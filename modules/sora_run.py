@@ -18,6 +18,7 @@ from modules.prelisting_candidate_csv import (
 )
 from modules.prelisting_gate import evaluate_prelisting_gate
 from modules.sora_markets import SORA_MARKETS, market_ng_incomplete
+from modules.sora_volumetric import PackageMeasurements, apply_my_volumetric, measurements_for_run
 from modules.prelisting_gate_ui import build_prelisting_gate_export_rows, localize_prelisting_gate_preview_rows
 from modules.product_text_safety import (
     ProductTextSafetySidecarResult,
@@ -38,6 +39,7 @@ class SoraRun:
     input_row_count: int
     unverified_row_count: int
     started_at: str
+    package_measurements: tuple[PackageMeasurements, ...] = ()
 
 
 def prepare_sora_run(verified_rows, *, marketplace, auth_calls, catalog_calls, input_files=()):
@@ -60,16 +62,18 @@ def prepare_sora_run(verified_rows, *, marketplace, auth_calls, catalog_calls, i
         parse_product_text_safety_sidecar(text_data, candidate_content=data, candidates=candidates,
                                          filename="current_product_text.csv"),
         auth_calls, catalog_calls, tuple(input_files), len(verified_rows),
-        converted.excluded_row_count, datetime.now(timezone.utc).isoformat())
+        converted.excluded_row_count, datetime.now(timezone.utc).isoformat(),
+        measurements_for_run(verified_rows) if marketplace == "MY" else ())
 
 
 def evaluate_sora_run(run, inventories=(), *, body_confirmations=None):
     inventories = tuple(inventories)
-    return evaluate_prelisting_gate(run.candidates, inventories,
+    result = evaluate_prelisting_gate(run.candidates, inventories,
         marketplace=run.marketplace, expected_shop_count=len(inventories),
         check_existing_listings=bool(inventories),
         ingredient_safety=run.ingredient_safety, product_text_safety=run.product_text_safety,
         sg_body_confirmations=body_confirmations)
+    return apply_my_volumetric(result, run.package_measurements)
 
 
 def sora_exports(run, result):

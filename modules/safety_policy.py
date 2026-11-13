@@ -21,7 +21,8 @@ CONDITIONS = {"always", "medical", "general", "spray", "mask", "weapon_attachmen
               "food", "laser", "certification", "sample", "used", "food_review", "battery",
               "sg_knife", "ph_contact_lens", "flammable_liquid", "alcohol_strength",
               "weapon_part", "mushroom_food", "toy_weapon", "pet_drug", "ph_weapon_decoration",
-              "pet_food_category"}
+              "pet_food_category", "eyewear", "weight_gain", "safety_helmet",
+              "root_category", "root_category_or_title", "category_contains", "hair_iron", "tw_blade"}
 RISKS = {"drug_or_hemp", "medical_or_therapeutic", "regulated_ingredient", "brand_ip",
          "weapon", "weapon_related_toy", "food_restricted", "shipping_restricted",
          "tobacco_or_vape", "alcohol", "license_or_certification_required", "own_penalty_product", "other"}
@@ -113,7 +114,7 @@ def mask_harmless_phrases(value):
                   lambda match: " " * len(match[0]), value)
 
 
-def _condition(rule, value, row, group):
+def _condition(rule, value, row, group, term=None):
     """Return BLOCK/REVIEW for a match, or None for a bounded exclusion."""
     condition = rule["condition"]
     action = rule["action"]
@@ -128,6 +129,32 @@ def _condition(rule, value, row, group):
     title = normalize_text(row.get("product_title", ""))
     category = normalize_text(row.get("category", ""))
     context = title + " " + value
+    if condition == "root_category":
+        return action if group == "category" and category.split(">")[0].strip() == term else None
+    if condition == "root_category_or_title":
+        roots = {
+            "TH-TW-COSMETICS": {"ビューティー", "ラグジュアリービューティー"},
+            "TH-ELECTRIC": {"家電&カメラ", "パソコン・周辺機器", "大型家電"},
+        }[rule["id"]]
+        if group == "category":
+            return action if term in roots and category.split(">")[0].strip() == term else None
+        return action if group == "title" and term not in roots else None
+    if condition == "category_contains":
+        return action if group == "category" else None
+    if condition == "eyewear":
+        if group == "category" and _eyewear_accessory(title):
+            return None
+        return action
+    if condition == "weight_gain":
+        return action if term != "増量" or re.search(
+            r"体重|ビタミン|サプリ|weight|vitamin|supplement", title + " " + category + " " + value) else None
+    if condition == "safety_helmet":
+        return None if re.search(r"自転車|バイク|二輪|サイクリング|cycling|bicycle|motorcycle", title + " " + category) else action
+    if condition == "hair_iron":
+        return action if term != "コテ" or re.search(r"ヘア|髪|カール|ストレート|hair", title + " " + category) else None
+    if condition == "tw_blade":
+        return action if term != "パチンコ" or re.search(
+            r"玩具|おもちゃ|投石|スリングショット|slingshot", title + " " + category) else None
     if condition == "alcohol_strength":
         strength = re.search(r"アルコール分\s*(?:約)?\s*\d+(?:\.\d+)?\s*%", value)
         beverage = re.search(r"飲料|飲み物|飲みもの|ドリンク|酒|ビール|ワイン|カクテル|"
@@ -216,11 +243,24 @@ def _condition(rule, value, row, group):
                              r"|(?:gun|sword)[- ](?:shaped|keychain|pendant)", context)
         return "BLOCK" if attached else "REVIEW"
     if condition in {"food", "food_review"} or food_only_fat:
+        if rule["id"] == "TH-TW-FOOD" and group == "category":
+            return action if category.split(">")[0].strip() in {
+                "食品", "食品・飲料", "食品・飲料・お酒", "food", "food & beverages", "grocery", "飲料"
+            } else None
         food_context = re.search(r"食品|フード|飲料|スナック|肉|ジャーキー|ソーセージ|ベーコン|ハム|卵|たまご|豆腐|アイスクリーム|乳製品|牛乳|食用油|キャノーラ油|野生キノコ|粉ミルク|food|snack|jerky|sausage|bacon|dairy|milk|tofu|seafood", context)
         cosmetic = re.search(r"シャンプー|トリートメント|化粧|美容|石鹸|石けん|ソープ|ヘア|shampoo|cosmetic|soap|hair", title)
         if group != "category" and cosmetic and not re.search(r"食品|食用|飲料|snack|food", title):
             return None
         food_category = re.search(r"食品|食品・飲料|food|grocery|飲料", category)
+        if rule["id"] in {"MY-HALAL-FOOD", "MY-SUGAR-RICE"}:
+            # These new MY rules require food identity; ingredient words alone
+            # must not turn a non-food (for example a cosmetic) into food.
+            food_title = re.search(
+                r"食品|食用|飲料|お菓子|菓子|キャンディ|飴|ゼリー|チョコ|クッキー|ケーキ|"
+                r"ラーメン|カレー|スープ|ソース|調味料|砂糖|上白糖|グラニュー糖|三温糖|"
+                r"お米|白米|玄米|精米|無洗米|もち米|豚肉|牛肉|鶏肉|ジャーキー|"
+                r"food|snack|candy|sugar|rice", title)
+            return action if food_category or food_title else None
         return action if food_context or food_category else (None if food_only_fat else "REVIEW")
     if condition == "laser":
         power = re.search(r"(\d+(?:\.\d+)?)\s*mw", context)
@@ -237,6 +277,14 @@ def _condition(rule, value, row, group):
 
 
 def _policy_pattern(term, rule):
+    if rule["id"] == "MY-SUGAR-RICE" and "米" in term:
+        # Named rice types can follow a place of origin (国産無洗米).
+        # Bare 米/お米 still need a left boundary; all need a right boundary
+        # so rice flour, tea and snacks are not treated as rice itself.
+        left = r"(?<![一-龥ぁ-んァ-ヶa-z])" if term in {"米", "お米"} else ""
+        return left + re.escape(term) + r"(?![一-龥ぁ-んァ-ヶa-z])"
+    if rule["id"] == "TH-TW-COSMETICS" and term == "リップ":
+        return r"(?<!ク)リップ"  # A stationery clip is not a cosmetic.
     if rule["id"] == "COMMON-SLS-PLANT-OTHER" and term == "種子":
         return r"種子(?!油|エキス|オイル)"
     if term == "アルコール":
@@ -373,9 +421,19 @@ def _fragrance_text_describes_product(value, occurrence):
                 or re.search(r"\b(?:this|the|our)\s+(?:(?:product|item)\s+)?is\s+(?:an?\s+)?$", prefix))
 
 
+def _eyewear_accessory(value):
+    return re.search(
+        r"(?:(?:度付き)?(?:サングラス|メガネ|眼鏡|めがね|eyeglasses|reading glasses)\s*(?:用(?:の)?\s*)?)"
+        r"(?:ケース|拭き|クロス|クリーナー|チェーン|ストラップ|case|wipes?|cloth|cleaner|chain|strap)", value)
+
+
 def _mask_official_gap_exclusions(value, rule_id, row):
     """Mask only the specified occurrence, preserving independent positive hits."""
     patterns = []
+    if rule_id == "MY-EYEWEAR":
+        # Keep a separate body mention in a bundle; mask just the accessory.
+        while match := _eyewear_accessory(value):
+            value = value[:match.start()] + " " * len(match[0]) + value[match.end():]
     if rule_id in {"COMMON-TOBACCO", "COMMON-GENERAL-TITLE-tobacco_or_vape",
                    "COMMON-GENERAL-TEXT-tobacco_or_vape"}:
         # DEC-0181 follow-up: a smell or stain being removed is not tobacco,
@@ -527,7 +585,8 @@ def evaluate_policy(row, marketplace, rules=None):
                                     and ("コロン" in normalized or "cologne" in normalized))
                 softener_category = (rule["id"] == "COMMON-SLS-LAUNDRY"
                                      and normalized in {"柔軟剤", "柔軟仕上げ剤", "fabric softener"})
-                if (group == "category" and rule["id"] not in {"SG-AMULET", "COMMON-SLS-PLANT", "COMMON-ALCOHOL-CATEGORY"}
+                if (group == "category" and rule["id"] not in {"SG-AMULET", "COMMON-SLS-PLANT", "COMMON-ALCOHOL-CATEGORY", "TH-TW-FOOD"}
+                        and rule["condition"] != "category_contains"
                         and not cologne_category and not softener_category):
                     if not (normalized == value if ">" in normalized else normalized in [n.strip() for n in value.split(">")]):
                         continue
@@ -558,7 +617,7 @@ def evaluate_policy(row, marketplace, rules=None):
                         end = occurrences[index + 1].start() if index + 1 < len(occurrences) else len(value)
                         if not _contains_rule_term(value[start:end], probe):
                             continue
-                    action = _condition(rule, value, rule_row, group)
+                    action = _condition(rule, value, rule_row, group, normalized)
                     ingredient_list = any(start <= occurrence.start() and occurrence.end() <= end
                                           for start, end in sections)
                     if ingredient_list:

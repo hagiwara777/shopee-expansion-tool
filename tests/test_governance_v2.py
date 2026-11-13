@@ -75,7 +75,8 @@ def test_gv2_config_001_machine_state_and_manifest_validate() -> None:
         "PH": {"operation": "ACTIVE", "development_policy": "ALLOWED"},
         "SG": {"operation": "ACTIVE", "development_policy": "ALLOWED"},
         "MY": {"operation": "INACTIVE", "development_policy": "ALLOWED"},
-        "TH": {"operation": "INACTIVE", "development_policy": "NOT_STARTED"},
+        "TH": {"operation": "INACTIVE", "development_policy": "ALLOWED"},
+        "TW": {"operation": "INACTIVE", "development_policy": "ALLOWED"},
     }
     assert "active_task" not in bundle.state
 

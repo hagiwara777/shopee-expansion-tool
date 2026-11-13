@@ -24,15 +24,16 @@ DEC-0181により、Owner指定のたばこ・酒・農薬・検査キット等�
 合成した代表例による確認であり、公式一覧の独立監査・全実商品での検出保証ではない。
 DEC-0182により、Shopee公式記事との照合で見つかった駆除剤・缶やガス系・目薬・絆創膏類・ギフト券・要冷蔵食品・
 SGのペットフード／医療用手袋／肉入り加工食品・PHのアウトドアナイフの穴を、市場別範囲を保って塞ぐ。
-DEC-0183／0184により、SoraでMYを対象国に選べる。MYの禁止設定は別タスクで作成し、完成までMYは「通過」を出さず、
-通過になる商品も要確認とする（出力の通過ASINは空）。THの着手禁止、PH／SG保護と必須CIは維持する。
+DEC-0189により、SoraはSG／PH／MY／TH／TWを対象とし、MY・TH・TWも国別ルールとCounterfeit一覧で通過を出せる。
+国別CSV辞書の有無と禁止設定の完成を分離する。MY食品成分、TH／TW化粧品・食品、現地ライセンス対象等を止め、MY容積重量超過は要確認にする。
+GovernanceのMY・TH・TWはINACTIVE／ALLOWEDのまま、受入済みcapabilityは作らない。Sora以外の市場開発・運用接続、実API・実商品の別承認、PH／SG保護と必須CIを維持する。
 DEC-0188により、保安ルールを物そのもの（item）と中身・表示（content）へ分ける。
 itemは説明文・成分を読まず、contentの既存対象欄を維持する。SGの動物性脂肪・きのこだけ成分欄を追加し、
 脂肪の成分欄は食品に限定する。全区分と対象欄は`guardrails/policy/rules.json`、区分の索引は`NG/`を参照する。
 保存表示と酸化剤成分はcontentへ分離し、整髪用グリス類と酒カテゴリの最上位を区別する。
 
 現在の完成線はDEC-0165、入口はDEC-0171／0172を適用する。呼び名はSoraとし、通常app.pyはASIN確認と出品前保安ゲートを使う。
-Soraは外部で特定・収集したASINをPH／SGの保安判定後にFROMAXへ渡す。
+Soraは外部で特定・収集したASINをSG／PH／MY／TH／TWの保安判定後にFROMAXへ渡す。
 候補探し・出品設定・価格・在庫・正式なSLS配送条件はFROMAXの責務とする。
 
 通常経路は「ASIN貼付／FROMAXのKeepa CSV→SP-APIによるASIN確認→保安ゲート→通過ASINをFROMAXへ」である。
@@ -61,7 +62,8 @@ FROMAX CSVのルベル100件はSG／PHとも97通過・3要確認・0停止で�
 旧SG調査62商品から特定した47 ASINと区別する。
 Owner／ClaudeはPH258件・SG215件の6リストを実機で再比較し、前回の修正が実商品では一部にしか効かなかったと報告した。
 Ownerは2026-11-13の版でPH90件・SG78件を実行し、その中の誤停止を報告した（全件の商品Factは未提供）。
-次の単一工程は、正式版にDEC-0188を反映した後、Ownerが対象商品を実機で再比較し、別の停止理由もASIN単位で確認することである。
+次の単一工程は、OwnerがMY・TH・TWそれぞれ実商品50〜100件を画面から3回確認し、既知禁止品の非通過と理由をASIN単位で照合することである。
+この完成確認後のACTIVE化・受入記録は別タスクとする。PH／SGの誤停止の実機再比較も未実施分を保持する。
 実APIは対象・商品取得回数・認証回数を固定した個別許可とする。
 入口変更時は結果一覧の照合のみを行い、保存資料のない全件offline再判定は実施しなかった。
 Soraの要確認CSV・停止CSVは各区分の全件を出力する。画面表は各区分の先頭100件までとし、通過・要確認・停止のいずれかが100件を超える場合だけ、全件を要確認CSV・停止CSV・通過ASIN TXTで確認できることを案内する。
@@ -250,7 +252,7 @@ Shadowの既知の後続確認は比較表示の実用性と比較不能事例�
 稼働環境更新・実商品・API利用は別の明示承認を要し、Resolver／Mapper内部接続へ自動拡張しない。
 未採用のShadow／Keepa／分類接続成果を、この方針の採用によって正式成果へ昇格しない。
 TW／THの市場runtime開始はPH・SG共通実務Beta受入後に別scopeで判断する。
-MYはDEC-0183／0184により、Sora経路の対象国に選べる（運用開始ではなく、MY用の禁止設定が完成するまで通過を出さない）。
+MY・TH・TWはDEC-0189によりSora経路で国別判定・通過出力を行える。旧市場runtimeの接続・ACTIVE化は含まない。
 過去の固定基準は[PH Beta市場展開](PH_BETA_MARKET_PARITY.md)、新しい完成基準・順序はDEC-0137の完成条件を参照する。
 
 ## 旧工程で成立済みの成果と保護境界（履歴）
@@ -261,7 +263,7 @@ MYはDEC-0183／0184により、Sora経路の対象国に選べる（運用開�
 - 通常PH画面内のPH / SG Category Mapperは共通の市場選択入口と確認手順を使用する（DEC-0115）。
   Category検索・採用の表記を揃え、PHのグループ確認とSGの商品単位確認を維持する。
   SGのAI候補・Brand確認結果保存・CSV / TXT出力は未提供として表示し、機能を有効化しない。
-- PHはACTIVE / ALLOWED、SGはACTIVE / ALLOWED、MYはINACTIVE / ALLOWED（DEC-0183／0184）、THはINACTIVE / NOT_STARTED。
+- PHとSGはACTIVE / ALLOWED、MY・TH・TWはINACTIVE / ALLOWED（DEC-0189）。
   `ph.beta.operation`と`sg.safety.baseline`はACCEPTED。
 - SG production Category source確認、catalog import offline成果、6実商品の人間Category確認・
   保存・再利用・current ID / path / leaf再validationは正式採用済み（DEC-0093 / DEC-0098 / DEC-0103）。
@@ -345,7 +347,7 @@ Brand / No Brand・SLS live acceptanceとSeller Center E2Eは未実施。
 production API / DB / schema、Bridge / credential変更、runtime切替、deploy、
 専用環境の範囲を超える出口開放、自動確定・出品は別scope・別途明示承認を要する。
 新しいAPI枠は具体的対象・取得数・費用の明示承認を要し、過去枠をリセットしない。
-MY / THは画像対象設定・共通選択契約を準備する。THの市場runtime / Safety / 出品接続は未着手とする。MYはDEC-0183／0184の範囲（Sora経路のみ・禁止設定の完成まで通過なし）に限り、運用開始は含まない。未実施事項だけを新しいBeta MUSTへ昇格しない。
+MY / THは画像対象設定・共通選択契約を準備する。MY・TH・TWはDEC-0189のSora国別判定・通過出力だけを対象とし、旧市場runtime・出品接続・運用開始は含まない。未実施事項だけを新しいBeta MUSTへ昇格しない。
 
 共通Catalog / Access Token Sourceの既存責務は維持する。Mapper側refreshは行わず、
 Source明示ON時のsilent fallbackを許さない。Bridge全面書込み障害時の旧token無効化は保証しない。
@@ -356,6 +358,8 @@ SG Brand responseにmarketplace / Category echoがないため、server内部の
 A1の正式採用と効果評価が終わるまでA2・Bを保留し、その後も別のOwner判断なく追加開発へ着手しない。
 
 ## Required Decisions
+
+- DEC-0189 — MY／TH／TWのSora国別判定、MY容積重量、ブランド一覧、INACTIVE維持と保護変更の限定例外。
 
 - DEC-0188 — item／contentの線引き、分割・対象欄、SG成分欄の食品限定の例外と合成検証の限界。
 - DEC-0187 — NGを足す手順の一本化、同じ語の重なりの検出、段階Bを行わない理由。

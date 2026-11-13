@@ -5,7 +5,8 @@
     "PH": {"operation": "ACTIVE", "development_policy": "ALLOWED"},
     "SG": {"operation": "ACTIVE", "development_policy": "ALLOWED"},
     "MY": {"operation": "INACTIVE", "development_policy": "ALLOWED"},
-    "TH": {"operation": "INACTIVE", "development_policy": "NOT_STARTED"}
+    "TH": {"operation": "INACTIVE", "development_policy": "ALLOWED"},
+    "TW": {"operation": "INACTIVE", "development_policy": "ALLOWED"}
   },
   "capabilities": {
     "ph.beta.operation": {
@@ -24,8 +25,8 @@
   },
   "stop_condition_ids": [
     "no-external-api-without-approval",
-    "no-my-eligible-before-my-ng-rules",
-    "no-th-product-work",
+    "no-my-th-tw-active-before-owner-completion",
+    "no-my-th-tw-product-work-outside-sora",
     "no-publication-without-approval",
     "preserve-ph-operation"
   ],

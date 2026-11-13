@@ -173,6 +173,7 @@ def normalize_catalog_item(item: Mapping, *, fetched_at: str) -> dict[str, Any]:
     """Map Amazon facts to existing safety transports with their actual provider."""
     from modules.ingredient_safety import IngredientSafetyFact, ingredient_safety_fact_to_payload
     from modules.product_text_safety import ProductTextSafetyFact, product_text_safety_fact_to_payload
+    from modules.sora_volumetric import package_measurements_from_attributes
 
     asin = item.get("asin", "")
     attributes = item.get("attributes", {})
@@ -222,6 +223,7 @@ def normalize_catalog_item(item: Mapping, *, fetched_at: str) -> dict[str, Any]:
         "fetched_at": fetched_at,
         "ingredient_safety_fact": ingredient_safety_fact_to_payload(ingredients),
         "product_text_safety_fact": product_text_safety_fact_to_payload(text),
+        "package_measurements": package_measurements_from_attributes(asin, attributes),
     }
 
 

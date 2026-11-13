@@ -21,6 +21,10 @@ from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from modules.brand_monitoring import country_brand_names
+
 GUARDRAILS = ROOT / "guardrails"
 OUT_DIR = ROOT / "NG"
 COLUMNS = ("group", "id", "markets", "action", "scope", "target", "basis", "note", "source_file")
@@ -45,8 +49,10 @@ CODE_RULES = (
      "自分の方針", "電池入りは出品しない", "modules/battery_presence.py"),
     ("CODE-SG-BODY", "SG", "REVIEW", "SGの本体・実同梱の確認が必要な商品",
      "自分の方針", "SG本体確認", "modules/prelisting_sg_body_safety.py"),
-    ("CODE-MARKET-NG-INCOMPLETE", "MY", "REVIEW", "国別の禁止設定が未完成の国は、通過を出さず全件要確認",
-     "自分の方針", "DEC-0183／0184", "modules/sora_markets.py"),
+    ("CODE-MARKET-NG-INCOMPLETE", "ALL", "REVIEW", "国別の禁止設定が未完成の国だけ、通過候補を要確認にする",
+     "自分の方針", "DEC-0183／0184／0189（SG・PH・MY・TH・TWは設定済み）", "modules/sora_markets.py"),
+    ("MY-VOLUMETRIC", "MY", "REVIEW", "容積重量kg＝縦cm×横cm×高さcm÷6000 が実重量kgを上回る商品",
+     "自分の方針", "DEC-0189; 梱包値を優先、商品値へfallback。欠損時は通過を妨げずサイズ情報なしと記録", "modules/sora_volumetric.py"),
     ("CODE-SLS-CATEGORY-PH", "PH", "BLOCK", "Shopeeカテゴリ確定後、SLSで発送不可のカテゴリ（Sora保安ゲートには未接続）",
      "Shopee公式", "カテゴリ対応画面のみ", "modules/sls_category_rules.py"),
     ("CODE-SLS-CATEGORY-SG", "SG", "BLOCK", "Shopeeカテゴリ確定後、SLSで発送不可のカテゴリ（Sora保安ゲートには未接続）",
@@ -60,14 +66,9 @@ SUPPORT_FILES = (
     "sls_shared/README.md", "sls_market_categories/README.md",
     "sls_market_categories/.gitattributes", "sls_market_categories/source-lock.json",
     "sls_market_categories/canonical.manifest.json",
-    # Shopee's Counterfeit lists for MY/TH/TW are stored but not read by Sora yet.  They move
-    # to _brand_rows when the MY/TH/TW gate work (DEC-0189) starts reading them.
-    "brand_monitoring/counterfeit_my.json", "brand_monitoring/counterfeit_th.json",
-    "brand_monitoring/counterfeit_tw.json",
 )
-# SLS tables listed row by row.  TH/TW/VN/BR tables are kept in the repository but are not
-# listed until those markets are worked on.
-SLS_LEDGER_MARKETS = ("SG", "PH", "MY")
+# SLS tables listed row by row; VN/BR remain stored for later work.
+SLS_LEDGER_MARKETS = ("SG", "PH", "MY", "TH", "TW")
 SUPPORT_PREFIXES = ("sls_market_categories/provenance/",)
 
 
@@ -113,10 +114,15 @@ def _brand_rows(used: set[str]) -> list[dict[str, str]]:
             ("ipr.json", "ブランド（IPR）", "ALL", "Shopee公式"),
             ("counterfeit_sg.json", "ブランド（Counterfeit）", "SG", "Shopee公式"),
             ("counterfeit_ph.json", "ブランド（Counterfeit）", "PH", "Shopee公式"),
+            ("counterfeit_my.json", "ブランド（Counterfeit）", "MY", "Shopee公式"),
+            ("counterfeit_th.json", "ブランド（Counterfeit）", "TH", "Shopee公式"),
+            ("counterfeit_tw.json", "ブランド（Counterfeit）", "TW", "Shopee公式"),
             ("company.json", "ブランド（自社方針）", "ALL", "自分の方針")):
         path = base / name
         used.add(_rel(path))
-        for brand in json.loads(path.read_text(encoding="utf-8"))["brands"]:
+        names = dict.fromkeys(name for brand in json.loads(path.read_text(encoding="utf-8"))["brands"]
+                             for name in country_brand_names(brand, markets))
+        for brand in names:
             rows.append({"group": group, "id": f"{name.split('.')[0].upper()}:{brand}", "markets": markets,
                          "action": "BLOCK", "target": brand, "basis": basis, "note": "", "source_file": _rel(path)})
     path = base / "title_review.json"
@@ -154,7 +160,7 @@ def _dictionary_rows(used: set[str]) -> list[dict[str, str]]:
     used.add(_rel(path))
     for row in _csv_rows(path):
         if _enabled(row):
-            rows.append({"group": "電池の確認", "id": f"SLS_BATTERY:{row['term']}", "markets": "PH/SG/MY",
+            rows.append({"group": "電池の確認", "id": f"SLS_BATTERY:{row['term']}", "markets": "PH/SG/MY/TH/TW",
                          "action": row["action"], "target": row["term"],
                          "basis": BASIS.get(row["source_type"], row["source_type"]),
                          "note": row["note"], "source_file": _rel(path)})
@@ -293,7 +299,7 @@ def render_markdown(rows: list[dict[str, str]]) -> str:
         "ブランド、国別辞書、仲間内報告、SLS発送可否（発送不可・要確認のカテゴリ）は件数が多いため、",
         "上の表は件数だけです。1件ずつの内容は `NG/ledger.csv` を表計算ソフトで開いて絞り込みます。",
         "SLS発送可否は、Shopeeのカテゴリが確定した後のカテゴリ対応画面でだけ使われ、Soraの保安ゲートには接続していません。",
-        "SLSの表はSG・PH・MYだけを載せています（TH・TW・VN・BRの表は保存済みですが、着手時に載せます）。",
+        "SLSの表はSG・PH・MY・TH・TWを載せています（VN・BRは保存済みで後続工程）。",
         "",
         "## 同じ語が2か所にある場合",
         "",

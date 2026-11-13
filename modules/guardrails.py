@@ -12,7 +12,7 @@ from modules.safety_policy import SafetyPolicyError, load_policy_rules, evaluate
 from modules.battery_presence import assess_battery_presence
 from modules.match_context import excerpt_at
 from modules.brand_monitoring import BrandMonitoringError, load_brand_monitoring
-from modules.sora_markets import market_without_country_dictionaries
+from modules.sora_markets import SORA_MARKETS, market_without_country_dictionaries
 from modules.home_appliances_classifier import (
     A as HOME_APPLIANCE_A,
     B as HOME_APPLIANCE_B,
@@ -195,15 +195,13 @@ def apply_guardrails(
     marketplace: str = "SG",
 ) -> list[dict[str, str]]:
     normalized_marketplace = _normalize_apply_marketplace(marketplace)
-    # DEC-0183: a Sora market without country dictionaries (MY) is evaluated
-    # with the shared settings only.  It never borrows another country's
-    # dictionaries or counterfeit list; its gate result is held by the market
-    # profile until the Owner finishes that market's NG settings.
+    # DEC-0189: CSV dictionaries, country counterfeit lists and NG completeness
+    # are independent. No market borrows another market's CSV dictionaries.
     no_country_dictionaries = market_without_country_dictionaries(normalized_marketplace)
     try:
         monitoring = (
             load_brand_monitoring(normalized_marketplace, without_country_list=True)
-            if no_country_dictionaries
+            if not SORA_MARKETS[normalized_marketplace].country_counterfeit_list
             else load_brand_monitoring(normalized_marketplace)
         )
     except BrandMonitoringError as exc:
