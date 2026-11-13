@@ -54,8 +54,9 @@ def test_plant_exclusions_do_not_cancel_a_separate_plant_product(market):
 
 
 @pytest.mark.parametrize("term", ["園芸用土", "生きた動物"])
-def test_plant_scope_correction_does_not_change_other_shipping_terms(term):
-    assert guarded(description=term)["guardrail_status"] == "BLOCK"
+def test_shipping_item_terms_require_title_or_category(term):
+    assert guarded(description=term)["guardrail_status"] == "SAFE"
+    assert guarded(term)["guardrail_status"] == "BLOCK"
 
 
 @pytest.mark.parametrize("market", ["SG", "PH"])
@@ -163,12 +164,12 @@ def test_makeup_wine_color_is_not_a_drink(market, term):
     "香水や他のフレグランスを使用する方におすすめ",
     "香水の香りを邪魔しない",
 ])
-def test_only_a_reference_to_the_users_other_perfume_is_excluded(market, phrase):
+def test_perfume_item_scope_ignores_all_description_mentions(market, phrase):
     assert guarded(market=market, description=phrase)["guardrail_status"] == "SAFE"
     assert guarded("香水", market=market, description=phrase)["guardrail_status"] == "BLOCK"
-    assert guarded(market=market, description=phrase + "。この商品は香水です")["guardrail_status"] == "BLOCK"
-    assert guarded(market=market, description=phrase + "。本品は香水タイプです")["guardrail_status"] == "BLOCK"
-    assert guarded(market=market, description=phrase + "。オードパルファム入り")["guardrail_status"] == "BLOCK"
+    assert guarded(market=market, description=phrase + "。この商品は香水です")["guardrail_status"] == "SAFE"
+    assert guarded(market=market, description=phrase + "。本品は香水タイプです")["guardrail_status"] == "SAFE"
+    assert guarded(market=market, description=phrase + "。オードパルファム入り")["guardrail_status"] == "SAFE"
 
 
 @pytest.mark.parametrize("market", ["SG", "PH"])
@@ -185,12 +186,12 @@ def test_perfume_product_category_is_blocked_even_with_an_other_perfume_referenc
 
 
 @pytest.mark.parametrize("market", ["SG", "PH"])
-def test_perfume_mentions_without_confirmed_other_product_context_still_block(market):
-    assert guarded(market=market, description="香水を同梱しています")["guardrail_status"] == "BLOCK"
-    assert guarded(market=market, description="無香料。香水を同梱しています")["guardrail_status"] == "BLOCK"
-    assert guarded(market=market, description="お手持ちの香水を同梱しています")["guardrail_status"] == "BLOCK"
-    assert guarded(market=market, description="香水のような商品です")["guardrail_status"] == "BLOCK"
-    assert guarded(market=market, description="本品はフレグランスです")["guardrail_status"] == "BLOCK"
-    assert guarded(market=market, description="This product is a perfume")["guardrail_status"] == "BLOCK"
+def test_perfume_descriptions_alone_do_not_identify_an_item(market):
+    assert guarded(market=market, description="香水を同梱しています")["guardrail_status"] == "SAFE"
+    assert guarded(market=market, description="無香料。香水を同梱しています")["guardrail_status"] == "SAFE"
+    assert guarded(market=market, description="お手持ちの香水を同梱しています")["guardrail_status"] == "SAFE"
+    assert guarded(market=market, description="香水のような商品です")["guardrail_status"] == "SAFE"
+    assert guarded(market=market, description="本品はフレグランスです")["guardrail_status"] == "SAFE"
+    assert guarded(market=market, description="This product is a perfume")["guardrail_status"] == "SAFE"
     assert guarded("フレグランスフリーの乳液", market=market)["guardrail_status"] == "SAFE"
     assert guarded("fragrance-free lotion", market=market)["guardrail_status"] == "SAFE"

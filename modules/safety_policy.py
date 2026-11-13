@@ -15,6 +15,8 @@ from modules.ingredient_text_sections import ingredient_spans
 
 POLICY_DIR = Path(__file__).resolve().parents[1] / "guardrails" / "policy"
 FIELDS = {"title", "text", "ingredients", "category", "brand", "asin"}
+ITEM_FIELDS = {"title", "category", "brand", "asin"}
+ITEM_COLUMNS = ("product_title", "category", "brand", "candidate_asin")
 CONDITIONS = {"always", "medical", "general", "spray", "mask", "weapon_attachment",
               "food", "laser", "certification", "sample", "used", "food_review", "battery",
               "sg_knife", "ph_contact_lens", "flammable_liquid", "alcohol_strength",
@@ -29,6 +31,13 @@ INGREDIENT_FIELDS = ("ingredients", "activeIngredients", "specialIngredients")
 
 class SafetyPolicyError(ValueError):
     pass
+
+
+def _validate_scope(rule):
+    if rule.get("scope") not in ("item", "content"):
+        raise SafetyPolicyError("保安ルールのscopeはitemまたはcontentで指定してください。判定を停止しました。")
+    if rule["scope"] == "item" and any(field not in ITEM_FIELDS for field in rule["fields"]):
+        raise SafetyPolicyError("itemの保安ルールに説明文・成分欄は指定できません。判定を停止しました。")
 
 
 @dataclass(frozen=True)
@@ -53,7 +62,7 @@ def load_policy_rules(directory=None):
             raise ValueError
         seen = set()
         for rule in data["rules"]:
-            if set(rule) != {"id", "markets", "action", "risk", "fields", "terms", "condition", "note", "source"}:
+            if set(rule) != {"id", "scope", "markets", "action", "risk", "fields", "terms", "condition", "note", "source"}:
                 raise ValueError
             if not isinstance(rule["id"], str) or not rule["id"] or rule["id"] in seen:
                 raise ValueError
@@ -66,6 +75,7 @@ def load_policy_rules(directory=None):
                 if (not isinstance(rule[key], list) or not rule[key] or len(set(rule[key])) != len(rule[key])
                         or any(value not in allowed for value in rule[key])):
                     raise ValueError
+            _validate_scope(rule)
             if "ALL" in rule["markets"] and rule["markets"] != ["ALL"]:
                 raise ValueError
             if (not isinstance(rule["terms"], list) or not rule["terms"]
@@ -107,11 +117,12 @@ def _condition(rule, value, row, group):
     """Return BLOCK/REVIEW for a match, or None for a bounded exclusion."""
     condition = rule["condition"]
     action = rule["action"]
+    food_only_fat = rule["id"] == "SG-ANIMAL-FAT" and group == "ingredients"
     if condition == "battery":
         if group != "title" or re.search(r"(?:ケース|ホルダー|用カバー|用替刃|別売|付属しません|not included|holder|case|cover|not supplied)", value):
             return None
         return action
-    if condition in {"always", "medical"}:
+    if condition in {"always", "medical"} and not food_only_fat:
         return action
     from modules.guardrails import normalize_text
     title = normalize_text(row.get("product_title", ""))
@@ -204,13 +215,13 @@ def _condition(rule, value, row, group):
                              r"|(?:with|includes?|equipped with)\s+(?:a\s+)?(?:sword|gun|weapon|knife)"
                              r"|(?:gun|sword)[- ](?:shaped|keychain|pendant)", context)
         return "BLOCK" if attached else "REVIEW"
-    if condition in {"food", "food_review"}:
-        food_context = re.search(r"食品|フード|飲料|スナック|肉|ジャーキー|ソーセージ|ベーコン|ハム|卵|豆腐|アイスクリーム|乳製品|牛乳|食用油|野生キノコ|粉ミルク|food|snack|jerky|sausage|bacon|dairy|milk|tofu|seafood", context)
+    if condition in {"food", "food_review"} or food_only_fat:
+        food_context = re.search(r"食品|フード|飲料|スナック|肉|ジャーキー|ソーセージ|ベーコン|ハム|卵|たまご|豆腐|アイスクリーム|乳製品|牛乳|食用油|キャノーラ油|野生キノコ|粉ミルク|food|snack|jerky|sausage|bacon|dairy|milk|tofu|seafood", context)
         cosmetic = re.search(r"シャンプー|トリートメント|化粧|美容|石鹸|石けん|ソープ|ヘア|shampoo|cosmetic|soap|hair", title)
         if group != "category" and cosmetic and not re.search(r"食品|食用|飲料|snack|food", title):
             return None
         food_category = re.search(r"食品|食品・飲料|food|grocery|飲料", category)
-        return action if food_context or food_category else "REVIEW"
+        return action if food_context or food_category else (None if food_only_fat else "REVIEW")
     if condition == "laser":
         power = re.search(r"(\d+(?:\.\d+)?)\s*mw", context)
         return ("BLOCK" if float(power[1]) >= 5 else None) if power else "REVIEW"
@@ -410,6 +421,10 @@ def _mask_official_gap_exclusions(value, rule_id, row):
         patterns.append(r"(?:天然)?(?:精油|アロマオイル)(?=\s*(?:配合|入り|入|使用|の香り|ブレンドの香り|成分))")
     if rule_id == "COMMON-SLS-CAROIL":
         patterns.append(r"(?:cpu|熱伝導|サーマル|シリコン放熱)\s*グリ[スー]+ス?|グリスガン用?ノズル")
+        from modules.guardrails import normalize_text
+        product_kind = normalize_text(row.get("product_title", "")) + " " + normalize_text(row.get("category", ""))
+        if re.search(r"ヘア|髪|整髪|スタイリング|ワックス|(?<![a-z0-9])(?:hair|styling)(?![a-z0-9])", product_kind):
+            patterns.append(r"グリス|グリース|(?<![a-z0-9])grease(?![a-z0-9])")
     if rule_id == "COMMON-SLS-FOOD":
         patterns.append(r"豆乳(?=\s*(?:イソフラボン|発酵液|ローション|クリーム|洗顔|乳液|化粧水|美容|パック|ボディ|ハンド|石鹸|せっけん|ソープ|シャンプー))")
     if rule_id == "COMMON-SLS-CAR-CHECK":
@@ -443,25 +458,35 @@ def evaluate_policy(row, marketplace, rules=None):
     # Future-market data never enables its UI, credentials, or operations.
     from modules.guardrails import normalize_text, _contains_rule_term, GuardrailRule
     rules = load_policy_rules() if rules is None else rules
+    # Give item rules only identity fields, including in condition/exclusion
+    # helpers.  A future helper cannot expand item scope by reading product text.
+    item_row = {name: row.get(name) for name in ITEM_COLUMNS}
     hits = []
     for rule in rules:
+        _validate_scope(rule)  # Also reject invalid directly supplied rules.
         if "ALL" not in rule["markets"] and marketplace not in rule["markets"]:
             continue
-        for group, field, raw in _values(row, rule["fields"]):
+        rule_row = item_row if rule["scope"] == "item" else row
+        for group, field, raw in _values(rule_row, rule["fields"]):
             is_ingredient_policy_text = rule["id"] == "COMMON-COSMETIC-INGREDIENT" and group == "text"
             # Section boundaries need their original line/HTML structure.  The
             # other policies keep their existing whitespace normalization.
             original = (unicodedata.normalize("NFKC", raw).strip().lower()
                         if is_ingredient_policy_text else normalize_text(raw))
             value = mask_harmless_phrases(original) if rule["condition"] == "general" else original
-            value = _mask_official_gap_exclusions(value, rule["id"], row)
+            value = _mask_official_gap_exclusions(value, rule["id"], rule_row)
+            if rule["id"] == "COMMON-ALCOHOL-CATEGORY" and group == "category":
+                # The Amazon root "食品・飲料・お酒" is not alcohol evidence.
+                # Keep offsets so the hit cites only a later matching node.
+                root = value.split(">", 1)[0]
+                value = " " * len(root) + value[len(root):]
             exclusions = {"SG-AMULET": r"お守り(?:ください|下さい)",
                           "COMMON-SLS-PLANT": r"植物(?:由来|性|エキス|オイル|アロマ)"}
             if rule["id"] in exclusions:
                 value = re.sub(exclusions[rule["id"]], lambda m: " " * len(m[0]), value)
             if rule["id"] == "COMMON-FINANCE":
                 value = re.sub(r"株式会社|\(株\)", lambda m: " " * len(m[0]), value)
-            if rule["id"] == "COMMON-SLS-PLANT" and _cosmetic_product(row):
+            if rule["id"] == "COMMON-SLS-PLANT" and _cosmetic_product(rule_row):
                 value = re.sub(r"(?<!観葉)和漢植物(?![の\s]{0,2}(?:本体|苗|種|鉢|栽培|生体|盆栽))",
                                lambda m: " " * len(m[0]), value)
             if rule["id"] == "COMMON-SLS-HAIRCOLOR":
@@ -469,7 +494,7 @@ def evaluate_policy(row, marketplace, rules=None):
                                lambda m: " " * len(m[0]), value)
             if rule["id"] == "PH-SLS":
                 from modules.guardrails import normalize_text
-                category = normalize_text(row.get("category", ""))
+                category = normalize_text(rule_row.get("category", ""))
                 if re.search(r"入浴剤|バスソルト|bath salts?", category):
                     value = re.sub(r"(?:食添|食品添加物)\s*[→⇒>]\s*(?:特号|特級)\s*[→⇒>]\s*肥料",
                                    lambda m: m[0][:-2] + "  ", value)
@@ -479,22 +504,22 @@ def evaluate_policy(row, marketplace, rules=None):
                     value = _mask_other_person_perfume(value)
                 if group in {"title", "text"}:
                     value = _mask_perfume_comparisons(value)
-                value = _mask_nonperfume_fragrance(value, row, group)
+                value = _mask_nonperfume_fragrance(value, rule_row, group)
                 value = re.sub(r"コロンビア|セミコロン|コロン記号|コロンと(?=$|した|丸|転が|かわい|可愛)",
                                lambda m: " " * len(m[0]), value)
             if rule["id"] == "COMMON-ALCOHOL-DRINK" and group in {"title", "text"}:
-                value = _mask_makeup_wine_colors(value, row)
+                value = _mask_makeup_wine_colors(value, rule_row)
             sections = ingredient_spans(original) if is_ingredient_policy_text else ()
             for term in rule["terms"]:
                 normalized = normalize_text(term)
                 toy_terms = {"PH-ORAL": {"歯ブラシ", "ハブラシ", "toothbrush"},
                              "COMMON-SLS-COIN": {"コイン", "coin", "coins"},
                              "COMMON-SLS-FOOD": {"牛乳", "milk"}}
-                if normalized in toy_terms.get(rule["id"], ()) and _category_is_toy(row):
+                if normalized in toy_terms.get(rule["id"], ()) and _category_is_toy(rule_row):
                     continue
                 if (rule["id"] == "COMMON-SLS-NAIL"
                         and normalized in {"ネイル", "ネイルケア", "ネイル用具", "nail care"}
-                        and _nail_tool(row)):
+                        and _nail_tool(rule_row)):
                     continue
                 if rule["id"] == "COMMON-SLS-PLANT-OTHER" and term == "種子" and group not in {"title", "category"}:
                     continue
@@ -502,7 +527,7 @@ def evaluate_policy(row, marketplace, rules=None):
                                     and ("コロン" in normalized or "cologne" in normalized))
                 softener_category = (rule["id"] == "COMMON-SLS-LAUNDRY"
                                      and normalized in {"柔軟剤", "柔軟仕上げ剤", "fabric softener"})
-                if (group == "category" and rule["id"] not in {"SG-AMULET", "COMMON-SLS-PLANT"}
+                if (group == "category" and rule["id"] not in {"SG-AMULET", "COMMON-SLS-PLANT", "COMMON-ALCOHOL-CATEGORY"}
                         and not cologne_category and not softener_category):
                     if not (normalized == value if ">" in normalized else normalized in [n.strip() for n in value.split(">")]):
                         continue
@@ -533,7 +558,7 @@ def evaluate_policy(row, marketplace, rules=None):
                         end = occurrences[index + 1].start() if index + 1 < len(occurrences) else len(value)
                         if not _contains_rule_term(value[start:end], probe):
                             continue
-                    action = _condition(rule, value, row, group)
+                    action = _condition(rule, value, rule_row, group)
                     ingredient_list = any(start <= occurrence.start() and occurrence.end() <= end
                                           for start, end in sections)
                     if ingredient_list:

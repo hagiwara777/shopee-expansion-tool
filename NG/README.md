@@ -38,6 +38,24 @@ Soraが「停止」「要確認」を出す根拠を、1か所で見るための
    | 成分で止める | `guardrails/deterministic_block_rules_v2.csv` |
 
    国別の禁止ブランド・危険語（`guardrails/*_sg.csv`／`*_ph.csv`）は既存分の保守だけに使い、新しいNGは`rules.json`に書く。
+
+   **保安ルールには必ず `scope` を付ける**（DEC-0188）。値は次の2つだけとし、欠落・不正値は読込エラーにする。
+
+   | scope | 方針と対象欄 |
+   |---|---|
+   | `item`（物そのもの） | SLS発送区分の商品群、食品の種類、マスク等、商品名かカテゴリに出る物の種類を止める。`fields` は元からあった `title`／`category` だけを残し、説明文の `text` と成分の `ingredients` を入れない。既存のブランド／ASIN一致ルールはその対象欄を維持する |
+   | `content`（中身・表示） | 医薬・成分NG・電池・引火性・エアゾール・武器・アダルト・酒類・たばこ・金融・公的物品・違法品等、違法やペナルティにかかわる表示を広めに止める。既存の `fields` を維持し、指定された説明文・成分も照合する |
+
+   卵・食用油・牛乳そのものを止める `item` ルールでは、加工食品の説明や原材料にその語があるだけでは止めない。
+   既存の `title`／`category`／`brand`／`asin` だけのルールは対象欄を変えず `item` とする。
+   `COMMON-GENERAL-TEXT-*` は、別の意味もある語を説明文では要確認にする既存方針のため `content` を維持する。
+   SGの肉・ラード・きのこ等を原材料に含む食品の停止は `content` のまま維持する。
+   Owner指定の例外として `SG-ANIMAL-FAT`／`SG-MUSHROOM` にだけ `ingredients` を追加する。
+   動物性脂肪の成分欄は食品判定が成立したときだけ有効（石けん等は対象外）とし、商品名・説明文は従来の `always` を維持する。
+   きのこの `mushroom_food` 条件は変えず、他の `content` ルールの対象欄は広げない。
+   保存表示の `COMMON-COLD-FOOD-LABEL`、酸化剤成分の `COMMON-TRANSPORT-OXIDIZER-INGREDIENT` も `content` とする。
+   全ルールの区分・対象欄は `rules.json`、区分の一覧は再生成した `ledger.csv`／`LEDGER.md` を参照する。
+
 3. **台帳を作り直す**：`python scripts/build_ng_ledger.py`。同じ語の重なりが新しくできたと表示されたら、1つにまとめる。意図的な重なり（例：商品名は停止・説明文は要確認）だけ `overlaps_accepted.txt` に足し、PRに理由を書く。
 4. **テスト**：止まってほしい商品名と、止まってほしくない似た商品名（止めすぎ防止）の両方をテストに足す。
 5. **判断記録**：Ownerの判断で足したNGは `docs/DECISION_LOG.md` に新しいDEC番号で残す。

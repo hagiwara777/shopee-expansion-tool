@@ -4,6 +4,7 @@
   "rules": [
     {
       "id": "COMMON-DRUG",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -35,6 +36,7 @@
     },
     {
       "id": "COMMON-RYUKAKUSAN",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -54,6 +56,7 @@
     },
     {
       "id": "COMMON-GENERAL-TITLE-other",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -85,6 +88,7 @@
     },
     {
       "id": "COMMON-GENERAL-TEXT-other",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -113,6 +117,7 @@
     },
     {
       "id": "COMMON-GENERAL-TITLE-medical_or_therapeutic",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -133,6 +138,7 @@
     },
     {
       "id": "COMMON-GENERAL-TEXT-medical_or_therapeutic",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -153,6 +159,7 @@
     },
     {
       "id": "COMMON-GENERAL-TITLE-tobacco_or_vape",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -171,6 +178,7 @@
     },
     {
       "id": "COMMON-GENERAL-TEXT-tobacco_or_vape",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -189,6 +197,7 @@
     },
     {
       "id": "COMMON-GENERAL-TITLE-alcohol",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -207,6 +216,7 @@
     },
     {
       "id": "COMMON-GENERAL-TEXT-alcohol",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -225,6 +235,7 @@
     },
     {
       "id": "COMMON-GENERAL-TITLE-weapon",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -244,6 +255,7 @@
     },
     {
       "id": "COMMON-GENERAL-TEXT-weapon",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -263,6 +275,7 @@
     },
     {
       "id": "COMMON-COSMETIC-INGREDIENT",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -298,6 +311,7 @@
     },
     {
       "id": "COMMON-DIPHENHYDRAMINE",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -320,6 +334,7 @@
     },
     {
       "id": "COMMON-GROWTH",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -342,6 +357,7 @@
     },
     {
       "id": "COMMON-CONDOM",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -362,6 +378,7 @@
     },
     {
       "id": "PH-SG-COMMUNITY-EISAI-ALIAS",
+      "scope": "item",
       "markets": [
         "PH",
         "SG"
@@ -380,6 +397,7 @@
     },
     {
       "id": "COMMON-SUPPLEMENT",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -402,6 +420,7 @@
     },
     {
       "id": "COMMON-SUPPLEMENT-CATEGORY",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -435,6 +454,7 @@
     },
     {
       "id": "COMMON-POWERBANK",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -455,6 +475,7 @@
     },
     {
       "id": "COMMON-BATTERY-SINGLE",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -492,6 +513,7 @@
     },
     {
       "id": "COMMON-LITHIUM-SIGNAL",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -513,6 +535,7 @@
     },
     {
       "id": "COMMON-WEAPON",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -551,6 +574,7 @@
     },
     {
       "id": "COMMON-WEAPON-DECORATION",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -577,6 +601,7 @@
     },
     {
       "id": "PH-WEAPON-DECORATION",
+      "scope": "content",
       "markets": [
         "PH"
       ],
@@ -603,6 +628,7 @@
     },
     {
       "id": "COMMON-FIRE-FUEL",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -635,6 +661,7 @@
     },
     {
       "id": "COMMON-DIGITAL",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -676,6 +703,7 @@
     },
     {
       "id": "COMMON-AEROSOL",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -718,6 +746,7 @@
     },
     {
       "id": "COMMON-STYLING-SPRAY",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -741,6 +770,7 @@
     },
     {
       "id": "COMMON-DRY-SPRAY",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -764,6 +794,7 @@
     },
     {
       "id": "COMMON-TRANSPORT-FLAMMABLE",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -785,6 +816,7 @@
     },
     {
       "id": "COMMON-TRANSPORT-FLAMMABLE-LIQUID",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -810,6 +842,27 @@
     },
     {
       "id": "COMMON-TRANSPORT-OXIDIZER",
+      "scope": "item",
+      "markets": [
+        "ALL"
+      ],
+      "action": "REVIEW",
+      "risk": "shipping_restricted",
+      "fields": [
+        "title"
+      ],
+      "terms": [
+        "漂白剤",
+        "オキシ",
+        "キッチンハイター"
+      ],
+      "condition": "always",
+      "note": "DEC-0167 / DEC-0170; SLS輸送確認。注意書きの漂白剤の明確な使用禁止だけを除外し、別の肯定表示は維持。; DEC-0188: 商品名・カテゴリで物の種類を照合",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-TRANSPORT-OXIDIZER-INGREDIENT",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -822,16 +875,15 @@
       "terms": [
         "過酸化水素",
         "ヘアカラーの2剤",
-        "オキシ",
-        "漂白剤",
         "hydrogen peroxide"
       ],
       "condition": "always",
-      "note": "DEC-0167 / DEC-0170; SLS輸送確認。注意書きの漂白剤の明確な使用禁止だけを除外し、別の肯定表示は維持。",
+      "note": "DEC-0167 / DEC-0170; SLS輸送確認。注意書きの漂白剤の明確な使用禁止だけを除外し、別の肯定表示は維持。; DEC-0188: 中身・保存表示を従来の対象欄で照合",
       "source": "internal_rule"
     },
     {
       "id": "COMMON-TRANSPORT-CORROSIVE",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -853,6 +905,7 @@
     },
     {
       "id": "COMMON-TRANSPORT-TOXIC",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -872,6 +925,7 @@
     },
     {
       "id": "COMMON-TRANSPORT-BIO",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -894,6 +948,7 @@
     },
     {
       "id": "COMMON-TRANSPORT-CHARCOAL",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -914,6 +969,7 @@
     },
     {
       "id": "COMMON-TRANSPORT-VALUABLES",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -940,6 +996,31 @@
     },
     {
       "id": "COMMON-COLD-FOOD",
+      "scope": "item",
+      "markets": [
+        "ALL"
+      ],
+      "action": "REVIEW",
+      "risk": "food_restricted",
+      "fields": [
+        "title"
+      ],
+      "terms": [
+        "納豆",
+        "キムチ",
+        "チルド",
+        "冷蔵食品",
+        "冷蔵品",
+        "生麺",
+        "生パスタ"
+      ],
+      "condition": "food_review",
+      "note": "DEC-0167; Ownerの出品方針による要確認; DEC-0188: 商品名・カテゴリで物の種類を照合",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-COLD-FOOD-LABEL",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -956,29 +1037,22 @@
         "変質しやすい",
         "perishable",
         "keep refrigerated",
-        "納豆",
-        "キムチ",
-        "チルド",
-        "冷蔵食品",
-        "冷蔵品",
-        "クール便",
-        "生麺",
-        "生パスタ"
+        "クール便"
       ],
       "condition": "food_review",
-      "note": "DEC-0167; Ownerの出品方針による要確認",
+      "note": "DEC-0167; Ownerの出品方針による要確認; DEC-0188: 中身・保存表示を従来の対象欄で照合",
       "source": "internal_rule"
     },
     {
       "id": "COMMON-SAMPLE",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
       "action": "REVIEW",
       "risk": "other",
       "fields": [
-        "title",
-        "text"
+        "title"
       ],
       "terms": [
         "サンプル",
@@ -995,14 +1069,14 @@
     },
     {
       "id": "COMMON-MASK",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
       "action": "BLOCK",
       "risk": "medical_or_therapeutic",
       "fields": [
-        "title",
-        "text"
+        "title"
       ],
       "terms": [
         "マスク",
@@ -1019,14 +1093,14 @@
     },
     {
       "id": "COMMON-PETFOOD",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
       "action": "BLOCK",
       "risk": "license_or_certification_required",
       "fields": [
-        "title",
-        "text"
+        "title"
       ],
       "terms": [
         "ペットフード",
@@ -1042,14 +1116,14 @@
     },
     {
       "id": "COMMON-FORMULA",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
       "action": "BLOCK",
       "risk": "food_restricted",
       "fields": [
-        "title",
-        "text"
+        "title"
       ],
       "terms": [
         "粉ミルク",
@@ -1065,14 +1139,14 @@
     },
     {
       "id": "COMMON-INFANT-DAIRY-UNKNOWN",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
       "action": "REVIEW",
       "risk": "food_restricted",
       "fields": [
-        "title",
-        "text"
+        "title"
       ],
       "terms": [
         "乳幼児用乳製品",
@@ -1085,6 +1159,7 @@
     },
     {
       "id": "COMMON-ANIMAL",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -1110,6 +1185,7 @@
     },
     {
       "id": "COMMON-LOTTERY",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -1134,6 +1210,7 @@
     },
     {
       "id": "COMMON-FINANCE",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -1163,6 +1240,7 @@
     },
     {
       "id": "COMMON-OFFICIAL",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -1199,6 +1277,7 @@
     },
     {
       "id": "COMMON-MERCURY",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -1219,6 +1298,7 @@
     },
     {
       "id": "COMMON-MERCURY-UNKNOWN",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -1238,6 +1318,7 @@
     },
     {
       "id": "COMMON-ALCOHOL-DRINK",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -1278,6 +1359,7 @@
     },
     {
       "id": "COMMON-TOBACCO",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -1319,6 +1401,7 @@
     },
     {
       "id": "COMMON-ADULT-TOY",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -1346,6 +1429,7 @@
     },
     {
       "id": "COMMON-ADULT-CATEGORY",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -1368,6 +1452,7 @@
     },
     {
       "id": "COMMON-SLS-PERFUME",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -1375,7 +1460,6 @@
       "risk": "shipping_restricted",
       "fields": [
         "title",
-        "text",
         "category"
       ],
       "terms": [
@@ -1407,6 +1491,7 @@
     },
     {
       "id": "COMMON-SLS-NAIL",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -1414,7 +1499,6 @@
       "risk": "shipping_restricted",
       "fields": [
         "title",
-        "text",
         "category"
       ],
       "terms": [
@@ -1439,6 +1523,7 @@
     },
     {
       "id": "COMMON-SLS-NAIL-COAT",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -1446,7 +1531,6 @@
       "risk": "shipping_restricted",
       "fields": [
         "title",
-        "text",
         "category"
       ],
       "terms": [
@@ -1461,6 +1545,7 @@
     },
     {
       "id": "COMMON-SLS-HAIRCOLOR",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -1468,7 +1553,6 @@
       "risk": "shipping_restricted",
       "fields": [
         "title",
-        "text",
         "category"
       ],
       "terms": [
@@ -1488,6 +1572,7 @@
     },
     {
       "id": "COMMON-SLS-SETTING",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -1495,7 +1580,6 @@
       "risk": "shipping_restricted",
       "fields": [
         "title",
-        "text",
         "category"
       ],
       "terms": [
@@ -1511,6 +1595,7 @@
     },
     {
       "id": "COMMON-SLS-OIL",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -1518,7 +1603,6 @@
       "risk": "shipping_restricted",
       "fields": [
         "title",
-        "text",
         "category"
       ],
       "terms": [
@@ -1534,6 +1618,7 @@
     },
     {
       "id": "COMMON-SLS-DIFFUSER",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -1541,7 +1626,6 @@
       "risk": "shipping_restricted",
       "fields": [
         "title",
-        "text",
         "category"
       ],
       "terms": [
@@ -1558,6 +1642,7 @@
     },
     {
       "id": "COMMON-SLS-SANITIZER",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -1565,7 +1650,6 @@
       "risk": "shipping_restricted",
       "fields": [
         "title",
-        "text",
         "category"
       ],
       "terms": [
@@ -1580,6 +1664,7 @@
     },
     {
       "id": "COMMON-SLS-LAUNDRY",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -1587,7 +1672,6 @@
       "risk": "shipping_restricted",
       "fields": [
         "title",
-        "text",
         "category"
       ],
       "terms": [
@@ -1627,6 +1711,7 @@
     },
     {
       "id": "COMMON-SLS-LAUNDRY-CATEGORY",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -1644,6 +1729,7 @@
     },
     {
       "id": "COMMON-SLS-PAINT",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -1651,7 +1737,6 @@
       "risk": "shipping_restricted",
       "fields": [
         "title",
-        "text",
         "category"
       ],
       "terms": [
@@ -1665,6 +1750,7 @@
     },
     {
       "id": "COMMON-SLS-CAROIL",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -1672,7 +1758,6 @@
       "risk": "shipping_restricted",
       "fields": [
         "title",
-        "text",
         "category"
       ],
       "terms": [
@@ -1700,6 +1785,7 @@
     },
     {
       "id": "COMMON-SLS-COIN",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -1707,7 +1793,6 @@
       "risk": "shipping_restricted",
       "fields": [
         "title",
-        "text",
         "category"
       ],
       "terms": [
@@ -1721,6 +1806,7 @@
     },
     {
       "id": "COMMON-SLS-PLANT",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -1740,6 +1826,7 @@
     },
     {
       "id": "COMMON-SLS-PLANT-OTHER",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -1747,7 +1834,6 @@
       "risk": "shipping_restricted",
       "fields": [
         "title",
-        "text",
         "category"
       ],
       "terms": [
@@ -1771,6 +1857,7 @@
     },
     {
       "id": "COMMON-SLS-FOOD",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -1778,7 +1865,6 @@
       "risk": "food_restricted",
       "fields": [
         "title",
-        "text",
         "category"
       ],
       "terms": [
@@ -1816,7 +1902,9 @@
         "妊婦用ミルク",
         "almond milk",
         "oat milk",
-        "soy milk"
+        "soy milk",
+        "キャノーラ油",
+        "たまご"
       ],
       "condition": "food",
       "note": "DEC-0167; Ownerの出品方針による停止",
@@ -1824,6 +1912,7 @@
     },
     {
       "id": "SG-GUM",
+      "scope": "item",
       "markets": [
         "SG"
       ],
@@ -1831,7 +1920,6 @@
       "risk": "food_restricted",
       "fields": [
         "title",
-        "text",
         "category"
       ],
       "terms": [
@@ -1846,6 +1934,7 @@
     },
     {
       "id": "SG-MEAT",
+      "scope": "content",
       "markets": [
         "SG"
       ],
@@ -1880,6 +1969,7 @@
     },
     {
       "id": "SG-RADIO",
+      "scope": "content",
       "markets": [
         "SG"
       ],
@@ -1902,6 +1992,7 @@
     },
     {
       "id": "SG-SPECIFIC",
+      "scope": "content",
       "markets": [
         "SG"
       ],
@@ -1948,6 +2039,7 @@
     },
     {
       "id": "SG-AMULET",
+      "scope": "item",
       "markets": [
         "SG"
       ],
@@ -1966,6 +2058,7 @@
     },
     {
       "id": "SG-KITCHEN-KNIFE",
+      "scope": "content",
       "markets": [
         "SG"
       ],
@@ -1986,6 +2079,7 @@
     },
     {
       "id": "SG-LASER",
+      "scope": "content",
       "markets": [
         "SG"
       ],
@@ -2005,6 +2099,7 @@
     },
     {
       "id": "SG-FOOD",
+      "scope": "content",
       "markets": [
         "SG"
       ],
@@ -2027,6 +2122,7 @@
     },
     {
       "id": "SG-NASAL",
+      "scope": "item",
       "markets": [
         "SG"
       ],
@@ -2034,7 +2130,6 @@
       "risk": "shipping_restricted",
       "fields": [
         "title",
-        "text",
         "category"
       ],
       "terms": [
@@ -2065,6 +2160,7 @@
     },
     {
       "id": "PH-ORAL",
+      "scope": "item",
       "markets": [
         "PH"
       ],
@@ -2072,7 +2168,6 @@
       "risk": "medical_or_therapeutic",
       "fields": [
         "title",
-        "text",
         "category"
       ],
       "terms": [
@@ -2103,14 +2198,14 @@
     },
     {
       "id": "PH-GAMBLING",
+      "scope": "item",
       "markets": [
         "PH"
       ],
       "action": "BLOCK",
       "risk": "other",
       "fields": [
-        "title",
-        "text"
+        "title"
       ],
       "terms": [
         "トランプ",
@@ -2129,6 +2224,7 @@
     },
     {
       "id": "PH-NEEDLE",
+      "scope": "content",
       "markets": [
         "PH"
       ],
@@ -2154,6 +2250,7 @@
     },
     {
       "id": "PH-OTHER",
+      "scope": "content",
       "markets": [
         "PH"
       ],
@@ -2194,6 +2291,7 @@
     },
     {
       "id": "PH-CERTIFICATION",
+      "scope": "content",
       "markets": [
         "PH"
       ],
@@ -2215,6 +2313,7 @@
     },
     {
       "id": "PH-USED",
+      "scope": "content",
       "markets": [
         "PH"
       ],
@@ -2243,6 +2342,7 @@
     },
     {
       "id": "PH-SLS",
+      "scope": "content",
       "markets": [
         "PH"
       ],
@@ -2291,6 +2391,7 @@
     },
     {
       "id": "TH-TW-FOOD",
+      "scope": "item",
       "markets": [
         "TH",
         "TW"
@@ -2299,7 +2400,6 @@
       "risk": "food_restricted",
       "fields": [
         "title",
-        "text",
         "category"
       ],
       "terms": [
@@ -2317,6 +2417,7 @@
     },
     {
       "id": "COMMON-MEDICAL-DISPLAY",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -2390,6 +2491,7 @@
     },
     {
       "id": "COMMON-MEDICAL-SCAR-CARE",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -2425,6 +2527,7 @@
     },
     {
       "id": "COMMON-CONTACT-LENSES",
+      "scope": "content",
       "markets": [
         "SG",
         "PH"
@@ -2448,6 +2551,7 @@
     },
     {
       "id": "COMMON-CONTACT-LENSES-OTHER-MARKETS",
+      "scope": "content",
       "markets": [
         "MY",
         "TH",
@@ -2469,6 +2573,7 @@
     },
     {
       "id": "CONTACT-LENS-SINGULAR",
+      "scope": "content",
       "markets": [
         "SG"
       ],
@@ -2487,6 +2592,7 @@
     },
     {
       "id": "CONTACT-LENS-SINGULAR-OTHER-MARKETS",
+      "scope": "content",
       "markets": [
         "MY",
         "TH",
@@ -2507,6 +2613,7 @@
     },
     {
       "id": "PH-CONTACT-LENS-SINGULAR",
+      "scope": "content",
       "markets": [
         "PH"
       ],
@@ -2525,6 +2632,7 @@
     },
     {
       "id": "PH-OTHER-COLOR-CONTACT",
+      "scope": "content",
       "markets": [
         "PH",
         "MY",
@@ -2547,6 +2655,7 @@
     },
     {
       "id": "COMMON-QUASI-FACT",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -2572,6 +2681,7 @@
     },
     {
       "id": "COMMON-PENALTY-ASIN",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -2589,6 +2699,7 @@
     },
     {
       "id": "COMMON-PENALTY-TITLE",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -2611,6 +2722,7 @@
     },
     {
       "id": "SLS-CATEGORY-EVIDENCE-ALL-BLOCK",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -2779,6 +2891,7 @@
     },
     {
       "id": "SLS-CATEGORY-EVIDENCE-ALL-REVIEW",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -2797,6 +2910,7 @@
     },
     {
       "id": "SLS-CATEGORY-EVIDENCE-SG-BLOCK",
+      "scope": "item",
       "markets": [
         "SG"
       ],
@@ -2830,6 +2944,7 @@
     },
     {
       "id": "SLS-CATEGORY-EVIDENCE-PH-BLOCK",
+      "scope": "item",
       "markets": [
         "PH"
       ],
@@ -2865,6 +2980,7 @@
     },
     {
       "id": "SLS-CATEGORY-EVIDENCE-PH-REVIEW",
+      "scope": "item",
       "markets": [
         "PH"
       ],
@@ -2882,6 +2998,7 @@
     },
     {
       "id": "COMMON-POWERCORE-SIGNAL",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -2902,6 +3019,7 @@
     },
     {
       "id": "PH-KITCHEN-KNIFE",
+      "scope": "item",
       "markets": [
         "PH"
       ],
@@ -2921,6 +3039,7 @@
     },
     {
       "id": "COMMON-TRANSPORT-PESTICIDE",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -2956,6 +3075,7 @@
     },
     {
       "id": "COMMON-ALCOHOL-CATEGORY",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -2973,6 +3093,7 @@
     },
     {
       "id": "COMMON-ALCOHOL-STRENGTH",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -2991,6 +3112,7 @@
     },
     {
       "id": "COMMON-DISEASE-TEST",
+      "scope": "content",
       "markets": [
         "ALL"
       ],
@@ -3015,6 +3137,7 @@
     },
     {
       "id": "SG-GENERAL-KNIFE",
+      "scope": "content",
       "markets": [
         "SG"
       ],
@@ -3034,6 +3157,7 @@
     },
     {
       "id": "SG-WEAPON-ADDITIONAL",
+      "scope": "content",
       "markets": [
         "SG"
       ],
@@ -3066,6 +3190,7 @@
     },
     {
       "id": "SG-WEAPON-PART",
+      "scope": "content",
       "markets": [
         "SG"
       ],
@@ -3086,6 +3211,7 @@
     },
     {
       "id": "SG-ELECTRIC-VEHICLE",
+      "scope": "content",
       "markets": [
         "SG"
       ],
@@ -3107,6 +3233,7 @@
     },
     {
       "id": "SG-PETFOOD",
+      "scope": "item",
       "markets": [
         "SG"
       ],
@@ -3114,7 +3241,6 @@
       "risk": "license_or_certification_required",
       "fields": [
         "title",
-        "text",
         "category"
       ],
       "terms": [
@@ -3140,6 +3266,7 @@
     },
     {
       "id": "SG-ANIMAL-FAT",
+      "scope": "content",
       "markets": [
         "SG"
       ],
@@ -3147,7 +3274,8 @@
       "risk": "food_restricted",
       "fields": [
         "title",
-        "text"
+        "text",
+        "ingredients"
       ],
       "terms": [
         "ラード",
@@ -3155,11 +3283,12 @@
         "ヘット"
       ],
       "condition": "always",
-      "note": "DEC-0181; Ownerの指定商品群を停止。",
+      "note": "DEC-0181; Ownerの指定商品群を停止。; DEC-0188: 成分欄も照合（食品のみ）",
       "source": "internal_rule"
     },
     {
       "id": "SG-MAGNETIC-PUTTY",
+      "scope": "content",
       "markets": [
         "SG"
       ],
@@ -3180,6 +3309,7 @@
     },
     {
       "id": "SG-RESTRICTED-ELECTRONICS",
+      "scope": "content",
       "markets": [
         "SG"
       ],
@@ -3199,6 +3329,7 @@
     },
     {
       "id": "SG-HUMAN-HAIR",
+      "scope": "content",
       "markets": [
         "SG"
       ],
@@ -3218,6 +3349,7 @@
     },
     {
       "id": "SG-MUSHROOM",
+      "scope": "content",
       "markets": [
         "SG"
       ],
@@ -3226,7 +3358,8 @@
       "fields": [
         "title",
         "text",
-        "category"
+        "category",
+        "ingredients"
       ],
       "terms": [
         "しいたけ",
@@ -3243,11 +3376,12 @@
         "トリュフ"
       ],
       "condition": "mushroom_food",
-      "note": "DEC-0181; Ownerの指定商品群を停止。",
+      "note": "DEC-0181; Ownerの指定商品群を停止。; DEC-0188: 成分欄も照合（食品のみ）",
       "source": "internal_rule"
     },
     {
       "id": "PH-TOY-WEAPON-DIRECT",
+      "scope": "content",
       "markets": [
         "PH"
       ],
@@ -3267,6 +3401,7 @@
     },
     {
       "id": "PH-TOY-WEAPON-CONTEXT",
+      "scope": "content",
       "markets": [
         "PH"
       ],
@@ -3288,6 +3423,7 @@
     },
     {
       "id": "PH-TATTOO",
+      "scope": "content",
       "markets": [
         "PH"
       ],
@@ -3309,6 +3445,7 @@
     },
     {
       "id": "PH-PET-DRUG",
+      "scope": "content",
       "markets": [
         "PH"
       ],
@@ -3329,6 +3466,7 @@
     },
     {
       "id": "PH-COSMETIC-MASK",
+      "scope": "item",
       "markets": [
         "PH"
       ],
@@ -3336,7 +3474,6 @@
       "risk": "other",
       "fields": [
         "title",
-        "text",
         "category"
       ],
       "terms": [
@@ -3351,6 +3488,7 @@
     },
     {
       "id": "SG-PETFOOD-CATEGORY",
+      "scope": "item",
       "markets": [
         "SG"
       ],
@@ -3368,6 +3506,7 @@
     },
     {
       "id": "SG-MEDICAL-PROTECTIVE",
+      "scope": "content",
       "markets": [
         "SG"
       ],
@@ -3395,6 +3534,7 @@
     },
     {
       "id": "SG-DISPOSABLE-GLOVE",
+      "scope": "item",
       "markets": [
         "SG"
       ],
@@ -3420,6 +3560,7 @@
     },
     {
       "id": "PH-OUTDOOR-KNIFE",
+      "scope": "content",
       "markets": [
         "PH"
       ],
@@ -3454,6 +3595,7 @@
     },
     {
       "id": "SG-MEAT-PROCESSED",
+      "scope": "item",
       "markets": [
         "SG"
       ],
@@ -3491,6 +3633,7 @@
     },
     {
       "id": "COMMON-SLS-AROMA",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -3511,6 +3654,7 @@
     },
     {
       "id": "COMMON-SLS-SETTING-SPRAY",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -3537,6 +3681,7 @@
     },
     {
       "id": "COMMON-SLS-ADULT",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -3558,6 +3703,7 @@
     },
     {
       "id": "COMMON-SLS-CAR-CHECK",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -3589,6 +3735,7 @@
     },
     {
       "id": "SG-TOY-GUN",
+      "scope": "content",
       "markets": [
         "SG"
       ],
@@ -3616,6 +3763,7 @@
     },
     {
       "id": "SG-SLS-BATTERY-TOOL",
+      "scope": "item",
       "markets": [
         "SG"
       ],
@@ -3636,6 +3784,7 @@
     },
     {
       "id": "PH-PRECIOUS-REVIEW",
+      "scope": "item",
       "markets": [
         "PH"
       ],
@@ -3657,6 +3806,7 @@
     },
     {
       "id": "COMMON-SLS-VEHICLE",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
@@ -3678,6 +3828,7 @@
     },
     {
       "id": "COMMON-OFFICIAL-REVIEW",
+      "scope": "item",
       "markets": [
         "ALL"
       ],
