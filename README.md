@@ -2,7 +2,7 @@
 
 外部で特定・収集したASINをSG／PH／MY／TH／TWの出品前保安ゲートに通し、FROMAX向けの通過ASINを出すツールです（DEC-0165／0171／0172／0189）。
 MY・TH・TWも国別の禁止設定とCounterfeit一覧で判定し、問題が検出されない商品は「通過」を出します。Governanceの運用状態はINACTIVEのままです。
-3か国それぞれの実商品50〜100件×3回のOwner完成確認を経たACTIVE化は別タスクとし、通過を販売・輸送許可とは扱いません。
+MY・THの実商品50〜100件×3回のOwner完成確認を経たACTIVE化は別タスクとします。TWの完成確認・展開は当面見送り、ルールは保持します（DEC-0192）。通過を販売・輸送許可とは扱いません。
 保安ルールは[共通・国別・個別ASINの方針](docs/SORA_SAFETY_POLICY.md)を適用します（DEC-0167／0179／0180／0181）。
 入口は「ASINを貼る」「FROMAXのKeepa CSV」の2つです。
 画面右上に起動中のコミット番号を表示します。商品名の会社名除外は`guardrails/brand_monitoring/title_review.json`で確認・変更できます。
