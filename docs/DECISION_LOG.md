@@ -2309,3 +2309,14 @@ Ownerが例外として許可した保護テスト・Governance変更は次だ�
 - MY容積重量の置換: DEC-0189の「容積重量超過はREVIEW、欠損はメモだけで通過を妨げない」という処分を入れ替える。容積重量が実重量より大きい場合は従来と同じ値・使用項目名のメモだけを残し、判定・該当語・reason_codesを変えない。FROMAXが重い方の重量を送料計算へ反映するというOwner説明を理由とする。寸法か重量がない、換算できない、計算できない場合は梱包情報そのものの欠損も含めREVIEWとする。メモは「MY-VOLUMETRIC: サイズ情報なし（FROMAXが実重量だけで送料を計算するため要確認）」とし、MY-VOLUMETRIC・GUARDRAIL_REVIEWを従来の超過時と同じ形で付ける。別のBLOCK／EXCLUDEは解除しない。FROMAXの実装・計算結果を独立に実測したものではない。
 - 維持する仕様: 寸法cmの積÷6000、長さ・重量の単位換算、JP attributesの梱包情報優先と商品情報fallback、ASINと取得資料の対応、MYだけの適用を維持する。MY／TH／TWのGovernanceはINACTIVE／ALLOWEDのままとし、認証情報・実SP-API・設置・出品・他moduleの責務へ広げない。NG台帳のコード内MY-VOLUMETRIC説明を新処分へ合わせ、JSONとともに台帳を再生成する。
 - 検証・承認境界: Owner指定の実例と本体・食品成分の回帰、Aの検索タグと独立した本体、B／Cの対象欄とカテゴリ境界、Dの別の本体、Eの食玩、容積重量の超過・欠損・計算不能をofflineで検証する。新仕様により失敗する既存のMY関連3テストファイルの期待値／合成寸法・重量の更新はOwner承認済み。保護4ファイルの期待値を変更せず、必要なら実装を止めて理由を報告する。PH／SG保護・必須6チェックとOwner本人によるmergeを維持する。旧Decision本文と既存記録は保全し、復旧は通常revertまたは新Decisionで行う。
+
+## DEC-0192 — THスポット確認の見逃し・止めすぎを5点限定補正し、TW展開を保留する
+
+- 日付・根拠: 2026-11-14。OwnerがTH実商品のスポット確認で報告したガストーチ・スポンジ弾玩具・エアゾールの見逃しと、電池不要・グリップの過剰検出を補正する。Claudeの手元の試作結果は参考情報とし、今回の正式mainを起点とするoffline検証と区別する。実商品資料の再取得や実画面の受入は行わない。
+- ガストーチ: `COMMON-FIRE-FUEL`の直後へ`COMMON-GAS-TORCH`を追加する。item／ALL／BLOCK／shipping_restricted／title／always／internal_ruleとし、Owner指定の複合語だけを使う。単独の「バーナー」「トーチ」は加えず、ブランド名や懐中電灯への過剰検出を避ける。全語の正本は`guardrails/policy/rules.json`とし、説明文・カテゴリへ対象を広げない。
+- 玩具の武器: `COMMON-WEAPON-STRICT`へOwner指定のソフトバレット・スポンジ弾等の9語を追加し、既存と同じ全市場のitem／BLOCKで扱う。DEC-0190の単独「ガン」を追加しない方針、既存の語境界・国別保護は維持する。
+- 電池の否定表現: `_find_sls_shared_battery_matches`のSLS語照合前だけで「電池不要／電池なし／電池無し／電池不使用」と間に「は」が入る形を除く。同じ資料内の別の肯定表示は残す。`assess_battery_presence`とShared Batteryの16ルールは変えず、電池入り・疑義の既存停止やBLOCK優先を解除しない。DEC-0075／0133の照合対象をこの明示的否定表現に限り補正する。
+- 化粧品の部分一致: `TH-TW-COSMETICS`の「リップ」は直前がカタカナ（ァ-ヴー）なら一致させない。「グリップ」「ゼムクリップ」を除き、「リップクリーム」「薬用リップ」は従来どおり止める。他の化粧品語・カテゴリ・独立した停止は変えない。
+- 商品の形状: `normalize_catalog_item`のhighlights対象へ`item_form`だけを追加する。日本marketplace属性の既存選別と`itemHighlights`の搬送を共用し、エアゾールは既存`COMMON-AEROSOL`のREVIEWで非通過とする。新しいエアゾールルールやBLOCKへの変更、実SP-API呼出しは加えない。
+- 工程・保護: TWの完成確認・展開はOwner判断で当面見送り、DEC-0189の次工程をMY・THに限定する。TWの判定ルールは削除せず、MY・TH・TWのGovernanceはINACTIVE／ALLOWEDを維持し、capabilityを追加しない。PH／SGの既存受入、電池・家電・ブランド・資料対応等の安全条件、必須6チェック、実API・認証・配置・出品の別承認を維持する。
+- 検証・成果の境界: 指定された停止例と通過対照、電池の否定／肯定、THのリップ境界、日本の`item_form`を正規化して既存判定へ通すoffline回帰を追加する。保護4ファイルの既存期待値を変えず、必要なら実装を停止して理由を報告する。NG台帳は`python scripts/build_ng_ledger.py`で再生成する。合成試験を実商品全件の検出保証やOwner完成確認へ読み替えない。PRまでを対象とし、mergeはOwner本人が行う。旧Decision・ユーザー差分・認証情報を保全し、復旧は通常revertまたは新Decisionで行う。

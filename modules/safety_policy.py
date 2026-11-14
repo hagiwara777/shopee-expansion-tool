@@ -332,7 +332,7 @@ def _policy_pattern(term, rule):
         left = r"(?<![一-龥ぁ-んァ-ヶa-z])" if term in {"米", "お米"} else ""
         return left + re.escape(term) + r"(?![一-龥ぁ-んァ-ヶa-z])"
     if rule["id"] == "TH-TW-COSMETICS" and term == "リップ":
-        return r"(?<!ク)リップ"  # A stationery clip is not a cosmetic.
+        return r"(?<![ァ-ヴー])リップ"  # A katakana compound is not a cosmetic lip product.
     if rule["id"] == "COMMON-SLS-PLANT-OTHER" and term == "種子":
         return r"種子(?!油|エキス|オイル)"
     if term == "アルコール":

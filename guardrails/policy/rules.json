@@ -583,7 +583,8 @@
         "モデルガン", "模造銃", "レプリカ銃", "拳銃", "リボルバー", "ショットガン", "マシンガン", "機関銃", "鉄砲", "ゴム鉄砲", "輪ゴム銃",
         "模造刀", "模擬刀", "居合刀", "日本刀", "木刀", "刀剣", "太刀", "脇差", "短刀", "小太刀", "薙刀", "日輪刀", "ライトセーバー",
         "ヌンチャク", "トンファー", "メリケンサック", "ナックルダスター", "警棒", "特殊警棒", "伸縮警棒", "手裏剣", "苦無", "クナイ", "鉄扇", "吹き矢", "弓矢", "クロスボウ", "ボウガン", "スリングショット", "唐辛子スプレー",
-        "replica gun", "toy gun", "revolver", "nunchaku", "brass knuckles", "baton", "shuriken", "crossbow", "slingshot", "blowgun"
+        "replica gun", "toy gun", "revolver", "nunchaku", "brass knuckles", "baton", "shuriken", "crossbow", "slingshot", "blowgun",
+        "ソフトバレット", "スポンジ弾", "スポンジバレット", "ダーツブラスター", "ナーフ", "nerf", "soft bullet", "foam blaster", "dart blaster"
       ],
       "condition": "always",
       "note": "DEC-0190; 紛れようのない武器・模造武器の名称は借用形でも全市場共通で停止する。形・名前に借りられる語はCOMMON-WEAPON-SHAPED-ACCESSORYで分ける。鉄砲から水鉄砲を除く。",
@@ -723,6 +724,21 @@
       ],
       "condition": "always",
       "note": "DEC-0167; Ownerの出品方針による停止。SLS輸送確認。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-GAS-TORCH",
+      "scope": "item",
+      "markets": ["ALL"],
+      "action": "BLOCK",
+      "risk": "shipping_restricted",
+      "fields": ["title"],
+      "terms": [
+        "ガストーチ", "トーチバーナー", "マイクロトーチ", "クッキングトーチ", "ガスバーナー", "ガス充てん式", "ガス充填式",
+        "gas torch", "butane torch", "torch burner"
+      ],
+      "condition": "always",
+      "note": "DEC-0192; ガスのトーチ・バーナーを全市場共通で停止する。バーナー・トーチ単独は対象にしない。",
       "source": "internal_rule"
     },
     {

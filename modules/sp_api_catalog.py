@@ -189,7 +189,7 @@ def normalize_catalog_item(item: Mapping, *, fetched_at: str) -> dict[str, Any]:
     text_values = tuple(values(name) for name in
                        ("product_description", "bullet_point", "short_product_description", "safety_warning"))
     highlights = tuple(dict.fromkeys(text for name in
-                       ("special_feature", "included_components", "directions", "power_source")
+                       ("special_feature", "included_components", "directions", "power_source", "item_form")
                        for text in values(name)))
     # Required alone does not establish inclusion. Keep that fact as REVIEW evidence.
     if _true_attribute(attributes, "batteries_included"):

@@ -9,7 +9,7 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 
 | グループ | 停止 | 要確認 | その他 | 元ファイル |
 |---|---:|---:|---:|---|
-| 保安ルール | 137 | 40 | 0 | `guardrails/policy/rules.json` |
+| 保安ルール | 138 | 40 | 0 | `guardrails/policy/rules.json` |
 | コード内のルール | 5 | 3 | 0 | `modules/battery_presence.py`<br>`modules/guardrails.py`<br>`modules/home_appliances_classifier.py`<br>`modules/prelisting_sg_body_safety.py`<br>ほか4件 |
 | ブランド（IPR） | 138 | 0 | 0 | `guardrails/brand_monitoring/ipr.json` |
 | ブランド（Counterfeit） | 1525 | 0 | 0 | `guardrails/brand_monitoring/counterfeit_my.json`<br>`guardrails/brand_monitoring/counterfeit_ph.json`<br>`guardrails/brand_monitoring/counterfeit_sg.json`<br>`guardrails/brand_monitoring/counterfeit_th.json`<br>ほか1件 |
@@ -28,7 +28,7 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 
 | 国 | 停止 | 要確認 |
 |---|---:|---:|
-| 全ての国 | 225 | 76 |
+| 全ての国 | 226 | 76 |
 | MY | 671 | 27 |
 | PH | 469 | 28 |
 | SG | 668 | 139 |
@@ -63,7 +63,7 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 | COMMON-BATTERY-SINGLE | ALL | 停止 | content | リチウム電池単体、リチウムイオン電池単体、交換用電池、ボタン電池、コイン電池、乾電池、ノートPC用バッテリー、カメラ用バッテリー ほか12語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止。SLS輸送確認。 |
 | COMMON-LITHIUM-SIGNAL | ALL | 要確認 | content | リチウム電池、リチウムイオン電池、lithium battery、lithium ion battery | 自分の方針 | DEC-0167; Ownerの出品方針による要確認。SLS輸送確認。 |
 | COMMON-WEAPON | ALL | 停止 | content | スタンガン、電気スタンナー、催涙スプレー、stun gun、stun guns、pepper spray、firearm、firearms ほか13語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
-| COMMON-WEAPON-STRICT | ALL | 停止 | item | モデルガン、模造銃、レプリカ銃、拳銃、リボルバー、ショットガン、マシンガン、機関銃 ほか43語 | 自分の方針 | DEC-0190; 紛れようのない武器・模造武器の名称は借用形でも全市場共通で停止する。形・名前に借りられる語はCOMMON-WEAPON-SHAPED-ACCESSORYで分ける。鉄砲から水鉄砲を除く。 |
+| COMMON-WEAPON-STRICT | ALL | 停止 | item | モデルガン、模造銃、レプリカ銃、拳銃、リボルバー、ショットガン、マシンガン、機関銃 ほか52語 | 自分の方針 | DEC-0190; 紛れようのない武器・模造武器の名称は借用形でも全市場共通で停止する。形・名前に借りられる語はCOMMON-WEAPON-SHAPED-ACCESSORYで分ける。鉄砲から水鉄砲を除く。 |
 | COMMON-WEAPON-SHAPED-ACCESSORY | ALL | 停止 | item | ピストル、ライフル、銃、刀、剣、ナイフ、ソード、pistol ほか4語 | 自分の方針 | DEC-0190; 借りられやすい武器語は、商品名の玩具・装飾品との共起または武器そのものならBLOCK。型・風・形・柄や用途の修飾、部品・付属品の名称ならREVIEW。型番や本体への付属表示は区別し、商品別の除外を増やさない。gun単独では新規判定せず、ガンは追加しない。 |
 | COMMON-MILITARY-POLICE-GEAR | ALL | 停止 | item | 防弾チョッキ、防弾ベスト、防刃ベスト、スチールヘルメット、軍服、軍装備、警察 制服、警察 バッジ ほか1語 | 自分の方針 | DEC-0190; Owner提示のMY販売規制ガイド2026-08-13版と全国共通の厳しい側にそろえる方針に基づき、指定の軍・警察装備を停止する。 |
 | COMMON-WEAPON-ACCESSORY-REVIEW | ALL | 要確認 | content | 武器、刀、剣、ソード、銃、ライフル、ピストル、ナイフ ほか3語 | 自分の方針 | DEC-0190; おもちゃ・ホビー・プラモデル・フィギュアカテゴリで、features・descriptionの同じ文に武器語と付属・付き・セット・同梱があればREVIEW。文・箇条書き値・欄をまたいで共起を推定しない。商品名の武器と、別の禁止語による停止は維持する。 |
@@ -71,6 +71,7 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 | COMMON-WEAPON-DECORATION | ALL | 停止 | content | 剣、刀、銃、武器、ナイフ、sword、gun、weapon ほか1語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | PH-WEAPON-DECORATION | PH | 停止 | content | 剣、刀、銃、武器、ナイフ、sword、gun、weapon ほか1語 | Shopee公式 | DEC-0181; PH公式の輸入禁制品（武器付きのキーチェーン・ペンダント・フィギュア等）をBLOCK。SGは共通ルールの扱いを維持。 |
 | COMMON-FIRE-FUEL | ALL | 停止 | content | 花火、爆竹、火薬、ライター、マッチ、着火剤、燃料、オイルライター用オイル ほか7語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止。SLS輸送確認。 |
+| COMMON-GAS-TORCH | ALL | 停止 | item | ガストーチ、トーチバーナー、マイクロトーチ、クッキングトーチ、ガスバーナー、ガス充てん式、ガス充填式、gas torch ほか2語 | 自分の方針 | DEC-0192; ガスのトーチ・バーナーを全市場共通で停止する。バーナー・トーチ単独は対象にしない。 |
 | COMMON-DIGITAL | ALL | 停止 | item | デジタルコード、オンラインコード、ダウンロード版、ギフト券、プリペイドカード、e-voucher、電子ギフト券、商品券 ほか17語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | COMMON-AEROSOL | ALL | 要確認 | content | スプレー缶、エアゾール、エアロゾル、LPG、DME、高圧ガス、窒素ガス、火気と高温に注意 ほか16語 | 自分の方針 | DEC-0164/0167; SLS輸送確認：エアゾール・高圧ガス。正式な発送適合の保証ではない。 |
 | COMMON-STYLING-SPRAY | ALL | 要確認 | content | ヘアスタイリング、スタイリング仕上げ、ヘアセット剤、仕上げ剤、まとめ髪スタイリング | 自分の方針 | DEC-0167; Ownerの出品方針による要確認。SLS輸送確認。 |

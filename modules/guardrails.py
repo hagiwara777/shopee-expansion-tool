@@ -1046,7 +1046,12 @@ def _find_sls_shared_battery_matches(
     text_values = _product_text_values(row)
     raw_values = [row.get("brand"), row.get("category")]
     raw_values.extend(value for _, value in text_values)
-    target_values = [normalize_text(value) for value in raw_values if value is not None]
+    # A no-battery statement is not a shared suspicion word. Keep the original
+    # facts for presence assessment so other affirmative evidence still applies.
+    target_values = [
+        re.sub(r"電池は?(?:不要|なし|無し|不使用)", "", normalize_text(value))
+        for value in raw_values if value is not None
+    ]
     matches = [
         GuardrailMatch(rule=rule)
         for rule in rules
