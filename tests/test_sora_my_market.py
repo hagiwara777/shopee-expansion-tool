@@ -64,19 +64,22 @@ def test_market_profiles_are_consistent_with_the_files_that_exist():
     assert all(normalize_sora_market(v) is None for v in ('VN', 'JP', '', None, 5))
 
 
-def test_my_clean_product_passes_with_a_missing_size_note():
+def test_my_clean_product_with_missing_size_needs_review():
     run = run_for()
     result = evaluate_sora_run(run)
     row = result.rows[0]
     assert (result.marketplace, row.marketplace) == ('MY', 'MY')
-    assert row.guardrail_status == 'SAFE'            # the dictionary result itself is untouched
-    assert row.final_eligibility == 'ELIGIBLE'
+    assert row.guardrail_status == 'REVIEW'
+    assert row.final_eligibility == 'REVIEW'
+    assert 'MY-VOLUMETRIC' in row.guardrail_matched_terms
+    assert 'GUARDRAIL_REVIEW' in row.reason_codes
     assert MARKET_NG_INCOMPLETE_REASON not in row.reason_codes
     assert 'サイズ情報なし' in row.guardrail_note
-    assert (result.eligible_count, result.review_count, result.exclude_count) == (1, 0, 0)
+    assert (result.eligible_count, result.review_count, result.exclude_count) == (0, 1, 0)
     outputs = sora_exports(run, result)
-    assert outputs['通過ASIN.txt'] == b'B000000001\n'
-    assert json.loads(outputs['実行記録.json'])['通過'] == 1
+    assert outputs['通過ASIN.txt'] == b''
+    assert 'MY-VOLUMETRIC' in outputs['要確認.csv'].decode('utf-8-sig')
+    assert json.loads(outputs['実行記録.json'])['要確認'] == 1
 
 
 def test_second_line_of_defence_refuses_an_unconfigured_market_result(monkeypatch):
@@ -96,7 +99,7 @@ def test_second_line_of_defence_refuses_an_unconfigured_market_result(monkeypatc
     ({'bullet_point': [{'value': '医薬部外品'}]}, 'EXCLUDE', False),
     ({'batteries_included': [{'value': True}]}, 'EXCLUDE', False),
     ({'safety_warning': [{'value': 'LPG 高圧ガス'}]}, 'REVIEW', False),
-    ({}, 'ELIGIBLE', False),
+    ({}, 'REVIEW', False),
 ])
 def test_my_keeps_common_stops_and_only_demotes_would_be_passes(attributes, expected, held):
     result = evaluate_sora_run(run_for(attributes))

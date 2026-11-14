@@ -227,7 +227,7 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 | CODE-BATTERY-PRESENCE | ALL | 停止 |  | 電池入り・電池付属の商品（電池別売の明記は区別） | 自分の方針 | 電池入りは出品しない |
 | CODE-SG-BODY | SG | 要確認 |  | SGの本体・実同梱の確認が必要な商品 | 自分の方針 | SG本体確認 |
 | CODE-MARKET-NG-INCOMPLETE | ALL | 要確認 |  | 国別の禁止設定が未完成の国だけ、通過候補を要確認にする | 自分の方針 | DEC-0183／0184／0189（SG・PH・MY・TH・TWは設定済み） |
-| MY-VOLUMETRIC | MY | 要確認 |  | 容積重量kg＝縦cm×横cm×高さcm÷6000 が実重量kgを上回る商品 | 自分の方針 | DEC-0189; 梱包値を優先、商品値へfallback。欠損時は通過を妨げずサイズ情報なしと記録 |
+| MY-VOLUMETRIC | MY | 要確認 |  | 寸法・重量が未取得・換算不能、または容積重量を計算できないMY商品 | 自分の方針 | DEC-0191; 梱包値を優先、商品値へfallback。容積重量超過はメモのみ、サイズ情報なしは要確認 |
 | CODE-SLS-CATEGORY-PH | PH | 停止 |  | Shopeeカテゴリ確定後、SLSで発送不可のカテゴリ（Sora保安ゲートには未接続） | Shopee公式 | カテゴリ対応画面のみ |
 | CODE-SLS-CATEGORY-SG | SG | 停止 |  | Shopeeカテゴリ確定後、SLSで発送不可のカテゴリ（Sora保安ゲートには未接続） | Shopee公式 | カテゴリ対応画面のみ |
 

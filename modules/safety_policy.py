@@ -3,7 +3,7 @@
 Amazon category nodes are product evidence only. They never assign a Shopee
 category, produce SLS ALLOW, or override another Safety result.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import json
 from pathlib import Path
 import re
@@ -29,6 +29,10 @@ RISKS = {"drug_or_hemp", "medical_or_therapeutic", "regulated_ingredient", "bran
          "tobacco_or_vape", "alcohol", "license_or_certification_required", "own_penalty_product", "other"}
 TEXT_FIELDS = ("description", "features", "shortDescription", "safetyWarning", "itemHighlights")
 INGREDIENT_FIELDS = ("ingredients", "activeIngredients", "specialIngredients")
+FOOD_ROOTS = {"食品", "食品・飲料", "食品・飲料・お酒", "food", "food & beverages", "grocery", "飲料"}
+FOOD_NAME_REVIEW_NOTE = "; 商品名の語が使い方・複合名のため要確認（その物そのものかを確認）"
+FUEL_TEXT_REVIEW_NOTE = "; 説明文だけの記載のため要確認（商品名・カテゴリには無し）"
+FOOD_INGREDIENT_REVIEW_NOTE = "; 食品の成分表記のため要確認（化粧品成分ルール）"
 # Product kinds and grammatical roles, never a list of exempt products.
 WEAPON_TOY_KINDS = ("おもちゃ", "玩具", "トイ", "キーホルダー", "キーチェーン", "ペンダント", "ネックレス",
                     "ストラップ", "チャーム", "フィギュア", "レプリカ", "コスプレ", "模型")
@@ -265,10 +269,11 @@ def _condition(rule, value, row, group, term=None, occurrence=None):
                              r"|(?:gun|sword)[- ](?:shaped|keychain|pendant)", context)
         return "BLOCK" if attached else "REVIEW"
     if condition in {"food", "food_review"} or food_only_fat:
+        if (condition in {"food", "food_review"} and _category_is_toy(row)
+                and not re.search(r"食玩|知育菓子|菓子|ガム|キャンディ|ラムネ", title + " " + category)):
+            return None
         if rule["id"] == "TH-TW-FOOD" and group == "category":
-            return action if category.split(">")[0].strip() in {
-                "食品", "食品・飲料", "食品・飲料・お酒", "food", "food & beverages", "grocery", "飲料"
-            } else None
+            return action if category.split(">")[0].strip() in FOOD_ROOTS else None
         food_context = re.search(r"食品|フード|飲料|スナック|肉|ジャーキー|ソーセージ|ベーコン|ハム|卵|たまご|豆腐|アイスクリーム|乳製品|牛乳|食用油|キャノーラ油|野生キノコ|粉ミルク|food|snack|jerky|sausage|bacon|dairy|milk|tofu|seafood", context)
         cosmetic = re.search(r"シャンプー|トリートメント|化粧|美容|石鹸|石けん|ソープ|ヘア|shampoo|cosmetic|soap|hair", title)
         if group != "category" and cosmetic and not re.search(r"食品|食用|飲料|snack|food", title):
@@ -432,6 +437,19 @@ def _weapon_accessory_category(row):
     from modules.guardrails import normalize_text
     nodes = [n.strip() for n in normalize_text(row.get("category", "")).split(">")]
     return any(re.fullmatch(r"おもちゃ|玩具|ホビー|プラモデル(?:・模型)?|フィギュア", node) for node in nodes)
+
+
+def _food_name_is_usage_or_compound(value, occurrence):
+    tail = value[occurrence.end():]
+    return bool(re.match(r"\s*(?:で(?:つくる|作る|割る)|に溶かす|と混ぜる)", tail)
+                or re.match(r"(?:カフェオレ|スープ)", tail))
+
+
+def _food_title_occurrences(value, occurrences):
+    """Search tags cannot override another occurrence of the same food word."""
+    tags = [(m.start(), m.end()) for m in re.finditer(r"【[^】]*】|\[[^\]]*\]", value)]
+    outside = [m for m in occurrences if not any(start <= m.start() and m.end() <= end for start, end in tags)]
+    return outside or occurrences
 
 
 def _weapon_title_action(value, term, occurrence):
@@ -708,8 +726,7 @@ def evaluate_policy(row, marketplace, rules=None):
             for term in rule["terms"]:
                 normalized = normalize_text(term)
                 toy_terms = {"PH-ORAL": {"歯ブラシ", "ハブラシ", "toothbrush"},
-                             "COMMON-SLS-COIN": {"コイン", "coin", "coins"},
-                             "COMMON-SLS-FOOD": {"牛乳", "milk"}}
+                             "COMMON-SLS-COIN": {"コイン", "coin", "coins"}}
                 if normalized in toy_terms.get(rule["id"], ()) and _category_is_toy(rule_row):
                     continue
                 if (rule["id"] == "COMMON-SLS-NAIL"
@@ -734,6 +751,8 @@ def evaluate_policy(row, marketplace, rules=None):
                 if normalized not in value:
                     continue
                 occurrences = list(re.finditer(_policy_pattern(normalized, rule), value))
+                if rule["id"] == "COMMON-SLS-FOOD" and group == "title":
+                    occurrences = _food_title_occurrences(value, occurrences)
                 if not occurrences:
                     continue
                 medical = (rule["condition"] in {"medical", "ph_contact_lens"}
@@ -774,14 +793,32 @@ def evaluate_policy(row, marketplace, rules=None):
                             action = "REVIEW"
                     ingredient_list = any(start <= occurrence.start() and occurrence.end() <= end
                                           for start, end in sections)
+                    review_note = ""
+                    if (action == "BLOCK" and rule["id"] == "COMMON-SLS-FOOD" and group == "title"
+                            and _food_name_is_usage_or_compound(value, occurrence)):
+                        action, review_note = "REVIEW", FOOD_NAME_REVIEW_NOTE
+                    if (action == "BLOCK" and rule["id"] == "COMMON-COSMETIC-INGREDIENT" and group == "text"
+                            and normalize_text(rule_row.get("category", "")).split(">")[0].strip() in FOOD_ROOTS):
+                        action, review_note = "REVIEW", FOOD_INGREDIENT_REVIEW_NOTE
                     if ingredient_list:
                         action = "REVIEW"
                     if not action or action in seen_actions:
                         continue
                     seen_actions.add(action)
-                    note = rule["note"]
+                    note = rule["note"] + review_note
                     if ingredient_list:
                         note += "; 見出しで確認した成分一覧の区間に記載（要確認）"
                     note += f"; 該当箇所[{field}]: 「{excerpt_at(original, occurrence.start(), occurrence.end())}」"
                     hits.append(PolicyHit(rule["id"], term, action, rule["risk"], field, note, rule["source"]))
+    fuel_rule = next((rule for rule in rules if rule["id"] == "COMMON-FIRE-FUEL"), None)
+    if fuel_rule:
+        category = normalize_text(item_row.get("category", ""))
+        fuel_in_identity = (any(h.rule_id == fuel_rule["id"] and h.field in {"product_title", "category"} for h in hits)
+                            or any(re.search(_policy_pattern(normalize_text(term), fuel_rule), category)
+                                   for term in fuel_rule["terms"]))
+        if not fuel_in_identity:
+            hits = [replace(h, action="REVIEW", note=h.note.replace(
+                "; 該当箇所[", FUEL_TEXT_REVIEW_NOTE + "; 該当箇所[", 1))
+                if h.rule_id == fuel_rule["id"] and h.field in TEXT_FIELDS and h.action == "BLOCK" else h
+                for h in hits]
     return hits

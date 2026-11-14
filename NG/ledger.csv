@@ -181,7 +181,7 @@ group,id,markets,action,scope,target,basis,note,source_file
 コード内のルール,CODE-BATTERY-PRESENCE,ALL,BLOCK,,電池入り・電池付属の商品（電池別売の明記は区別）,自分の方針,電池入りは出品しない,modules/battery_presence.py
 コード内のルール,CODE-SG-BODY,SG,REVIEW,,SGの本体・実同梱の確認が必要な商品,自分の方針,SG本体確認,modules/prelisting_sg_body_safety.py
 コード内のルール,CODE-MARKET-NG-INCOMPLETE,ALL,REVIEW,,国別の禁止設定が未完成の国だけ、通過候補を要確認にする,自分の方針,DEC-0183／0184／0189（SG・PH・MY・TH・TWは設定済み）,modules/sora_markets.py
-コード内のルール,MY-VOLUMETRIC,MY,REVIEW,,容積重量kg＝縦cm×横cm×高さcm÷6000 が実重量kgを上回る商品,自分の方針,DEC-0189; 梱包値を優先、商品値へfallback。欠損時は通過を妨げずサイズ情報なしと記録,modules/sora_volumetric.py
+コード内のルール,MY-VOLUMETRIC,MY,REVIEW,,寸法・重量が未取得・換算不能、または容積重量を計算できないMY商品,自分の方針,DEC-0191; 梱包値を優先、商品値へfallback。容積重量超過はメモのみ、サイズ情報なしは要確認,modules/sora_volumetric.py
 コード内のルール,CODE-SLS-CATEGORY-PH,PH,BLOCK,,Shopeeカテゴリ確定後、SLSで発送不可のカテゴリ（Sora保安ゲートには未接続）,Shopee公式,カテゴリ対応画面のみ,modules/sls_category_rules.py
 コード内のルール,CODE-SLS-CATEGORY-SG,SG,BLOCK,,Shopeeカテゴリ確定後、SLSで発送不可のカテゴリ（Sora保安ゲートには未接続）,Shopee公式,カテゴリ対応画面のみ,modules/sls_category_rules_sg.py
 ブランド（IPR）,IPR:Adidas,ALL,BLOCK,,Adidas,Shopee公式,,guardrails/brand_monitoring/ipr.json

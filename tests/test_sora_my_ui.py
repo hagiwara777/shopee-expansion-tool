@@ -60,7 +60,7 @@ def test_screen_offers_five_markets_and_keeps_sg_as_default(client_calls):
 
 
 @pytest.mark.parametrize('marketplace', ['MY', 'TH', 'TW'])
-def test_configured_market_shows_a_pass(client_calls, marketplace):
+def test_configured_market_shows_pass_or_my_missing_size_review(client_calls, marketplace):
     app = AppTest.from_file(str(ROOT/'app.py'), default_timeout=20).run()
     app.selectbox(key='sora_marketplace').set_value(marketplace).run()
     app.text_area(key='sora_asins').set_value('B000000001').run()
@@ -72,9 +72,10 @@ def test_configured_market_shows_a_pass(client_calls, marketplace):
     button(app, 'sora_evaluate').click().run()
     assert not app.exception
     summary = [m.value for m in app.markdown if '通過' in m.value and '件' in m.value]
-    assert any(v.startswith('通過1件／要確認0件／停止0件') for v in summary), summary
+    expected = '通過0件／要確認1件／停止0件' if marketplace == 'MY' else '通過1件／要確認0件／停止0件'
+    assert any(v.startswith(expected) for v in summary), summary
     preview = app.dataframe[-1].value
-    assert set(preview['最終判定']) == {'出品候補'}
+    assert set(preview['最終判定']) == ({'要確認'} if marketplace == 'MY' else {'出品候補'})
     assert client_calls == [('B000000001',)]
 
 
