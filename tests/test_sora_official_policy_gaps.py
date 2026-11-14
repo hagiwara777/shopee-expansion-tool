@@ -88,8 +88,7 @@ def test_sg_content_terms_block_but_item_terms_ignore_product_text(text):
 
 
 @pytest.mark.parametrize("title,category", [
-    ("バターナイフ", ""), ("ナイフ型の飾り", ""), ("ナイフ柄の飾り", ""),
-    ("Kitchen knife case", ""), ("ガムテープ", ""), ("ガムシロップ", ""), ("アラビアガム", ""),
+    ("ガムテープ", ""), ("ガムシロップ", ""), ("アラビアガム", ""),
     ("マガジンラック", ""), ("雑誌", ""), ("キックボード", ""), ("ラード不使用", ""),
     ("普通の粘土", ""), ("時計", ""), ("人工毛ウィッグ", ""),
     ("きのこの山", "食品 > 菓子"), ("きのこの山と菓子", "食品 > 菓子"), ("きのこ形のおもちゃ", "おもちゃ"),
@@ -99,10 +98,19 @@ def test_sg_exclusions_remain_safe(title, category):
     assert status("SG", title, category=category) == "SAFE"
 
 
+@pytest.mark.parametrize("title,expected", [
+    ("バターナイフ", "BLOCK"), ("ナイフ型の飾り", "REVIEW"),
+    ("ナイフ柄の飾り", "REVIEW"), ("Kitchen knife case", "REVIEW"),
+])
+def test_sg_knife_names_follow_common_body_shape_and_part_kinds(title, expected):
+    # DEC-0190: bodies block; shape/pattern and accessory names need review.
+    assert status("SG", title) == expected
+
+
 def test_sg_exclusions_do_not_hide_other_positive_occurrences():
     assert status("SG", "普通の雑貨", description="ナイフ柄の飾り") == "SAFE"
     assert status("SG", "バターナイフとサバイバルナイフ") == "BLOCK"
-    assert status("SG", "サバイバルナイフ型") == "BLOCK"
+    assert status("SG", "サバイバルナイフ型") == "REVIEW"  # DEC-0190: borrowed shape word.
     assert status("SG", "ガムテープとキシリトールガム") == "BLOCK"
     assert status("SG", "ラード不使用、牛脂入り") == "BLOCK"
     assert status("SG", "きのこの山と干ししいたけ", category="食品 > 食材") == "BLOCK"
@@ -241,9 +249,9 @@ def test_colour_contact_lens_names_block(market, title):
     assert status(market, title) == "BLOCK"
 
 
-def test_ph_weapon_decorations_block_while_sg_keeps_shared_handling():
+def test_weapon_decorations_block_under_shared_strict_policy():
     for title in ("ナイフ キーホルダー ミニ", "剣 フィギュア", "銃 ペンダント"):
         assert status("PH", title) == "BLOCK", title
         assert not any(h.rule_id == "PH-WEAPON-DECORATION" for h in evaluate_policy({"product_title": title}, "SG"))
-    assert status("SG", "剣 フィギュア") == "REVIEW"
+    assert status("SG", "剣 フィギュア") == "BLOCK"  # DEC-0190: strictest policy across markets.
     assert status("PH", "ハート キーホルダー") == "SAFE"
