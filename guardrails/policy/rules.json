@@ -701,6 +701,7 @@
       "risk": "shipping_restricted",
       "fields": [
         "title",
+        "category",
         "text"
       ],
       "terms": [

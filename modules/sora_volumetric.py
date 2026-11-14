@@ -1,4 +1,4 @@
-"""MY dimensional-weight review from already fetched JP catalog attributes (DEC-0189)."""
+"""MY size review and dimensional-weight notes from fetched facts (DEC-0191)."""
 from dataclasses import dataclass, replace
 import math
 
@@ -94,21 +94,18 @@ def apply_my_volumetric(result, measurements):
     rows = []
     for row in result.rows:
         fact = by_asin.get(row.candidate.candidate_asin)
-        if fact is None or fact.dimensions_cm is None or fact.weight_kg is None:
-            note = "MY-VOLUMETRIC: サイズ情報なし（寸法または重量が未取得・換算不能）"
-            rows.append(replace(row, guardrail_note=" | ".join(filter(None, (row.guardrail_note, note)))))
-            continue
-        length, width, height = fact.dimensions_cm
-        volumetric = length * width * height / 6000
-        if not math.isfinite(volumetric):
-            note = "MY-VOLUMETRIC: サイズ情報なし（容積重量を計算できません）"
-            rows.append(replace(row, guardrail_note=" | ".join(filter(None, (row.guardrail_note, note)))))
-            continue
-        if volumetric <= fact.weight_kg or math.isclose(volumetric, fact.weight_kg, rel_tol=1e-12):
+        volumetric = None
+        if fact is not None and fact.dimensions_cm is not None and fact.weight_kg is not None:
+            length, width, height = fact.dimensions_cm
+            volumetric = length * width * height / 6000
+        if volumetric is not None and math.isfinite(volumetric):
+            if volumetric > fact.weight_kg and not math.isclose(volumetric, fact.weight_kg, rel_tol=1e-12):
+                note = (f"MY-VOLUMETRIC: 容積重量 {round(volumetric, 6)}kg ＞ 実重量 {round(fact.weight_kg, 6)}kg"
+                        f"（{fact.dimensions_source} / {fact.weight_source}）")
+                row = replace(row, guardrail_note=" | ".join(filter(None, (row.guardrail_note, note))))
             rows.append(row)
             continue
-        note = (f"MY-VOLUMETRIC: 容積重量 {round(volumetric, 6)}kg ＞ 実重量 {round(fact.weight_kg, 6)}kg"
-                f"（{fact.dimensions_source} / {fact.weight_source}）")
+        note = "MY-VOLUMETRIC: サイズ情報なし（FROMAXが実重量だけで送料を計算するため要確認）"
         def append(value, addition):
             return "|".join(dict.fromkeys(filter(None, (value or "").split("|") + [addition])))
         codes = row.reason_codes

@@ -991,11 +991,15 @@ def _find_home_appliance_matches(row: dict[str, Any]) -> list[GuardrailMatch]:
     outside the appliance scope are left to every other existing rule.
     """
     title = str(row.get("product_title") or "")
+    category = str(row.get("category") or "")
     # An appliance mentioned only as the destination of a detergent is not
     # the appliance itself.  A separate body mention remains visible.
     title = re.sub(rf"(?:{HOME_APPLIANCE_BODY_PATTERN})(?=\s*用(?:の)?\s*(?:(?:液体|粉末|ジェル|専用)\s*)?洗剤)",
                    lambda m: " " * len(m[0]), title, flags=re.I)
-    category = str(row.get("category") or "")
+    if re.search(r"洗剤|洗浄剤|クリーナー", title + " " + category):
+        destination = rf"(?:{HOME_APPLIANCE_BODY_PATTERN})(?=\s*(?:専用|用|対応)(?!\s*(?:の\s*)?本体))"
+        title = re.sub(destination, lambda m: " " * len(m[0]), title, flags=re.I)
+        category = re.sub(destination, lambda m: " " * len(m[0]), category, flags=re.I)
     in_scope, category_in_scope = _home_appliance_scope(title, category)
     if not in_scope:
         return []

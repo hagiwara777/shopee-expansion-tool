@@ -58,7 +58,7 @@ def test_sora_passes_and_exports_while_governance_stays_inactive(market):
     assert state["markets"][market] == {"operation": "INACTIVE", "development_policy": "ALLOWED"}
     assert not any(key.startswith(market.lower() + ".") for key in state["capabilities"])
     assert SORA_MARKETS[market].ng_configured and not SORA_MARKETS[market].country_dictionaries
-    run = synthetic_run(market)
+    run = synthetic_run(market, attributes=package(10, 10, 5) if market == "MY" else None)
     result = evaluate_sora_run(run)
     assert (result.eligible_count, result.review_count, result.exclude_count) == (1, 0, 0)
     output = sora_exports(run, result)
@@ -78,7 +78,8 @@ def test_my_halal_food_looks_in_all_content_fields(ingredient, field):
 
 
 def test_my_green_tea_passes_and_cosmetic_rice_bran_is_not_food():
-    run = synthetic_run("MY", "緑茶", "食品・飲料・お酒 > 茶", attributes=attr("ingredients", "緑茶"))
+    run = synthetic_run("MY", "緑茶", "食品・飲料・お酒 > 茶",
+                        attributes={**attr("ingredients", "緑茶"), **package(10, 10, 5)})
     assert evaluate_sora_run(run).eligible_count == 1
     cosmetic = {"product_title": "米ぬか 化粧水", "category": "ビューティー > スキンケア",
                 "ingredients": ["水、米ぬか、アルコール、牛脂"]}
@@ -107,7 +108,7 @@ def test_my_rice_snack_is_review(title):
 @pytest.mark.parametrize("title", ["メガネ拭き", "メガネケース", "眼鏡用クリーナー", "メガネクロス",
                                   "メガネチェーン", "メガネストラップ", "eyeglasses case"])
 def test_my_eyewear_accessories_pass_even_with_an_eyewear_category(title):
-    assert evaluate_sora_run(synthetic_run("MY", title, "ファッション > メガネ")).eligible_count == 1
+    assert evaluate_sora_run(synthetic_run("MY", title, "ファッション > メガネ", attributes=package(10, 10, 5))).eligible_count == 1
 
 
 @pytest.mark.parametrize("title", ["老眼鏡", "メガネ拭き と 老眼鏡セット"])
@@ -166,7 +167,7 @@ def test_th_electric_root_category_is_blocked(root):
 
 def test_bounded_terms_and_th_toys_do_not_add_blanket_stops():
     assert evaluate_sora_run(synthetic_run("TH", "動物フィギュア", "おもちゃ")).eligible_count == 1
-    assert evaluate_sora_run(synthetic_run("MY", "安全ヘルメット 自転車用", "自転車用品")).eligible_count == 1
+    assert evaluate_sora_run(synthetic_run("MY", "安全ヘルメット 自転車用", "自転車用品", attributes=package(10, 10, 5))).eligible_count == 1
     assert not [h for h in evaluate_policy({"product_title": "茶葉 10%増量", "category": FOOD}, "MY")
                 if h.rule_id == "MY-WEIGHT-GAIN"]
     assert any(h.rule_id == "MY-WEIGHT-GAIN" for h in evaluate_policy({"product_title": "体重増加用 ビタミン 増量"}, "MY"))
@@ -221,17 +222,20 @@ def test_taiwan_bilingual_names_are_complete_names_and_children_are_not_inferred
     assert not tw.matches("資生堂風") and not tw.matches("エリクシール(資生堂)")
     my = load_brand_monitoring("MY")
     assert my.matches("Kose Cosmeport") and not my.matches("ソフティモ")
-    assert evaluate_sora_run(synthetic_run("MY", brand="ソフティモ")).eligible_count == 1
+    assert evaluate_sora_run(synthetic_run("MY", brand="ソフティモ", attributes=package(10, 10, 5))).eligible_count == 1
 
 
-@pytest.mark.parametrize("attributes,expected", [(package(), "REVIEW"), (package(10, 10, 5), "ELIGIBLE"),
-                                                 (package(10, 10, 30), "ELIGIBLE"), ({}, "ELIGIBLE")])
+@pytest.mark.parametrize("attributes,expected", [(package(), "ELIGIBLE"), (package(10, 10, 5), "ELIGIBLE"),
+                                                 (package(10, 10, 30), "ELIGIBLE"), ({}, "REVIEW")])
 def test_my_dimensional_weight_and_missing_sizes(attributes, expected):
     run = synthetic_run("MY", attributes=attributes)
     row = evaluate_sora_run(run).rows[0]
     assert row.final_eligibility == expected
-    if expected == "REVIEW":
+    if attributes == package():
         assert "容積重量 1.0kg" in row.guardrail_note and "実重量 0.5kg" in row.guardrail_note
+        assert "MY-VOLUMETRIC" not in row.guardrail_matched_terms
+        assert "GUARDRAIL_REVIEW" not in row.reason_codes
+    if expected == "REVIEW":
         assert "MY-VOLUMETRIC" in sora_exports(run, evaluate_sora_run(run))["要確認.csv"].decode("utf-8-sig")
     if not attributes:
         assert "サイズ情報なし" in row.guardrail_note
@@ -248,7 +252,7 @@ def test_volume_converts_units_and_falls_back_to_item_measurements(unit, values,
     attributes["item_dimensions"] = attributes.pop("item_package_dimensions")
     attributes["item_weight"] = attributes.pop("item_package_weight")
     row = evaluate_sora_run(synthetic_run("MY", attributes=attributes)).rows[0]
-    assert row.final_eligibility == "REVIEW"
+    assert row.final_eligibility == "ELIGIBLE"
     assert "容積重量 1.0kg" in row.guardrail_note and "実重量 0.5kg" in row.guardrail_note
     assert "item_dimensions / item_weight" in row.guardrail_note
 
@@ -258,7 +262,9 @@ def test_package_measurements_take_precedence_and_cannot_clear_an_independent_bl
     small = package(1, 1, 1, 100)
     attributes["item_dimensions"] = small["item_package_dimensions"]
     attributes["item_weight"] = small["item_package_weight"]
-    assert evaluate_sora_run(synthetic_run("MY", attributes=attributes)).review_count == 1
+    result = evaluate_sora_run(synthetic_run("MY", attributes=attributes))
+    assert result.eligible_count == 1
+    assert "容積重量 1.0kg" in result.rows[0].guardrail_note and "実重量 0.5kg" in result.rows[0].guardrail_note
     attributes.update(attr("bullet_point", "医薬部外品"))
     assert evaluate_sora_run(synthetic_run("MY", attributes=attributes)).exclude_count == 1
     for market in ("TH", "TW", "PH", "SG"):
@@ -271,11 +277,11 @@ def test_measurement_fallback_is_independent_and_conflicting_package_values_are_
     attributes["item_weight"] = attributes.pop("item_package_weight")
     run = synthetic_run("MY", attributes=attributes)
     row = evaluate_sora_run(run).rows[0]
-    assert row.final_eligibility == "REVIEW"
+    assert row.final_eligibility == "ELIGIBLE"
     assert "item_package_dimensions / item_weight" in row.guardrail_note
     attributes["item_package_dimensions"].append(package(10, 10, 5)["item_package_dimensions"][0])
     row = evaluate_sora_run(synthetic_run("MY", attributes=attributes)).rows[0]
-    assert row.final_eligibility == "ELIGIBLE" and "サイズ情報なし" in row.guardrail_note
+    assert row.final_eligibility == "REVIEW" and "サイズ情報なし" in row.guardrail_note
 
 
 @pytest.mark.parametrize("bad", [
@@ -283,16 +289,16 @@ def test_measurement_fallback_is_independent_and_conflicting_package_values_are_
     {"item_package_dimensions": package()["item_package_dimensions"]},
     package(weight=-1), package(length=0), package(length_unit="unknown"), package(weight=True),
 ])
-def test_incomplete_or_invalid_measurements_pass_with_note(bad):
+def test_incomplete_or_invalid_measurements_review_with_note(bad):
     row = evaluate_sora_run(synthetic_run("MY", attributes=bad)).rows[0]
-    assert row.final_eligibility == "ELIGIBLE" and "サイズ情報なし" in row.guardrail_note
+    assert row.final_eligibility == "REVIEW" and "サイズ情報なし" in row.guardrail_note
 
 
 def test_foreign_market_measurements_are_not_used():
     data = package()
     data["item_package_dimensions"][0]["marketplace_id"] = "ATVPDKIKX0DER"
     row = evaluate_sora_run(synthetic_run("MY", attributes=data)).rows[0]
-    assert row.final_eligibility == "ELIGIBLE" and "サイズ情報なし" in row.guardrail_note
+    assert row.final_eligibility == "REVIEW" and "サイズ情報なし" in row.guardrail_note
 
 
 def test_all_rules_keep_required_scope_and_item_is_never_text_or_ingredients():

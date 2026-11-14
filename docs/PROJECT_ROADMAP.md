@@ -3,7 +3,7 @@
 ## 当面の全体目標と優先順
 
 DEC-0189により、SoraはMY・TH・TWの国別ルールとCounterfeit一覧を評価し、条件を満たす商品は通過を出す。
-MYの容積重量超過は要確認とし、TH／TWの化粧品・食品を止める。3か国ともGovernanceはINACTIVE／ALLOWEDを維持する。
+MYの容積重量超過はメモのみ、寸法・重量の欠損／換算・計算不能は要確認とする（DEC-0191）。TH／TWの化粧品・食品を止め、3か国ともGovernanceはINACTIVE／ALLOWEDを維持する。
 次はOwnerが各国で実商品50〜100件を画面から3回確認し、その後のACTIVE化を別タスクで判断する。
 Sora以外の市場runtime・出品接続は開始せず、PH／SG保護・必須CI・実APIの個別承認を維持する。
 
