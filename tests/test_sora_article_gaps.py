@@ -105,11 +105,16 @@ def test_sg_and_ph_specific_rules_stay_in_their_market():
     "キュキュット 食器用洗剤 本体 240ml",
     "ムシューダ 防虫剤 引き出し用 24個",  # Owner decision 2026-11-12: clothing moth repellent keeps passing.
     "食器用 ゴム手袋 キッチン",
-    "バターナイフ ステンレス",
     "ナイフ 研ぎ器 シャープナー",
 ])
 def test_overstop_controls_remain_safe(market, title):
     assert status(market, title) == "SAFE"
+
+
+@pytest.mark.parametrize("market", BOTH)
+def test_knife_body_follows_common_weapon_policy(market):
+    # DEC-0190: a knife sold as the product itself is BLOCK in every market.
+    assert status(market, "バターナイフ ステンレス") == "BLOCK"
 
 
 @pytest.mark.parametrize("market", BOTH)

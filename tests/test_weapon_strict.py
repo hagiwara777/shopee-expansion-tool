@@ -8,7 +8,7 @@ from modules.safety_policy import evaluate_policy, load_policy_rules
 MARKETS = ("MY", "SG", "PH", "TH", "TW")
 STRICT_TITLES = (
     "モデルガン", "模造銃", "レプリカ銃", "拳銃", "ピストル", "リボルバー", "ライフル", "ショットガン",
-    "マシンガン", "機関銃", "銃型", "鉄砲", "ゴム鉄砲", "輪ゴム銃",
+    "マシンガン", "機関銃", "鉄砲", "ゴム鉄砲", "輪ゴム銃",
     "模造刀", "模擬刀", "居合刀", "日本刀", "木刀", "刀剣", "太刀", "脇差", "短刀", "小太刀", "薙刀",
     "日輪刀", "ライトセーバー", "刀", "剣", "ヌンチャク", "トンファー", "メリケンサック", "ナックルダスター",
     "警棒", "特殊警棒", "伸縮警棒", "手裏剣", "苦無", "クナイ", "鉄扇", "吹き矢", "弓矢", "クロスボウ",
@@ -18,9 +18,9 @@ STRICT_TITLES = (
 )
 HARMLESS_TITLES = (
     "ガンダム プラモデル", "グルーガン", "ヒートガン", "エアダスターガン", "剣山（生け花）",
-    "真剣ゼミ", "刀削麺", "剣菱", "爪切り", "防犯ブザー",
+    "真剣ゼミ", "刀削麺", "剣菱", "爪切り", "けん玉", "防犯ブザー", "鬼滅の刃 フィギュア",
 )
-PART_TERMS = ("武器パーツ付属", "武器付属", "剣付属", "銃付属", "ライフル付属", "ソード", "武器セット")
+PART_TERMS = ("武器パーツ付属", "武器付属", "剣付属", "銃付属", "ライフル付属", "ソードが付属", "武器セット")
 
 
 @pytest.fixture(autouse=True)
@@ -127,3 +127,84 @@ def test_new_item_rules_never_read_product_description_or_ingredients(market):
                                 "ingredients": ["日本刀"]}, market, rules=rules)
     assert any(h.rule_id == "COMMON-WEAPON-STRICT" and h.field == "category"
                for h in evaluate_policy({"product_title": "セット", "category": "ホビー > 木刀"}, market, rules=rules))
+
+
+BORROWED_TITLES = (
+    "ピストル型 シャワーヘッド", "ピストル型 散水ノズル", "ライフル スコープ カバー",
+    "銃型 シャワーヘッド", "刀風 傘", "剣形 雑貨", "ナイフ型 雑貨", "ナイフ柄の飾り", "ソード風 雑貨",
+    "pistol-shaped showerhead", "rifle scope cover", "knife-shaped decoration", "sword-shaped decoration",
+    "ライフル用 未知の道具", "cover for rifle", "サバイバルナイフ型",
+)
+
+
+@pytest.mark.parametrize("market", MARKETS)
+@pytest.mark.parametrize("title", BORROWED_TITLES)
+def test_borrowed_shapes_and_parts_are_review_without_product_exceptions(market, title):
+    assert status(market, title) == "REVIEW"
+
+
+@pytest.mark.parametrize("market", MARKETS)
+def test_borrowed_part_review_does_not_release_separate_th_license_stop(market):
+    assert status(market, "Kitchen knife case") == ("BLOCK" if market == "TH" else "REVIEW")
+    if market == "TH":
+        assert any(h.rule_id == "TH-LICENSE-OTHER" and h.action == "BLOCK"
+                   for h in evaluate_policy({"product_title": "Kitchen knife case"}, market))
+
+
+@pytest.mark.parametrize("market", MARKETS)
+@pytest.mark.parametrize("word", ("ピストル", "ライフル", "銃", "刀", "剣", "ナイフ", "ソード", "pistol", "rifle", "sword", "knife"))
+def test_borrowable_names_block_as_bodies_and_review_as_unknown_product_shapes(market, word):
+    assert status(market, word) == "BLOCK"
+    for suffix in ("型", "風", "形"):
+        assert status(market, word + suffix + " 未知の道具") == "REVIEW"
+
+
+@pytest.mark.parametrize("market", MARKETS)
+@pytest.mark.parametrize("kind", ("おもちゃ", "玩具", "トイ", "キーホルダー", "キーチェーン", "ペンダント", "ネックレス",
+                                  "ストラップ", "チャーム", "フィギュア", "レプリカ", "コスプレ", "模型"))
+def test_toy_and_decoration_kinds_block_even_when_the_weapon_is_a_shape_modifier(market, kind):
+    assert status(market, "ライフル型 " + kind) == "BLOCK"
+
+
+@pytest.mark.parametrize("market", MARKETS)
+def test_real_weapons_and_other_blocks_cannot_be_hidden_by_a_borrowed_occurrence(market):
+    for title in ("エアソフト ピストル", "おもちゃ ピストル", "ピストル型道具、ピストル本体",
+                  "ライフル スコープ カバー、ライフル付属", "ライフルとカバー",
+                  "ライフル ケース付き", "rifle case included", "ライフル 型番123",
+                  "ピストル型道具 スタンガン同梱", "模造刀型の未知の道具", "モデルガン用ケース"):
+        assert status(market, title) == "BLOCK"
+    assert status(market, "gun") == "SAFE"
+    assert status(market, "銃型") == "REVIEW"
+    assert status(market, "ピストル型 トイレットペーパーホルダー") == "REVIEW"
+
+
+@pytest.mark.parametrize("market", MARKETS)
+@pytest.mark.parametrize("field", ("features", "description"))
+@pytest.mark.parametrize("text", ("ビームライフル、シールドが付属", "日輪刀が付属します", "武器パーツ同梱",
+                                  "武器パーツ付き", "剣と盾のセット", "ブレードと槍が付属", "弓が同梱",
+                                  "ピストルが付属", "ナイフが付属", "ソードが付属", "銃が付属"))
+def test_realistic_hobby_attachment_sentences_review_in_each_description_field(market, field, text):
+    value = [text] if field == "features" else text
+    assert status(market, "ガンダム プラモデル", category="ホビー > プラモデル", **{field: value}) == "REVIEW"
+
+
+@pytest.mark.parametrize("market", MARKETS)
+@pytest.mark.parametrize("facts", (
+    {"description": "台座が付属"}, {"description": "ソード"},
+    {"description": "ライフルを構える。台座が付属"},
+    {"description": "ライフルを構える\n台座が付属"},
+    {"description": "ライフルを構える</p><p>台座が付属"},
+    {"features": ["ライフルを構える", "台座が付属"]},
+    {"description": "ライフルを構える", "features": ["台座が付属"]},
+    {"description": "剣山と台座が付属。真剣に作成"},
+))
+def test_hobby_review_does_not_cross_sentences_feature_values_or_fields(market, facts):
+    assert status(market, "ガンダム プラモデル", category="ホビー > プラモデル", **facts) == "SAFE"
+
+
+@pytest.mark.parametrize("market", MARKETS)
+def test_hobby_attachment_review_preserves_title_and_other_weapon_blocks(market):
+    facts = {"category": "おもちゃ", "features": ["ビームライフル、シールドが付属"]}
+    assert status(market, "モデルガン", **facts) == "BLOCK"
+    assert status(market, "日輪刀 おもちゃ", **facts) == "BLOCK"
+    assert status(market, "ガンダム プラモデル", **{**facts, "description": "スタンガン同梱"}) == "BLOCK"

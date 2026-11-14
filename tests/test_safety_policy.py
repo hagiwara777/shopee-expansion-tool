@@ -131,7 +131,9 @@ def test_market_differences_are_data_not_input_origin(title, sg, ph):
 @pytest.mark.parametrize("title", ["Kitchen knife case", "Kitchen knife sharpener", "包丁研ぎ器"])
 def test_sg_knife_accessory_is_not_mistaken_for_a_body(title):
     # The separate SG body gate still requires a reviewed confirmation.
-    assert guarded(title, market="SG")["guardrail_status"] == "SAFE"
+    # DEC-0190: a case gets shared REVIEW; existing sharpening exclusions stay.
+    expected = "REVIEW" if title == "Kitchen knife case" else "SAFE"
+    assert guarded(title, market="SG")["guardrail_status"] == expected
 
 
 @pytest.mark.parametrize("description", ["Includes a kitchen knife", "Contains a knife"])

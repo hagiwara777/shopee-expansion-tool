@@ -29,6 +29,20 @@ RISKS = {"drug_or_hemp", "medical_or_therapeutic", "regulated_ingredient", "bran
          "tobacco_or_vape", "alcohol", "license_or_certification_required", "own_penalty_product", "other"}
 TEXT_FIELDS = ("description", "features", "shortDescription", "safetyWarning", "itemHighlights")
 INGREDIENT_FIELDS = ("ingredients", "activeIngredients", "specialIngredients")
+# Product kinds and grammatical roles, never a list of exempt products.
+WEAPON_TOY_KINDS = ("おもちゃ", "玩具", "トイ", "キーホルダー", "キーチェーン", "ペンダント", "ネックレス",
+                    "ストラップ", "チャーム", "フィギュア", "レプリカ", "コスプレ", "模型")
+WEAPON_PART_KIND = (r"カバー|ケース|ホルダー|パーツ|部品|付属品|アクセサリー|スコープ|マウント|グリップ|"
+                    r"研ぎ器|研ぎ|シャープナー|砥石|収納|鞘|"
+                    r"(?<![a-z0-9])(?:covers?|cases?|holders?|parts?|accessories|accessory|scopes?|mounts?|grips?|"
+                    r"sharpeners?|sheaths?|storage)(?![a-z0-9])")
+WEAPON_TOY_KIND = ("|".join(re.escape(t) for t in WEAPON_TOY_KINDS if t != "トイ")
+                   + r"|(?<![ァ-ヴー])トイ(?![ァ-ヴー])"
+                   + r"|(?<![a-z0-9])(?:toys?|keychains?|key chains?|pendants?|necklaces?|straps?|charms?|"
+                   r"figures?|figurines?|replicas?|cosplay)(?![a-z0-9])")
+# Existing SG sharpening exclusion, shared with the new borrowed-word rule.
+KNIFE_SHARPENING_EXCLUSION = (r"ナイフ(?=\s*(?:用(?:の)?\s*)?(?:研ぎ器|研ぎ|シャープナー|砥石))"
+                              r"|knife[ -]+sharpener")
 
 
 class SafetyPolicyError(ValueError):
@@ -115,7 +129,7 @@ def mask_harmless_phrases(value):
                   lambda match: " " * len(match[0]), value)
 
 
-def _condition(rule, value, row, group, term=None):
+def _condition(rule, value, row, group, term=None, occurrence=None):
     """Return BLOCK/REVIEW for a match, or None for a bounded exclusion."""
     condition = rule["condition"]
     action = rule["action"]
@@ -157,8 +171,7 @@ def _condition(rule, value, row, group, term=None):
         return action if term != "パチンコ" or re.search(
             r"玩具|おもちゃ|投石|スリングショット|slingshot", title + " " + category) else None
     if condition == "weapon_shaped_accessory":
-        return action if group == "title" and re.search(
-            r"キーホルダー|キーチェーン|ペンダント|ネックレス|ストラップ|チャーム|フィギュア", value) else None
+        return _weapon_title_action(value, term, occurrence) if group == "title" else None
     if condition == "toy_weapon_accessory":
         return action if group == "text" and _weapon_accessory_category(row) else None
     if condition == "sport_weapon":
@@ -286,6 +299,11 @@ def _condition(rule, value, row, group, term=None):
 
 
 def _policy_pattern(term, rule):
+    if rule["id"] == "COMMON-WEAPON-SHAPED-ACCESSORY" and term in {"ピストル", "ライフル", "ナイフ", "ソード"}:
+        # A weapon word may head a compound, but not merely start a longer
+        # katakana name. Toy/part product kinds may directly follow it.
+        kinds = "|".join(re.escape(t) for t in WEAPON_TOY_KINDS)
+        return re.escape(term) + rf"(?=$|[^ァ-ヴーa-z0-9]|{kinds}|{WEAPON_PART_KIND})"
     if rule["id"] == "COMMON-WEAPON-SHAPED-ACCESSORY" and term in {"刀", "剣"}:
         # Both names in a product title suffice, including 刀フィギュア
         # without a separator. Harmless and sport compounds are masked first.
@@ -416,6 +434,66 @@ def _weapon_accessory_category(row):
     return any(re.fullmatch(r"おもちゃ|玩具|ホビー|プラモデル(?:・模型)?|フィギュア", node) for node in nodes)
 
 
+def _weapon_title_action(value, term, occurrence):
+    """Classify this occurrence; a later real weapon must still BLOCK."""
+    if occurrence is None:
+        return None
+    surrounding = value[:occurrence.start()] + " " * len(occurrence[0]) + value[occurrence.end():]
+    if re.search(WEAPON_TOY_KIND, surrounding):
+        return "BLOCK"
+    if term in {"ナイフ", "knife"} and any(
+            m.start() == occurrence.start() for m in re.finditer(KNIFE_SHARPENING_EXCLUSION, value)):
+        return None
+    tail = re.split(r"[、,。;；!?！？\r\n]", value[occurrence.end():], maxsplit=1)[0].strip()
+    if re.match(r"(?:型(?!番|式|号)|風|形|柄|専?用|向け|対応|適合)|[-‐‑–— ]*(?:shaped|style|like|pattern)\b", tail):
+        return "REVIEW"
+    if re.search(r"(?:\bfor|\bfits|\bcompatible with)\s+(?:(?:a|the)\s+)?$", value[:occurrence.start()]):
+        return "REVIEW"
+    # Inclusion or a conjunction identifies a separate body, even next to a cover.
+    separate = re.match(r"(?:本体|付き|付属|同梱|が付|を含|と|及び|および)|(?:and|with|included)\b", tail)
+    part = re.search(WEAPON_PART_KIND, tail)
+    if not separate and part:
+        # A rifle with a case is a body; a rifle case is an accessory.
+        accompanies_body = re.match(r"\s*(?:付属|付き|同梱|が付|included\b|supplied\b)", tail[part.end():])
+        return "BLOCK" if accompanies_body else "REVIEW"
+    # The generic token gun is usable only with a toy/shape/part context.
+    return None if term == "gun" else "BLOCK"
+
+
+def _weapon_identity_occurrences(value, rule):
+    if rule is None:
+        return []
+    found = []
+    for term in rule["terms"]:
+        if term not in value:
+            continue
+        for match in re.finditer(_policy_pattern(term, rule), value):
+            found.append((term, match.start(), match.end(), _weapon_title_action(value, term, match)))
+    return found
+
+
+def _hobby_weapon_spans(raw, terms, row):
+    """Weapon mentions with attachment wording in the same sentence/value.
+
+    Collapse whitespace to one character, retaining line breaks as sentence
+    boundaries. Offsets therefore also address normalize_text(raw).
+    """
+    value = unicodedata.normalize("NFKC", raw).strip().lower()
+    value = re.sub(r"\s+", lambda m: "\n" if re.search(r"[\r\n\u2028\u2029]", m[0]) else " ", value)
+    value = _mask_official_gap_exclusions(value, "COMMON-WEAPON-ACCESSORY-REVIEW", row)
+    spans = []
+    start = 0
+    boundaries = list(re.finditer(r"[。.!?！？\r\n]+|<br\s*/?>|</(?:p|li|div)>", value))
+    for end, following in [(m.start(), m.end()) for m in boundaries] + [(len(value), len(value))]:
+        sentence = value[start:end]
+        if re.search(r"付属|付き|セット|同梱", sentence):
+            for term in terms:
+                spans.extend((start + m.start(), start + m.end())
+                             for m in re.finditer(re.escape(term), sentence))
+        start = following
+    return spans
+
+
 def _nail_tool(row):
     from modules.guardrails import normalize_text
     product = normalize_text(row.get("product_title", ""))
@@ -461,7 +539,7 @@ def _eyewear_accessory(value):
 def _mask_official_gap_exclusions(value, rule_id, row):
     """Mask only the specified occurrence, preserving independent positive hits."""
     patterns = []
-    if rule_id in {"COMMON-WEAPON-STRICT", "COMMON-WEAPON-SHAPED-ACCESSORY",
+    if rule_id in {"COMMON-WEAPON-STRICT", "COMMON-WEAPON-SHAPED-ACCESSORY", "COMMON-WEAPON-ACCESSORY-REVIEW",
                    "COMMON-WEAPON-DECORATION", "PH-WEAPON-DECORATION", "TW-BLADE"}:
         # Exclude the occurrence only; another weapon in the same title still stops.
         patterns.append(r"剣山|真剣|刀削麺|剣菱")
@@ -488,8 +566,7 @@ def _mask_official_gap_exclusions(value, rule_id, row):
         patterns.append(r"バターナイフ|butter[ -]+knife|(?:kitchen|chef|cook)(?:['’]s)?[ -]+knife[ -]+"
                         r"(?:sharpener|case|sheath|holder|storage)\b")
         # Sharpening tools are not knives; another knife occurrence still blocks.
-        patterns.append(r"ナイフ(?=\s*(?:用(?:の)?\s*)?(?:研ぎ器|研ぎ|シャープナー|砥石))"
-                        r"|knife[ -]+sharpener")
+        patterns.append(KNIFE_SHARPENING_EXCLUSION)
         from modules.guardrails import normalize_text
         kind = normalize_text(row.get("product_title", "")) + " " + normalize_text(row.get("category", "")) + " " + value
         if re.search(r"飾り|装飾|雑貨|フィギュア|キーホルダー|ペンダント|figure|keychain|pendant", kind):
@@ -556,9 +633,15 @@ def evaluate_policy(row, marketplace, rules=None):
     from modules.guardrails import normalize_text, _contains_rule_term, GuardrailRule
     rules = load_policy_rules() if rules is None else rules
     accessory_terms = next((r["terms"] for r in rules if r["id"] == "COMMON-WEAPON-ACCESSORY-REVIEW"), ())
+    identity_rule = next((r for r in rules if r["id"] == "COMMON-WEAPON-SHAPED-ACCESSORY"), None)
     # Give item rules only identity fields, including in condition/exclusion
     # helpers.  A future helper cannot expand item scope by reading product text.
     item_row = {name: row.get(name) for name in ITEM_COLUMNS}
+    identity_title = _mask_official_gap_exclusions(
+        normalize_text(item_row.get("product_title", "")), "COMMON-WEAPON-SHAPED-ACCESSORY", item_row)
+    identity_occurrences = _weapon_identity_occurrences(identity_title, identity_rule)
+    hobby_category = _weapon_accessory_category(item_row)
+    part_spans_cache = {}
     hits = []
     for rule in rules:
         _validate_scope(rule)  # Also reject invalid directly supplied rules.
@@ -573,13 +656,20 @@ def evaluate_policy(row, marketplace, rules=None):
                         if is_ingredient_policy_text else normalize_text(raw))
             value = mask_harmless_phrases(original) if rule["condition"] == "general" else original
             value = _mask_official_gap_exclusions(value, rule["id"], rule_row)
-            if (group == "text" and accessory_terms
-                    and rule["id"] in {"COMMON-WEAPON-DECORATION", "PH-WEAPON-DECORATION", "PH-TOY-WEAPON-CONTEXT"}
-                    and _weapon_accessory_category(rule_row)):
-                # DEC-0190: only the configured hobby-part mentions become REVIEW.
-                # Keep title weapons and other affirmative text occurrences intact.
-                pattern = "|".join(re.escape(normalize_text(term)) for term in accessory_terms)
-                value = re.sub(pattern, lambda m: " " * len(m[0]), value)
+            part_spans = []
+            if (field in {"features", "description"} and accessory_terms and hobby_category
+                    and rule["risk"] in {"weapon", "weapon_related_toy"}):
+                key = (field, raw)
+                if key not in part_spans_cache:
+                    part_spans_cache[key] = _hobby_weapon_spans(raw, accessory_terms, item_row)
+                part_spans = part_spans_cache[key]
+                if rule["id"] != "COMMON-WEAPON-ACCESSORY-REVIEW":
+                    # Mask only the configured weapon occurrence in a qualifying
+                    # sentence. Other weapons and title BLOCKs remain independent.
+                    for start, end in part_spans:
+                        value = value[:start] + " " * (end - start) + value[end:]
+            if rule["id"] == "COMMON-WEAPON-ACCESSORY-REVIEW" and not part_spans:
+                continue
             if rule["id"] == "COMMON-ALCOHOL-CATEGORY" and group == "category":
                 # The Amazon root "食品・飲料・お酒" is not alcohol evidence.
                 # Keep offsets so the hit cites only a later matching node.
@@ -653,6 +743,9 @@ def evaluate_policy(row, marketplace, rules=None):
                          if medical else None)
                 seen_actions = set()
                 for index, occurrence in enumerate(occurrences):
+                    if (rule["id"] == "COMMON-WEAPON-ACCESSORY-REVIEW"
+                            and (occurrence.start(), occurrence.end()) not in part_spans):
+                        continue
                     if (rule["id"] == "COMMON-SLS-PERFUME"
                             and term in {"フレグランス", "perfume", "perfumes", "fragrance", "fragrances"} and group == "text"
                             and not _fragrance_text_describes_product(value, occurrence)):
@@ -664,7 +757,21 @@ def evaluate_policy(row, marketplace, rules=None):
                         end = occurrences[index + 1].start() if index + 1 < len(occurrences) else len(value)
                         if not _contains_rule_term(value[start:end], probe):
                             continue
-                    action = _condition(rule, value, rule_row, group, normalized)
+                    action = _condition(rule, value, rule_row, group, normalized, occurrence)
+                    if (action and identity_rule and rule["risk"] in {"weapon", "weapon_related_toy"}
+                            and rule["id"] not in {"COMMON-WEAPON-STRICT", "COMMON-WEAPON-SHAPED-ACCESSORY"}
+                            and group in {"title", "category"}):
+                        # Reclassify this same borrowed word in legacy weapon
+                        # rules too; never downgrade unrelated rules or whole rows.
+                        title_actions = []
+                        if group == "title":
+                            title_actions = [a for _, start, end, a in identity_occurrences
+                                             if occurrence.start() <= start and end <= occurrence.end()]
+                        else:
+                            category_terms = {t for t, _, _, _ in _weapon_identity_occurrences(occurrence[0], identity_rule)}
+                            title_actions = [a for t, _, _, a in identity_occurrences if t in category_terms]
+                        if title_actions and all(a == "REVIEW" for a in title_actions):
+                            action = "REVIEW"
                     ingredient_list = any(start <= occurrence.start() and occurrence.end() <= end
                                           for start, end in sections)
                     if ingredient_list:

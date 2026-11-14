@@ -63,10 +63,10 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 | COMMON-BATTERY-SINGLE | ALL | 停止 | content | リチウム電池単体、リチウムイオン電池単体、交換用電池、ボタン電池、コイン電池、乾電池、ノートPC用バッテリー、カメラ用バッテリー ほか12語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止。SLS輸送確認。 |
 | COMMON-LITHIUM-SIGNAL | ALL | 要確認 | content | リチウム電池、リチウムイオン電池、lithium battery、lithium ion battery | 自分の方針 | DEC-0167; Ownerの出品方針による要確認。SLS輸送確認。 |
 | COMMON-WEAPON | ALL | 停止 | content | スタンガン、電気スタンナー、催涙スプレー、stun gun、stun guns、pepper spray、firearm、firearms ほか13語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
-| COMMON-WEAPON-STRICT | ALL | 停止 | item | モデルガン、模造銃、レプリカ銃、拳銃、ピストル、リボルバー、ライフル、ショットガン ほか50語 | 自分の方針 | DEC-0190; Owner方針として武器・模造武器・玩具武器を全市場共通で停止する。刀・剣は語境界と除外語で限定し、鉄砲から水鉄砲を除く。単独のガン・gunは追加しない。 |
-| COMMON-WEAPON-SHAPED-ACCESSORY | ALL | 停止 | item | 銃、ピストル、拳銃、刀、剣、ナイフ | 自分の方針 | DEC-0190; 商品名に武器名とキーホルダー・キーチェーン・ペンダント・ネックレス・ストラップ・チャーム・フィギュアのどれかが共存すれば、全市場共通で停止する。 |
+| COMMON-WEAPON-STRICT | ALL | 停止 | item | モデルガン、模造銃、レプリカ銃、拳銃、リボルバー、ショットガン、マシンガン、機関銃 ほか43語 | 自分の方針 | DEC-0190; 紛れようのない武器・模造武器の名称は借用形でも全市場共通で停止する。形・名前に借りられる語はCOMMON-WEAPON-SHAPED-ACCESSORYで分ける。鉄砲から水鉄砲を除く。 |
+| COMMON-WEAPON-SHAPED-ACCESSORY | ALL | 停止 | item | ピストル、ライフル、銃、刀、剣、ナイフ、ソード、pistol ほか4語 | 自分の方針 | DEC-0190; 借りられやすい武器語は、商品名の玩具・装飾品との共起または武器そのものならBLOCK。型・風・形・柄や用途の修飾、部品・付属品の名称ならREVIEW。型番や本体への付属表示は区別し、商品別の除外を増やさない。gun単独では新規判定せず、ガンは追加しない。 |
 | COMMON-MILITARY-POLICE-GEAR | ALL | 停止 | item | 防弾チョッキ、防弾ベスト、防刃ベスト、スチールヘルメット、軍服、軍装備、警察 制服、警察 バッジ ほか1語 | 自分の方針 | DEC-0190; Owner提示のMY販売規制ガイド2026-08-13版と全国共通の厳しい側にそろえる方針に基づき、指定の軍・警察装備を停止する。 |
-| COMMON-WEAPON-ACCESSORY-REVIEW | ALL | 要確認 | content | 武器パーツ、武器付属、剣付属、銃付属、ライフル付属、ソード、武器セット | 自分の方針 | DEC-0190; おもちゃ・ホビー・プラモデル・フィギュアカテゴリで、説明文中の指定された武器付属品への言及は要確認。商品名の武器・武器型装飾品と、別の肯定表示による停止は解除しない。 |
+| COMMON-WEAPON-ACCESSORY-REVIEW | ALL | 要確認 | content | 武器、刀、剣、ソード、銃、ライフル、ピストル、ナイフ ほか3語 | 自分の方針 | DEC-0190; おもちゃ・ホビー・プラモデル・フィギュアカテゴリで、features・descriptionの同じ文に武器語と付属・付き・セット・同梱があればREVIEW。文・箇条書き値・欄をまたいで共起を推定しない。商品名の武器と、別の禁止語による停止は維持する。 |
 | COMMON-SPORT-WEAPON-REVIEW | ALL | 要確認 | item | 竹刀、剣道、ダーツ、アーチェリー、弓 | 自分の方針 | DEC-0190; 指定のスポーツ用具は要確認。弓はスポーツ・アーチェリー・弓道の文脈を要する。TWのダーツ等の既存BLOCKは優先し、TWのハサミも既存REVIEWを維持する。 |
 | COMMON-WEAPON-DECORATION | ALL | 停止 | content | 剣、刀、銃、武器、ナイフ、sword、gun、weapon ほか1語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | PH-WEAPON-DECORATION | PH | 停止 | content | 剣、刀、銃、武器、ナイフ、sword、gun、weapon ほか1語 | Shopee公式 | DEC-0181; PH公式の輸入禁制品（武器付きのキーチェーン・ペンダント・フィギュア等）をBLOCK。SGは共通ルールの扱いを維持。 |
