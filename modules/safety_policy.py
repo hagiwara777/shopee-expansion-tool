@@ -22,7 +22,8 @@ CONDITIONS = {"always", "medical", "general", "spray", "mask", "weapon_attachmen
               "sg_knife", "ph_contact_lens", "flammable_liquid", "alcohol_strength",
               "weapon_part", "mushroom_food", "toy_weapon", "pet_drug", "ph_weapon_decoration",
               "pet_food_category", "eyewear", "weight_gain", "safety_helmet",
-              "root_category", "root_category_or_title", "category_contains", "hair_iron", "tw_blade"}
+              "root_category", "root_category_or_title", "category_contains", "hair_iron", "tw_blade",
+              "weapon_shaped_accessory", "toy_weapon_accessory", "sport_weapon"}
 RISKS = {"drug_or_hemp", "medical_or_therapeutic", "regulated_ingredient", "brand_ip",
          "weapon", "weapon_related_toy", "food_restricted", "shipping_restricted",
          "tobacco_or_vape", "alcohol", "license_or_certification_required", "own_penalty_product", "other"}
@@ -155,6 +156,14 @@ def _condition(rule, value, row, group, term=None):
     if condition == "tw_blade":
         return action if term != "パチンコ" or re.search(
             r"玩具|おもちゃ|投石|スリングショット|slingshot", title + " " + category) else None
+    if condition == "weapon_shaped_accessory":
+        return action if group == "title" and re.search(
+            r"キーホルダー|キーチェーン|ペンダント|ネックレス|ストラップ|チャーム|フィギュア", value) else None
+    if condition == "toy_weapon_accessory":
+        return action if group == "text" and _weapon_accessory_category(row) else None
+    if condition == "sport_weapon":
+        return action if term != "弓" or re.search(
+            r"スポーツ|アーチェリー|弓道|(?<![a-z])(?:sports?|archery)(?![a-z])", title + " " + category) else None
     if condition == "alcohol_strength":
         strength = re.search(r"アルコール分\s*(?:約)?\s*\d+(?:\.\d+)?\s*%", value)
         beverage = re.search(r"飲料|飲み物|飲みもの|ドリンク|酒|ビール|ワイン|カクテル|"
@@ -277,6 +286,22 @@ def _condition(rule, value, row, group, term=None):
 
 
 def _policy_pattern(term, rule):
+    if rule["id"] == "COMMON-WEAPON-SHAPED-ACCESSORY" and term in {"刀", "剣"}:
+        # Both names in a product title suffice, including 刀フィギュア
+        # without a separator. Harmless and sport compounds are masked first.
+        return re.escape(term)
+    if term in {"刀", "剣"} and rule["id"] in {
+        "COMMON-WEAPON-STRICT",
+        "COMMON-WEAPON-DECORATION", "PH-WEAPON-DECORATION", "TW-BLADE",
+    }:
+        # A standalone blade name (including its grammatical suffix) is not
+        # 剣山, 真剣, 刀削麺 or a sports compound such as 竹刀 / 剣道.
+        letters = r"一-龥々ぁ-んァ-ヶーa-z0-9"
+        return rf"(?<![{letters}]){term}(?=$|[^{letters}]|付き|付属|同梱|型|の|を)"
+    if rule["id"] == "COMMON-WEAPON-STRICT" and term == "鉄砲":
+        return r"(?<!水)鉄砲"
+    if rule["id"] == "COMMON-SPORT-WEAPON-REVIEW" and term == "弓":
+        return r"(?<![一-龥々ぁ-んァ-ヶーa-z0-9])弓(?![一-龥々ぁ-んァ-ヶーa-z0-9])"
     if rule["id"] == "MY-SUGAR-RICE" and "米" in term:
         # Named rice types can follow a place of origin (国産無洗米).
         # Bare 米/お米 still need a left boundary; all need a right boundary
@@ -385,6 +410,12 @@ def _category_is_toy(row):
                             node) for node in nodes)
 
 
+def _weapon_accessory_category(row):
+    from modules.guardrails import normalize_text
+    nodes = [n.strip() for n in normalize_text(row.get("category", "")).split(">")]
+    return any(re.fullmatch(r"おもちゃ|玩具|ホビー|プラモデル(?:・模型)?|フィギュア", node) for node in nodes)
+
+
 def _nail_tool(row):
     from modules.guardrails import normalize_text
     product = normalize_text(row.get("product_title", ""))
@@ -430,6 +461,14 @@ def _eyewear_accessory(value):
 def _mask_official_gap_exclusions(value, rule_id, row):
     """Mask only the specified occurrence, preserving independent positive hits."""
     patterns = []
+    if rule_id in {"COMMON-WEAPON-STRICT", "COMMON-WEAPON-SHAPED-ACCESSORY",
+                   "COMMON-WEAPON-DECORATION", "PH-WEAPON-DECORATION", "TW-BLADE"}:
+        # Exclude the occurrence only; another weapon in the same title still stops.
+        patterns.append(r"剣山|真剣|刀削麺|剣菱")
+    if rule_id in {"COMMON-WEAPON-STRICT", "COMMON-WEAPON-SHAPED-ACCESSORY"}:
+        patterns.append(r"包丁研ぎ")
+    if rule_id == "COMMON-WEAPON-SHAPED-ACCESSORY":
+        patterns.append(r"竹刀|剣道")
     if rule_id == "MY-EYEWEAR":
         # Keep a separate body mention in a bundle; mask just the accessory.
         while match := _eyewear_accessory(value):
@@ -516,6 +555,7 @@ def evaluate_policy(row, marketplace, rules=None):
     # Future-market data never enables its UI, credentials, or operations.
     from modules.guardrails import normalize_text, _contains_rule_term, GuardrailRule
     rules = load_policy_rules() if rules is None else rules
+    accessory_terms = next((r["terms"] for r in rules if r["id"] == "COMMON-WEAPON-ACCESSORY-REVIEW"), ())
     # Give item rules only identity fields, including in condition/exclusion
     # helpers.  A future helper cannot expand item scope by reading product text.
     item_row = {name: row.get(name) for name in ITEM_COLUMNS}
@@ -533,6 +573,13 @@ def evaluate_policy(row, marketplace, rules=None):
                         if is_ingredient_policy_text else normalize_text(raw))
             value = mask_harmless_phrases(original) if rule["condition"] == "general" else original
             value = _mask_official_gap_exclusions(value, rule["id"], rule_row)
+            if (group == "text" and accessory_terms
+                    and rule["id"] in {"COMMON-WEAPON-DECORATION", "PH-WEAPON-DECORATION", "PH-TOY-WEAPON-CONTEXT"}
+                    and _weapon_accessory_category(rule_row)):
+                # DEC-0190: only the configured hobby-part mentions become REVIEW.
+                # Keep title weapons and other affirmative text occurrences intact.
+                pattern = "|".join(re.escape(normalize_text(term)) for term in accessory_terms)
+                value = re.sub(pattern, lambda m: " " * len(m[0]), value)
             if rule["id"] == "COMMON-ALCOHOL-CATEGORY" and group == "category":
                 # The Amazon root "食品・飲料・お酒" is not alcohol evidence.
                 # Keep offsets so the hit cites only a later matching node.

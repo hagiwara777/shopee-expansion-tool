@@ -9,7 +9,7 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 
 | グループ | 停止 | 要確認 | その他 | 元ファイル |
 |---|---:|---:|---:|---|
-| 保安ルール | 134 | 38 | 0 | `guardrails/policy/rules.json` |
+| 保安ルール | 137 | 40 | 0 | `guardrails/policy/rules.json` |
 | コード内のルール | 5 | 3 | 0 | `modules/battery_presence.py`<br>`modules/guardrails.py`<br>`modules/home_appliances_classifier.py`<br>`modules/prelisting_sg_body_safety.py`<br>ほか4件 |
 | ブランド（IPR） | 138 | 0 | 0 | `guardrails/brand_monitoring/ipr.json` |
 | ブランド（Counterfeit） | 1525 | 0 | 0 | `guardrails/brand_monitoring/counterfeit_my.json`<br>`guardrails/brand_monitoring/counterfeit_ph.json`<br>`guardrails/brand_monitoring/counterfeit_sg.json`<br>`guardrails/brand_monitoring/counterfeit_th.json`<br>ほか1件 |
@@ -28,7 +28,7 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 
 | 国 | 停止 | 要確認 |
 |---|---:|---:|
-| 全ての国 | 222 | 74 |
+| 全ての国 | 225 | 76 |
 | MY | 671 | 27 |
 | PH | 469 | 28 |
 | SG | 668 | 139 |
@@ -63,6 +63,11 @@ Soraが「停止」「要確認」を出す根拠の一覧です。`python scrip
 | COMMON-BATTERY-SINGLE | ALL | 停止 | content | リチウム電池単体、リチウムイオン電池単体、交換用電池、ボタン電池、コイン電池、乾電池、ノートPC用バッテリー、カメラ用バッテリー ほか12語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止。SLS輸送確認。 |
 | COMMON-LITHIUM-SIGNAL | ALL | 要確認 | content | リチウム電池、リチウムイオン電池、lithium battery、lithium ion battery | 自分の方針 | DEC-0167; Ownerの出品方針による要確認。SLS輸送確認。 |
 | COMMON-WEAPON | ALL | 停止 | content | スタンガン、電気スタンナー、催涙スプレー、stun gun、stun guns、pepper spray、firearm、firearms ほか13語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
+| COMMON-WEAPON-STRICT | ALL | 停止 | item | モデルガン、模造銃、レプリカ銃、拳銃、ピストル、リボルバー、ライフル、ショットガン ほか50語 | 自分の方針 | DEC-0190; Owner方針として武器・模造武器・玩具武器を全市場共通で停止する。刀・剣は語境界と除外語で限定し、鉄砲から水鉄砲を除く。単独のガン・gunは追加しない。 |
+| COMMON-WEAPON-SHAPED-ACCESSORY | ALL | 停止 | item | 銃、ピストル、拳銃、刀、剣、ナイフ | 自分の方針 | DEC-0190; 商品名に武器名とキーホルダー・キーチェーン・ペンダント・ネックレス・ストラップ・チャーム・フィギュアのどれかが共存すれば、全市場共通で停止する。 |
+| COMMON-MILITARY-POLICE-GEAR | ALL | 停止 | item | 防弾チョッキ、防弾ベスト、防刃ベスト、スチールヘルメット、軍服、軍装備、警察 制服、警察 バッジ ほか1語 | 自分の方針 | DEC-0190; Owner提示のMY販売規制ガイド2026-08-13版と全国共通の厳しい側にそろえる方針に基づき、指定の軍・警察装備を停止する。 |
+| COMMON-WEAPON-ACCESSORY-REVIEW | ALL | 要確認 | content | 武器パーツ、武器付属、剣付属、銃付属、ライフル付属、ソード、武器セット | 自分の方針 | DEC-0190; おもちゃ・ホビー・プラモデル・フィギュアカテゴリで、説明文中の指定された武器付属品への言及は要確認。商品名の武器・武器型装飾品と、別の肯定表示による停止は解除しない。 |
+| COMMON-SPORT-WEAPON-REVIEW | ALL | 要確認 | item | 竹刀、剣道、ダーツ、アーチェリー、弓 | 自分の方針 | DEC-0190; 指定のスポーツ用具は要確認。弓はスポーツ・アーチェリー・弓道の文脈を要する。TWのダーツ等の既存BLOCKは優先し、TWのハサミも既存REVIEWを維持する。 |
 | COMMON-WEAPON-DECORATION | ALL | 停止 | content | 剣、刀、銃、武器、ナイフ、sword、gun、weapon ほか1語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止 |
 | PH-WEAPON-DECORATION | PH | 停止 | content | 剣、刀、銃、武器、ナイフ、sword、gun、weapon ほか1語 | Shopee公式 | DEC-0181; PH公式の輸入禁制品（武器付きのキーチェーン・ペンダント・フィギュア等）をBLOCK。SGは共通ルールの扱いを維持。 |
 | COMMON-FIRE-FUEL | ALL | 停止 | content | 花火、爆竹、火薬、ライター、マッチ、着火剤、燃料、オイルライター用オイル ほか7語 | 自分の方針 | DEC-0167; Ownerの出品方針による停止。SLS輸送確認。 |

@@ -241,9 +241,9 @@ def test_colour_contact_lens_names_block(market, title):
     assert status(market, title) == "BLOCK"
 
 
-def test_ph_weapon_decorations_block_while_sg_keeps_shared_handling():
+def test_weapon_decorations_block_under_shared_strict_policy():
     for title in ("ナイフ キーホルダー ミニ", "剣 フィギュア", "銃 ペンダント"):
         assert status("PH", title) == "BLOCK", title
         assert not any(h.rule_id == "PH-WEAPON-DECORATION" for h in evaluate_policy({"product_title": title}, "SG"))
-    assert status("SG", "剣 フィギュア") == "REVIEW"
+    assert status("SG", "剣 フィギュア") == "BLOCK"  # DEC-0190: strictest policy across markets.
     assert status("PH", "ハート キーホルダー") == "SAFE"

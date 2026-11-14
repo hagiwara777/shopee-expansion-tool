@@ -573,6 +573,71 @@
       "source": "internal_rule"
     },
     {
+      "id": "COMMON-WEAPON-STRICT",
+      "scope": "item",
+      "markets": ["ALL"],
+      "action": "BLOCK",
+      "risk": "weapon",
+      "fields": ["title", "category"],
+      "terms": [
+        "モデルガン", "模造銃", "レプリカ銃", "拳銃", "ピストル", "リボルバー", "ライフル", "ショットガン", "マシンガン", "機関銃", "銃型", "鉄砲", "ゴム鉄砲", "輪ゴム銃",
+        "模造刀", "模擬刀", "居合刀", "日本刀", "木刀", "刀剣", "太刀", "脇差", "短刀", "小太刀", "薙刀", "日輪刀", "ライトセーバー", "刀", "剣",
+        "ヌンチャク", "トンファー", "メリケンサック", "ナックルダスター", "警棒", "特殊警棒", "伸縮警棒", "手裏剣", "苦無", "クナイ", "鉄扇", "吹き矢", "弓矢", "クロスボウ", "ボウガン", "スリングショット", "唐辛子スプレー",
+        "replica gun", "toy gun", "pistol", "revolver", "rifle", "nunchaku", "brass knuckles", "baton", "shuriken", "crossbow", "slingshot", "blowgun"
+      ],
+      "condition": "always",
+      "note": "DEC-0190; Owner方針として武器・模造武器・玩具武器を全市場共通で停止する。刀・剣は語境界と除外語で限定し、鉄砲から水鉄砲を除く。単独のガン・gunは追加しない。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-WEAPON-SHAPED-ACCESSORY",
+      "scope": "item",
+      "markets": ["ALL"],
+      "action": "BLOCK",
+      "risk": "weapon_related_toy",
+      "fields": ["title"],
+      "terms": ["銃", "ピストル", "拳銃", "刀", "剣", "ナイフ"],
+      "condition": "weapon_shaped_accessory",
+      "note": "DEC-0190; 商品名に武器名とキーホルダー・キーチェーン・ペンダント・ネックレス・ストラップ・チャーム・フィギュアのどれかが共存すれば、全市場共通で停止する。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-MILITARY-POLICE-GEAR",
+      "scope": "item",
+      "markets": ["ALL"],
+      "action": "BLOCK",
+      "risk": "weapon",
+      "fields": ["title", "category"],
+      "terms": ["防弾チョッキ", "防弾ベスト", "防刃ベスト", "スチールヘルメット", "軍服", "軍装備", "警察 制服", "警察 バッジ", "勲章"],
+      "condition": "always",
+      "note": "DEC-0190; Owner提示のMY販売規制ガイド2026-08-13版と全国共通の厳しい側にそろえる方針に基づき、指定の軍・警察装備を停止する。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-WEAPON-ACCESSORY-REVIEW",
+      "scope": "content",
+      "markets": ["ALL"],
+      "action": "REVIEW",
+      "risk": "weapon_related_toy",
+      "fields": ["text"],
+      "terms": ["武器パーツ", "武器付属", "剣付属", "銃付属", "ライフル付属", "ソード", "武器セット"],
+      "condition": "toy_weapon_accessory",
+      "note": "DEC-0190; おもちゃ・ホビー・プラモデル・フィギュアカテゴリで、説明文中の指定された武器付属品への言及は要確認。商品名の武器・武器型装飾品と、別の肯定表示による停止は解除しない。",
+      "source": "internal_rule"
+    },
+    {
+      "id": "COMMON-SPORT-WEAPON-REVIEW",
+      "scope": "item",
+      "markets": ["ALL"],
+      "action": "REVIEW",
+      "risk": "weapon",
+      "fields": ["title", "category"],
+      "terms": ["竹刀", "剣道", "ダーツ", "アーチェリー", "弓"],
+      "condition": "sport_weapon",
+      "note": "DEC-0190; 指定のスポーツ用具は要確認。弓はスポーツ・アーチェリー・弓道の文脈を要する。TWのダーツ等の既存BLOCKは優先し、TWのハサミも既存REVIEWを維持する。",
+      "source": "internal_rule"
+    },
+    {
       "id": "COMMON-WEAPON-DECORATION",
       "scope": "content",
       "markets": [
